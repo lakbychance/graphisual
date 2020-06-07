@@ -1,0 +1,49 @@
+.node {
+  fill: white;
+  animation: drawNode;
+  animation-duration: 0.3s;
+}
+
+.directedEdge {
+  stroke: white;
+  fill: transparent;
+  stroke-width: 0.2%;
+}
+
+.deleteNodeMode:hover {
+  fill: #a01f1f;
+}
+.editEdgeMode:hover {
+  stroke: #39b16f;
+}
+.undirectedEdge {
+  stroke: white;
+  fill: transparent;
+  stroke-width: 0.4%;
+}
+.deleteEdgeMode:hover {
+  stroke: #a01f1f;
+}
+.nodeText {
+  pointer-events: none;
+  user-select: none;
+  fill: black;
+  font-weight: bold;
+  text-anchor: middle;
+  -moz-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+.arrow {
+  fill: white;
+}
+
+@keyframes drawNode {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

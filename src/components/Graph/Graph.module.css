@@ -1,0 +1,14 @@
+.graph {
+  height: 80vh;
+  width: 100%;
+}
+
+.mockEdge {
+  stroke: white;
+  stroke-width: 0.2%;
+  stroke-dasharray: 3 2 1;
+  pointer-events: none;
+}
+.mockArrow {
+  fill: white;
+}
