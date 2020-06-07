@@ -12,7 +12,18 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
-
+.ms-Dropdown-item:hover {
+  color: white !important;
+}
+.dropdown-58 {
+  border-color: white !important;
+}
+.dropdown-58::after {
+  border-color: white !important;
+}
+.dropdown-40::after {
+  border-color: white !important;
+}
 .App-header {
   background-color: #282c34;
   min-height: 100vh;

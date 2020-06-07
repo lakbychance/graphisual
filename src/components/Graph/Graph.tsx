@@ -2,10 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { Node } from "../Graph/Node/Node";
 import styles from "./Graph.module.css";
 import { calculateAccurateCoords } from "../../utility/calc";
+import { Modal, TextField } from "@fluentui/react";
 export const Graph = (props: any) => {
   const { options, selectedEdge } = props;
   const [nodes, setNodes] = useState<any>([]);
   const [edges, setEdges] = useState<any>(new Map());
+  const [isModalOpen, setModalState] = useState(false);
+  const [edge, setEdge] = useState<any>();
   const currentNode = useRef<any>();
   const currentEdge = useRef<any>();
   const nodesTillNow = useRef(0);
@@ -181,6 +184,7 @@ export const Graph = (props: any) => {
                 nodeY2: y1,
                 to: currentEdge.current.from,
                 type: "undirected",
+                weight: currentEdge.current.weight,
               };
               edges.get(toNodeId).push(fromNode);
             }
@@ -192,9 +196,9 @@ export const Graph = (props: any) => {
     setMockEdge(null);
     currentEdge.current = undefined;
   };
-  const handleEdge = (edge: any, fromNode: number) => {
+  const handleEdge = (edge: any, fromNode: any) => {
     if (options.deleteEdge) {
-      deleteEdge(edge, fromNode);
+      deleteEdge(edge, fromNode.id);
     } else if (options.editEdge) {
       editEdge(edge, fromNode);
     }
@@ -221,8 +225,46 @@ export const Graph = (props: any) => {
       setEdges(newEdges);
     }
   };
-  const editEdge = (edge: any, fromNode: number) => {
-    console.log(edge.weight);
+  const editEdge = (edge: any, fromNode: any) => {
+    currentNode.current = { ...fromNode };
+    setEdge(edge);
+    setModalState(true);
+  };
+  const editEdgeWeight = () => {
+    let currentEdge = { ...edge };
+    if (edge.type === "directed") {
+      let upgradedEdges = edges.get(currentNode.current.id).map((edge: any) => {
+        if (edge.to === currentEdge.to) {
+          return { ...edge, weight: currentEdge.weight };
+        }
+        return edge;
+      });
+      let newEdges = new Map(edges);
+      newEdges.set(currentNode.current.id, upgradedEdges);
+      setEdges(newEdges);
+    } else if (edge.type === "undirected") {
+      let upgradedOutgoingEdges = edges
+        .get(currentNode.current.id)
+        .map((edge: any) => {
+          if (edge.to === currentEdge.to) {
+            return { ...edge, weight: currentEdge.weight };
+          }
+          return edge;
+        });
+      let upgradedIncomingEdges = edges
+        .get(parseInt(currentEdge.to))
+        .map((edge: any) => {
+          if (edge.to === currentNode.current.id.toString()) {
+            return { ...edge, weight: currentEdge.weight };
+          }
+          return edge;
+        });
+      let newEdges = new Map(edges);
+      newEdges.set(currentNode.current.id, upgradedOutgoingEdges);
+      newEdges.set(parseInt(currentEdge.to), upgradedIncomingEdges);
+      setEdges(newEdges);
+    }
+    setModalState(false);
   };
   const handleMove = (event: any) => {
     let canMoveNode = options.moveNode;
@@ -271,46 +313,71 @@ export const Graph = (props: any) => {
       graph.current.addEventListener("mouseup", handleArrowEnd);
     }
   };
-
+  console.log(edge);
   return (
-    <svg ref={graph} className={styles.graph} onClick={handleDrawAndDelete}>
-      {nodes.map((node: any) => (
-        <Node
-          handleEdge={handleEdge}
-          handleMove={handleMove}
-          key={node.id}
-          node={node}
-          edges={edges}
-          deleteEdgeMode={options.deleteEdge}
-          deleteNodeMode={options.deleteNode}
-          editEdgeMode={options.editEdge}
-        />
-      ))}
-      {mockEdge && (
-        <>
-          {selectedEdge.key === "directed" && (
-            <marker
-              className={styles.mockArrow}
-              id="mockArrowHead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="0"
-              refY="3.5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" />
-            </marker>
-          )}
-          <line
-            className={styles.mockEdge}
-            x1={mockEdge.x1}
-            y1={mockEdge.y1}
-            x2={mockEdge.x2}
-            y2={mockEdge.y2}
-            markerEnd="url(#mockArrowHead)"
-          ></line>
-        </>
-      )}
-    </svg>
+    <>
+      <svg ref={graph} className={styles.graph} onClick={handleDrawAndDelete}>
+        {nodes.map((node: any) => (
+          <Node
+            handleEdge={handleEdge}
+            handleMove={handleMove}
+            key={node.id}
+            node={node}
+            edges={edges}
+            deleteEdgeMode={options.deleteEdge}
+            deleteNodeMode={options.deleteNode}
+            editEdgeMode={options.editEdge}
+          />
+        ))}
+        {mockEdge && (
+          <>
+            {selectedEdge.key === "directed" && (
+              <marker
+                className={styles.mockArrow}
+                id="mockArrowHead"
+                markerWidth="10"
+                markerHeight="7"
+                refX="0"
+                refY="3.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3.5, 0 7" />
+              </marker>
+            )}
+            <line
+              className={styles.mockEdge}
+              x1={mockEdge.x1}
+              y1={mockEdge.y1}
+              x2={mockEdge.x2}
+              y2={mockEdge.y2}
+              markerEnd="url(#mockArrowHead)"
+            ></line>
+          </>
+        )}
+      </svg>
+      <Modal
+        styles={{
+          main: { minHeight: "0px", minWidth: "0px", height: "31px" },
+          scrollableContent: { display: "flex" },
+        }}
+        isOpen={isModalOpen}
+      >
+        {edge && edge.weight !== null && (
+          <TextField
+            styles={{ fieldGroup: { border: "none" } }}
+            type="number"
+            min={0}
+            value={edge.weight}
+            onChange={(e: any) =>
+              setEdge({ ...edge, weight: parseInt(e.target.value) })
+            }
+          />
+        )}
+
+        <button className={styles.modalButton} onClick={editEdgeWeight}>
+          Set Weight
+        </button>
+      </Modal>
+    </>
   );
 };

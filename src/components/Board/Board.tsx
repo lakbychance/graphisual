@@ -1,13 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Graph } from "../Graph/Graph";
 import styles from "./Board.module.css";
-import {
-  PrimaryButton,
-  Dropdown,
-  IDropdownOption,
-  HighContrastSelectorWhite,
-  ImageIcon,
-} from "@fluentui/react";
+import { Dropdown, IDropdownOption } from "@fluentui/react";
 import { edgeOptions } from "../../configs/readOnly";
 import { optionButtonStyles } from "./BoardStyles";
 
@@ -40,36 +34,27 @@ export const Board = (props: any) => {
       <div className={styles.board}>
         <div className={styles.controlPanel}>
           <div className={styles.nodeOptions}>
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.drawNode.normal,
-                rootHovered: optionButtonStyles.drawNode.hovered,
-              }}
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("drawNode")}
             >
               <i className={`${styles.icon} fas fa-circle`}></i>
               Draw Node
-            </PrimaryButton>
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.moveNode.normal,
-                rootHovered: optionButtonStyles.moveNode.hovered,
-              }}
+            </button>
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("moveNode")}
             >
               <i className={`${styles.icon} fas fa-arrows-alt`}></i>
               Move Node
-            </PrimaryButton>
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.deleteNode.normal,
-                rootHovered: optionButtonStyles.deleteNode.hovered,
-              }}
+            </button>
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("deleteNode")}
             >
               <i className={`${styles.icon} fas fa-trash`}></i>
               Delete Node
-            </PrimaryButton>
+            </button>
           </div>
           <div className={styles.edgeOptions}>
             <Dropdown
@@ -90,39 +75,29 @@ export const Board = (props: any) => {
                 setSelectedEdge(option);
               }}
             />
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.deleteNode.normal,
-                rootHovered: optionButtonStyles.deleteNode.hovered,
-              }}
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("editEdge")}
             >
               <i className={`${styles.icon} fas fa-pen`}></i>
               Edit Edge
-            </PrimaryButton>
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.deleteNode.normal,
-                rootHovered: optionButtonStyles.deleteNode.hovered,
-              }}
+            </button>
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("deleteEdge")}
             >
               <i className={`${styles.icon} fas fa-trash`}></i>
               Delete Edge
-            </PrimaryButton>
+            </button>
           </div>
           <div className={styles.miscellaneous}>
-            {" "}
-            <PrimaryButton
-              styles={{
-                root: optionButtonStyles.reset.normal,
-                rootHovered: optionButtonStyles.reset.hovered,
-              }}
+            <button
+              className={styles.optionButtons}
               onClick={() => activateOption("reset")}
             >
               <i className={`${styles.icon} fas fa-undo-alt`}></i>
               Reset
-            </PrimaryButton>
+            </button>
           </div>
         </div>
         <div className={styles.graphContainer}>

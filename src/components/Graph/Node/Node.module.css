@@ -35,6 +35,18 @@
   -webkit-user-select: none;
   -ms-user-select: none;
 }
+.edgeText {
+  fill: white;
+  dominant-baseline: text-after-edge;
+  pointer-events: none;
+  user-select: none;
+  font-weight: bold;
+  font-size: 18px;
+  -moz-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
 .arrow {
   fill: white;
 }
