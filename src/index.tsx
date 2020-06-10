@@ -4,9 +4,19 @@ import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 
+const isChrome =
+  !!(window as any).chrome &&
+  (!!(window as any).chrome.webstore || !!(window as any).chrome.runtime);
+
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    {isChrome ? (
+      <App />
+    ) : (
+      <h1 style={{ textAlign: "center" }}>
+        This App is not supported in this browser. Please use Google Chrome.
+      </h1>
+    )}
   </React.StrictMode>,
   document.getElementById("root")
 );
