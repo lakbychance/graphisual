@@ -1,6 +1,6 @@
 .node {
   fill: white;
-  animation: drawNode;
+  animation: common;
   animation-duration: 0.3s;
 }
 
@@ -8,8 +8,15 @@
   stroke: white;
   fill: transparent;
   stroke-width: 0.2%;
+  animation: common;
+  animation-duration: 0.3s;
 }
-
+.visited {
+  fill: #30a947;
+}
+.shortestPath {
+  fill: #ffcc3c;
+}
 .deleteNodeMode:hover {
   fill: #a01f1f;
 }
@@ -20,6 +27,8 @@
   stroke: white;
   fill: transparent;
   stroke-width: 0.4%;
+  animation: common;
+  animation-duration: 0.3s;
 }
 .deleteEdgeMode:hover {
   stroke: #a01f1f;
@@ -46,12 +55,14 @@
   -webkit-user-drag: none;
   -webkit-user-select: none;
   -ms-user-select: none;
+  animation: common;
+  animation-duration: 0.3s;
 }
 .arrow {
   fill: white;
 }
 
-@keyframes drawNode {
+@keyframes common {
   from {
     opacity: 0;
   }

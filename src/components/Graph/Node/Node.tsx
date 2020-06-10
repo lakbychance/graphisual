@@ -15,7 +15,9 @@ export const Node = (props: any) => {
     <g className={styles.nodeGroup}>
       <circle
         onMouseDown={handleMove}
-        className={`${styles.node} ${deleteNodeMode && styles.deleteNodeMode}`}
+        className={`${styles.node} ${deleteNodeMode && styles.deleteNodeMode} ${
+          node.isVisited && styles.visited
+        } ${node.isInShortestPath && styles.shortestPath}`}
         cx={node.x}
         cy={node.y}
         r={node.r}

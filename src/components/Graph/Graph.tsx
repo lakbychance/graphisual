@@ -2,13 +2,23 @@ import React, { useState, useRef, useEffect } from "react";
 import { Node } from "../Graph/Node/Node";
 import styles from "./Graph.module.css";
 import { calculateAccurateCoords } from "../../utility/calc";
-import { Modal, TextField } from "@fluentui/react";
+import { Modal, TextField, MessageBar, MessageBarType } from "@fluentui/react";
+import { bfs, dfs, dijkstra } from "../../algorithms/algorithm";
 export const Graph = (props: any) => {
-  const { options, selectedEdge } = props;
+  const {
+    options,
+    selectedEdge,
+    selectedAlgo,
+    setOptions,
+    visualizationSpeed,
+    setVisualizingState,
+  } = props;
   const [nodes, setNodes] = useState<any>([]);
   const [edges, setEdges] = useState<any>(new Map());
   const [isModalOpen, setModalState] = useState(false);
   const [edge, setEdge] = useState<any>();
+  const [pathFindingNode, setPathFindingNode] = useState<any>(null);
+  const [isPathPossible, setPathPossible] = useState(true);
   const currentNode = useRef<any>();
   const currentEdge = useRef<any>();
   const nodesTillNow = useRef(0);
@@ -22,6 +32,10 @@ export const Graph = (props: any) => {
       nodesTillNow.current = 0;
     }
   }, [options.reset]);
+
+  useEffect(() => {
+    setPathFindingNode(null);
+  }, [options]);
 
   const addNode = (event: any) => {
     let nodeX = event.clientX - event.target.getBoundingClientRect().left;
@@ -53,8 +67,55 @@ export const Graph = (props: any) => {
     setEdges(edges);
     setNodes(newNodes);
   };
-
-  const handleDrawAndDelete = (event: any) => {
+  const visualizeShortestPath = (shortestPath: any) => {
+    for (let i = 0; i <= shortestPath.length; i++) {
+      if (i === shortestPath.length) {
+        setTimeout(() => {
+          let updateNodes = nodes.map((node: any) => {
+            return { ...node, isInShortestPath: false, isVisited: false };
+          });
+          setNodes(updateNodes);
+          setOptions({ ...options, selectStartNode: true });
+          setVisualizingState(false);
+        }, visualizationSpeed * i);
+        return;
+      }
+      setTimeout(() => {
+        const currentNodeId = shortestPath[i];
+        let updatedNodes = [...nodes];
+        updatedNodes.forEach((node: any) => {
+          if (node.id === currentNodeId) {
+            node.isInShortestPath = true;
+            node.isVisited = false;
+          }
+        });
+        setNodes(updatedNodes);
+      }, visualizationSpeed * i);
+    }
+  };
+  const visualizeGraph = (visitedNodes: any, shortestPath: any = []) => {
+    setOptions({ ...options, selectStartNode: false });
+    setVisualizingState(true);
+    for (let i = 0; i <= visitedNodes.length; i++) {
+      if (i === visitedNodes.length) {
+        setTimeout(() => {
+          visualizeShortestPath(shortestPath);
+        }, visualizationSpeed * i);
+        return;
+      }
+      setTimeout(() => {
+        const currentNodeId = visitedNodes[i];
+        let updatedNodes = [...nodes];
+        updatedNodes.forEach((node: any) => {
+          if (node.id === currentNodeId) {
+            node.isVisited = true;
+          }
+        });
+        setNodes(updatedNodes);
+      }, visualizationSpeed * i);
+    }
+  };
+  const handleSelect = (event: any) => {
     if (
       options.drawNode &&
       !event.target?.className?.baseVal?.includes("Node")
@@ -65,6 +126,48 @@ export const Graph = (props: any) => {
       event.target?.className?.baseVal?.includes("Node")
     ) {
       deleteNode(event);
+    } else if (
+      options.selectStartNode &&
+      !options.selectEndNode &&
+      event.target?.className?.baseVal?.includes("Node")
+    ) {
+      const startNode = nodes.filter(
+        (node: any) => node.id === parseInt(event.target.id)
+      )[0];
+      if (startNode && startNode.id) {
+        if (selectedAlgo.key === "bfs") {
+          let visitedNodes = bfs(edges, startNode.id);
+          visualizeGraph(visitedNodes);
+        } else if (selectedAlgo.key === "dfs") {
+          let visitedNodes = dfs(edges, startNode.id);
+          visualizeGraph(visitedNodes);
+        }
+      }
+    } else if (
+      options.selectStartNode &&
+      options.selectEndNode &&
+      event.target?.className?.baseVal?.includes("Node") &&
+      event.target.tagName === "circle"
+    ) {
+      if (!pathFindingNode) {
+        setPathFindingNode(parseInt(event.target.id));
+      } else {
+        let { shortestPath, visitedNodes }: any = dijkstra(
+          edges,
+          pathFindingNode,
+          parseInt(event.target.id),
+          nodes
+        );
+        if (shortestPath.length !== 0) {
+          visualizeGraph(visitedNodes, shortestPath);
+        } else {
+          setPathPossible(false);
+          setTimeout(() => {
+            setPathPossible(true);
+          }, 2500);
+        }
+        setPathFindingNode(null);
+      }
     }
   };
 
@@ -208,7 +311,6 @@ export const Graph = (props: any) => {
       let upgradedEdges = edges
         .get(fromNode)
         .filter((edge: any) => edge.to !== currentEdge.to);
-      // console.log(upgradedEdges);
       let newEdges = new Map(edges);
       newEdges.set(fromNode, upgradedEdges);
       setEdges(newEdges);
@@ -269,7 +371,8 @@ export const Graph = (props: any) => {
   const handleMove = (event: any) => {
     let canMoveNode = options.moveNode;
     let canDrawEdge =
-      selectedEdge.key === "directed" || selectedEdge.key === "undirected";
+      selectedEdge.key &&
+      (selectedEdge.key === "directed" || selectedEdge.key === "undirected");
     if (canMoveNode) {
       currentNode.current = event.target;
       const handleNodeMove = (event: any) => {
@@ -313,10 +416,42 @@ export const Graph = (props: any) => {
       graph.current.addEventListener("mouseup", handleArrowEnd);
     }
   };
-  console.log(edge);
   return (
     <>
-      <svg ref={graph} className={styles.graph} onClick={handleDrawAndDelete}>
+      {options.selectStartNode && !options.selectEndNode && (
+        <MessageBar
+          className={styles.traversal}
+          isMultiline={false}
+          dismissButtonAriaLabel="Close"
+          styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
+        >
+          Click on any node to begin the traversal.
+        </MessageBar>
+      )}
+      {options.selectStartNode &&
+        options.selectEndNode &&
+        (isPathPossible ? (
+          <MessageBar
+            className={styles.pathfinding}
+            isMultiline={false}
+            dismissButtonAriaLabel="Close"
+            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
+          >
+            Select a starting node and ending node to visualize the pathfinding
+            algorithm.
+          </MessageBar>
+        ) : (
+          <MessageBar
+            className={styles.pathError}
+            messageBarType={MessageBarType.error}
+            isMultiline={false}
+            dismissButtonAriaLabel="Close"
+            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
+          >
+            Path is not possible for the given vertices.
+          </MessageBar>
+        ))}
+      <svg ref={graph} className={styles.graph} onClick={handleSelect}>
         {nodes.map((node: any) => (
           <Node
             handleEdge={handleEdge}
@@ -367,10 +502,21 @@ export const Graph = (props: any) => {
             styles={{ fieldGroup: { border: "none" } }}
             type="number"
             min={0}
+            max={500}
             value={edge.weight}
-            onChange={(e: any) =>
-              setEdge({ ...edge, weight: parseInt(e.target.value) })
-            }
+            onKeyDown={(e: any) => {
+              if (e.keyCode === 13) {
+                editEdgeWeight();
+              }
+            }}
+            onChange={(e: any) => {
+              if (
+                parseInt(e.target.value) >= 0 &&
+                parseInt(e.target.value) <= 500
+              ) {
+                setEdge({ ...edge, weight: parseInt(e.target.value) });
+              }
+            }}
           />
         )}
 
