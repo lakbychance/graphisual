@@ -37,7 +37,7 @@ export const Node = (props: any) => {
                     id={`arrowhead${node.id}${edge.to}`}
                     markerWidth="10"
                     markerHeight="7"
-                    refX="9.7"
+                    refX="8.7"
                     refY="3.5"
                     orient="auto"
                   >

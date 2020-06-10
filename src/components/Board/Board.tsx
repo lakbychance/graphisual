@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Graph } from "../Graph/Graph";
 import styles from "./Board.module.css";
 import {
@@ -111,7 +111,7 @@ export const Board = (props: any) => {
     <>
       <div className={styles.board}>
         <div className={styles.controlPanel}>
-          <img className={styles.appIcon} src={appIcon}></img>
+          <img className={styles.appIcon} src={appIcon} alt="App Icon"></img>
           <div className={styles.nodeOptions}>
             <button
               className={styles.optionButtons}
