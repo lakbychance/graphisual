@@ -13,9 +13,22 @@
 }
 .visited {
   fill: #30a947;
+  animation: traversal;
+  animation-duration: 0.5s;
 }
 .shortestPath {
   fill: #ffcc3c;
+  animation: pathfinding;
+  animation-duration: 0.5s;
+}
+.readyForVisualization:hover {
+  fill: #569cb7;
+}
+.startNode {
+  fill: #4f52bd;
+}
+.endNode {
+  fill: #b92230;
 }
 .deleteNodeMode:hover {
   fill: #a01f1f;
@@ -58,6 +71,9 @@
   animation: common;
   animation-duration: 0.3s;
 }
+.disableEdge {
+  pointer-events: none;
+}
 .arrow {
   fill: white;
 }
@@ -68,5 +84,29 @@
   }
   to {
     opacity: 1;
+  }
+}
+@keyframes traversal {
+  from {
+    fill: white;
+    stroke-width: 5;
+    stroke: #30a947;
+    r: 40;
+  }
+  to {
+    stroke-width: 0;
+    r: 30;
+  }
+}
+@keyframes pathfinding {
+  from {
+    fill: white;
+    stroke-width: 5;
+    stroke: #ffcc3c;
+    r: 40;
+  }
+  to {
+    stroke-width: 0;
+    r: 30;
   }
 }

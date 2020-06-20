@@ -3,19 +3,18 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
-
-const isChrome =
-  !!(window as any).chrome &&
-  (!!(window as any).chrome.webstore || !!(window as any).chrome.runtime);
+import graphisual from "./images/graphisual.svg";
+const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
 
 ReactDOM.render(
   <React.StrictMode>
-    {isChrome ? (
+    {!isMobileDevice ? (
       <App />
     ) : (
-      <h1 style={{ textAlign: "center" }}>
-        This App is not supported in this browser. Please use Google Chrome.
-      </h1>
+      <div className="noMobileSupport">
+        <img alt="logo icon" src={graphisual}></img>
+        <span>This App is not supported in mobile browsers.</span>
+      </div>
     )}
   </React.StrictMode>,
   document.getElementById("root")

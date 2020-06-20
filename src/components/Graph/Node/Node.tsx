@@ -1,7 +1,9 @@
 import React from "react";
 import styles from "./Node.module.css";
 import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
-export const Node = (props: any) => {
+import { NodeProps } from "./INode";
+import { IEdge } from "../IGraph";
+export const Node = (props: NodeProps) => {
   const {
     node,
     edges,
@@ -10,6 +12,8 @@ export const Node = (props: any) => {
     deleteNodeMode,
     deleteEdgeMode,
     editEdgeMode,
+    readyForVisualization,
+    pathFindingNode,
   } = props;
   return (
     <g className={styles.nodeGroup}>
@@ -17,17 +21,33 @@ export const Node = (props: any) => {
         onMouseDown={handleMove}
         className={`${styles.node} ${deleteNodeMode && styles.deleteNodeMode} ${
           node.isVisited && styles.visited
-        } ${node.isInShortestPath && styles.shortestPath}`}
+        } ${node.isInShortestPath && styles.shortestPath} ${
+          readyForVisualization && styles.readyForVisualization
+        } ${
+          pathFindingNode &&
+          pathFindingNode.startNodeId === node.id &&
+          styles.startNode
+        } 
+         ${
+           pathFindingNode &&
+           pathFindingNode.endNodeId === node.id &&
+           styles.endNode
+         } `}
         cx={node.x}
         cy={node.y}
         r={node.r}
-        id={node.id}
+        id={node.id.toString()}
       ></circle>
       {edges &&
-        edges.get(node.id).map((edge: any) => {
+        edges?.get(node.id)?.map((edge: IEdge) => {
           let directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
           let undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
-          let textCoord = calculateTextLoc(edge.x1, edge.y1, edge.x2, edge.y2);
+          let textCoordDirected = calculateTextLoc(
+            edge.x1,
+            edge.y1,
+            edge.x2,
+            edge.y2
+          );
           return (
             <>
               {edge.type === "directed" && (
@@ -49,7 +69,9 @@ export const Node = (props: any) => {
                     d={directedPath}
                     className={`${styles.directedEdge} ${
                       deleteEdgeMode && styles.deleteEdgeMode
-                    } ${editEdgeMode && styles.editEdgeMode}`}
+                    } ${editEdgeMode && styles.editEdgeMode} ${
+                      readyForVisualization && styles.disableEdge
+                    }`}
                     markerEnd={`url(#arrowhead${node.id}${edge.to})`}
                   >
                     dsds
@@ -57,8 +79,8 @@ export const Node = (props: any) => {
                   {edge.weight && (
                     <text
                       className={styles.edgeText}
-                      x={textCoord.c1x}
-                      y={textCoord.c1y + 7}
+                      x={textCoordDirected.c1x}
+                      y={textCoordDirected.c1y + 7}
                     >
                       {edge.weight}
                     </text>
@@ -75,13 +97,14 @@ export const Node = (props: any) => {
                     onClick={() => handleEdge(edge, node)}
                     className={`${styles.undirectedEdge} ${
                       deleteEdgeMode && styles.deleteEdgeMode
-                    } ${editEdgeMode && styles.editEdgeMode} `}
+                    } ${editEdgeMode && styles.editEdgeMode}
+                    ${readyForVisualization && styles.disableEdge} `}
                   ></path>
                   {edge.weight && (
                     <text
                       className={styles.edgeText}
                       x={(edge.x1 + edge.nodeX2) / 2}
-                      y={(edge.y1 + edge.nodeY2) / 2 - 5}
+                      y={(edge.y1 + edge.nodeY2) / 2 - 10}
                     >
                       {edge.weight}
                     </text>

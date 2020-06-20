@@ -51,3 +51,11 @@ export const optionButtonStyles = {
     },
   },
 };
+export const sliderOptions = {
+  titleLabel: { color: "white" },
+  valueLabel: { color: "white" },
+  inactiveSection: { background: "white" },
+  activeSection: {
+    backgroundImage: "linear-gradient(45deg, #eaecff, #946cff)",
+  },
+};

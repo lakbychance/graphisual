@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Graph } from "../Graph/Graph";
 import styles from "./Board.module.css";
+import { mapValues } from "lodash";
 import {
   Dropdown,
   IDropdownOption,
@@ -8,12 +9,12 @@ import {
   ProgressIndicator,
 } from "@fluentui/react";
 import { edgeOptions, algoOptions } from "../../configs/readOnly";
-import { optionButtonStyles } from "./BoardStyles";
+import { optionButtonStyles, sliderOptions } from "./BoardStyles";
 import appIcon from "../../images/graphisual.svg";
+import { IOptions } from "./IBoard";
 
-export const Board = (props: any) => {
-  //states,props and refs
-  const [options, setOptions] = useState<any>({
+export const Board = () => {
+  const [options, setOptions] = useState<IOptions>({
     drawNode: true,
     moveNode: false,
     deleteNode: false,
@@ -24,87 +25,56 @@ export const Board = (props: any) => {
     selectEndNode: false,
   });
 
-  const [selectedEdge, setSelectedEdge] = useState<any>();
-  const [selectedAlgo, setSelectedAlgo] = useState<any>();
-  const [isVisualizing, setVisualizingState] = useState<any>();
+  const [selectedEdge, setSelectedEdge] = useState<IDropdownOption>();
+  const [selectedAlgo, setSelectedAlgo] = useState<IDropdownOption>();
+  const [isVisualizing, setVisualizingState] = useState(false);
   const [visualizationSpeed, setVisualizationSpeed] = useState<any>(250);
-  //Activates the desired board option
+
+  //Activates the desired option from control panel.
   const activateOption = (option: string | number) => {
-    Object.keys(options).forEach((key: any) => {
-      if (key === option) {
-        options[key] = true;
-      } else {
-        options[key] = false;
-      }
-    });
+    const updatedOptions = mapValues(options, (_value: boolean, key: string) =>
+      key === option ? true : false
+    );
     setSelectedEdge({ key: "select", text: "Select Edge" });
     setSelectedAlgo({ key: "select", text: "Select Algorithm" });
-    setOptions(options);
+    setOptions(updatedOptions);
   };
+
+  //handles the selection of edge options and corresponding toggles for other options in control panel.
   const handleEdgeOptions = (
-    event: any,
+    _event: React.FormEvent<HTMLDivElement>,
     option: IDropdownOption | undefined
   ) => {
-    setOptions({
-      drawNode: false,
-      moveNode: false,
-      deleteNode: false,
-      reset: false,
-      editEdge: false,
-      deleteEdge: false,
-      selectStartNode: false,
-      selectEndNode: false,
-    });
+    const updatedOptions = mapValues(options, () => false);
+    setOptions(updatedOptions);
     setSelectedAlgo({ key: "select", text: "Select Algorithm" });
     setSelectedEdge(option);
   };
+
+  //handles the selection of algo options and corresponding toggles for other options in control panel.
   const handleAlgoOptions = (
-    event: any,
+    _event: React.FormEvent<HTMLDivElement>,
     option: IDropdownOption | undefined
   ) => {
-    // setOptions({
-    //   drawNode: false,
-    //   moveNode: false,
-    //   deleteNode: false,
-    //   reset: false,
-    //   editEdge: false,
-    //   deleteEdge: false,
-    // });
     setSelectedAlgo(option);
     setSelectedEdge({ key: "select", text: "Select Edge" });
     if (option?.key === "select") {
-      setOptions({
-        selectStartNode: false,
-        selectEndNode: false,
-        editEdge: false,
-        deleteEdge: false,
-        drawNode: false,
-        moveNode: false,
-        deleteNode: false,
-        reset: false,
-      });
+      const updatedOptions = mapValues(options, () => false);
+      setOptions(updatedOptions);
     } else if (option?.key === "bfs" || option?.key === "dfs") {
-      setOptions({
-        selectStartNode: true,
-        selectEndNode: false,
-        editEdge: false,
-        deleteEdge: false,
-        drawNode: false,
-        moveNode: false,
-        deleteNode: false,
-        reset: false,
-      });
+      const updatedOptions = mapValues(
+        options,
+        (_value: boolean, key: string) =>
+          key === "selectStartNode" ? true : false
+      );
+      setOptions(updatedOptions);
     } else {
-      setOptions({
-        selectStartNode: true,
-        selectEndNode: true,
-        editEdge: false,
-        deleteEdge: false,
-        drawNode: false,
-        moveNode: false,
-        deleteNode: false,
-        reset: false,
-      });
+      const updatedOptions = mapValues(
+        options,
+        (_value: boolean, key: string) =>
+          key === "selectStartNode" || key === "selectEndNode" ? true : false
+      );
+      setOptions(updatedOptions);
     }
   };
   return (
@@ -178,14 +148,7 @@ export const Board = (props: any) => {
             <Slider
               className={styles.speedSlider}
               label="Visual Delay"
-              styles={{
-                titleLabel: { color: "white" },
-                valueLabel: { color: "white" },
-                inactiveSection: { background: "white" },
-                activeSection: {
-                  backgroundImage: "linear-gradient(45deg, #eaecff, #946cff)",
-                },
-              }}
+              styles={sliderOptions}
               min={100}
               max={1000}
               step={100}
