@@ -76,14 +76,11 @@ export const Graph = (props: GraphProps) => {
     let newNodes = nodes.filter(
       (node: INode) => node.id !== parseInt(target.id)
     );
-    for (const [node, list] of Object.entries(edges)) {
-      let newList = list.filter((edge: IEdge) => {
-        if (target.id !== edge.to) {
-          return edge;
-        }
-      });
-      edges.set(parseInt(node), newList);
-    }
+    edges.forEach((list: IEdge[] | undefined, nodeId: number) => {
+      let newList = list?.filter((edge: IEdge) => target.id !== edge.to);
+      edges.set(nodeId, newList);
+    });
+
     edges.delete(parseInt(target.id));
     setEdges(edges);
     setNodes(newNodes);
