@@ -414,10 +414,8 @@ export const Graph = (props: GraphProps) => {
 
       //logic for movement of nodes.
       const handleNodeMove = (event: any) => {
-        const isFirefox =
-          window.navigator.userAgent.indexOf("Firefox") > -1 ? true : false;
-        let nodeX = !isFirefox ? event.offsetX : event.layerX;
-        let nodeY = !isFirefox ? event.offsetY : event.layerY - 75;
+        let nodeX = event.clientX - graph.current.getBoundingClientRect().left;
+        let nodeY = event.clientY - graph.current.getBoundingClientRect().top;
         currentNode.current.setAttribute("cx", nodeX);
         currentNode.current.setAttribute("cy", nodeY);
         currentNode.current.nextElementSibling.setAttribute("x", nodeX);
@@ -436,10 +434,8 @@ export const Graph = (props: GraphProps) => {
       currentNode.current = event.target;
       //logic for drawing of edges.
       const handleArrowMove = (event: any) => {
-        const isFirefox =
-          window.navigator.userAgent.indexOf("Firefox") > -1 ? true : false;
-        let arrowX = !isFirefox ? event.offsetX : event.layerX;
-        let arrowY = !isFirefox ? event.offsetY : event.layerY - 75;
+        let arrowX = event.clientX - graph.current.getBoundingClientRect().left;
+        let arrowY = event.clientY - graph.current.getBoundingClientRect().top;
         currentEdge.current = {
           x1: parseInt(currentNode.current.getAttribute("cx")),
           y1: parseInt(currentNode.current.getAttribute("cy")),
