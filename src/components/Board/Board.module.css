@@ -60,6 +60,20 @@
   color: white;
   border-radius: 5px;
   outline-color: white;
+  cursor: pointer;
+}
+.selectedButtonOption {
+  background: white;
+  color: black;
+  transition: ease-in 0.1s;
+  border: none;
+}
+.selectedButtonOption:focus {
+  outline: none;
+}
+.selectedDropdownOption {
+  background-image: linear-gradient(45deg, #4039ad, #0e8ecc 159%);
+  border-radius: 5px;
 }
 .speedSlider {
   width: 200px;
@@ -75,4 +89,6 @@
 }
 .appIcon {
   height: 45px;
+  width: 45px;
+  transform: scale(1.25);
 }

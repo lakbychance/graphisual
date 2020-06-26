@@ -1,14 +1,15 @@
 .node {
   fill: white;
-  animation: common;
+  animation: node;
   animation-duration: 0.3s;
+  cursor: pointer;
 }
 
 .directedEdge {
   stroke: white;
   fill: transparent;
   stroke-width: 0.2%;
-  animation: common;
+  animation: edge;
   animation-duration: 0.3s;
 }
 .visited {
@@ -40,7 +41,7 @@
   stroke: white;
   fill: transparent;
   stroke-width: 0.4%;
-  animation: common;
+  animation: edge;
   animation-duration: 0.3s;
 }
 .deleteEdgeMode:hover {
@@ -78,7 +79,19 @@
   fill: white;
 }
 
-@keyframes common {
+@keyframes node {
+  from {
+    fill: white;
+    stroke-width: 5;
+    stroke: #4f52bd;
+    r: 40;
+  }
+  to {
+    stroke-width: 0;
+    r: 30;
+  }
+}
+@keyframes edge {
   from {
     opacity: 0;
   }
