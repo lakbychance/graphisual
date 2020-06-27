@@ -42,6 +42,9 @@
   background-image: linear-gradient(180deg, #51268ad1, #0072ffbf 119%);
 }
 .graphContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 99%;
   height: 90%;
   align-self: center;
@@ -91,4 +94,11 @@
   height: 45px;
   width: 45px;
   transform: scale(1.25);
+}
+.madeInIndia {
+  position: absolute;
+  align-self: center;
+  bottom: 10px;
+  color: white;
+  font-size: 1.2em;
 }

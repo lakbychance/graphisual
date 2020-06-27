@@ -204,6 +204,12 @@ export const Board = () => {
             visualizationSpeed={visualizationSpeed}
             setVisualizingState={setVisualizingState}
           />
+          <div className={styles.madeInIndia}>
+            <span>
+              Made with <span style={{ color: "#e74c3c" }}>&hearts;</span> in
+              India
+            </span>
+          </div>
         </div>
       </div>
     </>

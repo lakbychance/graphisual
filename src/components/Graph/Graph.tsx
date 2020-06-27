@@ -5,6 +5,7 @@ import { calculateAccurateCoords } from "../../utility/calc";
 import { Modal, TextField, MessageBar, MessageBarType } from "@fluentui/react";
 import { bfs, dfs, dijkstra, IPathFinding } from "../../algorithms/algorithm";
 import { GraphProps, INode, IEdge } from "./IGraph";
+import { cloneDeep } from "lodash";
 export const Graph = (props: GraphProps) => {
   const {
     options,
@@ -132,11 +133,14 @@ export const Graph = (props: GraphProps) => {
       setTimeout(() => {
         const currentNodeId = visitedNodes[i];
         let updatedNodes = [...nodes];
+        let updatedEdges = cloneDeep(edges);
+
         updatedNodes.forEach((node: INode) => {
           if (node.id === currentNodeId) {
             node.isVisited = true;
           }
         });
+        updatedEdges.get(currentNodeId);
         setNodes(updatedNodes);
       }, visualizationSpeed * i);
     }
@@ -309,6 +313,7 @@ export const Graph = (props: GraphProps) => {
                 y2: tempY1,
                 nodeX2: x1,
                 nodeY2: y1,
+                from: currentEdge.current.to,
                 to: currentEdge.current.from,
                 type: "undirected",
                 weight: currentEdge.current.weight,

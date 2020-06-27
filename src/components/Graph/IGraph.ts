@@ -25,7 +25,7 @@ export interface IEdge {
   y2: number;
   nodeX2: number;
   nodeY2: number;
-  from?: string;
+  from: string;
   to: string;
   weight: number;
   type: string;
