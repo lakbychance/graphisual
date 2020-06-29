@@ -69,7 +69,6 @@
   background: white;
   color: black;
   transition: ease-in 0.1s;
-  border: none;
 }
 .selectedButtonOption:focus {
   outline: none;
