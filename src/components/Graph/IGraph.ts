@@ -17,6 +17,7 @@ export interface INode {
   id: number;
   isInShortestPath?: boolean;
   isVisited?: boolean;
+  [key: string]: any;
 }
 export interface IEdge {
   x1: number;
@@ -29,4 +30,7 @@ export interface IEdge {
   to: string;
   weight: number;
   type: string;
+  isUsedInTraversal?: boolean;
+  isUsedInShortestPath?: boolean;
+  [key: string]: any;
 }
