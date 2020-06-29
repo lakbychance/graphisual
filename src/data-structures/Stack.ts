@@ -1,13 +1,13 @@
-export class Stack {
-  stack: Array<any>;
+export class Stack<T> {
+  stack: Array<T>;
   constructor() {
     this.stack = [];
   }
-  push(item: any) {
+  push(item: T) {
     this.stack.push(item);
   }
   top() {
-    return !this.isEmpty() ? this.stack[this.stack.length - 1] : -1;
+    return !this.isEmpty() ? this.stack[this.stack.length - 1] : undefined;
   }
   pop() {
     if (!this.isEmpty()) {

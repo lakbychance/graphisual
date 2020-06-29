@@ -53,7 +53,9 @@ export const Node = (props: NodeProps) => {
               {edge.type === "directed" && (
                 <>
                   <marker
-                    className={styles.arrow}
+                    className={`${styles.arrow} ${
+                      edge.isUsedInTraversal && styles.arrowTraversal
+                    } ${edge.isUsedInShortestPath && styles.arrowShortestPath}`}
                     id={`arrowhead${node.id}${edge.to}`}
                     markerWidth="10"
                     markerHeight="7"
@@ -71,6 +73,8 @@ export const Node = (props: NodeProps) => {
                       deleteEdgeMode && styles.deleteEdgeMode
                     } ${editEdgeMode && styles.editEdgeMode} ${
                       readyForVisualization && styles.disableEdge
+                    } ${edge.isUsedInTraversal && styles.usedInTraversal} ${
+                      edge.isUsedInShortestPath && styles.usedInShortestPath
                     }`}
                     markerEnd={`url(#arrowhead${node.id}${edge.to})`}
                   >
@@ -98,7 +102,10 @@ export const Node = (props: NodeProps) => {
                     className={`${styles.undirectedEdge} ${
                       deleteEdgeMode && styles.deleteEdgeMode
                     } ${editEdgeMode && styles.editEdgeMode}
-                    ${readyForVisualization && styles.disableEdge} `}
+                    ${readyForVisualization && styles.disableEdge} 
+                    ${edge.isUsedInTraversal && styles.usedInTraversal}
+                    ${edge.isUsedInShortestPath && styles.usedInShortestPath}
+                    `}
                   ></path>
                   {edge.weight && (
                     <text

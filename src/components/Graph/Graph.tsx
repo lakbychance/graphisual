@@ -87,61 +87,114 @@ export const Graph = (props: GraphProps) => {
     setNodes(newNodes);
   };
 
+  //handles the logic for setting nodes and edges state for visualization
+  const visualizeSetState = (
+    currentEdge: IEdge,
+    edgeAttribute: string,
+    nodeAttribute: string
+  ) => {
+    edges.forEach((list: IEdge[] | undefined) => {
+      list?.forEach((edge: IEdge) => {
+        if (
+          edge.type === "directed" &&
+          edge.from === currentEdge.from &&
+          edge.to === currentEdge.to
+        ) {
+          edge[edgeAttribute] = true;
+        }
+        if (edge.type === "undirected") {
+          if (edge.from === currentEdge.from && edge.to === currentEdge.to) {
+            edge[edgeAttribute] = true;
+            edges.get(parseInt(currentEdge.to))?.forEach((edge: IEdge) => {
+              if (edge.to === currentEdge.from) {
+                edge[edgeAttribute] = true;
+              }
+            });
+          }
+        }
+      });
+    });
+    setEdges(edges);
+    let updatedNodes = [...nodes];
+    updatedNodes.forEach((node: INode) => {
+      if (node.id === parseInt(currentEdge.to)) {
+        node[nodeAttribute] = true;
+      }
+    });
+
+    setNodes(updatedNodes);
+  };
   //visualize shortest path logic
-  const visualizeShortestPath = (shortestPath: number[]) => {
+  const visualizeShortestPath = (shortestPath: IEdge[]) => {
     for (let i = 0; i <= shortestPath.length; i++) {
       if (i === shortestPath.length) {
         setTimeout(() => {
           let updateNodes = nodes.map((node: INode) => {
             return { ...node, isInShortestPath: false, isVisited: false };
           });
+          let updatedEdges = cloneDeep(edges);
+          updatedEdges.forEach((list: IEdge[] | undefined, nodeId: number) => {
+            let newList = list?.map((edge: IEdge) => {
+              return {
+                ...edge,
+                isUsedInTraversal: false,
+                isUsedInShortestPath: false,
+              };
+            });
+            updatedEdges.set(nodeId, newList);
+          });
+
           setNodes(updateNodes);
+          setEdges(updatedEdges);
           setOptions({ ...options, selectStartNode: true });
           setVisualizingState(false);
         }, visualizationSpeed * i);
         return;
       }
       setTimeout(() => {
-        const currentNodeId = shortestPath[i];
-        let updatedNodes = [...nodes];
-        updatedNodes.forEach((node: INode) => {
-          if (node.id === currentNodeId) {
-            node.isInShortestPath = true;
-            node.isVisited = false;
+        const currentEdge: IEdge = shortestPath[i];
+        const isNodeIsInShortedPath = nodes.some((node: INode) => {
+          if (node.id === parseInt(currentEdge.to)) {
+            return node.isInShortestPath === true;
           }
         });
-        setNodes(updatedNodes);
+        if (!isNodeIsInShortedPath) {
+          visualizeSetState(
+            currentEdge,
+            "isUsedInShortestPath",
+            "isInShortestPath"
+          );
+        }
       }, visualizationSpeed * i);
     }
   };
 
   //visualize the visited nodes and shortestPath if applicable
   const visualizeGraph = (
-    visitedNodes: number[],
-    shortestPath: number[] = []
+    visitedEdges: IEdge[],
+    shortestPath: IEdge[] = []
   ) => {
     setOptions({ ...options, selectStartNode: false });
     setVisualizingState(true);
-    for (let i = 0; i <= visitedNodes.length; i++) {
-      if (i === visitedNodes.length) {
+    for (let i = 0; i <= visitedEdges.length; i++) {
+      if (i === visitedEdges.length) {
         setTimeout(() => {
           setPathFindingNode(null);
           visualizeShortestPath(shortestPath);
         }, visualizationSpeed * i);
         return;
       }
-      setTimeout(() => {
-        const currentNodeId = visitedNodes[i];
-        let updatedNodes = [...nodes];
-        let updatedEdges = cloneDeep(edges);
 
-        updatedNodes.forEach((node: INode) => {
-          if (node.id === currentNodeId) {
-            node.isVisited = true;
+      setTimeout(() => {
+        const currentEdge: IEdge = visitedEdges[i];
+        const isNodeTraversed = nodes.some((node: INode) => {
+          if (node.id === parseInt(currentEdge.to)) {
+            return node.isVisited === true;
           }
         });
-        updatedEdges.get(currentNodeId);
-        setNodes(updatedNodes);
+        if (!isNodeTraversed) {
+          visualizeSetState(currentEdge, "isUsedInTraversal", "isVisited");
+        }
       }, visualizationSpeed * i);
     }
   };
@@ -157,11 +210,11 @@ export const Graph = (props: GraphProps) => {
     } else if (options.selectStartNode && !options.selectEndNode && isNode) {
       const startNodeId = parseInt(target.id);
       if (selectedAlgo?.key === "bfs") {
-        let visitedNodes = bfs(edges, startNodeId);
-        visualizeGraph(visitedNodes);
+        let visitedEdges = bfs(edges, startNodeId);
+        visualizeGraph(visitedEdges);
       } else if (selectedAlgo?.key === "dfs") {
-        let visitedNodes = dfs(edges, startNodeId);
-        visualizeGraph(visitedNodes);
+        let visitedEdges = dfs(edges, startNodeId);
+        visualizeGraph(visitedEdges);
       }
     } else if (
       options.selectStartNode &&
@@ -177,11 +230,10 @@ export const Graph = (props: GraphProps) => {
         let output: IPathFinding | undefined = dijkstra(
           edges,
           startNodeId,
-          endNodeId,
-          nodes
+          endNodeId
         );
-        if (output?.shortestPath.length !== 0 && output?.visitedNodes) {
-          visualizeGraph(output.visitedNodes, output.shortestPath);
+        if (output?.shortestPath.length !== 0 && output?.visitedEdges) {
+          visualizeGraph(output.visitedEdges, output.shortestPath);
         } else {
           setPathPossible(false);
 
@@ -190,7 +242,6 @@ export const Graph = (props: GraphProps) => {
             setPathFindingNode(null);
           }, 2500);
         }
-        // setPathFindingNode(null);
       }
     }
   };
@@ -269,7 +320,7 @@ export const Graph = (props: GraphProps) => {
               y2
             );
             const fromNodeId = parseInt(currentEdge.current.from);
-            let { from, ...toNode } = currentEdge.current;
+            let { ...toNode } = currentEdge.current;
             toNode.x2 = tempX2;
             toNode.y2 = tempY2;
             toNode.nodeX2 = nodeX2;
@@ -293,7 +344,7 @@ export const Graph = (props: GraphProps) => {
                 x2,
                 y2
               );
-              let { from, ...toNode } = currentEdge.current;
+              let { ...toNode } = currentEdge.current;
               toNode.x2 = tempX2;
               toNode.y2 = tempY2;
               toNode.nodeX2 = nodeX2;

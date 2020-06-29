@@ -1,5 +1,5 @@
-export class Queue {
-  queue: Array<any>;
+export class Queue<T> {
+  queue: Array<T>;
   constructor() {
     this.queue = [];
   }
@@ -7,10 +7,10 @@ export class Queue {
     this.queue.push(item);
   }
   front() {
-    return !this.isEmpty() ? this.queue[0] : -1;
+    return !this.isEmpty() ? this.queue[0] : undefined;
   }
   back() {
-    return !this.isEmpty() ? this.queue[this.queue.length - 1] : -1;
+    return !this.isEmpty() ? this.queue[this.queue.length - 1] : undefined;
   }
   pop() {
     if (!this.isEmpty()) {

@@ -17,6 +17,26 @@
   animation: traversal;
   animation-duration: 0.5s;
 }
+.arrowTraversal {
+  fill: #30a947 !important;
+  animation: arrowTraversal;
+  animation-duration: 0.5s;
+}
+.arrowShortestPath {
+  fill: #ffcc3c !important;
+  animation: arrowShortestPath;
+  animation-duration: 0.5s;
+}
+.usedInTraversal {
+  stroke: #30a947 !important;
+  animation: edgeTraversal ease-out reverse !important;
+  animation-duration: 0.3s !important;
+}
+.usedInShortestPath {
+  stroke: #ffcc3c !important;
+  animation: edgeShortestPath ease-out reverse !important;
+  animation-duration: 0.3s !important;
+}
 .shortestPath {
   fill: #ffcc3c;
   animation: pathfinding;
@@ -111,6 +131,30 @@
     r: 30;
   }
 }
+@keyframes edgeTraversal {
+  from {
+    stroke: white;
+    stroke-width: 0.1%;
+    stroke-dasharray: 0;
+  }
+  to {
+    stroke: #30a947;
+    stroke-width: 0.4%;
+    stroke-dasharray: 10;
+  }
+}
+@keyframes edgeShortestPath {
+  from {
+    stroke: white;
+    stroke-width: 0.1%;
+    stroke-dasharray: 0;
+  }
+  to {
+    stroke: #ffcc3c;
+    stroke-width: 0.4%;
+    stroke-dasharray: 10;
+  }
+}
 @keyframes pathfinding {
   from {
     fill: white;
@@ -121,5 +165,27 @@
   to {
     stroke-width: 0;
     r: 30;
+  }
+}
+@keyframes arrowTraversal {
+  from {
+    fill: white;
+    opacity: 0.5;
+  }
+  to {
+    fill: #30a947;
+    opacity: 1;
+    /* stroke-dasharray: 280; */
+  }
+}
+@keyframes arrowShortestPath {
+  from {
+    fill: white;
+    opacity: 0.5;
+  }
+  to {
+    fill: #ffcc3c;
+    opacity: 1;
+    /* stroke-dasharray: 280; */
   }
 }
