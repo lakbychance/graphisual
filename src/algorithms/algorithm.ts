@@ -1,6 +1,6 @@
 import { Queue } from "../data-structures/Queue";
 import { Stack } from "../data-structures/Stack";
-import { IEdge, INode } from "../components/Graph/IGraph";
+import { IEdge } from "../components/Graph/IGraph";
 
 export interface IPathFinding {
   visitedEdges: IEdge[];

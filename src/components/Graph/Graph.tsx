@@ -157,6 +157,7 @@ export const Graph = (props: GraphProps) => {
           if (node.id === parseInt(currentEdge.to)) {
             return node.isInShortestPath === true;
           }
+          return false;
         });
         if (!isNodeIsInShortedPath) {
           visualizeSetState(
@@ -191,6 +192,7 @@ export const Graph = (props: GraphProps) => {
           if (node.id === parseInt(currentEdge.to)) {
             return node.isVisited === true;
           }
+          return false;
         });
         if (!isNodeTraversed) {
           visualizeSetState(currentEdge, "isUsedInTraversal", "isVisited");
