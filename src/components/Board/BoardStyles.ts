@@ -55,6 +55,6 @@ export const sliderOptions = {
   valueLabel: { color: "white" },
   inactiveSection: { background: "white" },
   activeSection: {
-    backgroundImage: "linear-gradient(45deg, #eaecff, #946cff)",
+    backgroundImage: "linear-gradient(45deg,#4039ad,#0e8ecc 159%)",
   },
 };
