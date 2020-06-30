@@ -5,7 +5,7 @@
   align-self: center;
   margin-top: 0.5%;
   padding-bottom: 10px;
-  border-radius: 5px;
+  border-radius: 20px;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   background-image: linear-gradient(45deg, #080808de, #25202f);
@@ -49,7 +49,7 @@
   height: 90%;
   align-self: center;
   background-image: linear-gradient(45deg, #080808, #25202f);
-  border-radius: 5px;
+  border-radius: 20px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
@@ -57,13 +57,17 @@
   margin-right: 5px;
 }
 .optionButtons {
-  background: transparent;
-  border: 2px solid white;
+  background-image: linear-gradient(45deg, #4039ad, #0e8ecc 159%);
+  border: none;
   height: 68%;
   color: white;
   border-radius: 5px;
   outline-color: white;
   cursor: pointer;
+}
+.dropdownWrapper {
+  background-image: linear-gradient(45deg, #4039ad, #0e8ecc 159%);
+  border-radius: 5px;
 }
 .selectedButtonOption {
   background: white;

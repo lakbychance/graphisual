@@ -1,49 +1,20 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
 .ms-Dropdown-item:hover {
   color: white !important;
 }
+.ms-Dropdown-title {
+  border: none !important;
+}
+.ms-Callout-main {
+  top: 5px;
+  border-radius: 5px !important;
+}
 .dropdown-58 {
   border-color: white !important;
+  border: none !important;
 }
 .dropdown-58::after {
   border-color: white !important;
 }
 .dropdown-40::after {
   border-color: white !important;
-}
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }

@@ -12,7 +12,6 @@ export const optionButtonStyles = {
     caretDown: {
       color: "white !important",
     },
-
     dropdownItem: {
       background: "rgb(84, 99, 173)  !important",
       color: "white",
