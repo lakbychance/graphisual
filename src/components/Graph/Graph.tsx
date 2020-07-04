@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Node } from "../Graph/Node/Node";
 import styles from "./Graph.module.css";
 import { calculateAccurateCoords } from "../../utility/calc";
@@ -26,11 +26,12 @@ export const Graph = (props: GraphProps) => {
     endNodeId: number;
   } | null>(null);
   const [isPathPossible, setPathPossible] = useState(true);
+  const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
   const currentNode = useRef<any>();
   const currentEdge = useRef<any>();
   const nodesTillNow = useRef(0);
   const graph = useRef<any>();
-  const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
+  const isVisualizationDone = useRef(false);
 
   useEffect(() => {
     //if reset options is selected, reset the board.
@@ -38,20 +39,43 @@ export const Graph = (props: GraphProps) => {
       setNodes([]);
       setEdges(new Map<number, IEdge[] | undefined>());
       nodesTillNow.current = 0;
+      isVisualizationDone.current = false;
     }
   }, [options.reset]);
+  const resetNodesAndEdgesState = useCallback(() => {
+    let updateNodes = nodes.map((node: INode) => {
+      return { ...node, isInShortestPath: false, isVisited: false };
+    });
+    let updatedEdges = cloneDeep(edges);
+    updatedEdges.forEach((list: IEdge[] | undefined, nodeId: number) => {
+      let newList = list?.map((edge: IEdge) => {
+        return {
+          ...edge,
+          isUsedInTraversal: false,
+          isUsedInShortestPath: false,
+        };
+      });
+      updatedEdges.set(nodeId, newList);
+    });
 
-  useEffect(() => {
-    //set the pathhfinding node to null whenever options change.
+    setNodes(updateNodes);
+    setEdges(updatedEdges);
     setPathFindingNode(null);
+    isVisualizationDone.current = false;
+  }, [nodes, edges]);
+  useEffect(() => {
+    //reset the nodes and edges state post visualization is completed.
+    if (isVisualizationDone.current) {
+      resetNodesAndEdgesState();
+    }
   }, [
     options.drawNode,
     options.editEdge,
     options.deleteNode,
     options.deleteEdge,
     options.moveNode,
-    options.reset,
     selectedEdge,
+    resetNodesAndEdgesState,
   ]);
 
   //add a new node to the graph
@@ -124,30 +148,14 @@ export const Graph = (props: GraphProps) => {
 
     setNodes(updatedNodes);
   };
+
   //visualize shortest path logic
   const visualizeShortestPath = (shortestPath: IEdge[]) => {
     for (let i = 0; i <= shortestPath.length; i++) {
       if (i === shortestPath.length) {
         setTimeout(() => {
-          let updateNodes = nodes.map((node: INode) => {
-            return { ...node, isInShortestPath: false, isVisited: false };
-          });
-          let updatedEdges = cloneDeep(edges);
-          updatedEdges.forEach((list: IEdge[] | undefined, nodeId: number) => {
-            let newList = list?.map((edge: IEdge) => {
-              return {
-                ...edge,
-                isUsedInTraversal: false,
-                isUsedInShortestPath: false,
-              };
-            });
-            updatedEdges.set(nodeId, newList);
-          });
-
-          setNodes(updateNodes);
-          setEdges(updatedEdges);
-          setOptions({ ...options, selectStartNode: true });
           setVisualizingState(false);
+          isVisualizationDone.current = true;
         }, visualizationSpeed * i);
         return;
       }
@@ -218,11 +226,7 @@ export const Graph = (props: GraphProps) => {
         let visitedEdges = dfs(edges, startNodeId);
         visualizeGraph(visitedEdges);
       }
-    } else if (
-      options.selectStartNode &&
-      options.selectEndNode &&
-      target.tagName === "circle"
-    ) {
+    } else if (options.selectStartNode && options.selectEndNode && isNode) {
       if (!pathFindingNode) {
         setPathFindingNode({ startNodeId: parseInt(target.id), endNodeId: -1 });
       } else {
@@ -238,9 +242,10 @@ export const Graph = (props: GraphProps) => {
           visualizeGraph(output.visitedEdges, output.shortestPath);
         } else {
           setPathPossible(false);
-
+          setVisualizingState(true);
           setTimeout(() => {
             setPathPossible(true);
+            setVisualizingState(false);
             setPathFindingNode(null);
           }, 2500);
         }

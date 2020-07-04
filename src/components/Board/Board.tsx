@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Graph } from "../Graph/Graph";
 import styles from "./Board.module.css";
 import { mapValues } from "lodash";
@@ -33,6 +33,12 @@ export const Board = () => {
   );
   const [isVisualizing, setVisualizingState] = useState(false);
   const [visualizationSpeed, setVisualizationSpeed] = useState<any>(250);
+
+  useEffect(() => {
+    if (!isVisualizing) {
+      setSelectedAlgo({ key: "select", text: "Select Algorithm" });
+    }
+  }, [isVisualizing]);
 
   //Activates the desired option from control panel.
   const activateOption = (option: string | number) => {

@@ -8,7 +8,7 @@
   border-radius: 20px;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  background-image: linear-gradient(45deg, #080808de, #25202f);
+  background: #121419;
   padding-top: 10px;
 }
 .nodeOptions {
@@ -32,6 +32,8 @@
 }
 .visualizeControls {
   display: flex;
+  width: 30%;
+  justify-content: space-around;
   align-items: center;
 }
 
@@ -48,7 +50,7 @@
   width: 99%;
   height: 90%;
   align-self: center;
-  background-image: linear-gradient(45deg, #080808, #25202f);
+  background: #121419;
   border-radius: 20px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
