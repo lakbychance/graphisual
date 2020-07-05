@@ -164,11 +164,6 @@ export const Graph = (props: GraphProps) => {
         setTimeout(() => {
           setVisualizingState(false);
           isVisualizationDone.current = true;
-          setOptions({
-            ...options,
-            selectStartNode: false,
-            selectEndNode: false,
-          });
         }, visualizationSpeed * i);
         return;
       }
@@ -196,6 +191,11 @@ export const Graph = (props: GraphProps) => {
     visitedEdges: IEdge[],
     shortestPath: IEdge[] = []
   ) => {
+    setOptions({
+      ...options,
+      selectStartNode: false,
+      selectEndNode: false,
+    });
     setVisualizingState(true);
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
@@ -229,7 +229,11 @@ export const Graph = (props: GraphProps) => {
       addNode(event);
     } else if (options.deleteNode && isNode) {
       deleteNode(event);
-    } else if (selectedAlgo?.data === "traversal" && isNode) {
+    } else if (
+      selectedAlgo?.data === "traversal" &&
+      isNode &&
+      options.selectStartNode
+    ) {
       const startNodeId = parseInt(target.id);
       if (selectedAlgo?.key === "bfs") {
         let visitedEdges = bfs(edges, startNodeId);
@@ -257,6 +261,7 @@ export const Graph = (props: GraphProps) => {
     } else if (
       selectedAlgo?.data === "pathfinding" &&
       isNode &&
+      options.selectStartNode &&
       options.selectEndNode
     ) {
       if (!pathFindingNode) {
