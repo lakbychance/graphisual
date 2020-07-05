@@ -3,9 +3,16 @@ import { Node } from "../Graph/Node/Node";
 import styles from "./Graph.module.css";
 import { calculateAccurateCoords } from "../../utility/calc";
 import { Modal, TextField, MessageBar, MessageBarType } from "@fluentui/react";
-import { bfs, dfs, dijkstra, IPathFinding } from "../../algorithms/algorithm";
+import {
+  bfs,
+  dfs,
+  dijkstra,
+  IPathFinding,
+  minspantreeprims,
+} from "../../algorithms/algorithm";
 import { GraphProps, INode, IEdge } from "./IGraph";
 import { cloneDeep } from "lodash";
+import { algoMessages } from "../../configs/readOnly";
 export const Graph = (props: GraphProps) => {
   const {
     options,
@@ -26,6 +33,7 @@ export const Graph = (props: GraphProps) => {
     endNodeId: number;
   } | null>(null);
   const [isPathPossible, setPathPossible] = useState(true);
+  const [isTraversalPossible, setTraversalPossible] = useState(true);
   const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
   const currentNode = useRef<any>();
   const currentEdge = useRef<any>();
@@ -156,6 +164,11 @@ export const Graph = (props: GraphProps) => {
         setTimeout(() => {
           setVisualizingState(false);
           isVisualizationDone.current = true;
+          setOptions({
+            ...options,
+            selectStartNode: false,
+            selectEndNode: false,
+          });
         }, visualizationSpeed * i);
         return;
       }
@@ -183,7 +196,6 @@ export const Graph = (props: GraphProps) => {
     visitedEdges: IEdge[],
     shortestPath: IEdge[] = []
   ) => {
-    setOptions({ ...options, selectStartNode: false });
     setVisualizingState(true);
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
@@ -217,7 +229,7 @@ export const Graph = (props: GraphProps) => {
       addNode(event);
     } else if (options.deleteNode && isNode) {
       deleteNode(event);
-    } else if (options.selectStartNode && !options.selectEndNode && isNode) {
+    } else if (selectedAlgo?.data === "traversal" && isNode) {
       const startNodeId = parseInt(target.id);
       if (selectedAlgo?.key === "bfs") {
         let visitedEdges = bfs(edges, startNodeId);
@@ -225,8 +237,28 @@ export const Graph = (props: GraphProps) => {
       } else if (selectedAlgo?.key === "dfs") {
         let visitedEdges = dfs(edges, startNodeId);
         visualizeGraph(visitedEdges);
+      } else if (selectedAlgo.key === "minspantreeprims") {
+        let visitedEdges = minspantreeprims(edges, nodes, startNodeId);
+        if (visitedEdges.length !== 0) visualizeGraph(visitedEdges);
+        else {
+          setTraversalPossible(false);
+          setVisualizingState(true);
+          setOptions({
+            ...options,
+            selectStartNode: false,
+            selectEndNode: false,
+          });
+          setTimeout(() => {
+            setTraversalPossible(true);
+            setVisualizingState(false);
+          }, 2500);
+        }
       }
-    } else if (options.selectStartNode && options.selectEndNode && isNode) {
+    } else if (
+      selectedAlgo?.data === "pathfinding" &&
+      isNode &&
+      options.selectEndNode
+    ) {
       if (!pathFindingNode) {
         setPathFindingNode({ startNodeId: parseInt(target.id), endNodeId: -1 });
       } else {
@@ -243,6 +275,11 @@ export const Graph = (props: GraphProps) => {
         } else {
           setPathPossible(false);
           setVisualizingState(true);
+          setOptions({
+            ...options,
+            selectStartNode: false,
+            selectEndNode: false,
+          });
           setTimeout(() => {
             setPathPossible(true);
             setVisualizingState(false);
@@ -522,27 +559,15 @@ export const Graph = (props: GraphProps) => {
   };
   return (
     <>
-      {options.selectStartNode && !options.selectEndNode && (
-        <MessageBar
-          className={styles.traversal}
-          isMultiline={false}
-          dismissButtonAriaLabel="Close"
-          styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
-        >
-          Click on any node to begin the traversal.
-        </MessageBar>
-      )}
-      {options.selectStartNode &&
-        options.selectEndNode &&
-        (isPathPossible ? (
+      {selectedAlgo?.data === "traversal" &&
+        (isTraversalPossible ? (
           <MessageBar
-            className={styles.pathfinding}
+            className={styles.traversal}
             isMultiline={false}
             dismissButtonAriaLabel="Close"
             styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
           >
-            Select a starting node and ending node to visualize the pathfinding
-            algorithm.
+            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["info"]}
           </MessageBar>
         ) : (
           <MessageBar
@@ -552,7 +577,28 @@ export const Graph = (props: GraphProps) => {
             dismissButtonAriaLabel="Close"
             styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
           >
-            Path is not possible for the given vertices.
+            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["failure"]}
+          </MessageBar>
+        ))}
+      {selectedAlgo?.data === "pathfinding" &&
+        (isPathPossible ? (
+          <MessageBar
+            className={styles.pathfinding}
+            isMultiline={false}
+            dismissButtonAriaLabel="Close"
+            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
+          >
+            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["info"]}
+          </MessageBar>
+        ) : (
+          <MessageBar
+            className={styles.pathError}
+            messageBarType={MessageBarType.error}
+            isMultiline={false}
+            dismissButtonAriaLabel="Close"
+            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
+          >
+            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["failure"]}
           </MessageBar>
         ))}
       <svg ref={graph} className={styles.graph} onClick={handleSelect}>

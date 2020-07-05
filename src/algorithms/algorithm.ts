@@ -1,6 +1,7 @@
 import { Queue } from "../data-structures/Queue";
 import { Stack } from "../data-structures/Stack";
-import { IEdge } from "../components/Graph/IGraph";
+import { IEdge, INode } from "../components/Graph/IGraph";
+import { cloneDeep } from "lodash";
 
 export interface IPathFinding {
   visitedEdges: IEdge[];
@@ -247,4 +248,91 @@ const findNeighbours = (
     });
   }
   return [];
+};
+
+export const minspantreeprims = (
+  edges: Map<number, IEdge[] | undefined>,
+  nodes: INode[],
+  startNodeId: number
+) => {
+  let mstSet = new Set<number>();
+  let visitedEdges: IEdge[] = [];
+  let nodeMap = new Map<number, number>();
+  let prev = new Map<number, number>();
+  let isGraphNotEligible: boolean | undefined = false;
+  let newEdges = cloneDeep(edges);
+  newEdges.forEach((edges: IEdge[] | undefined) => {
+    isGraphNotEligible =
+      isGraphNotEligible ||
+      edges?.some((edge: IEdge) => edge.type === "directed");
+  });
+  if (isGraphNotEligible) {
+    return [];
+  }
+  edges.forEach((_value: IEdge[] | undefined, nodeId: number) => {
+    nodeMap.set(nodeId, Infinity);
+  });
+  nodeMap.set(startNodeId, 0);
+  prev.set(startNodeId, Infinity);
+  for (let i = 0; i < nodes.length - 1; i++) {
+    let minimumNodeId = getFromNotIncludedInMST(newEdges, mstSet, nodeMap);
+    mstSet.add(minimumNodeId);
+    newEdges.get(minimumNodeId)?.forEach((edge: IEdge) => {
+      const nodeId = parseInt(edge.to);
+      if (!mstSet.has(nodeId) && edge.weight < nodeMap.get(nodeId)!) {
+        nodeMap.set(nodeId, edge.weight);
+        prev.set(nodeId, minimumNodeId);
+      }
+    });
+  }
+
+  visitedEdges = getVisitedEdges(prev, visitedEdges, nodes, startNodeId);
+  return nodes.length === visitedEdges.length ? visitedEdges : [];
+};
+
+const getVisitedEdges = (
+  prev: Map<number, number>,
+  visitedEdges: IEdge[],
+  nodes: INode[],
+  startNodeId: number
+) => {
+  const mockEdge: IEdge = {
+    x1: NaN,
+    x2: NaN,
+    y1: NaN,
+    y2: NaN,
+    nodeX2: NaN,
+    nodeY2: NaN,
+    from: "Infinity",
+    to: startNodeId.toString(),
+    type: "directed",
+    weight: NaN,
+    isUsedInTraversal: false,
+  };
+
+  for (let i = 0; i < nodes.length; i++) {
+    if (prev.get(nodes[i].id)! !== undefined) {
+      visitedEdges.push({
+        ...mockEdge,
+        from: prev.get(nodes[i].id)!?.toString(),
+        to: nodes[i].id.toString(),
+      });
+    }
+  }
+  return visitedEdges;
+};
+const getFromNotIncludedInMST = (
+  edges: Map<number, IEdge[] | undefined>,
+  mstSet: Set<number>,
+  nodeMap: Map<number, number>
+) => {
+  let minimumWeight: number | undefined = Infinity;
+  let minimumNodeId: number;
+  edges.forEach((_value: IEdge[] | undefined, nodeId: number) => {
+    if (!mstSet.has(nodeId) && nodeMap.get(nodeId)! < minimumWeight!) {
+      minimumWeight = nodeMap.get(nodeId);
+      minimumNodeId = nodeId;
+    }
+  });
+  return minimumNodeId!;
 };

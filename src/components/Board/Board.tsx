@@ -71,14 +71,14 @@ export const Board = () => {
     if (option?.key === "select") {
       const updatedOptions = mapValues(options, () => false);
       setOptions(updatedOptions);
-    } else if (option?.key === "bfs" || option?.key === "dfs") {
+    } else if (option?.data === "traversal") {
       const updatedOptions = mapValues(
         options,
         (_value: boolean, key: string) =>
           key === "selectStartNode" ? true : false
       );
       setOptions(updatedOptions);
-    } else {
+    } else if (option?.data === "pathfinding") {
       const updatedOptions = mapValues(
         options,
         (_value: boolean, key: string) =>
