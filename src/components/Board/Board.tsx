@@ -40,6 +40,7 @@ export const Board = () => {
   useEffect(() => {
     if (!isVisualizing) {
       setSelectedAlgo({ key: "select", text: "Select Algorithm" });
+      // setNodeSelection({...options})
     }
   }, [isVisualizing]);
 
@@ -50,6 +51,11 @@ export const Board = () => {
     );
     setSelectedEdge({ key: "select", text: "Select Edge" });
     setSelectedAlgo({ key: "select", text: "Select Algorithm" });
+    setNodeSelection({
+      ...nodeSelection,
+      isStartNodeSelected: false,
+      isEndNodeSelected: false,
+    });
     setOptions(updatedOptions);
   };
 
