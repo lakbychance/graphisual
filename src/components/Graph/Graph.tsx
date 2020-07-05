@@ -18,9 +18,11 @@ export const Graph = (props: GraphProps) => {
     options,
     selectedEdge,
     selectedAlgo,
-    setOptions,
     visualizationSpeed,
     setVisualizingState,
+    setNodeSelection,
+    nodeSelection,
+    isVisualizing,
   } = props;
   const [nodes, setNodes] = useState<INode[]>([]);
   const [edges, setEdges] = useState<Map<number, IEdge[] | undefined>>(
@@ -41,15 +43,6 @@ export const Graph = (props: GraphProps) => {
   const graph = useRef<any>();
   const isVisualizationDone = useRef(false);
 
-  useEffect(() => {
-    //if reset options is selected, reset the board.
-    if (options.reset) {
-      setNodes([]);
-      setEdges(new Map<number, IEdge[] | undefined>());
-      nodesTillNow.current = 0;
-      isVisualizationDone.current = false;
-    }
-  }, [options.reset]);
   const resetNodesAndEdgesState = useCallback(() => {
     let updateNodes = nodes.map((node: INode) => {
       return { ...node, isInShortestPath: false, isVisited: false };
@@ -65,27 +58,33 @@ export const Graph = (props: GraphProps) => {
       });
       updatedEdges.set(nodeId, newList);
     });
-
     setNodes(updateNodes);
     setEdges(updatedEdges);
     setPathFindingNode(null);
     isVisualizationDone.current = false;
   }, [nodes, edges]);
+
   useEffect(() => {
-    //reset the nodes and edges state post visualization is completed.
+    //deletes the graph from the board.
+    if (options.reset) {
+      setNodes([]);
+      setEdges(new Map<number, IEdge[] | undefined>());
+      nodesTillNow.current = 0;
+      isVisualizationDone.current = false;
+    }
+  }, [options.reset]);
+
+  useEffect(() => {
+    //whenever the selected Algorithm changes, set pathfinding node to null.
     setPathFindingNode(null);
+  }, [selectedAlgo]);
+
+  useEffect(() => {
+    //Whenever options change and the visualization is recently competed,reset the graph to its pre-visualized state.
     if (isVisualizationDone.current) {
       resetNodesAndEdgesState();
     }
-  }, [
-    options.drawNode,
-    options.editEdge,
-    options.deleteNode,
-    options.deleteEdge,
-    options.moveNode,
-    selectedEdge,
-    resetNodesAndEdgesState,
-  ]);
+  }, [options, resetNodesAndEdgesState]);
 
   //add a new node to the graph
   const addNode = (event: React.MouseEvent<SVGSVGElement>) => {
@@ -164,6 +163,11 @@ export const Graph = (props: GraphProps) => {
       if (i === shortestPath.length) {
         setTimeout(() => {
           setVisualizingState(false);
+          setNodeSelection({
+            ...nodeSelection,
+            isStartNodeSelected: false,
+            isEndNodeSelected: false,
+          });
           isVisualizationDone.current = true;
         }, visualizationSpeed * i);
         return;
@@ -192,10 +196,10 @@ export const Graph = (props: GraphProps) => {
     visitedEdges: IEdge[],
     shortestPath: IEdge[] = []
   ) => {
-    setOptions({
-      ...options,
-      selectStartNode: false,
-      selectEndNode: false,
+    setNodeSelection({
+      ...nodeSelection,
+      isStartNodeSelected: false,
+      isEndNodeSelected: false,
     });
     setVisualizingState(true);
     for (let i = 0; i <= visitedEdges.length; i++) {
@@ -230,11 +234,7 @@ export const Graph = (props: GraphProps) => {
       addNode(event);
     } else if (options.deleteNode && isNode) {
       deleteNode(event);
-    } else if (
-      selectedAlgo?.data === "traversal" &&
-      isNode &&
-      options.selectStartNode
-    ) {
+    } else if (selectedAlgo?.data === "traversal" && isNode && !isVisualizing) {
       const startNodeId = parseInt(target.id);
       if (selectedAlgo?.key === "bfs") {
         let visitedEdges = bfs(edges, startNodeId);
@@ -248,10 +248,10 @@ export const Graph = (props: GraphProps) => {
         else {
           setTraversalPossible(false);
           setVisualizingState(true);
-          setOptions({
-            ...options,
-            selectStartNode: false,
-            selectEndNode: false,
+          setNodeSelection({
+            ...nodeSelection,
+            isStartNodeSelected: false,
+            isEndNodeSelected: false,
           });
           setTimeout(() => {
             setTraversalPossible(true);
@@ -262,8 +262,7 @@ export const Graph = (props: GraphProps) => {
     } else if (
       selectedAlgo?.data === "pathfinding" &&
       isNode &&
-      options.selectStartNode &&
-      options.selectEndNode
+      !isVisualizing
     ) {
       if (!pathFindingNode) {
         setPathFindingNode({ startNodeId: parseInt(target.id), endNodeId: -1 });
@@ -281,10 +280,10 @@ export const Graph = (props: GraphProps) => {
         } else {
           setPathPossible(false);
           setVisualizingState(true);
-          setOptions({
-            ...options,
-            selectStartNode: false,
-            selectEndNode: false,
+          setNodeSelection({
+            ...nodeSelection,
+            isStartNodeSelected: false,
+            isEndNodeSelected: false,
           });
           setTimeout(() => {
             setPathPossible(true);
@@ -618,7 +617,9 @@ export const Graph = (props: GraphProps) => {
             deleteEdgeMode={options.deleteEdge}
             deleteNodeMode={options.deleteNode}
             editEdgeMode={options.editEdge}
-            readyForVisualization={options.selectStartNode}
+            readyForVisualization={nodeSelection.isStartNodeSelected}
+            readyForMovement={options.moveNode}
+            readyForEdge={selectedEdge?.key !== "select"}
             pathFindingNode={pathFindingNode}
           />
         ))}

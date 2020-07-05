@@ -6,9 +6,11 @@ export interface GraphProps {
   options: IOptions;
   selectedEdge: IDropdownOption | undefined;
   selectedAlgo: IDropdownOption | undefined;
-  setOptions: Dispatch<SetStateAction<IOptions>>;
   visualizationSpeed: number;
   setVisualizingState: Dispatch<SetStateAction<boolean>>;
+  isVisualizing: boolean;
+  nodeSelection: INodeSelection;
+  setNodeSelection: Dispatch<SetStateAction<INodeSelection>>;
 }
 export interface INode {
   x: number;
@@ -33,4 +35,8 @@ export interface IEdge {
   isUsedInTraversal?: boolean;
   isUsedInShortestPath?: boolean;
   [key: string]: any;
+}
+export interface INodeSelection {
+  isStartNodeSelected: boolean;
+  isEndNodeSelected: boolean;
 }

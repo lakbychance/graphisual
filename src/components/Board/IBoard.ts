@@ -5,6 +5,4 @@ export interface IOptions {
   reset: boolean;
   editEdge: boolean;
   deleteEdge: boolean;
-  selectStartNode: boolean;
-  selectEndNode: boolean;
 }

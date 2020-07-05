@@ -9,5 +9,7 @@ export interface NodeProps {
   deleteEdgeMode: boolean;
   editEdgeMode: boolean;
   readyForVisualization: boolean;
+  readyForMovement: boolean;
+  readyForEdge: boolean;
   pathFindingNode: { startNodeId: number; endNodeId: number } | null;
 }

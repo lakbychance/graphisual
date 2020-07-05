@@ -13,6 +13,8 @@ export const Node = (props: NodeProps) => {
     deleteEdgeMode,
     editEdgeMode,
     readyForVisualization,
+    readyForMovement,
+    readyForEdge,
     pathFindingNode,
   } = props;
   return (
@@ -72,7 +74,10 @@ export const Node = (props: NodeProps) => {
                     className={`${styles.directedEdge} ${
                       deleteEdgeMode && styles.deleteEdgeMode
                     } ${editEdgeMode && styles.editEdgeMode} ${
-                      readyForVisualization && styles.disableEdge
+                      (readyForVisualization ||
+                        readyForMovement ||
+                        readyForEdge) &&
+                      styles.disableEdge
                     } ${edge.isUsedInTraversal && styles.usedInTraversal} ${
                       edge.isUsedInShortestPath && styles.usedInShortestPath
                     }`}
@@ -89,7 +94,6 @@ export const Node = (props: NodeProps) => {
                       {edge.weight}
                     </text>
                   )}
-                  })}
                 </>
               )}
 
@@ -102,7 +106,12 @@ export const Node = (props: NodeProps) => {
                     className={`${styles.undirectedEdge} ${
                       deleteEdgeMode && styles.deleteEdgeMode
                     } ${editEdgeMode && styles.editEdgeMode}
-                    ${readyForVisualization && styles.disableEdge} 
+                    ${
+                      (readyForVisualization ||
+                        readyForMovement ||
+                        readyForEdge) &&
+                      styles.disableEdge
+                    } 
                     ${edge.isUsedInTraversal && styles.usedInTraversal}
                     ${edge.isUsedInShortestPath && styles.usedInShortestPath}
                     `}

@@ -12,6 +12,7 @@ import { edgeOptions, algoOptions } from "../../configs/readOnly";
 import { optionButtonStyles, sliderOptions } from "./BoardStyles";
 import appIcon from "../../images/graphisual.svg";
 import { IOptions } from "./IBoard";
+import { INodeSelection } from "../Graph/IGraph";
 
 export const Board = () => {
   const [options, setOptions] = useState<IOptions>({
@@ -21,10 +22,12 @@ export const Board = () => {
     reset: false,
     editEdge: false,
     deleteEdge: false,
-    selectStartNode: false,
-    selectEndNode: false,
   });
 
+  const [nodeSelection, setNodeSelection] = useState<INodeSelection>({
+    isStartNodeSelected: false,
+    isEndNodeSelected: false,
+  });
   const [selectedEdge, setSelectedEdge] = useState<IDropdownOption | undefined>(
     edgeOptions[0]
   );
@@ -72,18 +75,16 @@ export const Board = () => {
       const updatedOptions = mapValues(options, () => false);
       setOptions(updatedOptions);
     } else if (option?.data === "traversal") {
-      const updatedOptions = mapValues(
-        options,
-        (_value: boolean, key: string) =>
-          key === "selectStartNode" ? true : false
-      );
+      setNodeSelection({ ...nodeSelection, isStartNodeSelected: true });
+      const updatedOptions = mapValues(options, () => false);
       setOptions(updatedOptions);
     } else if (option?.data === "pathfinding") {
-      const updatedOptions = mapValues(
-        options,
-        (_value: boolean, key: string) =>
-          key === "selectStartNode" || key === "selectEndNode" ? true : false
-      );
+      setNodeSelection({
+        ...nodeSelection,
+        isStartNodeSelected: true,
+        isEndNodeSelected: true,
+      });
+      const updatedOptions = mapValues(options, () => false);
       setOptions(updatedOptions);
     }
   };
@@ -206,9 +207,11 @@ export const Board = () => {
             options={options}
             selectedAlgo={selectedAlgo}
             selectedEdge={selectedEdge}
-            setOptions={setOptions}
             visualizationSpeed={visualizationSpeed}
             setVisualizingState={setVisualizingState}
+            isVisualizing={isVisualizing}
+            nodeSelection={nodeSelection}
+            setNodeSelection={setNodeSelection}
           />
           <div className={styles.madeInIndia}>
             <span>
