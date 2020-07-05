@@ -73,6 +73,7 @@ export const Graph = (props: GraphProps) => {
   }, [nodes, edges]);
   useEffect(() => {
     //reset the nodes and edges state post visualization is completed.
+    setPathFindingNode(null);
     if (isVisualizationDone.current) {
       resetNodesAndEdgesState();
     }
