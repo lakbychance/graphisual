@@ -530,11 +530,11 @@ export const Graph = (props: GraphProps) => {
       };
       //function triggered to remove mouse event listeners.
       const handleNodeEnd = () => {
-        graph.current.removeEventListener("mousemove", handleNodeMove);
-        graph.current.removeEventListener("mouseup", handleNodeEnd);
+        graph.current.removeEventListener("pointermove", handleNodeMove);
+        graph.current.removeEventListener("pointerup", handleNodeEnd);
       };
-      graph.current.addEventListener("mousemove", handleNodeMove);
-      graph.current.addEventListener("mouseup", handleNodeEnd);
+      graph.current.addEventListener("pointermove", handleNodeMove);
+      graph.current.addEventListener("pointerup", handleNodeEnd);
     } else if (canDrawEdge) {
       currentNode.current = event.target;
       //logic for drawing of edges.
@@ -554,12 +554,14 @@ export const Graph = (props: GraphProps) => {
       };
       //function triggered to remove mouse event listeners.
       const handleArrowEnd = (event: React.MouseEvent<SVGCircleElement>) => {
+        let target = event.target as SVGCircleElement;
+        console.log(target.id);
         addEdge(event);
-        graph.current.removeEventListener("mousemove", handleArrowMove);
-        graph.current.removeEventListener("mouseup", handleArrowEnd);
+        graph.current.removeEventListener("pointermove", handleArrowMove);
+        graph.current.removeEventListener("pointerup", handleArrowEnd);
       };
-      graph.current.addEventListener("mousemove", handleArrowMove);
-      graph.current.addEventListener("mouseup", handleArrowEnd);
+      graph.current.addEventListener("pointermove", handleArrowMove);
+      graph.current.addEventListener("pointerup", handleArrowEnd);
     }
   };
   return (

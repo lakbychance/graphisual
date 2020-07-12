@@ -8,14 +8,7 @@ const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
 
 ReactDOM.render(
   <React.StrictMode>
-    {!isMobileDevice ? (
-      <App />
-    ) : (
-      <div className="noMobileSupport">
-        <img alt="logo icon" src={graphisual}></img>
-        <span>This App is not supported in mobile browsers.</span>
-      </div>
-    )}
+    <App />
   </React.StrictMode>,
   document.getElementById("root")
 );
