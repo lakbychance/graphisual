@@ -20,7 +20,7 @@ export const Node = (props: NodeProps) => {
   return (
     <g className={styles.nodeGroup}>
       <circle
-        onMouseDown={handleMove}
+        onPointerDown={handleMove}
         className={`${styles.node} ${deleteNodeMode && styles.deleteNodeMode} ${
           node.isVisited && styles.visited
         } ${node.isInShortestPath && styles.shortestPath} ${

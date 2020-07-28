@@ -1,3 +1,5 @@
+import { INode } from "../components/Graph/IGraph";
+
 export const calculateCurve = (
   x1: number,
   y1: number,
@@ -54,4 +56,29 @@ export const calculateAccurateCoords = (
   let tempX = x1 + dx;
   let tempY = y1 + dy;
   return { tempX, tempY };
+};
+//find the to Node for the edge drawn for touch based devices
+export const findToNodeForTouchBasedDevices = (
+  x: number,
+  y: number,
+  nodes: INode[]
+) => {
+  const r = 30;
+  return nodes.find((node: INode) =>
+    doesPointLieOnCircle(x, y, r, node.x, node.y)
+  );
+};
+
+//test if point lies on the circle
+export const doesPointLieOnCircle = (
+  centerX: number,
+  centerY: number,
+  radius: number,
+  pointX: number,
+  pointY: number
+) => {
+  const difference = Math.sqrt(
+    Math.pow(centerX - pointX, 2) + Math.pow(centerY - pointY, 2)
+  );
+  return difference <= radius;
 };

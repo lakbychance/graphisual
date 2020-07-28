@@ -4,16 +4,15 @@ import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 import graphisual from "./images/graphisual.svg";
-const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
 
 ReactDOM.render(
   <React.StrictMode>
-    {!isMobileDevice ? (
+    {window.PointerEvent ? (
       <App />
     ) : (
       <div className="noMobileSupport">
         <img alt="logo icon" src={graphisual}></img>
-        <span>This App is not supported in mobile browsers.</span>
+        <span>This App is not supported in your browser.</span>
       </div>
     )}
   </React.StrictMode>,
