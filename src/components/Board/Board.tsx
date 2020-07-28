@@ -23,7 +23,7 @@ export const Board = () => {
     editEdge: false,
     deleteEdge: false,
   });
-
+  const [isPullDownMenuOpen, setPullDownMenuState] = useState<boolean>(false);
   const [nodeSelection, setNodeSelection] = useState<INodeSelection>({
     isStartNodeSelected: false,
     isEndNodeSelected: false,
@@ -57,6 +57,7 @@ export const Board = () => {
       isEndNodeSelected: false,
     });
     setOptions(updatedOptions);
+    setPullDownMenuState(false);
   };
 
   //handles the selection of edge options and corresponding toggles for other options in control panel.
@@ -68,6 +69,7 @@ export const Board = () => {
     setOptions(updatedOptions);
     setSelectedAlgo({ key: "select", text: "Select Algorithm" });
     setSelectedEdge(option);
+    setPullDownMenuState(false);
   };
 
   //handles the selection of algo options and corresponding toggles for other options in control panel.
@@ -93,11 +95,18 @@ export const Board = () => {
       const updatedOptions = mapValues(options, () => false);
       setOptions(updatedOptions);
     }
+    setPullDownMenuState(false);
+  };
+  const handlePullDownMenu = () => {
+    setPullDownMenuState(!isPullDownMenuOpen);
   };
   return (
     <>
       <div className={styles.board}>
-        <div className={styles.controlPanel}>
+        <div
+          className={styles.controlPanel}
+          style={isPullDownMenuOpen ? { top: "-7%" } : { top: "-125%" }}
+        >
           <img className={styles.appIcon} src={appIcon} alt="App Icon"></img>
           <div className={styles.nodeOptions}>
             <button
@@ -201,6 +210,7 @@ export const Board = () => {
             </button>
           </div>
         </div>
+
         <div className={styles.visualizerProgress}>
           {isVisualizing ? (
             <ProgressIndicator styles={{ itemProgress: { padding: "0" } }} />
@@ -219,6 +229,16 @@ export const Board = () => {
             nodeSelection={nodeSelection}
             setNodeSelection={setNodeSelection}
           />
+          <div className={styles.pullDownMenu} onClick={handlePullDownMenu}>
+            <div
+              className={styles.pullDownMenuButton}
+              style={
+                isPullDownMenuOpen
+                  ? { transform: "rotate(225deg)" }
+                  : { transform: "rotate(45deg" }
+              }
+            ></div>
+          </div>
           <div className={styles.madeInIndia}>
             <span>
               Made with <span style={{ color: "#e74c3c" }}>&hearts;</span> in

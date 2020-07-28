@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   width: 99%;
-  height: 90%;
+  height: 100%;
   align-self: center;
   background: #121419;
   border-radius: 20px;
@@ -106,4 +106,90 @@
   bottom: 10px;
   color: white;
   font-size: 1.2em;
+}
+.pullDownMenu {
+  display: none;
+}
+@media only screen and (max-width: 1000px) {
+  .controlPanel {
+    display: flex;
+    position: absolute;
+    z-index: 1;
+    width: 99%;
+    align-items: center;
+    flex-direction: column;
+    height: 97vh;
+    transition: ease-in 0.3s;
+    padding-bottom: 10px;
+    border-radius: 20px;
+    background: #121419;
+  }
+  .nodeOptions {
+    display: flex;
+    width: 80%;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  .optionButtons {
+    background-image: linear-gradient(45deg, #4039ad, #0e8ecc 159%);
+    border: none;
+    height: 32px;
+    color: white;
+    width: 100%;
+    border-radius: 0;
+    outline-color: white;
+    cursor: pointer;
+  }
+  .edgeOptions {
+    display: flex;
+    width: 80%;
+    flex-direction: column;
+    overflow: hidden;
+    margin-top: 5px;
+    border-radius: 10px;
+  }
+  .visualizeControls {
+    display: flex;
+    width: 80%;
+    margin-top: 15px;
+    flex-direction: column;
+  }
+  .speedSlider {
+    width: 100%;
+  }
+  .miscellaneous {
+    display: flex;
+    align-items: center;
+    width: 80%;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  .dropdownWrapper {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  .graphContainer {
+    height: 100%;
+  }
+
+  .pullDownMenu {
+    position: absolute;
+    display: flex;
+    right: 10px;
+    top: 48%;
+    height: 40px;
+    justify-content: flex-end;
+    z-index: 2;
+  }
+  .pullDownMenuButton {
+    width: 15px;
+    height: 15px;
+    border-right: 3px solid white;
+    border-bottom: 3px solid white;
+    transform: rotate(45deg);
+  }
+  .appIcon {
+    margin-top: 15px;
+  }
 }

@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Node } from "../Graph/Node/Node";
 import styles from "./Graph.module.css";
-import { calculateAccurateCoords } from "../../utility/calc";
+import {
+  calculateAccurateCoords,
+  findToNodeForTouchBasedDevices,
+} from "../../utility/calc";
 import { Modal, TextField, MessageBar, MessageBarType } from "@fluentui/react";
 import {
   bfs,
@@ -64,6 +67,9 @@ export const Graph = (props: GraphProps) => {
     isVisualizationDone.current = false;
   }, [nodes, edges]);
 
+  useEffect(() => {
+    graph.current.addEventListener("touchmove", (e: any) => e.preventDefault());
+  }, []);
   useEffect(() => {
     //deletes the graph from the board.
     if (options.reset) {
@@ -339,94 +345,88 @@ export const Graph = (props: GraphProps) => {
   };
 
   //add a new edge between two nodes
-  const addEdge = (event: React.MouseEvent<SVGCircleElement>) => {
-    const target = event.target as SVGCircleElement;
-    const isNode = target.tagName === "circle";
-    if (isNode) {
-      if (currentEdge.current) {
-        let x1 = currentEdge.current.x1;
-        let y1 = currentEdge.current.y1;
-        let x2 = parseInt(target.getAttribute("cx")!);
-        let y2 = parseInt(target.getAttribute("cy")!);
-        let nodeX2 = x2;
-        let nodeY2 = y2;
-        currentEdge.current.to = target.id;
-        const isEdgeNotPresent =
-          edges?.get(parseInt(currentEdge.current.from))?.length !== 0
-            ? edges
-                ?.get(parseInt(currentEdge.current.from))
-                ?.every((edge: IEdge) => edge.to !== currentEdge.current.to)
-            : true;
-        const isNotCurrentNode =
-          currentEdge.current.from !== currentEdge.current.to;
-        const isEdgePossible = isEdgeNotPresent && isNotCurrentNode;
-        if (isEdgePossible) {
-          if (selectedEdge?.key === "directed") {
+  const addEdge = (id: string, tagName: string, x: number, y: number) => {
+    if (currentEdge.current) {
+      let x1 = currentEdge.current.x1;
+      let y1 = currentEdge.current.y1;
+      let x2 = x;
+      let y2 = y;
+      let nodeX2 = x2;
+      let nodeY2 = y2;
+      currentEdge.current.to = id;
+      const isEdgeNotPresent =
+        edges?.get(parseInt(currentEdge.current.from))?.length !== 0
+          ? edges
+              ?.get(parseInt(currentEdge.current.from))
+              ?.every((edge: IEdge) => edge.to !== currentEdge.current.to)
+          : true;
+      const isNotCurrentNode =
+        currentEdge.current.from !== currentEdge.current.to;
+      const isEdgePossible = isEdgeNotPresent && isNotCurrentNode;
+      if (isEdgePossible) {
+        if (selectedEdge?.key === "directed") {
+          let { tempX: tempX2, tempY: tempY2 } = calculateAccurateCoords(
+            x1,
+            y1,
+            x2,
+            y2
+          );
+          const fromNodeId = parseInt(currentEdge.current.from);
+          let { ...toNode } = currentEdge.current;
+          toNode.x2 = tempX2;
+          toNode.y2 = tempY2;
+          toNode.nodeX2 = nodeX2;
+          toNode.nodeY2 = nodeY2;
+          toNode.type = "directed";
+          edges?.get(fromNodeId)?.push(toNode);
+        } else if (selectedEdge?.key === "undirected") {
+          const fromNodeId = parseInt(currentEdge.current.from);
+          const toNodeId = parseInt(currentEdge.current.to);
+          const isUndirectedEdgeNotPossible =
+            edges
+              ?.get(fromNodeId)
+              ?.some((edge: IEdge) => parseInt(edge.to) === toNodeId) ||
+            edges
+              ?.get(toNodeId)
+              ?.some((edge: IEdge) => parseInt(edge.to) === fromNodeId);
+          if (!isUndirectedEdgeNotPossible) {
             let { tempX: tempX2, tempY: tempY2 } = calculateAccurateCoords(
               x1,
               y1,
               x2,
               y2
             );
-            const fromNodeId = parseInt(currentEdge.current.from);
             let { ...toNode } = currentEdge.current;
             toNode.x2 = tempX2;
             toNode.y2 = tempY2;
             toNode.nodeX2 = nodeX2;
             toNode.nodeY2 = nodeY2;
-            toNode.type = "directed";
+            toNode.type = "undirected";
             edges?.get(fromNodeId)?.push(toNode);
-          } else if (selectedEdge?.key === "undirected") {
-            const fromNodeId = parseInt(currentEdge.current.from);
-            const toNodeId = parseInt(currentEdge.current.to);
-            const isUndirectedEdgeNotPossible =
-              edges
-                ?.get(fromNodeId)
-                ?.some((edge: IEdge) => parseInt(edge.to) === toNodeId) ||
-              edges
-                ?.get(toNodeId)
-                ?.some((edge: IEdge) => parseInt(edge.to) === fromNodeId);
-            if (!isUndirectedEdgeNotPossible) {
-              let { tempX: tempX2, tempY: tempY2 } = calculateAccurateCoords(
-                x1,
-                y1,
-                x2,
-                y2
-              );
-              let { ...toNode } = currentEdge.current;
-              toNode.x2 = tempX2;
-              toNode.y2 = tempY2;
-              toNode.nodeX2 = nodeX2;
-              toNode.nodeY2 = nodeY2;
-              toNode.type = "undirected";
-              edges?.get(fromNodeId)?.push(toNode);
-              let { tempX: tempX1, tempY: tempY1 } = calculateAccurateCoords(
-                x2,
-                y2,
-                x1,
-                y1
-              );
-              let fromNode = {
-                x1: x2,
-                y1: y2,
-                x2: tempX1,
-                y2: tempY1,
-                nodeX2: x1,
-                nodeY2: y1,
-                from: currentEdge.current.to,
-                to: currentEdge.current.from,
-                type: "undirected",
-                weight: currentEdge.current.weight,
-              };
-              edges?.get(toNodeId)?.push(fromNode);
-            }
+            let { tempX: tempX1, tempY: tempY1 } = calculateAccurateCoords(
+              x2,
+              y2,
+              x1,
+              y1
+            );
+            let fromNode = {
+              x1: x2,
+              y1: y2,
+              x2: tempX1,
+              y2: tempY1,
+              nodeX2: x1,
+              nodeY2: y1,
+              from: currentEdge.current.to,
+              to: currentEdge.current.from,
+              type: "undirected",
+              weight: currentEdge.current.weight,
+            };
+            edges?.get(toNodeId)?.push(fromNode);
           }
-          setEdges(edges);
         }
+        setEdges(edges);
       }
     }
-    setMockEdge(null);
-    currentEdge.current = undefined;
   };
 
   //common handler for deletion and edition of edges.
@@ -553,10 +553,28 @@ export const Graph = (props: GraphProps) => {
         setMockEdge(currentEdge.current);
       };
       //function triggered to remove mouse event listeners.
-      const handleArrowEnd = (event: React.MouseEvent<SVGCircleElement>) => {
-        let target = event.target as SVGCircleElement;
-        console.log(target.id);
-        addEdge(event);
+      const handleArrowEnd = (event: React.PointerEvent<SVGSVGElement>) => {
+        const isTouchEvent = event.pointerType === "touch";
+        if (isTouchEvent) {
+          const node = findToNodeForTouchBasedDevices(
+            event.clientX - graph.current.getBoundingClientRect().left,
+            event.clientY - graph.current.getBoundingClientRect().top,
+            nodes
+          );
+          if (node) {
+            addEdge(node.id.toString(), "circle", node.x, node.y);
+          }
+        } else {
+          const target = event.target as SVGSVGElement;
+          const isNode = target.tagName === "circle";
+          if (isNode) {
+            const x = parseInt(target.getAttribute("cx")!);
+            const y = parseInt(target.getAttribute("cy")!);
+            addEdge(target.id, "circle", x, y);
+          }
+        }
+        setMockEdge(null);
+        currentEdge.current = undefined;
         graph.current.removeEventListener("pointermove", handleArrowMove);
         graph.current.removeEventListener("pointerup", handleArrowEnd);
       };

@@ -8,6 +8,10 @@
   top: 5px;
   border-radius: 5px !important;
 }
+.ms-Panel-main {
+  background: transparent;
+  backdrop-filter: blur(10px);
+}
 .dropdown-58 {
   border-color: white !important;
   border: none !important;
