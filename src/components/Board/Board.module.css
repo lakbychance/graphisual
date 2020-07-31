@@ -185,8 +185,8 @@
   .pullDownMenuButton {
     width: 15px;
     height: 15px;
-    border-right: 3px solid white;
-    border-bottom: 3px solid white;
+    border-right: 3px solid #4a46e4;
+    border-bottom: 3px solid #4a46e4;
     transform: rotate(45deg);
   }
   .appIcon {
