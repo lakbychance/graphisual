@@ -27,7 +27,7 @@ export const algoOptions: Array<IDropdownOption> = [
   {
     key: "bfs",
     data: "traversal",
-    text: "Breath First Search",
+    text: "Breadth First Search",
   },
   {
     key: "dfs",
