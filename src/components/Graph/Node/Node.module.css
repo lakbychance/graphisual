@@ -99,7 +99,7 @@
   fill: white;
 }
 
-@media only screen and (min-width: 1200px) {
+/* @media only screen and (min-width: 1200px) {
   @keyframes node {
     from {
       fill: white;
@@ -176,7 +176,6 @@
     to {
       fill: #30a947;
       opacity: 1;
-      /* stroke-dasharray: 280; */
     }
   }
   @keyframes arrowShortestPath {
@@ -187,7 +186,6 @@
     to {
       fill: #ffcc3c;
       opacity: 1;
-      /* stroke-dasharray: 280; */
     }
   }
-}
+} */
