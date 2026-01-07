@@ -14,7 +14,6 @@ import dfsAdapter from "./adapters/dfs";
 import dijkstraAdapter from "./adapters/dijkstra";
 import primsAdapter from "./adapters/prims";
 import cycleDetectionAdapter from "./adapters/cycleDetection";
-import floydWarshallAdapter from "./adapters/floydWarshall";
 
 // Register all algorithms
 algorithmRegistry.register(bfsAdapter);
@@ -22,7 +21,6 @@ algorithmRegistry.register(dfsAdapter);
 algorithmRegistry.register(dijkstraAdapter);
 algorithmRegistry.register(primsAdapter);
 algorithmRegistry.register(cycleDetectionAdapter);
-algorithmRegistry.register(floydWarshallAdapter);
 
 // Export registry and types for use in components
 export { algorithmRegistry } from "./registry";

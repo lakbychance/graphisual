@@ -15,7 +15,6 @@ An interactive web app to draw graphs and visualize algorithms.
 - Dijkstra's shortest path
 - Prim's minimum spanning tree
 - Cycle detection
-- Floyd-Warshall all-pairs shortest paths
 
 ## Tech Stack
 

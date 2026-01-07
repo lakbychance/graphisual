@@ -249,17 +249,21 @@ export const Graph = () => {
     const currentNodes = nodesRef.current;
     const currentEdges = edgesRef.current;
 
+    // Convert currentEdge from/to to strings for comparison (IEdge uses strings, algorithm uses numbers)
+    const currentFrom = String(currentEdge.from);
+    const currentTo = String(currentEdge.to);
+
     const updatedEdges = new Map(currentEdges);
     updatedEdges.forEach((list) => {
       list?.forEach((edge) => {
-        if (edge.type === "directed" && edge.from === currentEdge.from && edge.to === currentEdge.to) {
+        if (edge.type === "directed" && edge.from === currentFrom && edge.to === currentTo) {
           (edge as Record<string, unknown>)[edgeAttribute] = true;
         }
         if (edge.type === "undirected") {
-          if (edge.from === currentEdge.from && edge.to === currentEdge.to) {
+          if (edge.from === currentFrom && edge.to === currentTo) {
             (edge as Record<string, unknown>)[edgeAttribute] = true;
-            updatedEdges.get(parseInt(currentEdge.to))?.forEach((e) => {
-              if (e.to === currentEdge.from) {
+            updatedEdges.get(parseInt(currentTo))?.forEach((e) => {
+              if (e.to === currentFrom) {
                 (e as Record<string, unknown>)[edgeAttribute] = true;
               }
             });
