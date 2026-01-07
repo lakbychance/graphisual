@@ -319,8 +319,16 @@ export const Node = (props: NodeProps) => {
           cy={node.y}
           r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
           id={node.id.toString()}
-        >
-        </circle>
+        />
+        {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
+          fill="url(#crosshatch)"
+          mask="url(#sphereMask)"
+          className="pointer-events-none [transition:r_150ms]"
+        />
 
         {/* Edge Connectors - shown on hover */}
         <EdgeConnector

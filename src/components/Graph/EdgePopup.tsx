@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
-import { FocusScope } from "@radix-ui/react-focus-scope";
 import { IEdge } from "./IGraph";
 import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -8,9 +6,11 @@ import { GrainTexture } from "../ui/grain-texture";
 import { ToggleGroup, ToggleItem } from "../ui/toggle-group";
 import { StepperInput } from "../ui/stepper-input";
 import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 
 interface EdgePopupProps {
   edge: IEdge;
+  anchorPosition: { x: number; y: number };
   onClose: () => void;
   onUpdateType: (type: "directed" | "undirected") => void;
   onUpdateWeight: (weight: number) => void;
@@ -20,6 +20,7 @@ interface EdgePopupProps {
 
 export const EdgePopup = ({
   edge,
+  anchorPosition,
   onClose,
   onUpdateType,
   onUpdateWeight,
@@ -30,52 +31,16 @@ export const EdgePopup = ({
   const [type, setType] = useState<"directed" | "undirected">(
     edge.type as "directed" | "undirected"
   );
-  const popupRef = useRef<HTMLDivElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
-
-  // Calculate popup position at edge midpoint
-  const midX = (edge.x1 + edge.x2) / 2;
-  const midY = (edge.y1 + edge.y2) / 2;
 
   // Focus weight input on mount
   useEffect(() => {
-    weightInputRef.current?.focus();
+    // Small delay to ensure popover is mounted
+    const timer = setTimeout(() => {
+      weightInputRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
   }, []);
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    let closingPopup = false;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        closingPopup = true;
-        onClose();
-      }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      if (closingPopup) {
-        e.stopPropagation();
-        closingPopup = false;
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleMouseDown, true);
-    document.addEventListener("click", handleClick, true);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown, true);
-      document.removeEventListener("click", handleClick, true);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose]);
 
   const handleTypeChange = (newType: "directed" | "undirected") => {
     setType(newType);
@@ -93,104 +58,103 @@ export const EdgePopup = ({
   };
 
   return (
-    <foreignObject
-      x={midX - 100}
-      y={midY - 70}
-      width={200}
-      height={140}
-      className="overflow-visible"
-    >
-      <FocusScope trapped loop>
+    <Popover open={true} onOpenChange={(open) => !open && onClose()}>
+      {/* Virtual anchor positioned at edge midpoint */}
+      <PopoverAnchor asChild>
+        <div
+          style={{
+            position: "fixed",
+            left: anchorPosition.x,
+            top: anchorPosition.y,
+            width: 1,
+            height: 1,
+            pointerEvents: "none",
+          }}
+        />
+      </PopoverAnchor>
+
+      <PopoverContent
+        side="top"
+        sideOffset={8}
+        className="w-[200px] p-3 font-['Outfit']"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <GrainTexture className="rounded-[var(--radius-md)]" />
+
         <TooltipProvider delayDuration={200}>
-          <motion.div
-            ref={popupRef}
-            className="w-[200px] p-3 rounded-[var(--radius-lg)] font-['Outfit'] bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{
-              type: 'spring',
-              stiffness: 500,
-              damping: 30,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GrainTexture className="rounded-[var(--radius-lg)]" />
+          {/* Edge Type toggle */}
+          <div className="mb-2.5">
+            <ToggleGroup variant="etched">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleItem
+                    active={type === "directed"}
+                    onClick={() => handleTypeChange("directed")}
+                  >
+                    <MoveRight className="w-4 h-4" />
+                  </ToggleItem>
+                </TooltipTrigger>
+                <TooltipContent>Directed</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToggleItem
+                    active={type === "undirected"}
+                    onClick={() => handleTypeChange("undirected")}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </ToggleItem>
+                </TooltipTrigger>
+                <TooltipContent>Undirected</TooltipContent>
+              </Tooltip>
+            </ToggleGroup>
+          </div>
 
-            {/* Edge Type toggle */}
-            <div className="mb-2.5">
-              <ToggleGroup variant="etched">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleItem
-                      active={type === "directed"}
-                      onClick={() => handleTypeChange("directed")}
-                    >
-                      <MoveRight className="w-4 h-4" />
-                    </ToggleItem>
-                  </TooltipTrigger>
-                  <TooltipContent>Directed</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToggleItem
-                      active={type === "undirected"}
-                      onClick={() => handleTypeChange("undirected")}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </ToggleItem>
-                  </TooltipTrigger>
-                  <TooltipContent>Undirected</TooltipContent>
-                </Tooltip>
-              </ToggleGroup>
-            </div>
+          {/* Weight stepper */}
+          <div className="mb-2.5">
+            <StepperInput
+              value={weight}
+              onChange={handleWeightChange}
+              min={0}
+              max={999}
+              onEnter={onClose}
+              inputRef={weightInputRef}
+            />
+          </div>
 
-            {/* Weight stepper */}
-            <div className="mb-2.5">
-              <StepperInput
-                value={weight}
-                onChange={handleWeightChange}
-                min={0}
-                max={999}
-                onEnter={onClose}
-                inputRef={weightInputRef}
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-1.5">
-              {type === "directed" && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleReverse}
-                      variant="default"
-                      size="icon-sm"
-                      className="flex-1"
-                    >
-                      <ArrowLeftRight className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Reverse Direction</TooltipContent>
-                </Tooltip>
-              )}
+          {/* Action buttons */}
+          <div className="flex gap-1.5">
+            {type === "directed" && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={onDelete}
+                    onClick={handleReverse}
                     variant="default"
                     size="icon-sm"
-                    className="flex-1 text-[var(--color-error)]"
+                    className="flex-1"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <ArrowLeftRight className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Delete Edge</TooltipContent>
+                <TooltipContent>Reverse Direction</TooltipContent>
               </Tooltip>
-            </div>
-          </motion.div>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={onDelete}
+                  variant="default"
+                  size="icon-sm"
+                  className="flex-1 text-[var(--color-error)]"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete Edge</TooltipContent>
+            </Tooltip>
+          </div>
         </TooltipProvider>
-      </FocusScope>
-    </foreignObject>
+      </PopoverContent>
+    </Popover>
   );
 };

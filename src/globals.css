@@ -111,6 +111,10 @@
 
   /* Focus ring for contrasting elements (orange controls) */
   --color-focus-ring-contrast: rgba(0, 0, 0, 0.7);
+
+  /* Graph paper grid */
+  --color-grid-line: rgba(50, 45, 40, 0.08);
+  --color-grid-line-major: rgba(50, 45, 40, 0.15);
 }
 
 /* === DARK THEME === */
@@ -214,6 +218,10 @@
 
   /* Focus ring for contrasting elements (orange controls) */
   --color-focus-ring-contrast: rgba(255, 255, 255, 0.8);
+
+  /* Graph paper grid */
+  --color-grid-line: rgba(255, 255, 255, 0.06);
+  --color-grid-line-major: rgba(255, 255, 255, 0.12);
 }
 
 @layer base {
@@ -276,3 +284,4 @@
 [data-theme="dark"] .grain-texture {
   opacity: 0.1;
 }
+

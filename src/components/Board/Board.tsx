@@ -295,7 +295,7 @@ export const Board = () => {
   return (
     <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
       <div className="h-dvh w-screen relative overflow-hidden">
-        {/* Background using CSS variable */}
+        {/* Background color */}
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
 
         {/* Full-screen Graph - no props needed, reads from store */}
