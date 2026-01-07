@@ -1,4 +1,5 @@
 import { INode } from "../components/Graph/IGraph";
+import { NODE } from "./constants";
 
 export const calculateCurve = (
   x1: number,
@@ -13,7 +14,7 @@ export const calculateCurve = (
   var theta = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2;
 
   // distance of control point from mid-point of line:
-  var offset = 30;
+  var offset = NODE.RADIUS;
 
   // location of control point:
   var c1x = mpx + offset * Math.cos(theta);
@@ -34,7 +35,7 @@ export const calculateTextLoc = (
   var theta = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2;
 
   // distance of control point from mid-point of line:
-  var offset = 30;
+  var offset = NODE.RADIUS;
 
   // location of control point:
   var c1x = mpx + offset * Math.cos(theta);
@@ -49,7 +50,7 @@ export const calculateAccurateCoords = (
   y2: number
 ) => {
   let distance = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-  let d2 = distance - 30;
+  let d2 = distance - NODE.RADIUS;
   let ratio = d2 / distance;
   let dx: any = (x2 - x1) * ratio;
   let dy: any = (y2 - y1) * ratio;
@@ -63,9 +64,8 @@ export const findToNodeForTouchBasedDevices = (
   y: number,
   nodes: INode[]
 ) => {
-  const r = 30;
   return nodes.find((node: INode) =>
-    doesPointLieOnCircle(x, y, r, node.x, node.y)
+    doesPointLieOnCircle(x, y, NODE.RADIUS, node.x, node.y)
   );
 };
 

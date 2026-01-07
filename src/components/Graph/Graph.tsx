@@ -1,213 +1,317 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { AnimatePresence } from "motion/react";
 import { Node } from "../Graph/Node/Node";
-import styles from "./Graph.module.css";
-import {
-  calculateAccurateCoords,
-  findToNodeForTouchBasedDevices,
-} from "../../utility/calc";
-import { Modal, TextField, MessageBar, MessageBarType } from "@fluentui/react";
-import {
-  bfs,
-  dfs,
-  dijkstra,
-  IPathFinding,
-  minspantreeprims,
-} from "../../algorithms/algorithm";
-import { GraphProps, INode, IEdge } from "./IGraph";
-import { cloneDeep } from "lodash";
-import { algoMessages } from "../../configs/readOnly";
-export const Graph = (props: GraphProps) => {
-  const {
-    options,
-    selectedEdge,
-    selectedAlgo,
-    visualizationSpeed,
-    setVisualizingState,
-    setNodeSelection,
-    nodeSelection,
-    isVisualizing,
-  } = props;
-  const [nodes, setNodes] = useState<INode[]>([]);
-  const [edges, setEdges] = useState<Map<number, IEdge[] | undefined>>(
-    new Map<number, IEdge[]>()
-  );
-  const [isModalOpen, setModalState] = useState(false);
-  const [edge, setEdge] = useState<IEdge | null>(null);
-  const [pathFindingNode, setPathFindingNode] = useState<{
-    startNodeId: number;
-    endNodeId: number;
-  } | null>(null);
-  const [isPathPossible, setPathPossible] = useState(true);
-  const [isTraversalPossible, setTraversalPossible] = useState(true);
+import { findToNodeForTouchBasedDevices } from "../../utility/calc";
+import { isModKey } from "../../utility/keyboard";
+import { ZOOM, DRAG_THRESHOLD, TIMING } from "../../utility/constants";
+import { INode, IEdge, GraphSnapshot } from "./IGraph";
+import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
+import { EdgePopup } from "./EdgePopup";
+import { toast } from "sonner";
+import { useGraphStore } from "../../store/graphStore";
+import debounce from "lodash-es/debounce";
+
+export const Graph = () => {
+  // Get state from store
+  const nodes = useGraphStore((state) => state.nodes);
+  const edges = useGraphStore((state) => state.edges);
+  const nodeCounter = useGraphStore((state) => state.nodeCounter);
+  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
+  const selectedEdgeForEdit = useGraphStore((state) => state.selectedEdgeForEdit);
+  const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
+  const nodeSelection = useGraphStore((state) => state.nodeSelection);
+  const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
+  const isVisualizing = useGraphStore((state) => state.isVisualizing);
+  const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
+  const zoom = useGraphStore((state) => state.zoom);
+  const pan = useGraphStore((state) => state.pan);
+  const stepMode = useGraphStore((state) => state.stepMode);
+  const stepIndex = useGraphStore((state) => state.stepIndex);
+  const stepHistory = useGraphStore((state) => state.stepHistory);
+  const canUndo = useGraphStore((state) => state.canUndo());
+  const canRedo = useGraphStore((state) => state.canRedo());
+
+  // Get actions from store
+  const addNodeAction = useGraphStore((state) => state.addNode);
+  const moveNodeAction = useGraphStore((state) => state.moveNode);
+  const deleteNodeAction = useGraphStore((state) => state.deleteNode);
+  const addEdgeAction = useGraphStore((state) => state.addEdge);
+  const selectNode = useGraphStore((state) => state.selectNode);
+  const selectEdgeForEditAction = useGraphStore((state) => state.selectEdgeForEdit);
+  const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
+  const setPathFindingNode = useGraphStore((state) => state.setPathFindingNode);
+  const setVisualizing = useGraphStore((state) => state.setVisualizing);
+  const setVisualizationDone = useGraphStore((state) => state.setVisualizationDone);
+  const setNodeSelection = useGraphStore((state) => state.setNodeSelection);
+  const updateVisualizationState = useGraphStore((state) => state.updateVisualizationState);
+  const resetAlgorithmState = useGraphStore((state) => state.resetAlgorithmState);
+  const undo = useGraphStore((state) => state.undo);
+  const redo = useGraphStore((state) => state.redo);
+  const pushToPast = useGraphStore((state) => state.pushToPast);
+  const updateEdgeTypeAction = useGraphStore((state) => state.updateEdgeType);
+  const updateEdgeWeightAction = useGraphStore((state) => state.updateEdgeWeight);
+  const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
+  const deleteEdgeAction = useGraphStore((state) => state.deleteEdge);
+  const setPan = useGraphStore((state) => state.setPan);
+  const setZoom = useGraphStore((state) => state.setZoom);
+  const initStepThrough = useGraphStore((state) => state.initStepThrough);
+
+  // Local UI state (not shared with other components)
   const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
-  const currentNode = useRef<any>();
-  const currentEdge = useRef<any>();
-  const nodesTillNow = useRef(0);
-  const graph = useRef<any>();
-  const isVisualizationDone = useRef(false);
+  const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
 
-  const resetNodesAndEdgesState = useCallback(() => {
-    let updateNodes = nodes.map((node: INode) => {
-      return { ...node, isInShortestPath: false, isVisited: false };
-    });
-    let updatedEdges = cloneDeep(edges);
-    updatedEdges.forEach((list: IEdge[] | undefined, nodeId: number) => {
-      let newList = list?.map((edge: IEdge) => {
-        return {
-          ...edge,
-          isUsedInTraversal: false,
-          isUsedInShortestPath: false,
-        };
-      });
-      updatedEdges.set(nodeId, newList);
-    });
-    setNodes(updateNodes);
-    setEdges(updatedEdges);
-    setPathFindingNode(null);
-    isVisualizationDone.current = false;
-  }, [nodes, edges]);
+  // Refs
+  const graph = useRef<SVGSVGElement | null>(null);
+  const isDraggingEdge = useRef(false);
+  const justClosedPopup = useRef(false);
+  const isDraggingCanvas = useRef(false);
+  const dragStartSnapshot = useRef<GraphSnapshot | null>(null);
 
+  // Refs to track latest state during visualization (for setTimeout callbacks)
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
+  // Helper to create a snapshot for history
+  const createSnapshot = useCallback((
+    newNodes: INode[],
+    newEdges: Map<number, IEdge[]>,
+    newNodeCounter: number
+  ): GraphSnapshot => ({
+    nodes: newNodes,
+    edges: Array.from(newEdges.entries()).map(([k, v]) => [k, v || []]),
+    nodeCounter: newNodeCounter,
+  }), []);
+
+  // Debounced function to record drag start state to history
+  const debouncedRecordDrag = useMemo(
+    () => debounce(() => {
+      if (dragStartSnapshot.current) {
+        pushToPast(dragStartSnapshot.current);
+        dragStartSnapshot.current = null;
+      }
+    }, TIMING.DEBOUNCE),
+    [pushToPast]
+  );
+
+  // Update SVG dimensions on mount and resize
   useEffect(() => {
-    graph.current.addEventListener("touchmove", (e: any) => e.preventDefault());
-  }, []);
-  useEffect(() => {
-    //deletes the graph from the board.
-    if (options.reset) {
-      setNodes([]);
-      setEdges(new Map<number, IEdge[] | undefined>());
-      nodesTillNow.current = 0;
-      isVisualizationDone.current = false;
-    }
-  }, [options.reset]);
-
-  useEffect(() => {
-    //whenever the selected Algorithm changes, set pathfinding node to null.
-    setPathFindingNode(null);
-  }, [selectedAlgo]);
-
-  useEffect(() => {
-    //Whenever options change and the visualization is recently competed,reset the graph to its pre-visualized state.
-    if (isVisualizationDone.current) {
-      resetNodesAndEdgesState();
-    }
-  }, [options, resetNodesAndEdgesState]);
-
-  //add a new node to the graph
-  const addNode = (event: React.MouseEvent<SVGSVGElement>) => {
-    const target = event.target as SVGSVGElement;
-    let nodeX = event.clientX - target.getBoundingClientRect().left;
-    let nodeY = event.clientY - target.getBoundingClientRect().top;
-    nodesTillNow.current += 1;
-    let newNode = {
-      id: nodesTillNow.current,
-      x: nodeX,
-      y: nodeY,
-      r: 30,
+    const updateDimensions = () => {
+      if (graph.current) {
+        const rect = graph.current.getBoundingClientRect();
+        setSvgDimensions({ width: rect.width, height: rect.height });
+      }
     };
-    edges.set(nodesTillNow.current, []);
-    setEdges(edges);
-    setNodes([...nodes, newNode]);
-  };
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
-  //delete an existing node from the graph
-  const deleteNode = (event: React.MouseEvent<SVGSVGElement>) => {
-    const target = event.target as SVGSVGElement;
-    let newNodes = nodes.filter(
-      (node: INode) => node.id !== parseInt(target.id)
-    );
-    edges.forEach((list: IEdge[] | undefined, nodeId: number) => {
-      let newList = list?.filter((edge: IEdge) => target.id !== edge.to);
-      edges.set(nodeId, newList);
-    });
+  // Calculate viewBox based on zoom and pan
+  const viewBox = useMemo(() => {
+    if (svgDimensions.width === 0 || svgDimensions.height === 0) return undefined;
+    const viewBoxWidth = svgDimensions.width / zoom;
+    const viewBoxHeight = svgDimensions.height / zoom;
+    // Center the view and apply pan offset (subtract pan to move view opposite to drag direction)
+    const viewBoxMinX = (svgDimensions.width - viewBoxWidth) / 2 - pan.x;
+    const viewBoxMinY = (svgDimensions.height - viewBoxHeight) / 2 - pan.y;
+    return `${viewBoxMinX} ${viewBoxMinY} ${viewBoxWidth} ${viewBoxHeight}`;
+  }, [svgDimensions, zoom, pan]);
 
-    edges.delete(parseInt(target.id));
-    setEdges(edges);
-    setNodes(newNodes);
-  };
+  // Convert screen coordinates to SVG coordinates
+  const screenToSvgCoords = useCallback((clientX: number, clientY: number) => {
+    if (!graph.current) return { x: 0, y: 0 };
+    const point = graph.current.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const ctm = graph.current.getScreenCTM()?.inverse();
+    if (!ctm) return { x: 0, y: 0 };
+    const svgPoint = point.matrixTransform(ctm);
+    return { x: svgPoint.x, y: svgPoint.y };
+  }, []);
 
-  //handles the logic for setting nodes and edges state for visualization
-  const visualizeSetState = (
+  // Get the current algorithm from registry
+  const currentAlgorithm = selectedAlgo?.key
+    ? algorithmRegistry.get(selectedAlgo.key)
+    : undefined;
+
+  // Prevent touch scroll on SVG
+  useEffect(() => {
+    const graphEl = graph.current;
+    if (graphEl) {
+      const preventTouch = (e: TouchEvent) => e.preventDefault();
+      graphEl.addEventListener("touchmove", preventTouch);
+      return () => graphEl.removeEventListener("touchmove", preventTouch);
+    }
+  }, []);
+
+  // Apply step-through visualization when stepIndex changes
+  useEffect(() => {
+    if (stepMode !== 'manual' || stepHistory.length === 0) return;
+    if (stepIndex < 0) return;
+
+    // Get cleaned state as base
+    const { getCleanedState } = useGraphStore.getState();
+    const { cleanedNodes, cleanedEdges } = getCleanedState();
+
+    // Apply all steps up to current index
+    const updatedNodes = [...cleanedNodes];
+    const updatedEdges = new Map(cleanedEdges);
+
+    for (let i = 0; i <= stepIndex; i++) {
+      const step = stepHistory[i];
+      const targetId = step.edge.to;
+      const fromId = step.edge.from;
+
+      // Mark the node
+      const nodeIndex = updatedNodes.findIndex((n) => n.id === targetId);
+      if (nodeIndex !== -1) {
+        if (step.type === 'visit') {
+          updatedNodes[nodeIndex] = { ...updatedNodes[nodeIndex], isVisited: true };
+        } else {
+          updatedNodes[nodeIndex] = { ...updatedNodes[nodeIndex], isInShortestPath: true };
+        }
+      }
+
+      // Mark the edge (if not from root)
+      if (fromId !== -1) {
+        const edgeList = updatedEdges.get(fromId);
+        if (edgeList) {
+          const newEdgeList = edgeList.map((e) => {
+            if (parseInt(e.to) === targetId) {
+              if (step.type === 'visit') {
+                return { ...e, isUsedInTraversal: true };
+              } else {
+                return { ...e, isUsedInShortestPath: true };
+              }
+            }
+            return e;
+          });
+          updatedEdges.set(fromId, newEdgeList);
+        }
+      }
+    }
+
+    updateVisualizationState(updatedNodes, updatedEdges);
+  }, [stepMode, stepIndex, stepHistory, updateVisualizationState]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo
+      if (isModKey(e) && e.key === "z" && !e.shiftKey && !isVisualizing) {
+        e.preventDefault();
+        if (canUndo) undo();
+        return;
+      }
+      // Redo
+      if (isModKey(e) && ((e.key === "z" && e.shiftKey) || e.key === "y") && !isVisualizing) {
+        e.preventDefault();
+        if (canRedo) redo();
+        return;
+      }
+      // Delete selected node
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId !== null && !isVisualizing) {
+        e.preventDefault();
+        deleteNodeAction(selectedNodeId);
+        return;
+      }
+      // Escape to deselect
+      if (e.key === "Escape") {
+        selectNode(null);
+      }
+      // Zoom in (Cmd/Ctrl + Plus or Cmd/Ctrl + Equals)
+      if (isModKey(e) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        const currentZoom = useGraphStore.getState().zoom;
+        setZoom(Math.min(currentZoom + ZOOM.STEP, ZOOM.MAX));
+        return;
+      }
+      // Zoom out (Cmd/Ctrl + Minus)
+      if (isModKey(e) && e.key === "-") {
+        e.preventDefault();
+        const currentZoom = useGraphStore.getState().zoom;
+        setZoom(Math.max(currentZoom - ZOOM.STEP, ZOOM.MIN));
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeId, isVisualizing, canUndo, canRedo, undo, redo, deleteNodeAction, selectNode, setZoom]);
+
+  // Visualization helper
+  const visualizeSetState = useCallback((
     currentEdge: IEdge,
     edgeAttribute: string,
     nodeAttribute: string
   ) => {
-    edges.forEach((list: IEdge[] | undefined) => {
-      list?.forEach((edge: IEdge) => {
-        if (
-          edge.type === "directed" &&
-          edge.from === currentEdge.from &&
-          edge.to === currentEdge.to
-        ) {
-          edge[edgeAttribute] = true;
+    const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
+
+    const updatedEdges = new Map(currentEdges);
+    updatedEdges.forEach((list) => {
+      list?.forEach((edge) => {
+        if (edge.type === "directed" && edge.from === currentEdge.from && edge.to === currentEdge.to) {
+          (edge as Record<string, unknown>)[edgeAttribute] = true;
         }
         if (edge.type === "undirected") {
           if (edge.from === currentEdge.from && edge.to === currentEdge.to) {
-            edge[edgeAttribute] = true;
-            edges.get(parseInt(currentEdge.to))?.forEach((edge: IEdge) => {
-              if (edge.to === currentEdge.from) {
-                edge[edgeAttribute] = true;
+            (edge as Record<string, unknown>)[edgeAttribute] = true;
+            updatedEdges.get(parseInt(currentEdge.to))?.forEach((e) => {
+              if (e.to === currentEdge.from) {
+                (e as Record<string, unknown>)[edgeAttribute] = true;
               }
             });
           }
         }
       });
     });
-    setEdges(edges);
-    let updatedNodes = [...nodes];
-    updatedNodes.forEach((node: INode) => {
+
+    const updatedNodes = currentNodes.map((node) => {
       if (node.id === parseInt(currentEdge.to)) {
-        node[nodeAttribute] = true;
+        return { ...node, [nodeAttribute]: true };
       }
+      return node;
     });
 
-    setNodes(updatedNodes);
-  };
+    updateVisualizationState(updatedNodes, updatedEdges);
+  }, [updateVisualizationState]);
 
-  //visualize shortest path logic
-  const visualizeShortestPath = (shortestPath: IEdge[]) => {
+  const visualizeShortestPath = useCallback((shortestPath: IEdge[]) => {
     for (let i = 0; i <= shortestPath.length; i++) {
       if (i === shortestPath.length) {
         setTimeout(() => {
-          setVisualizingState(false);
-          setNodeSelection({
-            ...nodeSelection,
-            isStartNodeSelected: false,
-            isEndNodeSelected: false,
-          });
-          isVisualizationDone.current = true;
+          setVisualizing(false);
+          setVisualizationDone(true);
+          resetAlgorithmState();
         }, visualizationSpeed * i);
         return;
       }
       setTimeout(() => {
-        const currentEdge: IEdge = shortestPath[i];
-        const isNodeIsInShortedPath = nodes.some((node: INode) => {
+        const currentEdge = shortestPath[i];
+        const isNodeInShortestPath = nodesRef.current.some((node) => {
           if (node.id === parseInt(currentEdge.to)) {
             return node.isInShortestPath === true;
           }
           return false;
         });
-        if (!isNodeIsInShortedPath) {
-          visualizeSetState(
-            currentEdge,
-            "isUsedInShortestPath",
-            "isInShortestPath"
-          );
+        if (!isNodeInShortestPath) {
+          visualizeSetState(currentEdge, "isUsedInShortestPath", "isInShortestPath");
         }
       }, visualizationSpeed * i);
     }
-  };
+  }, [visualizationSpeed, setVisualizing, setVisualizationDone, resetAlgorithmState, visualizeSetState]);
 
-  //visualize the visited nodes and shortestPath if applicable
-  const visualizeGraph = (
-    visitedEdges: IEdge[],
-    shortestPath: IEdge[] = []
-  ) => {
+  const visualizeGraph = useCallback((visitedEdges: IEdge[], shortestPath: IEdge[] = []) => {
     setNodeSelection({
       ...nodeSelection,
       isStartNodeSelected: false,
       isEndNodeSelected: false,
     });
-    setVisualizingState(true);
+    setVisualizing(true);
+
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
         setTimeout(() => {
@@ -216,10 +320,9 @@ export const Graph = (props: GraphProps) => {
         }, visualizationSpeed * i);
         return;
       }
-
       setTimeout(() => {
-        const currentEdge: IEdge = visitedEdges[i];
-        const isNodeTraversed = nodes.some((node: INode) => {
+        const currentEdge = visitedEdges[i];
+        const isNodeTraversed = nodesRef.current.some((node) => {
           if (node.id === parseInt(currentEdge.to)) {
             return node.isVisited === true;
           }
@@ -230,476 +333,354 @@ export const Graph = (props: GraphProps) => {
         }
       }, visualizationSpeed * i);
     }
-  };
+  }, [visualizationSpeed, nodeSelection, setVisualizing, setNodeSelection, setPathFindingNode, visualizeShortestPath, visualizeSetState]);
 
-  //common handler for adding new nodes,deleting existing nodes and selecting nodes for visualization
-  const handleSelect = (event: React.MouseEvent<SVGSVGElement>) => {
+  // Convert edges to algorithm input format
+  const convertToAlgorithmInput = useCallback((): Map<number, EdgeInfo[]> => {
+    const result = new Map<number, EdgeInfo[]>();
+    edges.forEach((edgeList, nodeId) => {
+      const converted: EdgeInfo[] = (edgeList || []).map((e) => ({
+        from: parseInt(e.from),
+        to: parseInt(e.to),
+        weight: e.weight,
+        type: e.type as "directed" | "undirected",
+      }));
+      result.set(nodeId, converted);
+    });
+    return result;
+  }, [edges]);
+
+  // Convert algorithm result to visualization format
+  const convertToVisualizationEdges = useCallback((edgeRefs: Array<{ from: number; to: number }>): IEdge[] => {
+    return edgeRefs.map((ref) => ({
+      x1: NaN, x2: NaN, y1: NaN, y2: NaN, nodeX2: NaN, nodeY2: NaN,
+      from: ref.from === -1 ? "Infinity" : ref.from.toString(),
+      to: ref.to.toString(),
+      type: "directed",
+      weight: NaN,
+      isUsedInTraversal: false,
+    }));
+  }, []);
+
+  // Run algorithm
+  const runAlgorithm = useCallback((startNodeId: number, endNodeId?: number) => {
+    if (!currentAlgorithm) return;
+
+    const input = {
+      adjacencyList: convertToAlgorithmInput(),
+      nodes: nodes.map((n) => ({ id: n.id })),
+      startNodeId,
+      endNodeId,
+    };
+
+    // Check if algorithm has a generator (for step-through mode)
+    if (stepMode === 'manual' && currentAlgorithm.generator) {
+      // Collect all steps from generator
+      const generator = currentAlgorithm.generator(input);
+      const steps: AlgorithmStep[] = [...generator];
+
+      if (steps.length === 0) {
+        const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
+        toast.error(failureMessage);
+        setPathFindingNode(null);
+        resetAlgorithmState();
+        return;
+      }
+
+      // Initialize step-through mode
+      setNodeSelection({
+        ...nodeSelection,
+        isStartNodeSelected: false,
+        isEndNodeSelected: false,
+      });
+      initStepThrough(steps);
+      return;
+    }
+
+    // Auto mode: use existing setTimeout-based visualization
+    const result = currentAlgorithm.execute(input);
+
+    if (result.error) {
+      const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
+      toast.error(failureMessage);
+      setPathFindingNode(null);
+      resetAlgorithmState();
+      return;
+    }
+
+    const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
+    const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
+    visualizeGraph(visitedEdges, resultEdges);
+  }, [currentAlgorithm, nodes, stepMode, nodeSelection, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setPathFindingNode, resetAlgorithmState, setNodeSelection, initStepThrough]);
+
+  // Store pan at drag start for relative panning
+  const panAtDragStart = useRef({ x: 0, y: 0 });
+
+  // Handle canvas pointer down - implements panning
+  const handleCanvasPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    const target = event.target as SVGElement;
+    if (target.tagName !== "svg") return;
+    if (isVisualizing) return; // Don't pan during visualization
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    panAtDragStart.current = { ...pan };
+    isDraggingCanvas.current = false;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+        isDraggingCanvas.current = true;
+        // Scale delta by zoom for consistent feel at different zoom levels
+        setPan(panAtDragStart.current.x + deltaX / zoom, panAtDragStart.current.y + deltaY / zoom);
+      }
+    };
+
+    const handlePointerUp = () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      setTimeout(() => { isDraggingCanvas.current = false; }, TIMING.POPUP_DELAY);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
+  }, [pan, zoom, isVisualizing, setPan]);
+
+  // Handle click on canvas/node
+  const handleSelect = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     const target = event.target as SVGSVGElement;
     const isNode = target.tagName === "circle";
-    if (options.drawNode && !isNode) {
-      addNode(event);
-    } else if (options.deleteNode && isNode) {
-      deleteNode(event);
-    } else if (selectedAlgo?.data === "traversal" && isNode && !isVisualizing) {
-      const startNodeId = parseInt(target.id);
-      if (selectedAlgo?.key === "bfs") {
-        let visitedEdges = bfs(edges, startNodeId);
-        visualizeGraph(visitedEdges);
-      } else if (selectedAlgo?.key === "dfs") {
-        let visitedEdges = dfs(edges, startNodeId);
-        visualizeGraph(visitedEdges);
-      } else if (selectedAlgo.key === "minspantreeprims") {
-        let visitedEdges = minspantreeprims(edges, nodes, startNodeId);
-        if (visitedEdges.length !== 0) visualizeGraph(visitedEdges);
-        else {
-          setTraversalPossible(false);
-          setVisualizingState(true);
-          setNodeSelection({
-            ...nodeSelection,
-            isStartNodeSelected: false,
-            isEndNodeSelected: false,
-          });
-          setTimeout(() => {
-            setTraversalPossible(true);
-            setVisualizingState(false);
-          }, 2500);
+
+    // Algorithm mode
+    if (currentAlgorithm && isNode && !isVisualizing) {
+      const nodeId = parseInt(target.id);
+      const algoType = currentAlgorithm.metadata.type;
+
+      if (algoType === AlgorithmType.PATHFINDING) {
+        if (!pathFindingNode) {
+          setPathFindingNode({ startNodeId: nodeId, endNodeId: -1 });
+        } else {
+          setPathFindingNode({ ...pathFindingNode, endNodeId: nodeId });
+          runAlgorithm(pathFindingNode.startNodeId, nodeId);
         }
-      }
-    } else if (
-      selectedAlgo?.data === "pathfinding" &&
-      isNode &&
-      !isVisualizing
-    ) {
-      if (!pathFindingNode) {
-        setPathFindingNode({ startNodeId: parseInt(target.id), endNodeId: -1 });
       } else {
-        const startNodeId = pathFindingNode.startNodeId;
-        const endNodeId = parseInt(target.id);
-        setPathFindingNode({ ...pathFindingNode, endNodeId });
-        let output: IPathFinding | undefined = dijkstra(
-          edges,
-          startNodeId,
-          endNodeId
-        );
-        if (output?.shortestPath.length !== 0 && output?.visitedEdges) {
-          visualizeGraph(output.visitedEdges, output.shortestPath);
-        } else {
-          setPathPossible(false);
-          setVisualizingState(true);
-          setNodeSelection({
-            ...nodeSelection,
-            isStartNodeSelected: false,
-            isEndNodeSelected: false,
-          });
-          setTimeout(() => {
-            setPathPossible(true);
-            setVisualizingState(false);
-            setPathFindingNode(null);
-          }, 2500);
-        }
+        runAlgorithm(nodeId);
       }
+      return;
     }
-  };
 
-  //updates node coordinates when moving it
-  const updateNodeCoord = (x: number, y: number) => {
-    let newNodes = nodes.map((node: INode) => {
-      if (node.id === parseInt(currentNode.current.id)) {
-        return { ...node, x, y };
-      }
-      return node;
-    });
-    setNodes(newNodes);
-  };
-  //updates edge coordinates when moving nodes
-  const updateEdgeCoord = (x: number, y: number) => {
-    let newBegEdgePositionsForNode: IEdge[] | undefined = edges
-      ?.get(parseInt(currentNode.current.id))
-      ?.map((edge: IEdge) => {
-        let { tempX, tempY } = calculateAccurateCoords(
-          x,
-          y,
-          edge.nodeX2,
-          edge.nodeY2
-        );
-        return { ...edge, x1: x, y1: y, x2: tempX, y2: tempY };
-      });
-    edges.set(parseInt(currentNode.current.id), newBegEdgePositionsForNode);
-    edges.forEach((list: IEdge[] | undefined, nodeId: number) => {
-      let newList = list?.map((edge: IEdge) => {
-        if (currentNode.current.id === edge.to) {
-          let { tempX, tempY } = calculateAccurateCoords(
-            edge.x1,
-            edge.y1,
-            edge.nodeX2,
-            edge.nodeY2
-          );
-          return { ...edge, x2: tempX, y2: tempY, nodeX2: x, nodeY2: y };
-        }
-        return edge;
-      });
-      edges.set(nodeId, newList);
-    });
+    // Deselect node when clicking canvas
+    if (!isNode && selectedNodeId !== null) {
+      selectNode(null);
+    }
 
-    setEdges(edges);
-  };
+    // Create node on empty canvas (not during visualization or algorithm selection)
+    if (!isNode && !selectedEdgeForEdit && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
+      const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
+      addNodeAction(x, y);
+    }
+  }, [currentAlgorithm, isVisualizing, pathFindingNode, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, addNodeAction, selectNode, setPathFindingNode, runAlgorithm]);
 
-  //add a new edge between two nodes
-  const addEdge = (id: string, tagName: string, x: number, y: number) => {
-    if (currentEdge.current) {
-      let x1 = currentEdge.current.x1;
-      let y1 = currentEdge.current.y1;
-      let x2 = x;
-      let y2 = y;
-      let nodeX2 = x2;
-      let nodeY2 = y2;
-      currentEdge.current.to = id;
-      const isEdgeNotPresent =
-        edges?.get(parseInt(currentEdge.current.from))?.length !== 0
-          ? edges
-              ?.get(parseInt(currentEdge.current.from))
-              ?.every((edge: IEdge) => edge.to !== currentEdge.current.to)
-          : true;
-      const isNotCurrentNode =
-        currentEdge.current.from !== currentEdge.current.to;
-      const isEdgePossible = isEdgeNotPresent && isNotCurrentNode;
-      if (isEdgePossible) {
-        if (selectedEdge?.key === "directed") {
-          let { tempX: tempX2, tempY: tempY2 } = calculateAccurateCoords(
-            x1,
-            y1,
-            x2,
-            y2
-          );
-          const fromNodeId = parseInt(currentEdge.current.from);
-          let { ...toNode } = currentEdge.current;
-          toNode.x2 = tempX2;
-          toNode.y2 = tempY2;
-          toNode.nodeX2 = nodeX2;
-          toNode.nodeY2 = nodeY2;
-          toNode.type = "directed";
-          edges?.get(fromNodeId)?.push(toNode);
-        } else if (selectedEdge?.key === "undirected") {
-          const fromNodeId = parseInt(currentEdge.current.from);
-          const toNodeId = parseInt(currentEdge.current.to);
-          const isUndirectedEdgeNotPossible =
-            edges
-              ?.get(fromNodeId)
-              ?.some((edge: IEdge) => parseInt(edge.to) === toNodeId) ||
-            edges
-              ?.get(toNodeId)
-              ?.some((edge: IEdge) => parseInt(edge.to) === fromNodeId);
-          if (!isUndirectedEdgeNotPossible) {
-            let { tempX: tempX2, tempY: tempY2 } = calculateAccurateCoords(
-              x1,
-              y1,
-              x2,
-              y2
-            );
-            let { ...toNode } = currentEdge.current;
-            toNode.x2 = tempX2;
-            toNode.y2 = tempY2;
-            toNode.nodeX2 = nodeX2;
-            toNode.nodeY2 = nodeY2;
-            toNode.type = "undirected";
-            edges?.get(fromNodeId)?.push(toNode);
-            let { tempX: tempX1, tempY: tempY1 } = calculateAccurateCoords(
-              x2,
-              y2,
-              x1,
-              y1
-            );
-            let fromNode = {
-              x1: x2,
-              y1: y2,
-              x2: tempX1,
-              y2: tempY1,
-              nodeX2: x1,
-              nodeY2: y1,
-              from: currentEdge.current.to,
-              to: currentEdge.current.from,
-              type: "undirected",
-              weight: currentEdge.current.weight,
-            };
-            edges?.get(toNodeId)?.push(fromNode);
+  // Handle edge click
+  const handleEdge = useCallback((edge: IEdge, fromNode: INode) => {
+    if (isVisualizing) return;
+    selectEdgeForEditAction(edge, fromNode);
+  }, [isVisualizing, selectEdgeForEditAction]);
+
+  // Close edge popup
+  const closeEdgePopup = useCallback(() => {
+    justClosedPopup.current = true;
+    clearEdgeSelection();
+    setTimeout(() => { justClosedPopup.current = false; }, TIMING.POPUP_DELAY);
+  }, [clearEdgeSelection]);
+
+  // Update edge type
+  const updateEdgeType = useCallback((newType: "directed" | "undirected") => {
+    if (!selectedEdgeForEdit) return;
+    const { edge, sourceNode } = selectedEdgeForEdit;
+    updateEdgeTypeAction(sourceNode.id, parseInt(edge.to), newType);
+  }, [selectedEdgeForEdit, updateEdgeTypeAction]);
+
+  // Update edge weight
+  const updateEdgeWeight = useCallback((newWeight: number) => {
+    if (!selectedEdgeForEdit) return;
+    const { edge, sourceNode } = selectedEdgeForEdit;
+    updateEdgeWeightAction(sourceNode.id, parseInt(edge.to), newWeight);
+  }, [selectedEdgeForEdit, updateEdgeWeightAction]);
+
+  // Reverse edge
+  const reverseEdge = useCallback(() => {
+    if (!selectedEdgeForEdit) return;
+    const { edge, sourceNode } = selectedEdgeForEdit;
+    reverseEdgeAction(sourceNode.id, parseInt(edge.to));
+  }, [selectedEdgeForEdit, reverseEdgeAction]);
+
+  // Delete edge
+  const deleteEdge = useCallback(() => {
+    if (!selectedEdgeForEdit) return;
+    const { edge, sourceNode } = selectedEdgeForEdit;
+    deleteEdgeAction(sourceNode.id, parseInt(edge.to));
+  }, [selectedEdgeForEdit, deleteEdgeAction]);
+
+  // Handle node movement
+  const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
+    // Capture state before first move
+    if (!dragStartSnapshot.current) {
+      dragStartSnapshot.current = createSnapshot(nodes, edges, nodeCounter);
+    }
+    moveNodeAction(nodeId, x, y);
+    debouncedRecordDrag();
+  }, [nodes, edges, nodeCounter, createSnapshot, moveNodeAction, debouncedRecordDrag]);
+
+  // Handle connector drag start
+  const handleConnectorDragStart = useCallback(
+    (sourceNode: INode, _position: string, startX: number, startY: number) => {
+      if (!graph.current) return;
+      isDraggingEdge.current = true;
+
+      const handlePointerMove = (e: PointerEvent) => {
+        const { x: endX, y: endY } = screenToSvgCoords(e.clientX, e.clientY);
+        setMockEdge({
+          x1: startX, y1: startY, x2: endX, y2: endY,
+          nodeX2: 0, nodeY2: 0,
+          from: sourceNode.id.toString(), to: "",
+          weight: 0, type: "directed",
+        });
+      };
+
+      const handlePointerUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", handlePointerUp);
+
+        const target = e.target as SVGElement;
+        let targetNode: INode | undefined;
+
+        if (target.tagName === "circle" && target.id) {
+          const targetNodeId = parseInt(target.id);
+          if (!isNaN(targetNodeId)) {
+            targetNode = nodes.find((n) => n.id === targetNodeId);
           }
         }
-        setEdges(edges);
-      }
-    }
-  };
 
-  //common handler for deletion and edition of edges.
-  const handleEdge = (edge: IEdge, fromNode: INode) => {
-    if (options.deleteEdge) {
-      deleteEdge(edge, fromNode.id);
-    } else if (options.editEdge) {
-      editEdge(edge, fromNode);
-    }
-  };
+        if (!targetNode) {
+          const { x: endX, y: endY } = screenToSvgCoords(e.clientX, e.clientY);
+          targetNode = findToNodeForTouchBasedDevices(endX, endY, nodes);
+        }
 
-  //delete edge functionality
-  const deleteEdge = (currentEdge: IEdge, fromNode: number) => {
-    if (currentEdge.type === "directed") {
-      let upgradedEdges = edges
-        ?.get(fromNode)
-        ?.filter((edge: IEdge) => edge.to !== currentEdge.to);
-      let newEdges = new Map(edges);
-      newEdges.set(fromNode, upgradedEdges);
-      setEdges(newEdges);
-    } else if (currentEdge.type === "undirected") {
-      let upgradedOutgoingEdges = edges
-        ?.get(fromNode)
-        ?.filter((edge: IEdge) => edge.to !== currentEdge.to);
-      let upgradedIncomingEdges = edges
-        ?.get(parseInt(currentEdge.to))
-        ?.filter((edge: IEdge) => edge.to !== fromNode.toString());
-      let newEdges = new Map(edges);
-      newEdges.set(fromNode, upgradedOutgoingEdges);
-      newEdges.set(parseInt(currentEdge.to), upgradedIncomingEdges);
-      setEdges(newEdges);
-    }
-  };
+        if (targetNode && targetNode.id !== sourceNode.id) {
+          const existingEdges = edges.get(sourceNode.id) || [];
+          const edgeExists = existingEdges.some((edge) => parseInt(edge.to) === targetNode!.id);
 
-  //function called when edit Edge button is clicked.
-  const editEdge = (edge: IEdge, fromNode: any) => {
-    currentNode.current = { ...fromNode };
-    setEdge(edge);
-    setModalState(true);
-  };
-
-  //function that actually contains the logic for setting weight of selected edge.
-  const editEdgeWeight = () => {
-    let currentEdge: IEdge = { ...edge } as IEdge;
-    if (edge?.type === "directed") {
-      let upgradedEdges = edges
-        ?.get(currentNode.current.id)
-        ?.map((edge: IEdge) => {
-          if (edge.to === currentEdge.to) {
-            return { ...edge, weight: currentEdge.weight };
-          }
-          return edge;
-        });
-      let newEdges = new Map(edges);
-      newEdges.set(currentNode.current.id, upgradedEdges);
-      setEdges(newEdges);
-    } else if (edge?.type === "undirected") {
-      let upgradedOutgoingEdges = edges
-        ?.get(currentNode.current.id)
-        ?.map((edge: IEdge) => {
-          if (edge.to === currentEdge.to) {
-            return { ...edge, weight: currentEdge.weight };
-          }
-          return edge;
-        });
-      let upgradedIncomingEdges = edges
-        ?.get(parseInt(currentEdge.to))
-        ?.map((edge: IEdge) => {
-          if (edge.to === currentNode.current.id.toString()) {
-            return { ...edge, weight: currentEdge.weight };
-          }
-          return edge;
-        });
-      let newEdges = new Map(edges);
-      newEdges.set(currentNode.current.id, upgradedOutgoingEdges);
-      newEdges.set(parseInt(currentEdge.to), upgradedIncomingEdges);
-      setEdges(newEdges);
-    }
-    setModalState(false);
-  };
-
-  //common handler for movement related operations - moving node and drawing edges.
-  const handleMove = (event: React.MouseEvent<SVGCircleElement>) => {
-    let canMoveNode = options.moveNode;
-    let canDrawEdge =
-      selectedEdge?.key &&
-      (selectedEdge.key === "directed" || selectedEdge.key === "undirected");
-    if (canMoveNode) {
-      currentNode.current = event.target;
-
-      //logic for movement of nodes.
-      const handleNodeMove = (event: any) => {
-        let nodeX = event.clientX - graph.current.getBoundingClientRect().left;
-        let nodeY = event.clientY - graph.current.getBoundingClientRect().top;
-        currentNode.current.setAttribute("cx", nodeX);
-        currentNode.current.setAttribute("cy", nodeY);
-        currentNode.current.nextElementSibling.setAttribute("x", nodeX);
-        currentNode.current.nextElementSibling.setAttribute("y", nodeY + 5);
-        updateNodeCoord(nodeX, nodeY);
-        updateEdgeCoord(nodeX, nodeY);
-      };
-      //function triggered to remove mouse event listeners.
-      const handleNodeEnd = () => {
-        graph.current.removeEventListener("pointermove", handleNodeMove);
-        graph.current.removeEventListener("pointerup", handleNodeEnd);
-      };
-      graph.current.addEventListener("pointermove", handleNodeMove);
-      graph.current.addEventListener("pointerup", handleNodeEnd);
-    } else if (canDrawEdge) {
-      currentNode.current = event.target;
-      //logic for drawing of edges.
-      const handleArrowMove = (event: any) => {
-        let arrowX = event.clientX - graph.current.getBoundingClientRect().left;
-        let arrowY = event.clientY - graph.current.getBoundingClientRect().top;
-        currentEdge.current = {
-          x1: parseInt(currentNode.current.getAttribute("cx")),
-          y1: parseInt(currentNode.current.getAttribute("cy")),
-          x2: arrowX,
-          y2: arrowY,
-          from: currentNode.current.id,
-          to: "",
-          weight: 0,
-        };
-        setMockEdge(currentEdge.current);
-      };
-      //function triggered to remove mouse event listeners.
-      const handleArrowEnd = (event: React.PointerEvent<SVGSVGElement>) => {
-        const isTouchEvent = event.pointerType === "touch";
-        if (isTouchEvent) {
-          const node = findToNodeForTouchBasedDevices(
-            event.clientX - graph.current.getBoundingClientRect().left,
-            event.clientY - graph.current.getBoundingClientRect().top,
-            nodes
-          );
-          if (node) {
-            addEdge(node.id.toString(), "circle", node.x, node.y);
-          }
-        } else {
-          const target = event.target as SVGSVGElement;
-          const isNode = target.tagName === "circle";
-          if (isNode) {
-            const x = parseInt(target.getAttribute("cx")!);
-            const y = parseInt(target.getAttribute("cy")!);
-            addEdge(target.id, "circle", x, y);
+          if (!edgeExists) {
+            addEdgeAction(sourceNode, targetNode);
           }
         }
+
         setMockEdge(null);
-        currentEdge.current = undefined;
-        graph.current.removeEventListener("pointermove", handleArrowMove);
-        graph.current.removeEventListener("pointerup", handleArrowEnd);
+        setTimeout(() => { isDraggingEdge.current = false; }, TIMING.POPUP_DELAY);
       };
-      graph.current.addEventListener("pointermove", handleArrowMove);
-      graph.current.addEventListener("pointerup", handleArrowEnd);
-    }
-  };
+
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", handlePointerUp);
+    },
+    [nodes, edges, screenToSvgCoords, addEdgeAction]
+  );
+
   return (
-    <>
-      {selectedAlgo?.data === "traversal" &&
-        (isTraversalPossible ? (
-          <MessageBar
-            className={styles.traversal}
-            isMultiline={false}
-            dismissButtonAriaLabel="Close"
-            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
-          >
-            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["info"]}
-          </MessageBar>
-        ) : (
-          <MessageBar
-            className={styles.pathError}
-            messageBarType={MessageBarType.error}
-            isMultiline={false}
-            dismissButtonAriaLabel="Close"
-            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
-          >
-            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["failure"]}
-          </MessageBar>
-        ))}
-      {selectedAlgo?.data === "pathfinding" &&
-        (isPathPossible ? (
-          <MessageBar
-            className={styles.pathfinding}
-            isMultiline={false}
-            dismissButtonAriaLabel="Close"
-            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
-          >
-            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["info"]}
-          </MessageBar>
-        ) : (
-          <MessageBar
-            className={styles.pathError}
-            messageBarType={MessageBarType.error}
-            isMultiline={false}
-            dismissButtonAriaLabel="Close"
-            styles={{ text: { fontWeight: "bold", fontSize: "14px" } }}
-          >
-            {algoMessages[selectedAlgo?.data][selectedAlgo.key]["failure"]}
-          </MessageBar>
-        ))}
-      <svg ref={graph} className={styles.graph} onClick={handleSelect}>
-        {nodes.map((node: INode) => (
+    <div className="relative flex-1 w-full h-full flex flex-col">
+      <svg
+        ref={graph}
+        className="flex-1 w-full h-full cursor-crosshair"
+        onPointerDown={handleCanvasPointerDown}
+        onClick={handleSelect}
+        viewBox={viewBox}
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <linearGradient id="nodeGradientDefault" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--gradient-default-start)' }} />
+            <stop offset="50%" style={{ stopColor: 'var(--gradient-default-mid)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--gradient-default-end)' }} />
+          </linearGradient>
+          <linearGradient id="nodeGradientVisited" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--gradient-visited-start)' }} />
+            <stop offset="50%" style={{ stopColor: 'var(--gradient-visited-mid)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--gradient-visited-end)' }} />
+          </linearGradient>
+          <linearGradient id="nodeGradientPath" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--gradient-path-start)' }} />
+            <stop offset="50%" style={{ stopColor: 'var(--gradient-path-mid)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--gradient-path-end)' }} />
+          </linearGradient>
+          <linearGradient id="nodeGradientStart" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--gradient-start-start)' }} />
+            <stop offset="50%" style={{ stopColor: 'var(--gradient-start-mid)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--gradient-start-end)' }} />
+          </linearGradient>
+          <linearGradient id="nodeGradientEnd" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: 'var(--gradient-end-start)' }} />
+            <stop offset="50%" style={{ stopColor: 'var(--gradient-end-mid)' }} />
+            <stop offset="100%" style={{ stopColor: 'var(--gradient-end-end)' }} />
+          </linearGradient>
+        </defs>
+        {nodes.map((node) => (
           <Node
-            handleEdge={handleEdge}
-            handleMove={handleMove}
             key={node.id}
             node={node}
             edges={edges}
-            deleteEdgeMode={options.deleteEdge}
-            deleteNodeMode={options.deleteNode}
-            editEdgeMode={options.editEdge}
-            readyForVisualization={nodeSelection.isStartNodeSelected}
-            readyForMovement={options.moveNode}
-            readyForEdge={selectedEdge?.key !== "select"}
+            onNodeMove={handleNodeMove}
+            onEdgeClick={handleEdge}
+            onConnectorDragStart={handleConnectorDragStart}
+            isVisualizing={isVisualizing}
+            isAlgorithmSelected={!!currentAlgorithm}
             pathFindingNode={pathFindingNode}
+            svgRef={graph}
+            isSelected={selectedNodeId === node.id}
+            onNodeSelect={selectNode}
+            screenToSvgCoords={screenToSvgCoords}
           />
         ))}
+
         {mockEdge && (
           <>
-            {selectedEdge?.key === "directed" && (
-              <marker
-                className={styles.mockArrow}
-                id="mockArrowHead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="0"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon points="0 0, 10 3.5, 0 7" />
-              </marker>
-            )}
+            <marker
+              id="mockArrowHead"
+              markerWidth="10"
+              markerHeight="7"
+              refX="0"
+              refY="3.5"
+              orient="auto"
+              style={{ fill: 'var(--color-accent)' }}
+            >
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
             <line
-              className={styles.mockEdge}
+              className="stroke-[2px] [stroke-dasharray:8_4] pointer-events-none"
+              style={{ stroke: 'var(--color-accent)' }}
               x1={mockEdge.x1}
               y1={mockEdge.y1}
               x2={mockEdge.x2}
               y2={mockEdge.y2}
               markerEnd="url(#mockArrowHead)"
-            ></line>
+            />
           </>
         )}
-      </svg>
-      <Modal
-        styles={{
-          main: { minHeight: "0px", minWidth: "0px", height: "31px" },
-          scrollableContent: { display: "flex" },
-        }}
-        isOpen={isModalOpen}
-      >
-        {edge && edge.weight !== null && (
-          <TextField
-            styles={{ fieldGroup: { border: "none" } }}
-            type="number"
-            min={0}
-            max={500}
-            value={edge.weight.toString()}
-            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-              if (e.keyCode === 13) {
-                editEdgeWeight();
-              }
-            }}
-            onChange={(e: React.ChangeEvent<any>) => {
-              parseInt(e.target.value) >= 0 && parseInt(e.target.value) <= 500
-                ? setEdge({ ...edge, weight: parseInt(e.target.value) })
-                : e.preventDefault();
-            }}
-          />
-        )}
 
-        <button className={styles.modalButton} onClick={editEdgeWeight}>
-          Set Weight
-        </button>
-      </Modal>
-    </>
+        <AnimatePresence>
+          {selectedEdgeForEdit && (
+            <EdgePopup
+              edge={selectedEdgeForEdit.edge}
+              onClose={closeEdgePopup}
+              onUpdateType={updateEdgeType}
+              onUpdateWeight={updateEdgeWeight}
+              onReverse={reverseEdge}
+              onDelete={deleteEdge}
+            />
+          )}
+        </AnimatePresence>
+      </svg>
+    </div>
   );
 };
