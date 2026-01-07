@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { AnimatePresence } from "motion/react";
 import { Node } from "../Graph/Node/Node";
 import { findToNodeForTouchBasedDevices } from "../../utility/calc";
 import { isModKey } from "../../utility/keyboard";
@@ -129,6 +128,18 @@ export const Graph = () => {
     if (!ctm) return { x: 0, y: 0 };
     const svgPoint = point.matrixTransform(ctm);
     return { x: svgPoint.x, y: svgPoint.y };
+  }, []);
+
+  // Convert SVG coordinates to screen coordinates
+  const svgToScreenCoords = useCallback((svgX: number, svgY: number) => {
+    if (!graph.current) return { x: 0, y: 0 };
+    const point = graph.current.createSVGPoint();
+    point.x = svgX;
+    point.y = svgY;
+    const ctm = graph.current.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const screenPoint = point.matrixTransform(ctm);
+    return { x: screenPoint.x, y: screenPoint.y };
   }, []);
 
   // Get the current algorithm from registry
@@ -599,6 +610,34 @@ export const Graph = () => {
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
+          {/* Grid pattern - minor lines (24px spacing) */}
+          <pattern id="gridMinor" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--color-grid-line)" strokeWidth="1"/>
+          </pattern>
+
+          {/* Grid pattern - major lines (120px spacing, every 5 cells) */}
+          <pattern id="gridMajor" width="120" height="120" patternUnits="userSpaceOnUse">
+            <path d="M 120 0 L 0 0 0 120" fill="none" stroke="var(--color-grid-line-major)" strokeWidth="1"/>
+          </pattern>
+
+          {/* Crosshatch pattern for node shading */}
+          <pattern id="crosshatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="3" stroke="var(--color-text)" strokeWidth="0.8" opacity="0.25" />
+          </pattern>
+
+          {/* Radial gradient for sphere mask - white=visible, black=hidden */}
+          {/* Offset to top-left (35%) for lighting effect */}
+          <radialGradient id="sphereMaskGradient" cx="35%" cy="35%" r="60%">
+            <stop offset="0%" stopColor="black" />
+            <stop offset="40%" stopColor="#444" />
+            <stop offset="100%" stopColor="white" />
+          </radialGradient>
+
+          {/* Mask using objectBoundingBox so it scales to each element */}
+          <mask id="sphereMask" maskContentUnits="objectBoundingBox">
+            <circle cx="0.5" cy="0.5" r="0.5" fill="url(#sphereMaskGradient)" />
+          </mask>
+
           <linearGradient id="nodeGradientDefault" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" style={{ stopColor: 'var(--gradient-default-start)' }} />
             <stop offset="50%" style={{ stopColor: 'var(--gradient-default-mid)' }} />
@@ -625,6 +664,11 @@ export const Graph = () => {
             <stop offset="100%" style={{ stopColor: 'var(--gradient-end-end)' }} />
           </linearGradient>
         </defs>
+
+        {/* Grid background - renders in SVG space so it pans/zooms with content */}
+        <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#gridMinor)" pointerEvents="none" />
+        <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#gridMajor)" pointerEvents="none" />
+
         {nodes.map((node) => (
           <Node
             key={node.id}
@@ -668,19 +712,26 @@ export const Graph = () => {
           </>
         )}
 
-        <AnimatePresence>
-          {selectedEdgeForEdit && (
-            <EdgePopup
-              edge={selectedEdgeForEdit.edge}
-              onClose={closeEdgePopup}
-              onUpdateType={updateEdgeType}
-              onUpdateWeight={updateEdgeWeight}
-              onReverse={reverseEdge}
-              onDelete={deleteEdge}
-            />
-          )}
-        </AnimatePresence>
       </svg>
+
+      {/* Edge popup - rendered outside SVG using Popover */}
+      {selectedEdgeForEdit && (() => {
+        const edge = selectedEdgeForEdit.edge;
+        const midX = (edge.x1 + edge.x2) / 2;
+        const midY = (edge.y1 + edge.y2) / 2;
+        const screenPos = svgToScreenCoords(midX, midY);
+        return (
+          <EdgePopup
+            edge={edge}
+            anchorPosition={screenPos}
+            onClose={closeEdgePopup}
+            onUpdateType={updateEdgeType}
+            onUpdateWeight={updateEdgeWeight}
+            onReverse={reverseEdge}
+            onDelete={deleteEdge}
+          />
+        );
+      })()}
     </div>
   );
 };
