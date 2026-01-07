@@ -384,272 +384,272 @@ export const Board = () => {
           </div>
 
           {/* Main toolbar */}
-          <div className="flex items-center">
-            {/* Mode toggle - hidden during step visualization */}
-            <div className="flex relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
-              <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
-              {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
-                <>
-                  <div className="relative flex items-center rounded-md p-0.5 bg-[var(--color-paper)] shadow-[var(--shadow-pressed)]">
-                    <motion.div
-                      className="absolute top-0.5 bottom-0.5 rounded-md bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
-                      initial={false}
-                      animate={{
-                        left: stepMode === 'auto' ? '2px' : '50%',
-                        width: stepMode === 'auto' ? 'calc(50% - 2px)' : 'calc(50% - 2px)',
-                      }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 500,
-                        damping: 35,
-                      }}
-                    />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setStepMode('auto')}
-                          disabled={isVisualizing}
-                          className={cn(
-                            "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
-                            isVisualizing && "opacity-50 cursor-not-allowed",
-                            stepMode === 'auto' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
-                          )}
-                        >
-                          Auto
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Runs visualization automatically</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setStepMode('manual')}
-                          disabled={isVisualizing}
-                          className={cn(
-                            "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
-                            isVisualizing && "opacity-50 cursor-not-allowed",
-                            stepMode === 'manual' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
-                          )}
-                        >
-                          Step
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Control each step manually</TooltipContent>
-                    </Tooltip>
-                  </div>
 
-                  <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
-                </>
-              )}
-
-              {/* Algorithm picker - hidden on mobile during step mode */}
-              <div className={cn(
-                stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && "hidden md:block"
-              )}>
-                <AlgorithmPicker
-                  selectedAlgo={selectedAlgo}
-                  onSelect={handleAlgoChange}
-                  disabled={isVisualizing || nodes.length === 0}
-                />
-              </div>
-
-              {/* Graph Generator - hidden during step mode visualization */}
-              {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
-                <>
-                  <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
-                  <GraphGenerator disabled={isVisualizing} />
-                </>
-              )}
-
-              {/* Step controls - shown when in manual step mode during visualization */}
-              {stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
-                <>
-                  {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
-                  <div className="hidden md:block w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
-
-                  <div className="flex items-center gap-0.5">
-                    {/* Jump to start */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleJumpToStart}
-                          disabled={stepIndex <= 0}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <SkipBack className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Jump to Start (Home)</TooltipContent>
-                    </Tooltip>
-
-                    {/* Step backward */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleStepBackward}
-                          disabled={stepIndex <= 0}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <ChevronLeft className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Previous Step (←)</TooltipContent>
-                    </Tooltip>
-
-                    {/* Step counter */}
-                    <span className="font-['JetBrains_Mono'] text-[12px] md:text-[13px] tabular-nums px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
-                      {stepIndex + 1} / {stepHistory.length}
-                    </span>
-
-                    {/* Step forward */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleStepForward}
-                          disabled={isStepComplete}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <ChevronRight className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Next Step (→)</TooltipContent>
-                    </Tooltip>
-
-                    {/* Jump to end */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleJumpToEnd}
-                          disabled={isStepComplete}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <SkipForward className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Jump to End (End)</TooltipContent>
-                    </Tooltip>
-
-                    {/* Play/Pause */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleTogglePlay}
-                          disabled={isStepComplete && !isPlaying}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          {isPlaying ? (
-                            <Pause className="h-4 w-4 text-[var(--color-text)]" />
-                          ) : (
-                            <Play className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
-                    </Tooltip>
-                  </div>
-
-                  {/* Stop/Done button */}
-                  <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+          {/* Mode toggle - hidden during step visualization */}
+          <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
+            <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
+            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+              <>
+                <div className="relative flex items-center rounded-md p-0.5 bg-[var(--color-paper)] shadow-[var(--shadow-pressed)]">
+                  <motion.div
+                    className="absolute top-0.5 bottom-0.5 rounded-md bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+                    initial={false}
+                    animate={{
+                      left: stepMode === 'auto' ? '2px' : '50%',
+                      width: stepMode === 'auto' ? 'calc(50% - 2px)' : 'calc(50% - 2px)',
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 35,
+                    }}
+                  />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        onClick={handleStopVisualization}
-                        variant="ghost"
-                        className="h-9 px-3 z-10 !rounded-md font-['Outfit'] text-[13px] text-[var(--color-error)]"
+                      <button
+                        onClick={() => setStepMode('auto')}
+                        disabled={isVisualizing}
+                        className={cn(
+                          "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+                          isVisualizing && "opacity-50 cursor-not-allowed",
+                          stepMode === 'auto' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                        )}
                       >
-                        Done
-                      </Button>
+                        Auto
+                      </button>
                     </TooltipTrigger>
-                    <TooltipContent>End Visualization</TooltipContent>
+                    <TooltipContent>Runs visualization automatically</TooltipContent>
                   </Tooltip>
-                </>
-              )}
-
-              {/* Speed control - Desktop only (hidden during step mode) */}
-              <div className={cn("hidden md:flex items-center", stepMode === 'manual' && isVisualizing && "!hidden")}>
-                {/* Divider */}
-                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
-
-                {/* Speed stepper */}
-                <div className="flex items-center gap-0.5 px-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        onClick={handleDecreaseSpeed}
-                        disabled={isVisualizing || currentSpeedIndex <= 0}
-                        variant="ghost"
-                        size="icon-xs"
-                        className="z-10"
+                      <button
+                        onClick={() => setStepMode('manual')}
+                        disabled={isVisualizing}
+                        className={cn(
+                          "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+                          isVisualizing && "opacity-50 cursor-not-allowed",
+                          stepMode === 'manual' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                        )}
                       >
-                        <Minus className={cn("h-3.5 w-3.5", currentSpeedIndex > 0 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
+                        Step
+                      </button>
                     </TooltipTrigger>
-                    <TooltipContent>Slower</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="font-['JetBrains_Mono'] text-[12px] min-w-[32px] text-center tabular-nums cursor-help text-[var(--color-text)]">
-                        {currentSpeedMultiplier}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Visualization Speed</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={handleIncreaseSpeed}
-                        disabled={isVisualizing || currentSpeedIndex >= SPEED_LEVELS.length - 1}
-                        variant="ghost"
-                        size="icon-xs"
-                        className="z-10"
-                      >
-                        <Plus className={cn("h-3.5 w-3.5", currentSpeedIndex < SPEED_LEVELS.length - 1 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Faster</TooltipContent>
+                    <TooltipContent>Control each step manually</TooltipContent>
                   </Tooltip>
                 </div>
-              </div>
 
-              {/* Normal toolbar controls - hidden during step mode visualization */}
-              {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
-                <>
-                  {/* Divider */}
-                  <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+              </>
+            )}
 
-                  {/* Reset button */}
+            {/* Algorithm picker - hidden on mobile during step mode */}
+            <div className={cn(
+              stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && "hidden md:block"
+            )}>
+              <AlgorithmPicker
+                selectedAlgo={selectedAlgo}
+                onSelect={handleAlgoChange}
+                disabled={isVisualizing || nodes.length === 0}
+              />
+            </div>
+
+            {/* Graph Generator - hidden during step mode visualization */}
+            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+              <>
+                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <GraphGenerator disabled={isVisualizing} />
+              </>
+            )}
+
+            {/* Step controls - shown when in manual step mode during visualization */}
+            {stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
+              <>
+                {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
+                <div className="hidden md:block w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+
+                <div className="flex items-center gap-0.5">
+                  {/* Jump to start */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleReset}
-                        disabled={isVisualizing}
+                        onClick={handleJumpToStart}
+                        disabled={stepIndex <= 0}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
                       >
-                        <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
+                        <SkipBack className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Reset Graph</TooltipContent>
+                    <TooltipContent>Jump to Start (Home)</TooltipContent>
                   </Tooltip>
-                </>
-              )}
+
+                  {/* Step backward */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleStepBackward}
+                        disabled={stepIndex <= 0}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                      >
+                        <ChevronLeft className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Previous Step (←)</TooltipContent>
+                  </Tooltip>
+
+                  {/* Step counter */}
+                  <span className="font-['JetBrains_Mono'] text-[12px] md:text-[13px] tabular-nums px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
+                    {stepIndex + 1} / {stepHistory.length}
+                  </span>
+
+                  {/* Step forward */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleStepForward}
+                        disabled={isStepComplete}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                      >
+                        <ChevronRight className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Next Step (→)</TooltipContent>
+                  </Tooltip>
+
+                  {/* Jump to end */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleJumpToEnd}
+                        disabled={isStepComplete}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                      >
+                        <SkipForward className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Jump to End (End)</TooltipContent>
+                  </Tooltip>
+
+                  {/* Play/Pause */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleTogglePlay}
+                        disabled={isStepComplete && !isPlaying}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-4 w-4 text-[var(--color-text)]" />
+                        ) : (
+                          <Play className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
+                  </Tooltip>
+                </div>
+
+                {/* Stop/Done button */}
+                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleStopVisualization}
+                      variant="ghost"
+                      className="h-9 px-3 z-10 !rounded-md font-['Outfit'] text-[13px] text-[var(--color-error)]"
+                    >
+                      Done
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>End Visualization</TooltipContent>
+                </Tooltip>
+              </>
+            )}
+
+            {/* Speed control - Desktop only (hidden during step mode) */}
+            <div className={cn("hidden md:flex items-center", stepMode === 'manual' && isVisualizing && "!hidden")}>
+              {/* Divider */}
+              <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+
+              {/* Speed stepper */}
+              <div className="flex items-center gap-0.5 px-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleDecreaseSpeed}
+                      disabled={isVisualizing || currentSpeedIndex <= 0}
+                      variant="ghost"
+                      size="icon-xs"
+                      className="z-10"
+                    >
+                      <Minus className={cn("h-3.5 w-3.5", currentSpeedIndex > 0 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Slower</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="font-['JetBrains_Mono'] text-[12px] min-w-[32px] text-center tabular-nums cursor-help text-[var(--color-text)]">
+                      {currentSpeedMultiplier}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Visualization Speed</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleIncreaseSpeed}
+                      disabled={isVisualizing || currentSpeedIndex >= SPEED_LEVELS.length - 1}
+                      variant="ghost"
+                      size="icon-xs"
+                      className="z-10"
+                    >
+                      <Plus className={cn("h-3.5 w-3.5", currentSpeedIndex < SPEED_LEVELS.length - 1 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Faster</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
+
+            {/* Normal toolbar controls - hidden during step mode visualization */}
+            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+              <>
+                {/* Divider */}
+                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+
+                {/* Reset button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleReset}
+                      disabled={isVisualizing}
+                      variant="ghost"
+                      size="icon-sm"
+                      className="z-10"
+                    >
+                      <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reset Graph</TooltipContent>
+                </Tooltip>
+              </>
+            )}
           </div>
+
         </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
