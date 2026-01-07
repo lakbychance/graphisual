@@ -12,9 +12,9 @@ const cardButtonVariants = cva(
         false: "hover:ring-2 hover:ring-[var(--color-text-muted)]",
       },
       rounded: {
-        sm: "rounded-[var(--radius-sm)]",
-        md: "rounded-[var(--radius-md)]",
-        lg: "rounded-[var(--radius-lg)]",
+        sm: "rounded-md",
+        md: "rounded-lg",
+        lg: "rounded-xl",
       },
     },
     defaultVariants: {
@@ -38,7 +38,7 @@ const CardButton = React.forwardRef<HTMLButtonElement, CardButtonProps>(
         className={cn(cardButtonVariants({ selected, rounded, className }))}
         {...props}
       >
-        {showGrain && <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-[var(--radius-md)]" />}
+        {showGrain && <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-lg" />}
         <div className="relative z-10 flex flex-col items-center gap-1">
           {children}
         </div>

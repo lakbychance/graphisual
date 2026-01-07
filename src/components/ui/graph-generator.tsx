@@ -7,7 +7,7 @@ import { CardButton } from "./card-button";
 import { StepperInput } from "./stepper-input";
 import { Slider } from "./slider";
 import { Checkbox } from "./checkbox";
-import { ToggleGroup, ToggleItem } from "./toggle-group";
+import { RadixToggleGroup, RadixToggleGroupItem } from "./toggle-group";
 import { cn } from "../../lib/utils";
 import { useGraphStore } from "../../store/graphStore";
 import {
@@ -159,7 +159,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
   ];
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           disabled={disabled}
@@ -206,29 +206,23 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                 {/* Layout selector */}
                 <div className="space-y-2">
                   <span className="text-[12px] font-['Outfit'] text-[var(--color-text-muted)]">Layout</span>
-                  <ToggleGroup variant="etched" className="w-full">
-                    <ToggleItem
-                      active={layout === "circular"}
-                      onClick={() => setLayout("circular")}
-                      className="text-[11px] font-['Outfit']"
-                    >
+                  <RadixToggleGroup
+                    type="single"
+                    value={layout}
+                    onValueChange={(value) => value && setLayout(value as LayoutType)}
+                    variant="etched"
+                    className="w-full"
+                  >
+                    <RadixToggleGroupItem value="circular" className="text-[11px] font-['Outfit']">
                       Circular
-                    </ToggleItem>
-                    <ToggleItem
-                      active={layout === "random"}
-                      onClick={() => setLayout("random")}
-                      className="text-[11px] font-['Outfit']"
-                    >
+                    </RadixToggleGroupItem>
+                    <RadixToggleGroupItem value="random" className="text-[11px] font-['Outfit']">
                       Random
-                    </ToggleItem>
-                    <ToggleItem
-                      active={layout === "grid"}
-                      onClick={() => setLayout("grid")}
-                      className="text-[11px] font-['Outfit']"
-                    >
+                    </RadixToggleGroupItem>
+                    <RadixToggleGroupItem value="grid" className="text-[11px] font-['Outfit']">
                       Grid
-                    </ToggleItem>
-                  </ToggleGroup>
+                    </RadixToggleGroupItem>
+                  </RadixToggleGroup>
                 </div>
 
                 {/* Node count */}

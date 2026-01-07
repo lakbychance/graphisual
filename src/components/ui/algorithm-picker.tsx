@@ -31,7 +31,7 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
     <button
       onClick={onClick}
       className={cn(
-        "relative flex flex-col items-center gap-1.5 p-3 rounded-[var(--radius-md)] transition-all duration-100 overflow-hidden",
+        "relative flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all duration-100 overflow-hidden",
         "bg-[var(--color-surface)]",
         "focus:outline-none",
         selected
@@ -39,7 +39,7 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
           : "shadow-[var(--shadow-raised),var(--highlight-edge)] hover:ring-2 hover:ring-[var(--color-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
       )}
     >
-      <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-[var(--radius-md)]" />
+      <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-lg" />
       <div className="relative z-10 flex flex-col items-center gap-1.5">
         <Icon className="w-6 h-6 text-[var(--color-text-muted)]" />
         <span className="font-semibold text-sm text-[var(--color-text)]">
@@ -66,7 +66,7 @@ export const AlgorithmPicker = ({
   const TriggerIcon = selectedAlgorithm?.metadata.icon ?? Workflow;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           disabled={disabled}

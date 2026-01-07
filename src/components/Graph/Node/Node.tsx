@@ -106,7 +106,7 @@ export const Node = (props: NodeProps) => {
 
   // Stroke color for edge definition and selected state
   const getNodeStroke = () => {
-    if (isSelected) return "var(--color-tint-path)"; // Amber for selected
+    if (isSelected) return "var(--color-accent-form)"; // Focus color for selected
     if (pathFindingNode?.startNodeId === node.id) return "var(--color-tint-start)";
     if (pathFindingNode?.endNodeId === node.id) return "var(--color-tint-end)";
     if (node.isInShortestPath) return "var(--color-tint-path)";
@@ -155,7 +155,7 @@ export const Node = (props: NodeProps) => {
 
           const edgeArrowColor = getEdgeArrowColor();
 
-          const hoverColor = "var(--color-edge-hover)";
+          const hoverColor = "var(--color-accent-form)";
 
           return (
             <g key={edgeKey}>

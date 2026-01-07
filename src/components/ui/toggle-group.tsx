@@ -1,14 +1,17 @@
 import * as React from "react"
+import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
+
+// === Variants ===
 
 const toggleGroupVariants = cva(
   "flex p-0.5 gap-1",
   {
     variants: {
       variant: {
-        pressed: "bg-[var(--color-paper)] shadow-[var(--shadow-pressed)] rounded-[var(--radius-md)]",
-        etched: "bg-[var(--color-paper)] shadow-[var(--shadow-etched)] rounded-[var(--radius-md)]",
+        pressed: "bg-[var(--color-paper)] shadow-[var(--shadow-pressed)] rounded-lg",
+        etched: "bg-[var(--color-paper)] shadow-[var(--shadow-etched)] rounded-lg",
       },
     },
     defaultVariants: {
@@ -30,8 +33,8 @@ const toggleItemVariants = cva(
         false: "",
       },
       rounded: {
-        sm: "rounded-[var(--radius-sm)]",
-        md: "rounded-[var(--radius-md)]",
+        sm: "rounded-md",
+        md: "rounded-lg",
         full: "rounded-full",
       },
     },
@@ -42,6 +45,8 @@ const toggleItemVariants = cva(
     },
   }
 )
+
+// === Custom Toggle Group (for manual active state control) ===
 
 export interface ToggleGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -78,4 +83,56 @@ const ToggleItem = React.forwardRef<HTMLButtonElement, ToggleItemProps>(
 )
 ToggleItem.displayName = "ToggleItem"
 
-export { ToggleGroup, ToggleItem, toggleGroupVariants, toggleItemVariants }
+// === Radix Toggle Group (for proper single/multiple selection) ===
+
+const RadixToggleGroup = React.forwardRef<
+  React.ElementRef<typeof ToggleGroupPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
+    VariantProps<typeof toggleGroupVariants>
+>(({ className, variant, children, ...props }, ref) => (
+  <ToggleGroupPrimitive.Root
+    ref={ref}
+    className={cn(toggleGroupVariants({ variant, className }))}
+    {...props}
+  >
+    {children}
+  </ToggleGroupPrimitive.Root>
+))
+RadixToggleGroup.displayName = "RadixToggleGroup"
+
+const RadixToggleGroupItem = React.forwardRef<
+  React.ElementRef<typeof ToggleGroupPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> & {
+    rounded?: "sm" | "md" | "full"
+  }
+>(({ className, rounded = "sm", children, ...props }, ref) => {
+  const roundedClass = rounded === "full" ? "rounded-full" : rounded === "md" ? "rounded-lg" : "rounded-md"
+
+  return (
+    <ToggleGroupPrimitive.Item
+      ref={ref}
+      {...props}
+      className={cn(
+        "flex-1 py-1.5 flex items-center justify-center transition-all duration-100 cursor-pointer",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+        "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+        "data-[state=on]:bg-[var(--color-surface)] data-[state=on]:text-[var(--color-text)] data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
+        "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none",
+        roundedClass,
+        className
+      )}
+    >
+      {children}
+    </ToggleGroupPrimitive.Item>
+  )
+})
+RadixToggleGroupItem.displayName = "RadixToggleGroupItem"
+
+export {
+  ToggleGroup,
+  ToggleItem,
+  RadixToggleGroup,
+  RadixToggleGroupItem,
+  toggleGroupVariants,
+  toggleItemVariants,
+}

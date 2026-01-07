@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { IEdge } from "./IGraph";
 import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
 import { GrainTexture } from "../ui/grain-texture";
-import { ToggleGroup, ToggleItem } from "../ui/toggle-group";
-import { StepperInput } from "../ui/stepper-input";
+import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
+import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui/stepper-input";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 interface EdgePopupProps {
   edge: IEdge;
@@ -31,16 +31,22 @@ export const EdgePopup = ({
   const [type, setType] = useState<"directed" | "undirected">(
     edge.type as "directed" | "undirected"
   );
+  const [isOpen, setIsOpen] = useState(true);
   const weightInputRef = useRef<HTMLInputElement>(null);
 
   // Focus weight input on mount
   useEffect(() => {
-    // Small delay to ensure popover is mounted
     const timer = setTimeout(() => {
       weightInputRef.current?.focus();
     }, 50);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    // Delay unmount to allow exit animation (150ms default from tailwindcss-animate)
+    setTimeout(onClose, 150);
+  };
 
   const handleTypeChange = (newType: "directed" | "undirected") => {
     setType(newType);
@@ -54,107 +60,142 @@ export const EdgePopup = ({
 
   const handleReverse = () => {
     onReverse();
-    onClose();
+    handleClose();
   };
 
+  const handleEscapeOnTooltipTrigger = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  }
+
   return (
-    <Popover open={true} onOpenChange={(open) => !open && onClose()}>
-      {/* Virtual anchor positioned at edge midpoint */}
-      <PopoverAnchor asChild>
-        <div
-          style={{
-            position: "fixed",
-            left: anchorPosition.x,
-            top: anchorPosition.y,
-            width: 1,
-            height: 1,
-            pointerEvents: "none",
-          }}
-        />
-      </PopoverAnchor>
+    <TooltipProvider delayDuration={300}>
+      <Popover modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        {/* Virtual anchor positioned at edge midpoint */}
+        <PopoverAnchor asChild>
+          <div
+            style={{
+              position: "fixed",
+              left: anchorPosition.x,
+              top: anchorPosition.y,
+              width: 1,
+              height: 1,
+              pointerEvents: "none",
+            }}
+          />
+        </PopoverAnchor>
 
-      <PopoverContent
-        side="top"
-        sideOffset={8}
-        className="w-[200px] p-3 font-['Outfit']"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <GrainTexture className="rounded-[var(--radius-md)]" />
+        <PopoverContent
+          side="top"
+          sideOffset={8}
+          className="p-1.5 font-['Outfit']"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <GrainTexture className="rounded-lg" />
 
-        <TooltipProvider delayDuration={200}>
-          {/* Edge Type toggle */}
-          <div className="mb-2.5">
-            <ToggleGroup variant="etched">
+          <div className="flex items-center gap-1.5">
+            {/* Type toggle section */}
+            <RadixToggleGroup
+              type="single"
+              value={type}
+              onValueChange={(value) => value && handleTypeChange(value as "directed" | "undirected")}
+              variant="etched"
+            >
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <ToggleItem
-                    active={type === "directed"}
-                    onClick={() => handleTypeChange("directed")}
-                  >
-                    <MoveRight className="w-4 h-4" />
-                  </ToggleItem>
+                  <span className="flex-1">
+                    <RadixToggleGroupItem
+                      onKeyDown={handleEscapeOnTooltipTrigger}
+                      value="directed"
+                      className="w-8 h-8 flex-none px-1.5"
+                    >
+                      <MoveRight className="w-4 h-4" />
+                    </RadixToggleGroupItem>
+                  </span>
                 </TooltipTrigger>
-                <TooltipContent>Directed</TooltipContent>
+                <TooltipContent side="bottom">Directed</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <ToggleItem
-                    active={type === "undirected"}
-                    onClick={() => handleTypeChange("undirected")}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </ToggleItem>
+                  <span className="flex-1">
+                    <RadixToggleGroupItem
+                      onKeyDown={handleEscapeOnTooltipTrigger}
+                      value="undirected"
+                      className="w-8 h-8 flex-none px-1.5"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </RadixToggleGroupItem>
+                  </span>
                 </TooltipTrigger>
-                <TooltipContent>Undirected</TooltipContent>
+                <TooltipContent side="bottom">Undirected</TooltipContent>
               </Tooltip>
-            </ToggleGroup>
-          </div>
+            </RadixToggleGroup>
 
-          {/* Weight stepper */}
-          <div className="mb-2.5">
-            <StepperInput
+            {/* Divider */}
+            <div className="w-px h-6 bg-[var(--color-divider)]" />
+
+            {/* Weight section */}
+            <Stepper
               value={weight}
               onChange={handleWeightChange}
               min={0}
               max={999}
-              onEnter={onClose}
-              inputRef={weightInputRef}
-            />
-          </div>
+              onEnter={handleClose}
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <StepperDecrement onKeyDown={handleEscapeOnTooltipTrigger} />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Decrease weight</TooltipContent>
+              </Tooltip>
+              <StepperField ref={weightInputRef} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <StepperIncrement onKeyDown={handleEscapeOnTooltipTrigger} />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Increase weight</TooltipContent>
+              </Tooltip>
+            </Stepper>
 
-          {/* Action buttons */}
-          <div className="flex gap-1.5">
-            {type === "directed" && (
+            {/* Divider */}
+            <div className="w-px h-6 bg-[var(--color-divider)]" />
+
+            {/* Actions section */}
+            <div className="flex gap-1">
+              {type === "directed" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleReverse}
+                      onKeyDown={handleEscapeOnTooltipTrigger}
+                      variant="default"
+                      size="icon-sm"
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Reverse direction</TooltipContent>
+                </Tooltip>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={handleReverse}
+                    onClick={onDelete}
+                    onKeyDown={handleEscapeOnTooltipTrigger}
                     variant="default"
                     size="icon-sm"
-                    className="flex-1"
+                    className="text-[var(--color-error)]"
                   >
-                    <ArrowLeftRight className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reverse Direction</TooltipContent>
+                <TooltipContent side="bottom">Delete edge</TooltipContent>
               </Tooltip>
-            )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={onDelete}
-                  variant="default"
-                  size="icon-sm"
-                  className="flex-1 text-[var(--color-error)]"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete Edge</TooltipContent>
-            </Tooltip>
+            </div>
           </div>
-        </TooltipProvider>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </TooltipProvider>
   );
 };

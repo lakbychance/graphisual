@@ -26,6 +26,7 @@ import { useSettingsStore } from "../../store/settingsStore";
 import { MOD_KEY } from "../../utility/keyboard";
 import { ZOOM, TIMING, SPEED_LEVELS } from "../../utility/constants";
 import { GrainTexture } from "../ui/grain-texture";
+import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
 
 export const Board = () => {
   // Get state and actions from store
@@ -371,7 +372,7 @@ export const Board = () => {
               >
                 <Redo2 size={16} className={cn(canRedo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
-              <div className="w-px h-5 mx-0.5 rounded-md bg-[var(--color-divider)]" />
+              <div className="w-px h-5 mx-0.5 bg-[var(--color-divider)]" />
               <Button
                 onClick={handleDeleteSelectedNode}
                 disabled={isVisualizing || selectedNodeId === null}
@@ -390,57 +391,42 @@ export const Board = () => {
             <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
             {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
-                <div className="relative flex items-center rounded-md p-0.5 bg-[var(--color-paper)] shadow-[var(--shadow-pressed)]">
-                  <motion.div
-                    className="absolute top-0.5 bottom-0.5 rounded-md bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
-                    initial={false}
-                    animate={{
-                      left: stepMode === 'auto' ? '2px' : '50%',
-                      width: stepMode === 'auto' ? 'calc(50% - 2px)' : 'calc(50% - 2px)',
-                    }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 500,
-                      damping: 35,
-                    }}
-                  />
+                <RadixToggleGroup
+                  type="single"
+                  value={stepMode}
+                  onValueChange={(value) => value && setStepMode(value as 'auto' | 'manual')}
+                  variant="pressed"
+                  disabled={isVisualizing}
+                >
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setStepMode('auto')}
-                        disabled={isVisualizing}
-                        className={cn(
-                          "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
-                          isVisualizing && "opacity-50 cursor-not-allowed",
-                          stepMode === 'auto' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
-                        )}
-                      >
-                        Auto
-                      </button>
+                      <span className="flex-1">
+                        <RadixToggleGroupItem
+                          value="auto"
+                          className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
+                        >
+                          Auto
+                        </RadixToggleGroupItem>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>Runs visualization automatically</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setStepMode('manual')}
-                        disabled={isVisualizing}
-                        className={cn(
-                          "relative z-10 px-2.5 py-1 text-[12px] font-['Outfit'] rounded-md transition-colors duration-150",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
-                          isVisualizing && "opacity-50 cursor-not-allowed",
-                          stepMode === 'manual' ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
-                        )}
-                      >
-                        Step
-                      </button>
+                      <span className="flex-1">
+                        <RadixToggleGroupItem
+                          value="manual"
+                          className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
+                        >
+                          Step
+                        </RadixToggleGroupItem>
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>Control each step manually</TooltipContent>
                   </Tooltip>
-                </div>
+                </RadixToggleGroup>
 
-                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
               </>
             )}
 
@@ -458,7 +444,7 @@ export const Board = () => {
             {/* Graph Generator - hidden during step mode visualization */}
             {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
-                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
                 <GraphGenerator disabled={isVisualizing} />
               </>
             )}
@@ -467,7 +453,7 @@ export const Board = () => {
             {stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
               <>
                 {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
-                <div className="hidden md:block w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
                 <div className="flex items-center gap-0.5">
                   {/* Jump to start */}
@@ -561,7 +547,7 @@ export const Board = () => {
                 </div>
 
                 {/* Stop/Done button */}
-                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -580,7 +566,7 @@ export const Board = () => {
             {/* Speed control - Desktop only (hidden during step mode) */}
             <div className={cn("hidden md:flex items-center", stepMode === 'manual' && isVisualizing && "!hidden")}>
               {/* Divider */}
-              <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+              <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
               {/* Speed stepper */}
               <div className="flex items-center gap-0.5 px-1">
@@ -629,7 +615,7 @@ export const Board = () => {
             {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
                 {/* Divider */}
-                <div className="w-px h-7 mx-1 md:mx-2 rounded-md bg-[var(--color-divider)]" />
+                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
                 {/* Reset button */}
                 <Tooltip>

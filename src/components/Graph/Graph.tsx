@@ -696,13 +696,13 @@ export const Graph = () => {
               refX="0"
               refY="3.5"
               orient="auto"
-              style={{ fill: 'var(--color-accent)' }}
+              style={{ fill: 'var(--color-edge-default)' }}
             >
               <polygon points="0 0, 10 3.5, 0 7" />
             </marker>
             <line
               className="stroke-[2px] [stroke-dasharray:8_4] pointer-events-none"
-              style={{ stroke: 'var(--color-accent)' }}
+              style={{ stroke: 'var(--color-edge-default)' }}
               x1={mockEdge.x1}
               y1={mockEdge.y1}
               x2={mockEdge.x2}

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 :root {
   /* Fonts */
@@ -59,11 +60,6 @@
     4px 4px 8px rgba(50, 45, 40, 0.2),
     2px 2px 3px rgba(50, 45, 40, 0.15),
     1px 1px 1px rgba(50, 45, 40, 0.1);
-
-  /* Border radius */
-  --radius-lg: 12px;
-  --radius-md: 8px;
-  --radius-sm: 6px;
 
   /* Node gradient colors */
   --gradient-default-start: #faf8f5;

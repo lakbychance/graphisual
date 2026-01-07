@@ -29,12 +29,12 @@ const buttonVariants = cva(
                     "bg-transparent text-[var(--color-accent)] underline-offset-4 hover:underline",
             },
             size: {
-                default: "h-10 px-5 py-2 rounded-[var(--radius-md)]",
-                sm: "h-8 px-4 text-xs rounded-[var(--radius-sm)]",
-                lg: "h-12 px-8 text-base rounded-[var(--radius-lg)]",
-                icon: "h-10 w-10 rounded-[var(--radius-md)]",
-                "icon-sm": "h-8 w-8 p-1.5 rounded-[var(--radius-md)]",
-                "icon-xs": "h-7 w-7 p-0 rounded-[var(--radius-md)]",
+                default: "h-10 px-5 py-2 rounded-lg",
+                sm: "h-8 px-4 text-xs rounded-md",
+                lg: "h-12 px-8 text-base rounded-xl",
+                icon: "h-10 w-10 rounded-lg",
+                "icon-sm": "h-8 w-8 p-1.5 rounded-lg",
+                "icon-xs": "h-7 w-7 p-0 rounded-lg",
             },
         },
         defaultVariants: {

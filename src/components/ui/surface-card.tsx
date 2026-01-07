@@ -14,9 +14,9 @@ const surfaceCardVariants = cva(
       },
       rounded: {
         none: "rounded-none",
-        sm: "rounded-[var(--radius-sm)]",
-        md: "rounded-[var(--radius-md)]",
-        lg: "rounded-[var(--radius-lg)]",
+        sm: "rounded-md",
+        md: "rounded-lg",
+        lg: "rounded-xl",
         full: "rounded-full",
       },
     },
