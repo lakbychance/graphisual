@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+:root {
+  /* Fonts */
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* === PHYSICAL SURFACE PALETTE === */
+
+  /* Paper background - warm, textured feel */
+  --color-paper: #e5e0d8;
+
+  /* Molded surface material - slightly lighter than paper */
+  --color-surface: #efebe5;
+  --color-surface-hover: #f2eeea;
+
+  /* Text */
+  --color-text: #3d3832;
+  --color-text-muted: #7a746c;
+
+  /* Single accent - only one visible at a time */
+  --color-accent: #5cb85c;
+  --color-accent-pressed: #4a9d4a;
+  --color-error: #d96850;
+
+  /* Node state tints (applied as overlays, not flat fills) */
+  --color-tint-visited: rgba(92, 184, 92, 0.25);
+  --color-tint-path: rgba(230, 162, 60, 0.3);
+  --color-tint-start: rgba(93, 173, 226, 0.3);
+  --color-tint-end: rgba(224, 123, 90, 0.3);
+
+  /* === SHADOW SYSTEM (Top-Left Light Source) === */
+
+  /* Raised elements - soft, neutral shadows */
+  --shadow-raised:
+    2px 2px 4px rgba(0, 0, 0, 0.18),
+    1px 1px 2px rgba(0, 0, 0, 0.1);
+
+  --shadow-raised-lg:
+    3px 3px 6px rgba(0, 0, 0, 0.2),
+    2px 2px 3px rgba(0, 0, 0, 0.12);
+
+  /* Inner highlight - subtle top-left edge catch */
+  --highlight-edge:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+
+  /* Pressed/inset - light comes from top-left into the depression */
+  --shadow-pressed:
+    inset 2px 2px 4px rgba(50, 45, 40, 0.15),
+    inset -1px -1px 2px rgba(255, 252, 245, 0.4);
+
+  /* Etched groove - carved into surface */
+  --shadow-etched:
+    inset 1px 1px 2px rgba(50, 45, 40, 0.12),
+    inset -1px -1px 1px rgba(255, 252, 245, 0.5);
+
+  /* Soft token shadow - for nodes (thick, pickable) */
+  --shadow-token:
+    4px 4px 8px rgba(50, 45, 40, 0.2),
+    2px 2px 3px rgba(50, 45, 40, 0.15),
+    1px 1px 1px rgba(50, 45, 40, 0.1);
+
+  /* Border radius */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+
+  /* Node gradient colors */
+  --gradient-default-start: #faf8f5;
+  --gradient-default-mid: #efebe5;
+  --gradient-default-end: #ddd8d0;
+
+  --gradient-visited-start: #d4f0d4;
+  --gradient-visited-mid: #b8ddb8;
+  --gradient-visited-end: #8fc78f;
+
+  --gradient-path-start: #faecd4;
+  --gradient-path-mid: #ecd4a8;
+  --gradient-path-end: #d4b87c;
+
+  --gradient-start-start: #d4f0fa;
+  --gradient-start-mid: #a8d4e6;
+  --gradient-start-end: #7cbdd4;
+
+  --gradient-end-start: #fae0d4;
+  --gradient-end-mid: #e8b5a3;
+  --gradient-end-end: #d49878;
+
+  /* Edge colors */
+  --color-edge-default: rgba(50, 45, 40, 0.3);
+  --color-edge-traversal: #6aab6a;
+  --color-edge-path: #c9a060;
+  --color-edge-hover: #e6a23c;
+
+  /* Node drop shadow */
+  --node-shadow-color: rgba(50, 45, 40, 0.28);
+
+  /* Node stroke - lighter than text-muted for subtle definition */
+  --color-node-stroke: #a8a29a;
+
+  /* Interactive states (for hover on items) */
+  --color-interactive-hover: rgba(50, 45, 40, 0.08);
+  --color-slider-range: rgba(50, 45, 40, 0.15);
+
+  /* Divider */
+  --color-divider: rgba(50, 45, 40, 0.12);
+
+  /* Form control accent (warm orange) */
+  --color-accent-form: #e07850;
+  --color-accent-form-glow: rgba(224, 120, 80, 0.4);
+
+  /* Focus ring for contrasting elements (orange controls) */
+  --color-focus-ring-contrast: rgba(0, 0, 0, 0.7);
+}
+
+/* === DARK THEME === */
+[data-theme="dark"] {
+  /* Paper background - dark, subtle warmth */
+  --color-paper: #1a1a1e;
+
+  /* Molded surface material - slightly lighter than paper */
+  --color-surface: #242428;
+  --color-surface-hover: #2e2e32;
+
+  /* Text */
+  --color-text: #e8e6e3;
+  --color-text-muted: #9a9590;
+
+  /* Accent colors (slightly brighter for dark bg) */
+  --color-accent: #6bc96b;
+  --color-accent-pressed: #5ab85a;
+  --color-error: #e07b5a;
+
+  /* Node state tints (more saturated for dark bg) */
+  --color-tint-visited: rgba(107, 201, 107, 0.3);
+  --color-tint-path: rgba(230, 162, 60, 0.35);
+  --color-tint-start: rgba(93, 173, 226, 0.35);
+  --color-tint-end: rgba(224, 123, 90, 0.35);
+
+  /* === SHADOW SYSTEM (adjusted for dark mode) === */
+
+  /* Raised elements - soft shadows on dark */
+  --shadow-raised:
+    2px 2px 4px rgba(0, 0, 0, 0.4),
+    1px 1px 2px rgba(0, 0, 0, 0.25);
+
+  --shadow-raised-lg:
+    3px 3px 6px rgba(0, 0, 0, 0.45),
+    2px 2px 3px rgba(0, 0, 0, 0.3);
+
+  /* Inner highlight - subtle edge catch */
+  --highlight-edge:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.08);
+
+  /* Pressed/inset */
+  --shadow-pressed:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+
+  /* Etched groove */
+  --shadow-etched:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.25),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.04);
+
+  /* Soft token shadow - for nodes */
+  --shadow-token:
+    4px 4px 10px rgba(0, 0, 0, 0.45),
+    2px 2px 4px rgba(0, 0, 0, 0.35),
+    1px 1px 2px rgba(0, 0, 0, 0.25);
+
+  /* Node gradient colors (darker versions) */
+  --gradient-default-start: #3a3a3e;
+  --gradient-default-mid: #2e2e32;
+  --gradient-default-end: #242428;
+
+  --gradient-visited-start: #2a4a2a;
+  --gradient-visited-mid: #234823;
+  --gradient-visited-end: #1c3c1c;
+
+  --gradient-path-start: #4a3a20;
+  --gradient-path-mid: #3d3018;
+  --gradient-path-end: #302610;
+
+  --gradient-start-start: #204050;
+  --gradient-start-mid: #183848;
+  --gradient-start-end: #102838;
+
+  --gradient-end-start: #503020;
+  --gradient-end-mid: #482818;
+  --gradient-end-end: #382010;
+
+  /* Edge colors (brighter for dark bg) */
+  --color-edge-default: rgba(180, 175, 165, 0.4);
+  --color-edge-traversal: #7ac97a;
+  --color-edge-path: #d4b070;
+  --color-edge-hover: #f0b050;
+
+  /* Node drop shadow */
+  --node-shadow-color: rgba(0, 0, 0, 0.5);
+
+  /* Node stroke */
+  --color-node-stroke: #9a9590;
+
+  /* Interactive states (brighter for dark bg) */
+  --color-interactive-hover: rgba(255, 255, 255, 0.1);
+  --color-slider-range: rgba(255, 255, 255, 0.2);
+
+  /* Divider - more visible on dark surfaces */
+  --color-divider: rgba(255, 255, 255, 0.15);
+
+  /* Form control accent (brighter warm orange for dark mode) */
+  --color-accent-form: #e88060;
+  --color-accent-form-glow: rgba(232, 128, 96, 0.5);
+
+  /* Focus ring for contrasting elements (orange controls) */
+  --color-focus-ring-contrast: rgba(255, 255, 255, 0.8);
+}
+
+@layer base {
+  * {
+    border-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(92, 184, 92, 0.25);
+    color: var(--color-text);
+  }
+}
+
+@layer utilities {
+  /* Monospace font */
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+  box-shadow: var(--shadow-etched);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-hover);
+}
+
+/* Grain texture opacity */
+.grain-texture {
+  opacity: var(--grain-opacity);
+}
+
+[data-theme="dark"] .grain-texture {
+  opacity: 0.1;
+}

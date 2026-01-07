@@ -1,17 +1,17 @@
-import { IDropdownOption } from "@fluentui/react";
+import { AlgorithmType } from "../../algorithms/types";
 
-import { IOptions } from "../Board/IBoard";
-import { Dispatch, SetStateAction } from "react";
-export interface GraphProps {
-  options: IOptions;
-  selectedEdge: IDropdownOption | undefined;
-  selectedAlgo: IDropdownOption | undefined;
-  visualizationSpeed: number;
-  setVisualizingState: Dispatch<SetStateAction<boolean>>;
-  isVisualizing: boolean;
-  nodeSelection: INodeSelection;
-  setNodeSelection: Dispatch<SetStateAction<INodeSelection>>;
+/**
+ * Selected option for dropdowns.
+ */
+export interface SelectedOption {
+  key: string;
+  text: string;
+  data?: AlgorithmType;
 }
+
+/**
+ * Node in the graph.
+ */
 export interface INode {
   x: number;
   y: number;
@@ -19,8 +19,12 @@ export interface INode {
   id: number;
   isInShortestPath?: boolean;
   isVisited?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
+
+/**
+ * Edge in the graph.
+ */
 export interface IEdge {
   x1: number;
   y1: number;
@@ -34,9 +38,23 @@ export interface IEdge {
   type: string;
   isUsedInTraversal?: boolean;
   isUsedInShortestPath?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
+
+/**
+ * Node selection state for algorithm visualization.
+ */
 export interface INodeSelection {
   isStartNodeSelected: boolean;
   isEndNodeSelected: boolean;
+}
+
+/**
+ * Snapshot of graph state for undo/redo history.
+ * Uses array format for edges to enable JSON serialization.
+ */
+export interface GraphSnapshot {
+  nodes: INode[];
+  edges: [number, IEdge[]][];
+  nodeCounter: number;
 }
