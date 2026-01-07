@@ -476,7 +476,7 @@ export const Graph = () => {
     }
 
     // Create node on empty canvas (not during visualization or algorithm selection)
-    if (!isNode && !selectedEdgeForEdit && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
+    if (!isNode && selectedNodeId === null && !selectedEdgeForEdit && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNodeAction(x, y);
     }
