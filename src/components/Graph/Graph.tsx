@@ -130,18 +130,6 @@ export const Graph = () => {
     return { x: svgPoint.x, y: svgPoint.y };
   }, []);
 
-  // Convert SVG coordinates to screen coordinates
-  const svgToScreenCoords = useCallback((svgX: number, svgY: number) => {
-    if (!graph.current) return { x: 0, y: 0 };
-    const point = graph.current.createSVGPoint();
-    point.x = svgX;
-    point.y = svgY;
-    const ctm = graph.current.getScreenCTM();
-    if (!ctm) return { x: 0, y: 0 };
-    const screenPoint = point.matrixTransform(ctm);
-    return { x: screenPoint.x, y: screenPoint.y };
-  }, []);
-
   // Get the current algorithm from registry
   const currentAlgorithm = selectedAlgo?.key
     ? algorithmRegistry.get(selectedAlgo.key)
@@ -495,9 +483,9 @@ export const Graph = () => {
   }, [currentAlgorithm, isVisualizing, pathFindingNode, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, addNodeAction, selectNode, setPathFindingNode, runAlgorithm]);
 
   // Handle edge click
-  const handleEdge = useCallback((edge: IEdge, fromNode: INode) => {
+  const handleEdge = useCallback((edge: IEdge, fromNode: INode, clickPosition: { x: number; y: number }) => {
     if (isVisualizing) return;
-    selectEdgeForEditAction(edge, fromNode);
+    selectEdgeForEditAction(edge, fromNode, clickPosition);
   }, [isVisualizing, selectEdgeForEditAction]);
 
   // Close edge popup
@@ -716,14 +704,11 @@ export const Graph = () => {
 
       {/* Edge popup - rendered outside SVG using Popover */}
       {selectedEdgeForEdit && (() => {
-        const edge = selectedEdgeForEdit.edge;
-        const midX = (edge.x1 + edge.x2) / 2;
-        const midY = (edge.y1 + edge.y2) / 2;
-        const screenPos = svgToScreenCoords(midX, midY);
+        const { edge, clickPosition } = selectedEdgeForEdit;
         return (
           <EdgePopup
             edge={edge}
-            anchorPosition={screenPos}
+            anchorPosition={clickPosition}
             onClose={closeEdgePopup}
             onUpdateType={updateEdgeType}
             onUpdateWeight={updateEdgeWeight}

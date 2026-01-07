@@ -63,16 +63,10 @@ export const EdgePopup = ({
     handleClose();
   };
 
-  const handleEscapeOnTooltipTrigger = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      handleClose();
-    }
-  }
-
   return (
     <TooltipProvider delayDuration={300}>
       <Popover modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-        {/* Virtual anchor positioned at edge midpoint */}
+        {/* Virtual anchor positioned at click location */}
         <PopoverAnchor asChild>
           <div
             style={{
@@ -106,7 +100,7 @@ export const EdgePopup = ({
                 <TooltipTrigger asChild>
                   <span className="flex-1">
                     <RadixToggleGroupItem
-                      onKeyDown={handleEscapeOnTooltipTrigger}
+
                       value="directed"
                       className="w-8 h-8 flex-none px-1.5"
                     >
@@ -120,7 +114,7 @@ export const EdgePopup = ({
                 <TooltipTrigger asChild>
                   <span className="flex-1">
                     <RadixToggleGroupItem
-                      onKeyDown={handleEscapeOnTooltipTrigger}
+
                       value="undirected"
                       className="w-8 h-8 flex-none px-1.5"
                     >
@@ -145,14 +139,14 @@ export const EdgePopup = ({
             >
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <StepperDecrement onKeyDown={handleEscapeOnTooltipTrigger} />
+                  <StepperDecrement />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Decrease weight</TooltipContent>
               </Tooltip>
               <StepperField ref={weightInputRef} />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <StepperIncrement onKeyDown={handleEscapeOnTooltipTrigger} />
+                  <StepperIncrement />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Increase weight</TooltipContent>
               </Tooltip>
@@ -168,7 +162,7 @@ export const EdgePopup = ({
                   <TooltipTrigger asChild>
                     <Button
                       onClick={handleReverse}
-                      onKeyDown={handleEscapeOnTooltipTrigger}
+
                       variant="default"
                       size="icon-sm"
                     >
@@ -182,7 +176,6 @@ export const EdgePopup = ({
                 <TooltipTrigger asChild>
                   <Button
                     onClick={onDelete}
-                    onKeyDown={handleEscapeOnTooltipTrigger}
                     variant="default"
                     size="icon-sm"
                     className="text-[var(--color-error)]"

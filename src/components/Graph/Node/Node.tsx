@@ -176,7 +176,7 @@ export const Node = (props: NodeProps) => {
                     id={`${node.id}${edge.to}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isVisualizing) onEdgeClick(edge, node);
+                      if (!isVisualizing) onEdgeClick(edge, node, { x: e.clientX, y: e.clientY });
                     }}
                     onMouseEnter={(e) => {
                       if (!isVisualizing) e.currentTarget.style.stroke = hoverColor;
@@ -233,7 +233,7 @@ export const Node = (props: NodeProps) => {
                     id={`${node.id}${edge.to}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isVisualizing) onEdgeClick(edge, node);
+                      if (!isVisualizing) onEdgeClick(edge, node, { x: e.clientX, y: e.clientY });
                     }}
                     onMouseEnter={(e) => {
                       if (!isVisualizing) e.currentTarget.style.stroke = hoverColor;

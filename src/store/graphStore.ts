@@ -29,7 +29,7 @@ interface GraphState {
 
   // === Selection State ===
   selectedNodeId: number | null;
-  selectedEdgeForEdit: { edge: IEdge; sourceNode: INode } | null;
+  selectedEdgeForEdit: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
 
   // === Algorithm State ===
   selectedAlgo: SelectedOption | undefined;
@@ -71,7 +71,7 @@ interface GraphActions {
 
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
-  selectEdgeForEdit: (edge: IEdge, sourceNode: INode) => void;
+  selectEdgeForEdit: (edge: IEdge, sourceNode: INode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
 
   // === Algorithm Actions ===
@@ -422,7 +422,7 @@ export const useGraphStore = create<GraphStore>()(
           past: [...past, currentSnapshot],
           future: [],
           selectedEdgeForEdit: selectedEdgeForEdit
-            ? { edge: updatedEdge, sourceNode }
+            ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
             : null,
         });
       },
@@ -462,7 +462,7 @@ export const useGraphStore = create<GraphStore>()(
           past: [...past, currentSnapshot],
           future: [],
           selectedEdgeForEdit: selectedEdgeForEdit
-            ? { edge: updatedEdge, sourceNode }
+            ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
             : null,
         });
       },
@@ -617,8 +617,8 @@ export const useGraphStore = create<GraphStore>()(
         set({ selectedNodeId: nodeId });
       },
 
-      selectEdgeForEdit: (edge, sourceNode) => {
-        set({ selectedEdgeForEdit: { edge, sourceNode } });
+      selectEdgeForEdit: (edge, sourceNode, clickPosition) => {
+        set({ selectedEdgeForEdit: { edge, sourceNode, clickPosition } });
       },
 
       clearEdgeSelection: () => {

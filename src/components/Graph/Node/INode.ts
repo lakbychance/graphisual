@@ -4,7 +4,7 @@ export interface NodeProps {
   node: INode;
   edges: Map<number, IEdge[] | undefined>;
   onNodeMove: (nodeId: number, x: number, y: number) => void;
-  onEdgeClick: (edge: IEdge, node: INode) => void;
+  onEdgeClick: (edge: IEdge, node: INode, clickPosition: { x: number; y: number }) => void;
   onConnectorDragStart: (
     sourceNode: INode,
     position: string,
