@@ -31,7 +31,7 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
     <button
       onClick={onClick}
       className={cn(
-        "relative flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all duration-100 overflow-hidden",
+        "relative flex flex-col items-center gap-1.5 p-3 rounded-lg  duration-100 overflow-hidden",
         "bg-[var(--color-surface)]",
         "focus:outline-none",
         selected

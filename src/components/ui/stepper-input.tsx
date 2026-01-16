@@ -26,7 +26,7 @@ const useStepper = () => {
 // === Variants ===
 
 const stepperButtonVariants = cva(
-  "w-8 h-8 flex items-center justify-center text-base transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text-muted)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
+  "w-8 h-8 flex items-center justify-center text-base  duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text-muted)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
   {
     variants: {
       rounded: {
@@ -168,6 +168,7 @@ const StepperField = React.forwardRef<HTMLInputElement, StepperFieldProps>(
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        autoComplete="off"
         className={cn(
           "flex-1 h-8 text-center font-['JetBrains_Mono'] text-xs font-medium",
           "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 bg-transparent text-[var(--color-text)]",

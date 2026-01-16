@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
 import { NodeProps } from "./INode";
 import { IEdge } from "../IGraph";
@@ -25,6 +25,7 @@ export const Node = (props: NodeProps) => {
 
   const [isHovered, setIsHovered] = useState(false);
   const isDragging = useRef(false);
+  const prefersReducedMotion = useReducedMotion();
 
   // Track hover state for connectors and algorithm mode zoom effect
   const handleMouseEnter = useCallback(() => {
@@ -284,9 +285,9 @@ export const Node = (props: NodeProps) => {
 
       {/* Node visual elements with spring animation on mount */}
       <motion.g
-        initial={{ scale: 0, opacity: 0 }}
+        initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{
+        transition={prefersReducedMotion ? { duration: 0 } : {
           type: 'spring',
           stiffness: 600,
           damping: 28,

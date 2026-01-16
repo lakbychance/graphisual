@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Graph } from "../Graph/Graph";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry, AlgorithmType } from "../../algorithms";
@@ -73,6 +73,9 @@ export const Board = () => {
 
   // Track if we're on desktop for responsive dropdown alignment
   const isDesktop = useIsDesktop();
+
+  // Respect user's reduced motion preferences
+  const prefersReducedMotion = useReducedMotion();
 
   // Clear play interval on unmount or when visualization ends
   useEffect(() => {
@@ -300,12 +303,12 @@ export const Board = () => {
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
 
         {/* Full-screen Graph - no props needed, reads from store */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 touch-action-manipulation">
           <Graph />
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
-        <div className="fixed z-50 bottom-3 md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
           {/* Mobile: Floating Undo/Redo/Delete - aligned to right edge of toolbar */}
           <div className="flex justify-between">
             <div className="z-40 gap-2">
@@ -330,6 +333,7 @@ export const Board = () => {
                   <TooltipTrigger asChild>
                     <button
                       onClick={handleResetZoom}
+                      aria-label="Reset zoom"
                       className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
                     >
                       {Math.round(zoom * 100)}%
@@ -346,6 +350,7 @@ export const Board = () => {
                       variant="ghost"
                       size="icon-sm"
                       className="relative z-10"
+                      aria-label="Zoom in"
                     >
                       <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                     </Button>
@@ -361,6 +366,7 @@ export const Board = () => {
                 disabled={isVisualizing || !canUndo}
                 variant="ghost"
                 size="icon-sm"
+                aria-label="Undo"
               >
                 <Undo2 size={16} className={cn(canUndo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
@@ -369,6 +375,7 @@ export const Board = () => {
                 disabled={isVisualizing || !canRedo}
                 variant="ghost"
                 size="icon-sm"
+                aria-label="Redo"
               >
                 <Redo2 size={16} className={cn(canRedo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
@@ -378,6 +385,7 @@ export const Board = () => {
                 disabled={isVisualizing || selectedNodeId === null}
                 variant="ghost"
                 size="icon-sm"
+                aria-label="Delete selected node"
               >
                 <Trash2 size={16} className={cn(selectedNodeId !== null && !isVisualizing ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
               </Button>
@@ -641,8 +649,9 @@ export const Board = () => {
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
         {selectedAlgo?.key && selectedAlgo.key !== "select" && !isVisualizing && (
           <motion.div
-            initial={{ scale: 0, opacity: 0 }}
+            initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={prefersReducedMotion ? { duration: 0 } : undefined}
             className={cn(
               "fixed z-40 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]",
               // Mobile: center top
@@ -664,7 +673,7 @@ export const Board = () => {
         )}
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
-        <div className="hidden md:flex fixed bottom-4 left-4 z-40 gap-2">
+        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
           {/* Zoom controls group */}
           <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
             <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md" />
@@ -676,6 +685,7 @@ export const Board = () => {
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
+                  aria-label="Zoom out"
                 >
                   <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
@@ -687,6 +697,7 @@ export const Board = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={handleResetZoom}
+                  aria-label="Reset zoom"
                   className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
                 >
                   {Math.round(zoom * 100)}%
@@ -703,6 +714,7 @@ export const Board = () => {
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
+                  aria-label="Zoom in"
                 >
                   <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
@@ -722,6 +734,7 @@ export const Board = () => {
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
+                  aria-label="Undo"
                 >
                   <Undo2 size={16} className={cn(canUndo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
@@ -737,6 +750,7 @@ export const Board = () => {
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
+                  aria-label="Redo"
                 >
                   <Redo2 size={16} className={cn(canRedo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
@@ -747,10 +761,11 @@ export const Board = () => {
         </div>
 
         {/* Settings button - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-4 left-4 md:top-auto md:left-auto md:bottom-4 md:right-4 z-40">
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                aria-label="Theme settings"
                 className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
               >
                 <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md overflow-hidden" />

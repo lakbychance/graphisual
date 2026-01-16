@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils"
 
 // Physical button - raised surface that presses in
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[background-color,box-shadow,transform,opacity] duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 disabled:pointer-events-none disabled:opacity-40",
     {
         variants: {
             variant: {

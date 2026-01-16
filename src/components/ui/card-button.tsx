@@ -4,7 +4,7 @@ import { cn } from "../../lib/utils"
 import { GrainTexture } from "./grain-texture"
 
 const cardButtonVariants = cva(
-  "relative flex flex-col items-center gap-1 p-2.5 transition-all duration-100 overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+  "relative flex flex-col items-center gap-1 p-2.5  duration-100 overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
   {
     variants: {
       selected: {
@@ -26,7 +26,7 @@ const cardButtonVariants = cva(
 
 export interface CardButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof cardButtonVariants> {
+  VariantProps<typeof cardButtonVariants> {
   showGrain?: boolean
 }
 

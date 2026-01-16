@@ -21,7 +21,7 @@ const toggleGroupVariants = cva(
 )
 
 const toggleItemVariants = cva(
-  "flex-1 py-1.5 flex items-center justify-center transition-all duration-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+  "flex-1 py-1.5 flex items-center justify-center  duration-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
   {
     variants: {
       active: {
@@ -50,7 +50,7 @@ const toggleItemVariants = cva(
 
 export interface ToggleGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof toggleGroupVariants> {}
+  VariantProps<typeof toggleGroupVariants> { }
 
 const ToggleGroup = React.forwardRef<HTMLDivElement, ToggleGroupProps>(
   ({ className, variant, ...props }, ref) => {
@@ -67,7 +67,7 @@ ToggleGroup.displayName = "ToggleGroup"
 
 export interface ToggleItemProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'>,
-    VariantProps<typeof toggleItemVariants> {}
+  VariantProps<typeof toggleItemVariants> { }
 
 const ToggleItem = React.forwardRef<HTMLButtonElement, ToggleItemProps>(
   ({ className, active, disabled, rounded, ...props }, ref) => {
@@ -88,7 +88,7 @@ ToggleItem.displayName = "ToggleItem"
 const RadixToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-    VariantProps<typeof toggleGroupVariants>
+  VariantProps<typeof toggleGroupVariants>
 >(({ className, variant, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
@@ -113,7 +113,7 @@ const RadixToggleGroupItem = React.forwardRef<
       ref={ref}
       {...props}
       className={cn(
-        "flex-1 py-1.5 flex items-center justify-center transition-all duration-100 cursor-pointer",
+        "flex-1 py-1.5 flex items-center justify-center cursor-pointer",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
         "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
         "data-[state=on]:bg-[var(--color-surface)] data-[state=on]:text-[var(--color-text)] data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
