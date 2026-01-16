@@ -13,6 +13,7 @@ An interactive web app to draw graphs and visualize algorithms.
 
 - BFS & DFS traversal
 - Dijkstra's shortest path
+- Bellman-Ford shortest path
 - Prim's minimum spanning tree
 - Cycle detection
 

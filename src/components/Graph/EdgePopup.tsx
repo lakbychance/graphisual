@@ -133,7 +133,7 @@ export const EdgePopup = ({
             <Stepper
               value={weight}
               onChange={handleWeightChange}
-              min={0}
+              min={-999}
               max={999}
               onEnter={handleClose}
             >

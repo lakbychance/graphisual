@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Shuffle, GitBranch, Circle, Star, Grid3X3 } from "lucide-react";
+import { Sparkles, Shuffle, GitBranch, Circle, Star, Grid3X3, ArrowDownRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { Button } from "./button";
@@ -18,6 +18,7 @@ import {
   generateStar,
   generateBinaryTree,
   generateGrid,
+  generateDAG,
   type RandomGeneratorOptions,
   type LayoutType,
 } from "../../utility/graphGenerator";
@@ -141,6 +142,17 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
       icon: GitBranch,
       generate: () => {
         const { nodes, edges, nodeCounter } = generateBinaryTree(4);
+        setGraph(nodes, edges, nodeCounter);
+        setOpen(false);
+      },
+    },
+    {
+      id: "dag",
+      name: "DAG",
+      description: "Directed acyclic",
+      icon: ArrowDownRight,
+      generate: () => {
+        const { nodes, edges, nodeCounter } = generateDAG(4, 2);
         setGraph(nodes, edges, nodeCounter);
         setOpen(false);
       },

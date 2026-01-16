@@ -37,10 +37,14 @@ export interface AlgorithmInput {
 
 /**
  * Simplified node information for algorithms.
- * Algorithms don't need rendering coordinates.
+ * Coordinates are optional but needed for heuristic-based algorithms (A*).
  */
 export interface NodeInfo {
   id: number;
+  /** X coordinate (optional, used by A* for heuristic) */
+  x?: number;
+  /** Y coordinate (optional, used by A* for heuristic) */
+  y?: number;
 }
 
 /**

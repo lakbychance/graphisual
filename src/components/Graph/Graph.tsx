@@ -3,6 +3,7 @@ import { Node } from "../Graph/Node/Node";
 import { findToNodeForTouchBasedDevices } from "../../utility/calc";
 import { isModKey } from "../../utility/keyboard";
 import { ZOOM, DRAG_THRESHOLD, TIMING } from "../../utility/constants";
+import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../../utility/graphUtils";
 import { INode, IEdge, GraphSnapshot } from "./IGraph";
 import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
 import { EdgePopup } from "./EdgePopup";
@@ -374,26 +375,37 @@ export const Graph = () => {
   const runAlgorithm = useCallback((startNodeId: number, endNodeId?: number) => {
     if (!currentAlgorithm) return;
 
+    // Check for negative weights with incompatible algorithms
+    if (selectedAlgo?.key && ALGORITHMS_NO_NEGATIVE_WEIGHTS.has(selectedAlgo.key) && hasNegativeWeights(edges)) {
+      toast.warning(`${selectedAlgo.text} doesn't support negative edge weights. Use Bellman-Ford instead.`);
+      setPathFindingNode(null);
+      resetAlgorithmState();
+      return;
+    }
+
     const input = {
       adjacencyList: convertToAlgorithmInput(),
-      nodes: nodes.map((n) => ({ id: n.id })),
+      nodes: nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
       startNodeId,
       endNodeId,
     };
 
     // Check if algorithm has a generator (for step-through mode)
     if (stepMode === 'manual' && currentAlgorithm.generator) {
-      // Collect all steps from generator
-      const generator = currentAlgorithm.generator(input);
-      const steps: AlgorithmStep[] = [...generator];
+      // Run execute() first to check for errors (same logic as auto mode)
+      const result = currentAlgorithm.execute(input);
 
-      if (steps.length === 0) {
+      if (result.error) {
         const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
         toast.error(failureMessage);
         setPathFindingNode(null);
         resetAlgorithmState();
         return;
       }
+
+      // No error - collect steps from generator for step-through visualization
+      const generator = currentAlgorithm.generator(input);
+      const steps: AlgorithmStep[] = [...generator];
 
       // Initialize step-through mode
       setNodeSelection({
@@ -419,7 +431,7 @@ export const Graph = () => {
     const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
     visualizeGraph(visitedEdges, resultEdges);
-  }, [currentAlgorithm, nodes, stepMode, nodeSelection, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setPathFindingNode, resetAlgorithmState, setNodeSelection, initStepThrough]);
+  }, [currentAlgorithm, nodes, edges, selectedAlgo, stepMode, nodeSelection, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setPathFindingNode, resetAlgorithmState, setNodeSelection, initStepThrough]);
 
   // Store pan at drag start for relative panning
   const panAtDragStart = useRef({ x: 0, y: 0 });

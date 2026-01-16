@@ -196,7 +196,7 @@ export const Node = (props: NodeProps) => {
                     )}
                     markerEnd={`url(#arrowhead${node.id}${edge.to})`}
                   />
-                  {edge.weight !== undefined && edge.weight > 0 && (() => {
+                  {edge.weight !== undefined && edge.weight !== 0 && (() => {
                     // Calculate actual center of quadratic bezier curve at t=0.5
                     // Q(0.5) = (P0 + 2*P1 + P2) / 4
                     const centerX = (edge.x1 + 2 * textCoordDirected.c1x + edge.x2) / 4;
@@ -251,7 +251,7 @@ export const Node = (props: NodeProps) => {
                       isVisualizing && "pointer-events-none"
                     )}
                   />
-                  {edge.weight !== undefined && edge.weight > 0 && (() => {
+                  {edge.weight !== undefined && edge.weight !== 0 && (() => {
                     const centerX = (edge.x1 + edge.nodeX2) / 2;
                     const centerY = (edge.y1 + edge.nodeY2) / 2;
                     return (

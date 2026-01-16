@@ -415,6 +415,75 @@ export function generateBinaryTree(depth: number): GeneratedGraph {
 }
 
 /**
+ * Generate a DAG (Directed Acyclic Graph)
+ * Creates a layered structure where edges only go from earlier to later layers
+ */
+export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGraph {
+  const nodes: INode[] = [];
+  const edges = new Map<number, IEdge[]>();
+
+  const layerHeight = (CANVAS_HEIGHT - 2 * PADDING) / (layers - 1 || 1);
+
+  // Create nodes layer by layer
+  let nodeId = 1;
+  const layerNodes: INode[][] = [];
+
+  for (let layer = 0; layer < layers; layer++) {
+    const layerWidth = CANVAS_WIDTH - 2 * PADDING;
+    const spacing = layerWidth / (nodesPerLayer + 1);
+    const currentLayerNodes: INode[] = [];
+
+    for (let i = 0; i < nodesPerLayer; i++) {
+      const node: INode = {
+        id: nodeId,
+        x: PADDING + spacing * (i + 1),
+        y: PADDING + layer * layerHeight,
+        r: NODE.RADIUS,
+      };
+      nodes.push(node);
+      currentLayerNodes.push(node);
+      edges.set(nodeId, []);
+      nodeId++;
+    }
+
+    layerNodes.push(currentLayerNodes);
+  }
+
+  // Create edges between consecutive layers
+  // Each node connects to 1-2 random nodes in the next layer
+  for (let layer = 0; layer < layers - 1; layer++) {
+    const currentLayer = layerNodes[layer];
+    const nextLayer = layerNodes[layer + 1];
+
+    for (const node of currentLayer) {
+      // Connect to 1-2 nodes in the next layer
+      const connectionCount = Math.min(1 + Math.floor(Math.random() * 2), nextLayer.length);
+      const shuffled = [...nextLayer].sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < connectionCount; i++) {
+        addEdgeToMap(edges, node, shuffled[i], "directed");
+      }
+    }
+
+    // Ensure every node in the next layer has at least one incoming edge
+    for (const nextNode of nextLayer) {
+      const hasIncoming = currentLayer.some((fromNode) => {
+        const fromEdges = edges.get(fromNode.id) || [];
+        return fromEdges.some((e) => e.to === nextNode.id.toString());
+      });
+
+      if (!hasIncoming) {
+        // Connect from a random node in the current layer
+        const randomFrom = currentLayer[Math.floor(Math.random() * currentLayer.length)];
+        addEdgeToMap(edges, randomFrom, nextNode, "directed");
+      }
+    }
+  }
+
+  return { nodes, edges, nodeCounter: nodes.length };
+}
+
+/**
  * Generate a grid graph
  */
 export function generateGrid(rows: number, cols: number): GeneratedGraph {
