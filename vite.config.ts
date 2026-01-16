@@ -16,5 +16,18 @@ export default defineConfig({
   },
   build: {
     outDir: "build",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-ui": [
+            "@radix-ui/react-popover",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-slider",
+            "@radix-ui/react-tabs",
+          ],
+          "vendor-motion": ["motion"],
+        },
+      },
+    },
   },
 });

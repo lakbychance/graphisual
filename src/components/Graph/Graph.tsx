@@ -9,7 +9,8 @@ import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../..
 import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
 import { useGraphStore } from "../../store/graphStore";
-import debounce from "lodash-es/debounce";
+import { useShallow } from "zustand/shallow";
+import { debounce } from "../../utility/debounce";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
@@ -20,14 +21,20 @@ export const Graph = () => {
   // Get state from store
   const nodes = useGraphStore((state) => state.nodes);
   const edges = useGraphStore((state) => state.edges);
-  const nodeCounter = useGraphStore((state) => state.nodeCounter);
+  // Subscribe to node IDs only for rendering - prevents re-renders when node positions change
+  const nodeIds = useGraphStore(
+    useShallow((state) => state.nodes.map((n) => n.id))
+  );
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const selectedEdgeForEdit = useGraphStore((state) => state.selectedEdgeForEdit);
   const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
   const nodeSelection = useGraphStore((state) => state.nodeSelection);
   const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
-  const isVisualizing = useGraphStore((state) => state.isVisualizing);
+  const visualizationState = useGraphStore((state) => state.visualizationState);
   const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
+
+  // Derive boolean for simpler component logic and Node prop
+  const isVisualizing = visualizationState === 'running';
   const zoom = useGraphStore((state) => state.zoom);
   const pan = useGraphStore((state) => state.pan);
   const stepMode = useGraphStore((state) => state.stepMode);
@@ -36,17 +43,15 @@ export const Graph = () => {
   const canUndo = useGraphStore((state) => state.canUndo());
   const canRedo = useGraphStore((state) => state.canRedo());
 
-  // Get actions from store
-  const addNodeAction = useGraphStore((state) => state.addNode);
-  const moveNodeAction = useGraphStore((state) => state.moveNode);
-  const deleteNodeAction = useGraphStore((state) => state.deleteNode);
-  const addEdgeAction = useGraphStore((state) => state.addEdge);
+  const addNode = useGraphStore((state) => state.addNode);
+  const moveNode = useGraphStore((state) => state.moveNode);
+  const deleteNode = useGraphStore((state) => state.deleteNode);
+  const addEdge = useGraphStore((state) => state.addEdge);
   const selectNode = useGraphStore((state) => state.selectNode);
-  const selectEdgeForEditAction = useGraphStore((state) => state.selectEdgeForEdit);
+  const selectEdgeForEdit = useGraphStore((state) => state.selectEdgeForEdit);
   const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
   const setPathFindingNode = useGraphStore((state) => state.setPathFindingNode);
-  const setVisualizing = useGraphStore((state) => state.setVisualizing);
-  const setVisualizationDone = useGraphStore((state) => state.setVisualizationDone);
+  const setVisualizationState = useGraphStore((state) => state.setVisualizationState);
   const setNodeSelection = useGraphStore((state) => state.setNodeSelection);
   const updateVisualizationState = useGraphStore((state) => state.updateVisualizationState);
   const resetAlgorithmState = useGraphStore((state) => state.resetAlgorithmState);
@@ -219,7 +224,7 @@ export const Graph = () => {
       // Delete selected node
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId !== null && !isVisualizing) {
         e.preventDefault();
-        deleteNodeAction(selectedNodeId);
+        deleteNode(selectedNodeId);
         return;
       }
       // Escape to deselect
@@ -229,22 +234,20 @@ export const Graph = () => {
       // Zoom in (Cmd/Ctrl + Plus or Cmd/Ctrl + Equals)
       if (isModKey(e) && (e.key === "+" || e.key === "=")) {
         e.preventDefault();
-        const currentZoom = useGraphStore.getState().zoom;
-        setZoom(Math.min(currentZoom + ZOOM.STEP, ZOOM.MAX));
+        setZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
         return;
       }
       // Zoom out (Cmd/Ctrl + Minus)
       if (isModKey(e) && e.key === "-") {
         e.preventDefault();
-        const currentZoom = useGraphStore.getState().zoom;
-        setZoom(Math.max(currentZoom - ZOOM.STEP, ZOOM.MIN));
+        setZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
         return;
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, isVisualizing, canUndo, canRedo, undo, redo, deleteNodeAction, selectNode, setZoom]);
+  }, [selectedNodeId, isVisualizing, canUndo, canRedo, undo, redo, deleteNode, selectNode, setZoom, zoom]);
 
   // Visualization helper
   const visualizeSetState = useCallback((
@@ -259,23 +262,31 @@ export const Graph = () => {
     const currentFrom = String(currentEdge.from);
     const currentTo = String(currentEdge.to);
 
-    const updatedEdges = new Map(currentEdges);
-    updatedEdges.forEach((list) => {
-      list?.forEach((edge) => {
+    const updatedEdges = new Map<number, IEdge[]>();
+
+    currentEdges.forEach((list, nodeId) => {
+      if (!list) {
+        updatedEdges.set(nodeId, []);
+        return;
+      }
+
+      const newList = list.map((edge) => {
+        // Directed edge match
         if (edge.type === "directed" && edge.from === currentFrom && edge.to === currentTo) {
-          (edge as Record<string, unknown>)[edgeAttribute] = true;
+          return { ...edge, [edgeAttribute]: true };
         }
-        if (edge.type === "undirected") {
-          if (edge.from === currentFrom && edge.to === currentTo) {
-            (edge as Record<string, unknown>)[edgeAttribute] = true;
-            updatedEdges.get(parseInt(currentTo))?.forEach((e) => {
-              if (e.to === currentFrom) {
-                (e as Record<string, unknown>)[edgeAttribute] = true;
-              }
-            });
-          }
+        // Undirected edge match (forward direction)
+        if (edge.type === "undirected" && edge.from === currentFrom && edge.to === currentTo) {
+          return { ...edge, [edgeAttribute]: true };
         }
+        // Undirected edge match (reverse direction)
+        if (edge.type === "undirected" && edge.from === currentTo && edge.to === currentFrom) {
+          return { ...edge, [edgeAttribute]: true };
+        }
+        return edge;
       });
+
+      updatedEdges.set(nodeId, newList);
     });
 
     const updatedNodes = currentNodes.map((node) => {
@@ -292,8 +303,7 @@ export const Graph = () => {
     for (let i = 0; i <= shortestPath.length; i++) {
       if (i === shortestPath.length) {
         setTimeout(() => {
-          setVisualizing(false);
-          setVisualizationDone(true);
+          setVisualizationState('done');
           resetAlgorithmState();
         }, visualizationSpeed * i);
         return;
@@ -311,7 +321,7 @@ export const Graph = () => {
         }
       }, visualizationSpeed * i);
     }
-  }, [visualizationSpeed, setVisualizing, setVisualizationDone, resetAlgorithmState, visualizeSetState]);
+  }, [visualizationSpeed, visualizeSetState, setVisualizationState, resetAlgorithmState]);
 
   const visualizeGraph = useCallback((visitedEdges: IEdge[], shortestPath: IEdge[] = []) => {
     setNodeSelection({
@@ -319,7 +329,7 @@ export const Graph = () => {
       isStartNodeSelected: false,
       isEndNodeSelected: false,
     });
-    setVisualizing(true);
+    setVisualizationState('running');
 
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
@@ -342,7 +352,7 @@ export const Graph = () => {
         }
       }, visualizationSpeed * i);
     }
-  }, [visualizationSpeed, nodeSelection, setVisualizing, setNodeSelection, setPathFindingNode, visualizeShortestPath, visualizeSetState]);
+  }, [visualizationSpeed, nodeSelection, visualizeShortestPath, visualizeSetState, setNodeSelection, setVisualizationState, setPathFindingNode]);
 
   // Convert edges to algorithm input format
   const convertToAlgorithmInput = useCallback((): Map<number, EdgeInfo[]> => {
@@ -499,15 +509,18 @@ export const Graph = () => {
     // Create node on empty canvas (not during visualization or algorithm selection)
     if (!isNode && selectedNodeId === null && !selectedEdgeForEdit && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
-      addNodeAction(x, y);
+      addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, pathFindingNode, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, addNodeAction, selectNode, setPathFindingNode, runAlgorithm]);
+  }, [currentAlgorithm, isVisualizing, pathFindingNode, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, runAlgorithm, setPathFindingNode, selectNode, addNode]);
 
   // Handle edge click
-  const handleEdge = useCallback((edge: IEdge, fromNode: INode, clickPosition: { x: number; y: number }) => {
+  const handleEdge = useCallback((edge: IEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => {
     if (isVisualizing) return;
-    selectEdgeForEditAction(edge, fromNode, clickPosition);
-  }, [isVisualizing, selectEdgeForEditAction]);
+    const { nodes } = useGraphStore.getState();
+    const fromNode = nodes.find(n => n.id === fromNodeId);
+    if (!fromNode) return;
+    selectEdgeForEdit(edge, fromNode, clickPosition);
+  }, [isVisualizing, selectEdgeForEdit]);
 
   // Close edge popup
   const closeEdgePopup = useCallback(() => {
@@ -546,17 +559,20 @@ export const Graph = () => {
 
   // Handle node movement
   const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
+    // Get current state at call-time instead of closing over nodes/edges
+    const { nodes, edges, nodeCounter } = useGraphStore.getState();
+
     // Capture state before first move
     if (!dragStartSnapshot.current) {
       dragStartSnapshot.current = createSnapshot(nodes, edges, nodeCounter);
     }
-    moveNodeAction(nodeId, x, y);
+    moveNode(nodeId, x, y);
     debouncedRecordDrag();
-  }, [nodes, edges, nodeCounter, createSnapshot, moveNodeAction, debouncedRecordDrag]);
+  }, [createSnapshot, debouncedRecordDrag, moveNode]);
 
   // Handle connector drag start
   const handleConnectorDragStart = useCallback(
-    (sourceNode: INode, _position: string, startX: number, startY: number) => {
+    (sourceNodeId: number, _position: string, startX: number, startY: number) => {
       if (!graph.current) return;
       isDraggingEdge.current = true;
 
@@ -565,7 +581,7 @@ export const Graph = () => {
         setMockEdge({
           x1: startX, y1: startY, x2: endX, y2: endY,
           nodeX2: 0, nodeY2: 0,
-          from: sourceNode.id.toString(), to: "",
+          from: sourceNodeId.toString(), to: "",
           weight: 0, type: "directed",
         });
       };
@@ -573,6 +589,11 @@ export const Graph = () => {
       const handlePointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerUp);
+
+        // Get current state at call-time
+        const { nodes, edges } = useGraphStore.getState();
+        const sourceNode = nodes.find(n => n.id === sourceNodeId);
+        if (!sourceNode) { setMockEdge(null); return; }
 
         const target = e.target as SVGElement;
         let targetNode: INode | undefined;
@@ -589,12 +610,12 @@ export const Graph = () => {
           targetNode = findToNodeForTouchBasedDevices(endX, endY, nodes);
         }
 
-        if (targetNode && targetNode.id !== sourceNode.id) {
-          const existingEdges = edges.get(sourceNode.id) || [];
+        if (targetNode && targetNode.id !== sourceNodeId) {
+          const existingEdges = edges.get(sourceNodeId) || [];
           const edgeExists = existingEdges.some((edge) => parseInt(edge.to) === targetNode!.id);
 
           if (!edgeExists) {
-            addEdgeAction(sourceNode, targetNode);
+            addEdge(sourceNode, targetNode);
           }
         }
 
@@ -605,7 +626,7 @@ export const Graph = () => {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [nodes, edges, screenToSvgCoords, addEdgeAction]
+    [screenToSvgCoords, addEdge]
   );
 
   return (
@@ -626,19 +647,16 @@ export const Graph = () => {
 
         <GridBackground />
 
-        {nodes.map((node) => (
+        {nodeIds.map((nodeId) => (
           <Node
-            key={node.id}
-            node={node}
-            edges={edges}
+            key={nodeId}
+            nodeId={nodeId}
             onNodeMove={handleNodeMove}
             onEdgeClick={handleEdge}
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
             isAlgorithmSelected={!!currentAlgorithm}
-            pathFindingNode={pathFindingNode}
             svgRef={graph}
-            isSelected={selectedNodeId === node.id}
             onNodeSelect={selectNode}
             screenToSvgCoords={screenToSvgCoords}
           />

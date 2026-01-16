@@ -17,6 +17,8 @@ import { NODE, TIMING } from "../utility/constants";
 // Types
 // ============================================================================
 
+type VisualizationState = 'idle' | 'running' | 'done';
+
 interface GraphState {
   // === Graph Data ===
   nodes: INode[];
@@ -35,8 +37,7 @@ interface GraphState {
   selectedAlgo: SelectedOption | undefined;
   nodeSelection: INodeSelection;
   pathFindingNode: { startNodeId: number; endNodeId: number } | null;
-  isVisualizing: boolean;
-  isVisualizationDone: boolean;
+  visualizationState: VisualizationState;
   visualizationSpeed: number;
 
   // === UI State ===
@@ -78,14 +79,14 @@ interface GraphActions {
   setAlgorithm: (algo: SelectedOption | undefined) => void;
   setNodeSelection: (selection: INodeSelection) => void;
   setPathFindingNode: (node: { startNodeId: number; endNodeId: number } | null) => void;
-  setVisualizing: (value: boolean) => void;
-  setVisualizationDone: (done: boolean) => void;
+  setVisualizationState: (state: VisualizationState) => void;
   setVisualizationSpeed: (speed: number) => void;
   resetAlgorithmState: () => void;
 
   // === Visualization State (no history) ===
   updateVisualizationState: (nodes: INode[], edges: Map<number, IEdge[]>) => void;
   resetVisualizationFlags: () => void;
+  clearVisualizationState: () => void;  // Clear visualization without creating new references
 
   // === UI Actions ===
   setZoom: (zoom: number) => void;
@@ -154,8 +155,7 @@ const initialState: GraphState = {
   selectedAlgo: { key: "select", text: "Select Algorithm" },
   nodeSelection: { isStartNodeSelected: false, isEndNodeSelected: false },
   pathFindingNode: null,
-  isVisualizing: false,
-  isVisualizationDone: false,
+  visualizationState: 'idle',
   visualizationSpeed: TIMING.DEFAULT_VISUALIZATION_SPEED,
 
   // UI
@@ -217,36 +217,41 @@ export const useGraphStore = create<GraphStore>()(
       // ========================================
 
       addNode: (x, y) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const newNodeId = get().nodeCounter + 1;
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past } = get();
+        const newNodeId = nodeCounter + 1;
         const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
-        const newEdges = new Map(cleanedEdges);
+        // Keep existing node references, just add the new one
+        const newNodes = [...nodes, newNode];
+        const newEdges = new Map(edges);
         newEdges.set(newNodeId, []);
-        const newNodes = [...cleanedNodes, newNode];
 
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, get().nodeCounter);
-        const newSnapshot = createSnapshot(newNodes, newEdges, newNodeId);
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
         set({
-          ...snapshotToState(newSnapshot),
-          past: [...get().past, currentSnapshot],
+          nodes: newNodes,
+          edges: newEdges,
+          nodeCounter: newNodeId,
+          past: [...past, currentSnapshot],
           future: [],
           pathFindingNode: null,
         });
       },
 
       moveNode: (nodeId, x, y) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
+        get().clearVisualizationState();
+        const { nodes, edges } = get();
 
-        const newNodes = cleanedNodes.map((node) =>
+        // Only create new object for the moved node, keep same references for others
+        const newNodes = nodes.map((node) =>
           node.id === nodeId ? { ...node, x, y } : node
         );
 
-        const newEdges = new Map(cleanedEdges);
+        const newEdges = new Map(edges);
 
         // Update edges starting from this node
-        const nodeEdges = newEdges.get(nodeId);
+        const nodeEdges = edges.get(nodeId);
         if (nodeEdges) {
           const updatedNodeEdges = nodeEdges.map((edge) => {
             const { tempX, tempY } = calculateAccurateCoords(x, y, edge.nodeX2, edge.nodeY2);
@@ -255,38 +260,48 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(nodeId, updatedNodeEdges);
         }
 
-        // Update edges pointing to this node
-        newEdges.forEach((list, fromNodeId) => {
-          if (list) {
+        // Update edges pointing to this node (only if they actually have edges to this node)
+        edges.forEach((list, fromNodeId) => {
+          if (list && fromNodeId !== nodeId) {
+            let hasChanges = false;
             const updatedList = list.map((edge) => {
               if (parseInt(edge.to) === nodeId) {
+                hasChanges = true;
                 const { tempX, tempY } = calculateAccurateCoords(edge.x1, edge.y1, x, y);
                 return { ...edge, x2: tempX, y2: tempY, nodeX2: x, nodeY2: y };
               }
               return edge;
             });
-            newEdges.set(fromNodeId, updatedList);
+            // Only update if edges actually changed
+            if (hasChanges) {
+              newEdges.set(fromNodeId, updatedList);
+            }
           }
         });
 
         set({
           nodes: newNodes,
           edges: newEdges,
-          pathFindingNode: null,
         });
       },
 
       deleteNode: (nodeId) => {
+        get().clearVisualizationState();
         const { nodes, edges, nodeCounter, past } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
         const newNodes = nodes.filter((n) => n.id !== nodeId);
         const newEdges = new Map(edges);
         newEdges.delete(nodeId);
-        newEdges.forEach((edgeList, nId) => {
-          if (edgeList) {
-            const filtered = edgeList.filter((edge) => edge.to !== String(nodeId));
-            newEdges.set(nId, filtered);
+
+        // Only update edge arrays that actually have edges to the deleted node
+        edges.forEach((edgeList, nId) => {
+          if (edgeList && nId !== nodeId) {
+            const hasEdgeToDeleted = edgeList.some((edge) => edge.to === String(nodeId));
+            if (hasEdgeToDeleted) {
+              const filtered = edgeList.filter((edge) => edge.to !== String(nodeId));
+              newEdges.set(nId, filtered);
+            }
           }
         });
 
@@ -300,9 +315,9 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       addEdge: (fromNode, toNode) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const { nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, nodeCounter);
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past } = get();
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
         const { tempX, tempY } = calculateAccurateCoords(
           fromNode.x,
@@ -324,12 +339,13 @@ export const useGraphStore = create<GraphStore>()(
           type: "directed",
         };
 
-        const newEdges = new Map(cleanedEdges);
-        const sourceEdges = newEdges.get(fromNode.id) || [];
+        // Only update the source node's edge array
+        const newEdges = new Map(edges);
+        const sourceEdges = edges.get(fromNode.id) || [];
         newEdges.set(fromNode.id, [...sourceEdges, newEdge]);
 
         set({
-          nodes: cleanedNodes,
+          nodes,  // Keep same node references
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
@@ -354,20 +370,22 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       updateEdgeType: (fromNodeId, toNodeId, newType) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const { nodeCounter, past, selectedEdgeForEdit } = get();
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, nodeCounter);
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
-        const newEdges = new Map(cleanedEdges);
-        const sourceNode = cleanedNodes.find((n) => n.id === fromNodeId);
-        const targetNode = cleanedNodes.find((n) => n.id === toNodeId);
+        const sourceNode = nodes.find((n) => n.id === fromNodeId);
+        const targetNode = nodes.find((n) => n.id === toNodeId);
 
         if (!sourceNode || !targetNode) return;
 
         // Get the current edge
-        const sourceEdges = newEdges.get(fromNodeId) || [];
+        const sourceEdges = edges.get(fromNodeId) || [];
         const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
         if (!currentEdge) return;
+
+        // Only update affected edge arrays
+        const newEdges = new Map(edges);
 
         if (newType === "undirected" && currentEdge.type === "directed") {
           // Update original edge
@@ -377,7 +395,7 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(fromNodeId, updatedSourceEdges);
 
           // Add reverse edge
-          const targetEdges = newEdges.get(toNodeId) || [];
+          const targetEdges = edges.get(toNodeId) || [];
           const reverseExists = targetEdges.some((e) => parseInt(e.to) === fromNodeId);
           if (!reverseExists) {
             const { tempX, tempY } = calculateAccurateCoords(
@@ -408,7 +426,7 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(fromNodeId, updatedSourceEdges);
 
           // Remove reverse edge
-          const targetEdges = newEdges.get(toNodeId) || [];
+          const targetEdges = edges.get(toNodeId) || [];
           const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
           newEdges.set(toNodeId, filteredTargetEdges);
         }
@@ -417,7 +435,7 @@ export const useGraphStore = create<GraphStore>()(
         const updatedEdge = { ...currentEdge, type: newType };
 
         set({
-          nodes: cleanedNodes,
+          nodes,  // Keep same node references
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
@@ -428,17 +446,19 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       updateEdgeWeight: (fromNodeId, toNodeId, newWeight) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const { nodeCounter, past, selectedEdgeForEdit } = get();
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, nodeCounter);
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
-        const newEdges = new Map(cleanedEdges);
-        const sourceNode = cleanedNodes.find((n) => n.id === fromNodeId);
+        const sourceNode = nodes.find((n) => n.id === fromNodeId);
 
         // Update edge weight
-        const sourceEdges = newEdges.get(fromNodeId) || [];
+        const sourceEdges = edges.get(fromNodeId) || [];
         const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
         if (!currentEdge || !sourceNode) return;
+
+        // Only update affected edge arrays
+        const newEdges = new Map(edges);
 
         const updatedSourceEdges = sourceEdges.map((e) =>
           parseInt(e.to) === toNodeId ? { ...e, weight: newWeight } : e
@@ -447,7 +467,7 @@ export const useGraphStore = create<GraphStore>()(
 
         // If undirected, update reverse edge too
         if (currentEdge.type === "undirected") {
-          const targetEdges = newEdges.get(toNodeId) || [];
+          const targetEdges = edges.get(toNodeId) || [];
           const updatedTargetEdges = targetEdges.map((e) =>
             parseInt(e.to) === fromNodeId ? { ...e, weight: newWeight } : e
           );
@@ -457,7 +477,7 @@ export const useGraphStore = create<GraphStore>()(
         const updatedEdge = { ...currentEdge, weight: newWeight };
 
         set({
-          nodes: cleanedNodes,
+          nodes,  // Keep same node references
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
@@ -468,21 +488,23 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       reverseEdge: (fromNodeId, toNodeId) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const { nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, nodeCounter);
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past } = get();
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
-        const sourceNode = cleanedNodes.find((n) => n.id === fromNodeId);
-        const targetNode = cleanedNodes.find((n) => n.id === toNodeId);
+        const sourceNode = nodes.find((n) => n.id === fromNodeId);
+        const targetNode = nodes.find((n) => n.id === toNodeId);
         if (!sourceNode || !targetNode) return;
 
-        const newEdges = new Map(cleanedEdges);
-
-        // Remove original edge
-        const sourceEdges = newEdges.get(fromNodeId) || [];
+        // Get the current edge
+        const sourceEdges = edges.get(fromNodeId) || [];
         const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
         if (!currentEdge) return;
 
+        // Only update affected edge arrays
+        const newEdges = new Map(edges);
+
+        // Remove original edge
         const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
         newEdges.set(fromNodeId, filteredSourceEdges);
 
@@ -505,11 +527,11 @@ export const useGraphStore = create<GraphStore>()(
           weight: currentEdge.weight,
           type: "directed",
         };
-        const targetEdges = newEdges.get(toNodeId) || [];
+        const targetEdges = edges.get(toNodeId) || [];
         newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
 
         set({
-          nodes: cleanedNodes,
+          nodes,  // Keep same node references
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
@@ -518,15 +540,16 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       deleteEdge: (fromNodeId, toNodeId) => {
-        const { cleanedNodes, cleanedEdges } = get().getCleanedState();
-        const { nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(get().nodes, get().edges, nodeCounter);
-
-        const newEdges = new Map(cleanedEdges);
+        get().clearVisualizationState();
+        const { nodes, edges, nodeCounter, past } = get();
+        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
         // Get the edge to check if undirected
-        const sourceEdges = newEdges.get(fromNodeId) || [];
+        const sourceEdges = edges.get(fromNodeId) || [];
         const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+
+        // Only update affected edge arrays
+        const newEdges = new Map(edges);
 
         // Remove the edge
         const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
@@ -534,13 +557,13 @@ export const useGraphStore = create<GraphStore>()(
 
         // If undirected, also remove reverse edge
         if (currentEdge?.type === "undirected") {
-          const targetEdges = newEdges.get(toNodeId) || [];
+          const targetEdges = edges.get(toNodeId) || [];
           const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
           newEdges.set(toNodeId, filteredTargetEdges);
         }
 
         set({
-          nodes: cleanedNodes,
+          nodes,  // Keep same node references
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
@@ -630,17 +653,17 @@ export const useGraphStore = create<GraphStore>()(
       // ========================================
 
       setAlgorithm: (algo) => {
-        const { isVisualizationDone } = get();
+        const { visualizationState } = get();
 
         // Reset visualization flags if previous visualization was completed
-        if (isVisualizationDone && algo?.key && algo.key !== "select") {
+        if (visualizationState === 'done' && algo?.key && algo.key !== "select") {
           const { cleanedNodes, cleanedEdges } = get().getCleanedState();
           set({
             selectedAlgo: algo,
             pathFindingNode: null,
             nodes: cleanedNodes,
             edges: cleanedEdges,
-            isVisualizationDone: false,
+            visualizationState: 'idle',
           });
         } else {
           set({
@@ -658,12 +681,8 @@ export const useGraphStore = create<GraphStore>()(
         set({ pathFindingNode: node });
       },
 
-      setVisualizing: (value) => {
-        set({ isVisualizing: value });
-      },
-
-      setVisualizationDone: (done) => {
-        set({ isVisualizationDone: done });
+      setVisualizationState: (state) => {
+        set({ visualizationState: state });
       },
 
       setVisualizationSpeed: (speed) => {
@@ -712,6 +731,48 @@ export const useGraphStore = create<GraphStore>()(
         });
       },
 
+      clearVisualizationState: () => {
+        const { nodes, edges, visualizationState } = get();
+
+        // Only clear if there's visualization state to clear
+        if (visualizationState === 'idle') {
+          // Check if any node/edge has visualization flags set
+          const hasVisualizationState = nodes.some(n => n.isVisited || n.isInShortestPath) ||
+            Array.from(edges.values()).some(list =>
+              list?.some(e => e.isUsedInTraversal || e.isUsedInShortestPath)
+            );
+          if (!hasVisualizationState) return;
+        }
+
+        // Create new objects with cleared flags (required for React shallow comparison to detect changes)
+        const cleanedNodes = nodes.map(node => ({
+          ...node,
+          isVisited: false,
+          isInShortestPath: false,
+        }));
+
+        const cleanedEdges = new Map<number, IEdge[]>();
+        edges.forEach((list, nodeId) => {
+          if (!list) {
+            cleanedEdges.set(nodeId, []);
+            return;
+          }
+          const newList = list.map(edge => ({
+            ...edge,
+            isUsedInTraversal: false,
+            isUsedInShortestPath: false,
+          }));
+          cleanedEdges.set(nodeId, newList);
+        });
+
+        set({
+          nodes: cleanedNodes,
+          edges: cleanedEdges,
+          visualizationState: 'idle',
+          pathFindingNode: null,
+        });
+      },
+
       // ========================================
       // UI Actions
       // ========================================
@@ -737,7 +798,7 @@ export const useGraphStore = create<GraphStore>()(
           stepHistory: steps,
           stepIndex: -1,
           isStepComplete: false,
-          isVisualizing: true,
+          visualizationState: 'running',
         });
       },
 
@@ -776,7 +837,7 @@ export const useGraphStore = create<GraphStore>()(
           stepHistory: [],
           stepIndex: -1,
           isStepComplete: false,
-          isVisualizing: false,
+          visualizationState: 'idle',
         });
       },
     }),
@@ -793,8 +854,10 @@ export const selectEdges = (state: GraphStore) => state.edges;
 export const selectSelectedNodeId = (state: GraphStore) => state.selectedNodeId;
 export const selectSelectedEdgeForEdit = (state: GraphStore) => state.selectedEdgeForEdit;
 export const selectSelectedAlgo = (state: GraphStore) => state.selectedAlgo;
-export const selectIsVisualizing = (state: GraphStore) => state.isVisualizing;
-export const selectIsVisualizationDone = (state: GraphStore) => state.isVisualizationDone;
+export const selectVisualizationState = (state: GraphStore) => state.visualizationState;
+// Derived selectors for convenience
+export const selectIsVisualizing = (state: GraphStore) => state.visualizationState === 'running';
+export const selectIsVisualizationDone = (state: GraphStore) => state.visualizationState === 'done';
 export const selectVisualizationSpeed = (state: GraphStore) => state.visualizationSpeed;
 export const selectZoom = (state: GraphStore) => state.zoom;
 export const selectPan = (state: GraphStore) => state.pan;

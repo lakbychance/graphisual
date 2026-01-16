@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { IEdge } from "./IGraph";
 import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
 import { GrainTexture } from "../ui/grain-texture";
@@ -18,7 +18,7 @@ interface EdgePopupProps {
   onDelete: () => void;
 }
 
-export const EdgePopup = ({
+export const EdgePopup = memo(function EdgePopup({
   edge,
   anchorPosition,
   onClose,
@@ -26,7 +26,7 @@ export const EdgePopup = ({
   onUpdateWeight,
   onReverse,
   onDelete,
-}: EdgePopupProps) => {
+}: EdgePopupProps) {
   const [weight, setWeight] = useState(edge.weight || 0);
   const [type, setType] = useState<"directed" | "undirected">(
     edge.type as "directed" | "undirected"
@@ -191,4 +191,4 @@ export const EdgePopup = ({
       </Popover>
     </TooltipProvider>
   );
-};
+});

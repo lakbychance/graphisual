@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
+import { IEdge } from '../components/Graph/IGraph'
 
 // Reset store before each test
 beforeEach(() => {
@@ -14,8 +15,7 @@ beforeEach(() => {
     selectedAlgo: { key: 'select', text: 'Select Algorithm' },
     nodeSelection: { isStartNodeSelected: false, isEndNodeSelected: false },
     pathFindingNode: null,
-    isVisualizing: false,
-    isVisualizationDone: false,
+    visualizationState: 'idle',
     visualizationSpeed: 400,
     zoom: 1,
     pan: { x: 0, y: 0 },
@@ -226,14 +226,17 @@ describe('graphStore', () => {
       expect(useGraphStore.getState().pathFindingNode).toBe(null)
     })
 
-    it('setVisualizing updates isVisualizing', () => {
-      const { setVisualizing } = useGraphStore.getState()
+    it('setVisualizationState updates visualizationState', () => {
+      const { setVisualizationState } = useGraphStore.getState()
 
-      setVisualizing(true)
-      expect(useGraphStore.getState().isVisualizing).toBe(true)
+      setVisualizationState('running')
+      expect(useGraphStore.getState().visualizationState).toBe('running')
 
-      setVisualizing(false)
-      expect(useGraphStore.getState().isVisualizing).toBe(false)
+      setVisualizationState('done')
+      expect(useGraphStore.getState().visualizationState).toBe('done')
+
+      setVisualizationState('idle')
+      expect(useGraphStore.getState().visualizationState).toBe('idle')
     })
 
     it('resetAlgorithmState resets to defaults', () => {
@@ -266,6 +269,43 @@ describe('graphStore', () => {
 
       setVisualizationSpeed(200)
       expect(useGraphStore.getState().visualizationSpeed).toBe(200)
+    })
+  })
+
+  describe('Visualization Immutability', () => {
+    it('should create new edge objects when setting visualization flags', () => {
+      // Setup: Create graph with an edge
+      const { addNode, addEdge } = useGraphStore.getState()
+      addNode(100, 100)
+      addNode(200, 200)
+      const node1 = useGraphStore.getState().nodes[0]
+      const node2 = useGraphStore.getState().nodes[1]
+      addEdge(node1, node2)
+
+      // Get original edge reference
+      const originalEdge = useGraphStore.getState().edges.get(node1.id)?.[0]
+      expect(originalEdge).toBeDefined()
+
+      // Simulate visualization update (like visualizeSetState does)
+      const { edges: currentEdges } = useGraphStore.getState()
+      const updatedEdges = new Map<number, IEdge[]>()
+
+      currentEdges.forEach((list, nodeId) => {
+        if (!list) return
+        const newList = list.map((edge) => {
+          if (edge.from === String(node1.id) && edge.to === String(node2.id)) {
+            return { ...edge, isUsedInTraversal: true }  // New object
+          }
+          return edge
+        })
+        updatedEdges.set(nodeId, newList)
+      })
+
+      // The modified edge should be a different reference
+      const modifiedEdge = updatedEdges.get(node1.id)?.[0]
+      expect(modifiedEdge).not.toBe(originalEdge)
+      expect(modifiedEdge?.isUsedInTraversal).toBe(true)
+      expect(originalEdge?.isUsedInTraversal).toBeFalsy()
     })
   })
 })

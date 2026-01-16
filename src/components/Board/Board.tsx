@@ -31,9 +31,12 @@ import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
 export const Board = () => {
   // Get state and actions from store
   const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
-  const isVisualizing = useGraphStore((state) => state.isVisualizing);
+  const visualizationState = useGraphStore((state) => state.visualizationState);
   const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
-  const nodes = useGraphStore((state) => state.nodes);
+
+  // Derive boolean for simpler component logic
+  const isVisualizing = visualizationState === 'running';
+  const hasNodes = useGraphStore((state) => state.nodes.length > 0);
   const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
   const zoom = useGraphStore((state) => state.zoom);
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
@@ -445,7 +448,7 @@ export const Board = () => {
               <AlgorithmPicker
                 selectedAlgo={selectedAlgo}
                 onSelect={handleAlgoChange}
-                disabled={isVisualizing || nodes.length === 0}
+                disabled={isVisualizing || !hasNodes}
               />
             </div>
 
