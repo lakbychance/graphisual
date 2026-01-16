@@ -9,6 +9,11 @@ import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
 import { useGraphStore } from "../../store/graphStore";
 import debounce from "lodash-es/debounce";
+import { CanvasDefs } from "./defs/CanvasDefs";
+import { NodeDefs } from "./defs/NodeDefs";
+import { EdgeDefs } from "./defs/EdgeDefs";
+import { GridBackground } from "./GridBackground";
+import { DragPreviewEdge } from "./DragPreviewEdge";
 
 export const Graph = () => {
   // Get state from store
@@ -602,64 +607,12 @@ export const Graph = () => {
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          {/* Grid pattern - minor lines (24px spacing) */}
-          <pattern id="gridMinor" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--color-grid-line)" strokeWidth="1"/>
-          </pattern>
-
-          {/* Grid pattern - major lines (120px spacing, every 5 cells) */}
-          <pattern id="gridMajor" width="120" height="120" patternUnits="userSpaceOnUse">
-            <path d="M 120 0 L 0 0 0 120" fill="none" stroke="var(--color-grid-line-major)" strokeWidth="1"/>
-          </pattern>
-
-          {/* Crosshatch pattern for node shading */}
-          <pattern id="crosshatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="3" stroke="var(--color-text)" strokeWidth="0.8" opacity="0.25" />
-          </pattern>
-
-          {/* Radial gradient for sphere mask - white=visible, black=hidden */}
-          {/* Offset to top-left (35%) for lighting effect */}
-          <radialGradient id="sphereMaskGradient" cx="35%" cy="35%" r="60%">
-            <stop offset="0%" stopColor="black" />
-            <stop offset="40%" stopColor="#444" />
-            <stop offset="100%" stopColor="white" />
-          </radialGradient>
-
-          {/* Mask using objectBoundingBox so it scales to each element */}
-          <mask id="sphereMask" maskContentUnits="objectBoundingBox">
-            <circle cx="0.5" cy="0.5" r="0.5" fill="url(#sphereMaskGradient)" />
-          </mask>
-
-          <linearGradient id="nodeGradientDefault" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--gradient-default-start)' }} />
-            <stop offset="50%" style={{ stopColor: 'var(--gradient-default-mid)' }} />
-            <stop offset="100%" style={{ stopColor: 'var(--gradient-default-end)' }} />
-          </linearGradient>
-          <linearGradient id="nodeGradientVisited" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--gradient-visited-start)' }} />
-            <stop offset="50%" style={{ stopColor: 'var(--gradient-visited-mid)' }} />
-            <stop offset="100%" style={{ stopColor: 'var(--gradient-visited-end)' }} />
-          </linearGradient>
-          <linearGradient id="nodeGradientPath" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--gradient-path-start)' }} />
-            <stop offset="50%" style={{ stopColor: 'var(--gradient-path-mid)' }} />
-            <stop offset="100%" style={{ stopColor: 'var(--gradient-path-end)' }} />
-          </linearGradient>
-          <linearGradient id="nodeGradientStart" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--gradient-start-start)' }} />
-            <stop offset="50%" style={{ stopColor: 'var(--gradient-start-mid)' }} />
-            <stop offset="100%" style={{ stopColor: 'var(--gradient-start-end)' }} />
-          </linearGradient>
-          <linearGradient id="nodeGradientEnd" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--gradient-end-start)' }} />
-            <stop offset="50%" style={{ stopColor: 'var(--gradient-end-mid)' }} />
-            <stop offset="100%" style={{ stopColor: 'var(--gradient-end-end)' }} />
-          </linearGradient>
+          <CanvasDefs />
+          <NodeDefs />
+          <EdgeDefs />
         </defs>
 
-        {/* Grid background - renders in SVG space so it pans/zooms with content */}
-        <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#gridMinor)" pointerEvents="none" />
-        <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#gridMajor)" pointerEvents="none" />
+        <GridBackground />
 
         {nodes.map((node) => (
           <Node
@@ -679,30 +632,7 @@ export const Graph = () => {
           />
         ))}
 
-        {mockEdge && (
-          <>
-            <marker
-              id="mockArrowHead"
-              markerWidth="10"
-              markerHeight="7"
-              refX="0"
-              refY="3.5"
-              orient="auto"
-              style={{ fill: 'var(--color-edge-default)' }}
-            >
-              <polygon points="0 0, 10 3.5, 0 7" />
-            </marker>
-            <line
-              className="stroke-[2px] [stroke-dasharray:8_4] pointer-events-none"
-              style={{ stroke: 'var(--color-edge-default)' }}
-              x1={mockEdge.x1}
-              y1={mockEdge.y1}
-              x2={mockEdge.x2}
-              y2={mockEdge.y2}
-              markerEnd="url(#mockArrowHead)"
-            />
-          </>
-        )}
+        <DragPreviewEdge edge={mockEdge} />
 
       </svg>
 
