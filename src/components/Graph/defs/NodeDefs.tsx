@@ -1,7 +1,9 @@
+import { memo } from "react";
+
 /**
  * Node-related SVG definitions (crosshatch pattern, sphere mask, gradients)
  */
-export const NodeDefs = () => (
+export const NodeDefs = memo(() => (
   <>
     {/* Crosshatch pattern for node shading */}
     <pattern id="crosshatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -52,4 +54,4 @@ export const NodeDefs = () => (
       <stop offset="100%" style={{ stopColor: 'var(--gradient-end-end)' }} />
     </linearGradient>
   </>
-);
+));
