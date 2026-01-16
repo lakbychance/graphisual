@@ -11,7 +11,7 @@ if (!rootElement) {
 }
 
 scan({
-  enabled: true,
+  enabled: true
 });
 
 const root = createRoot(rootElement);
