@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-WG1RN51DBH"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-WG1RN51DBH");
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/graphisual.png" />
     <meta
@@ -16,7 +30,10 @@
       content="Free online graph editor and algorithm visualizer. Draw nodes and edges, run BFS, DFS, Dijkstra, and more. Learn data structures interactively."
     />
     <meta name="author" content="Lakshya Thakur" />
-    <meta name="keywords" content="graph visualization, algorithm visualizer, BFS, DFS, Dijkstra, data structures, graph editor, interactive learning" />
+    <meta
+      name="keywords"
+      content="graph visualization, algorithm visualizer, BFS, DFS, Dijkstra, data structures, graph editor, interactive learning"
+    />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://graphisual.vercel.app/" />
@@ -25,54 +42,69 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://graphisual.vercel.app/" />
     <meta property="og:title" content="Graphisual" />
-    <meta property="og:description" content="Free online graph editor and algorithm visualizer. Draw nodes and edges, run BFS, DFS, Dijkstra, and more. Learn data structures interactively." />
-    <meta property="og:image" content="https://graphisual.vercel.app/og-image.png" />
+    <meta
+      property="og:description"
+      content="Free online graph editor and algorithm visualizer. Draw nodes and edges, run BFS, DFS, Dijkstra, and more. Learn data structures interactively."
+    />
+    <meta
+      property="og:image"
+      content="https://graphisual.vercel.app/og-image.png"
+    />
     <meta property="og:site_name" content="Graphisual" />
     <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Graphisual" />
-    <meta name="twitter:description" content="Free online graph editor and algorithm visualizer. Draw nodes and edges, run BFS, DFS, Dijkstra, and more. Learn data structures interactively." />
-    <meta name="twitter:image" content="https://graphisual.vercel.app/og-image.png" />
+    <meta
+      name="twitter:description"
+      content="Free online graph editor and algorithm visualizer. Draw nodes and edges, run BFS, DFS, Dijkstra, and more. Learn data structures interactively."
+    />
+    <meta
+      name="twitter:image"
+      content="https://graphisual.vercel.app/og-image.png"
+    />
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- JSON-LD Structured Data for AEO -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Graphisual",
-      "description": "An interactive web application for drawing graphs and visualizing algorithms like BFS, DFS, Dijkstra's shortest path, and more.",
-      "url": "https://graphisual.vercel.app",
-      "applicationCategory": "EducationalApplication",
-      "operatingSystem": "Any",
-      "browserRequirements": "Requires JavaScript",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "Interactive graph drawing",
-        "BFS visualization",
-        "DFS visualization",
-        "Dijkstra's algorithm visualization",
-        "Bellman-Ford algorithm",
-        "Custom node and edge creation",
-        "Weighted and unweighted graphs",
-        "Directed and undirected graphs"
-      ],
-      "screenshot": "https://graphisual.vercel.app/og-image.png",
-      "author": {
-        "@type": "Person",
-        "name": "Lakshya Thakur"
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Graphisual",
+        "description": "An interactive web application for drawing graphs and visualizing algorithms like BFS, DFS, Dijkstra's shortest path, and more.",
+        "url": "https://graphisual.vercel.app",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Interactive graph drawing",
+          "BFS visualization",
+          "DFS visualization",
+          "Dijkstra's algorithm visualization",
+          "Bellman-Ford algorithm",
+          "Custom node and edge creation",
+          "Weighted and unweighted graphs",
+          "Directed and undirected graphs"
+        ],
+        "screenshot": "https://graphisual.vercel.app/og-image.png",
+        "author": {
+          "@type": "Person",
+          "name": "Lakshya Thakur"
+        }
       }
-    }
     </script>
   </head>
   <body>
