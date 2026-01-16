@@ -4,7 +4,24 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Remove react-scan in production
+    {
+      name: "remove-react-scan",
+      transformIndexHtml(html, ctx) {
+        if (ctx.bundle) {
+          // Production build
+          return html.replace(
+            /<script[^>]*src="[^"]*react-scan[^"]*"[^>]*\/?>\s*(<\/script>)?/gi,
+            ""
+          );
+        }
+        return html;
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

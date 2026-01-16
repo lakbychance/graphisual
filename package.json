@@ -27,7 +27,6 @@
     "motion": "^12.24.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-scan": "^0.4.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
