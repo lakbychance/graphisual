@@ -24,8 +24,8 @@ React 19 · TypeScript · Vite · Zustand · Tailwind CSS · Radix UI
 ## Getting Started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## License
