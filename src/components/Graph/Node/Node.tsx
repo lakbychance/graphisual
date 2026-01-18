@@ -24,7 +24,7 @@ export const Node = memo(function Node(props: NodeProps) {
 
   // Subscribe to THIS node's data only
   const node = useGraphStore(useShallow((state) =>
-    state.nodes.find((n) => n.id === nodeId)
+    state.data.nodes.find((n) => n.id === nodeId)
   ));
 
   // Subscribe to THIS node's visualization flags only
@@ -33,10 +33,10 @@ export const Node = memo(function Node(props: NodeProps) {
   const visualizationInput = useGraphStore((state) => state.visualization.input);
 
   // Subscribe to THIS node's edges only
-  const nodeEdges = useGraphStore(useShallow((state) => state.edges.get(nodeId)));
+  const nodeEdges = useGraphStore(useShallow((state) => state.data.edges.get(nodeId)));
 
   // Derived selector: only re-renders when THIS node's selection state changes
-  const isSelected = useGraphStore((state) => state.selectedNodeId === nodeId);
+  const isSelected = useGraphStore((state) => state.selection.nodeId === nodeId);
 
   if (!node) return null;
 

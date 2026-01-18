@@ -60,20 +60,23 @@ interface Viewport {
   pan: { x: number; y: number };
 }
 
-interface GraphState {
-  // === Graph Data ===
+// Graph data structure (exported for use in graphHistoryStore)
+export interface GraphData {
   nodes: INode[];
   edges: Map<number, IEdge[]>;
   nodeCounter: number;
+}
 
-  // === Unified Visualization State ===
+// Selection state
+interface Selection {
+  nodeId: number | null;
+  edge: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
+}
+
+interface GraphState {
+  data: GraphData;
   visualization: Visualization;
-
-  // === Selection State ===
-  selectedNodeId: number | null;
-  selectedEdgeForEdit: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
-
-  // === UI State ===
+  selection: Selection;
   viewport: Viewport;
 }
 
@@ -96,7 +99,7 @@ interface GraphActions {
 
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
-  selectEdgeForEdit: (edge: IEdge, sourceNode: INode, clickPosition: { x: number; y: number }) => void;
+  selectEdge: (edge: IEdge, sourceNode: INode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
 
   // === Visualization Actions ===
@@ -126,7 +129,6 @@ interface GraphActions {
   // === Computed ===
   canUndo: () => boolean;
   canRedo: () => boolean;
-  createSnapshot: () => GraphSnapshot;
 }
 
 type GraphStore = GraphState & GraphActions;
@@ -135,7 +137,7 @@ type GraphStore = GraphState & GraphActions;
 // Helper Functions
 // ============================================================================
 
-const snapshotToState = (snapshot: GraphSnapshot) => ({
+const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
   nodes: snapshot.nodes,
   edges: new Map<number, IEdge[]>(snapshot.edges),
   nodeCounter: snapshot.nodeCounter,
@@ -162,20 +164,21 @@ const initialViewport: Viewport = {
   pan: { x: 0, y: 0 },
 };
 
-const initialState: GraphState = {
-  // Graph data
+const initialData: GraphData = {
   nodes: [],
   edges: new Map(),
   nodeCounter: 0,
+};
 
-  // Unified visualization state
+const initialSelection: Selection = {
+  nodeId: null,
+  edge: null,
+};
+
+const initialState: GraphState = {
+  data: initialData,
   visualization: initialVisualization,
-
-  // Selection
-  selectedNodeId: null,
-  selectedEdgeForEdit: null,
-
-  // UI
+  selection: initialSelection,
   viewport: initialViewport,
 };
 
@@ -205,18 +208,14 @@ export const useGraphStore = create<GraphStore>()(
         canUndo: () => useGraphHistoryStore.getState().canUndo(),
         canRedo: () => useGraphHistoryStore.getState().canRedo(),
 
-        createSnapshot: () => {
-          const { nodes, edges, nodeCounter } = get();
-          return createGraphSnapshot(nodes, edges, nodeCounter);
-        },
-
         // ========================================
         // Graph Mutations
         // ========================================
 
         addNode: autoHistory((x: number, y: number) => {
           get().clearVisualization();
-          const { nodes, edges, nodeCounter, visualization } = get();
+          const { data, visualization } = get();
+          const { nodes, edges, nodeCounter } = data;
           const newNodeId = nodeCounter + 1;
           const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
@@ -226,15 +225,14 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(newNodeId, []);
 
           set({
-            nodes: newNodes,
-            edges: newEdges,
-            nodeCounter: newNodeId,
+            data: { nodes: newNodes, edges: newEdges, nodeCounter: newNodeId },
             visualization: { ...visualization, input: null },
           });
         }),
 
         moveNode: batchedAutoHistory((nodeId: number, x: number, y: number) => {
-          const { nodes, edges } = get();
+          const { data } = get();
+          const { nodes, edges } = data;
 
           // Only create new object for the moved node, keep same references for others
           const newNodes = nodes.map((node) =>
@@ -273,14 +271,14 @@ export const useGraphStore = create<GraphStore>()(
           });
 
           set({
-            nodes: newNodes,
-            edges: newEdges,
+            data: { ...data, nodes: newNodes, edges: newEdges },
           });
         }),
 
         deleteNode: autoHistory((nodeId: number) => {
           get().clearVisualization();
-          const { nodes, edges } = get();
+          const { data } = get();
+          const { nodes, edges, nodeCounter } = data;
 
           const newNodes = nodes.filter((n) => n.id !== nodeId);
           const newEdges = new Map(edges);
@@ -298,15 +296,15 @@ export const useGraphStore = create<GraphStore>()(
           });
 
           set({
-            nodes: newNodes,
-            edges: newEdges,
-            selectedNodeId: null,
+            data: { nodes: newNodes, edges: newEdges, nodeCounter },
+            selection: { nodeId: null, edge: null },
           });
         }),
 
         addEdge: autoHistory((fromNode: INode, toNode: INode) => {
           get().clearVisualization();
-          const { nodes, edges, visualization } = get();
+          const { data, visualization } = get();
+          const { nodes, edges, nodeCounter } = data;
 
           const { tempX, tempY } = calculateAccurateCoords(
             fromNode.x,
@@ -334,8 +332,7 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(fromNode.id, [...sourceEdges, newEdge]);
 
           set({
-            nodes,  // Keep same node references
-            edges: newEdges,
+            data: { nodes, edges: newEdges, nodeCounter },
             visualization: { ...visualization, input: null },
           });
         }),
@@ -345,18 +342,17 @@ export const useGraphStore = create<GraphStore>()(
           const { visualization } = get();
 
           set({
-            nodes,
-            edges,
-            nodeCounter,
-            selectedNodeId: null,
-            selectedEdgeForEdit: null,
+            data: { nodes, edges, nodeCounter },
+            selection: { nodeId: null, edge: null },
             visualization: { ...visualization, input: null },
           });
         }),
 
         updateEdgeType: autoHistory((fromNodeId: number, toNodeId: number, newType: "directed" | "undirected") => {
           get().clearVisualization();
-          const { nodes, edges, selectedEdgeForEdit } = get();
+          const { data, selection } = get();
+          const { nodes, edges, nodeCounter } = data;
+          const selectedEdge = selection.edge;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
           const targetNode = nodes.find((n) => n.id === toNodeId);
@@ -415,21 +411,25 @@ export const useGraphStore = create<GraphStore>()(
             newEdges.set(toNodeId, filteredTargetEdges);
           }
 
-          // Update selectedEdgeForEdit if it exists
+          // Update selection.edge if it exists
           const updatedEdge = { ...currentEdge, type: newType };
 
           set({
-            nodes,  // Keep same node references
-            edges: newEdges,
-            selectedEdgeForEdit: selectedEdgeForEdit
-              ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
-              : null,
+            data: { nodes, edges: newEdges, nodeCounter },
+            selection: {
+              ...selection,
+              edge: selectedEdge
+                ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdge.clickPosition }
+                : null,
+            },
           });
         }),
 
         updateEdgeWeight: autoHistory((fromNodeId: number, toNodeId: number, newWeight: number) => {
           get().clearVisualization();
-          const { nodes, edges, selectedEdgeForEdit } = get();
+          const { data, selection } = get();
+          const { nodes, edges, nodeCounter } = data;
+          const selectedEdge = selection.edge;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
 
@@ -458,17 +458,20 @@ export const useGraphStore = create<GraphStore>()(
           const updatedEdge = { ...currentEdge, weight: newWeight };
 
           set({
-            nodes,  // Keep same node references
-            edges: newEdges,
-            selectedEdgeForEdit: selectedEdgeForEdit
-              ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
-              : null,
+            data: { nodes, edges: newEdges, nodeCounter },
+            selection: {
+              ...selection,
+              edge: selectedEdge
+                ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdge.clickPosition }
+                : null,
+            },
           });
         }),
 
         reverseEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
           get().clearVisualization();
-          const { nodes, edges } = get();
+          const { data, selection } = get();
+          const { nodes, edges, nodeCounter } = data;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
           const targetNode = nodes.find((n) => n.id === toNodeId);
@@ -509,15 +512,15 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
 
           set({
-            nodes,  // Keep same node references
-            edges: newEdges,
-            selectedEdgeForEdit: null,
+            data: { nodes, edges: newEdges, nodeCounter },
+            selection: { ...selection, edge: null },
           });
         }),
 
         deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
           get().clearVisualization();
-          const { nodes, edges } = get();
+          const { data, selection } = get();
+          const { nodes, edges, nodeCounter } = data;
 
           // Get the edge to check if undirected
           const sourceEdges = edges.get(fromNodeId) || [];
@@ -538,9 +541,8 @@ export const useGraphStore = create<GraphStore>()(
           }
 
           set({
-            nodes,  // Keep same node references
-            edges: newEdges,
-            selectedEdgeForEdit: null,
+            data: { nodes, edges: newEdges, nodeCounter },
+            selection: { ...selection, edge: null },
           });
         }),
 
@@ -551,12 +553,12 @@ export const useGraphStore = create<GraphStore>()(
         undo: () => {
           get().clearVisualization();
           const historyStore = useGraphHistoryStore.getState();
+          const { data } = get();
           historyStore.undo(
-            () => createGraphSnapshot(get().nodes, get().edges, get().nodeCounter),
+            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter),
             (snapshot) => set({
-              ...snapshotToState(snapshot),
-              selectedNodeId: null,
-              selectedEdgeForEdit: null,
+              data: snapshotToData(snapshot),
+              selection: { nodeId: null, edge: null },
             })
           );
         },
@@ -564,12 +566,12 @@ export const useGraphStore = create<GraphStore>()(
         redo: () => {
           get().clearVisualization();
           const historyStore = useGraphHistoryStore.getState();
+          const { data } = get();
           historyStore.redo(
-            () => createGraphSnapshot(get().nodes, get().edges, get().nodeCounter),
+            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter),
             (snapshot) => set({
-              ...snapshotToState(snapshot),
-              selectedNodeId: null,
-              selectedEdgeForEdit: null,
+              data: snapshotToData(snapshot),
+              selection: { nodeId: null, edge: null },
             })
           );
         },
@@ -588,15 +590,18 @@ export const useGraphStore = create<GraphStore>()(
         // ========================================
 
         selectNode: (nodeId) => {
-          set({ selectedNodeId: nodeId });
+          const { selection } = get();
+          set({ selection: { ...selection, nodeId } });
         },
 
-        selectEdgeForEdit: (edge, sourceNode, clickPosition) => {
-          set({ selectedEdgeForEdit: { edge, sourceNode, clickPosition } });
+        selectEdge: (edge, sourceNode, clickPosition) => {
+          const { selection } = get();
+          set({ selection: { ...selection, edge: { edge, sourceNode, clickPosition } } });
         },
 
         clearEdgeSelection: () => {
-          set({ selectedEdgeForEdit: null });
+          const { selection } = get();
+          set({ selection: { ...selection, edge: null } });
         },
 
         // ========================================
@@ -841,10 +846,10 @@ export const useGraphStore = create<GraphStore>()(
 // Selectors (for optimized re-renders)
 // ============================================================================
 
-export const selectNodes = (state: GraphStore) => state.nodes;
-export const selectEdges = (state: GraphStore) => state.edges;
-export const selectSelectedNodeId = (state: GraphStore) => state.selectedNodeId;
-export const selectSelectedEdgeForEdit = (state: GraphStore) => state.selectedEdgeForEdit;
+export const selectNodes = (state: GraphStore) => state.data.nodes;
+export const selectEdges = (state: GraphStore) => state.data.edges;
+export const selectSelectedNodeId = (state: GraphStore) => state.selection.nodeId;
+export const selectSelectedEdge = (state: GraphStore) => state.selection.edge;
 export const selectViewportZoom = (state: GraphStore) => state.viewport.zoom;
 export const selectViewportPan = (state: GraphStore) => state.viewport.pan;
 

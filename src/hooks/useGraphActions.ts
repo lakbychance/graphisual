@@ -34,7 +34,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
 
   // Store selectors
   const zoom = useGraphStore((state) => state.viewport.zoom);
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
+  const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
   const canUndo = useGraphStore((state) => state.canUndo());
   const canRedo = useGraphStore((state) => state.canRedo());
   const visualizationState = useGraphStore((state) => state.visualization.state);

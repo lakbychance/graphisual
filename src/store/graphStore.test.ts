@@ -9,9 +9,11 @@ beforeEach(() => {
 
   // Reset graph store
   useGraphStore.setState({
-    nodes: [],
-    edges: new Map(),
-    nodeCounter: 0,
+    data: {
+      nodes: [],
+      edges: new Map(),
+      nodeCounter: 0,
+    },
     visualization: {
       algorithm: { key: 'select', text: 'Select Algorithm' },
       trace: {
@@ -23,8 +25,10 @@ beforeEach(() => {
       speed: 400,
       mode: 'auto',
     },
-    selectedNodeId: null,
-    selectedEdgeForEdit: null,
+    selection: {
+      nodeId: null,
+      edge: null,
+    },
     viewport: { zoom: 1, pan: { x: 0, y: 0 } },
   })
 })
@@ -36,7 +40,8 @@ describe('graphStore', () => {
 
       addNode(100, 200)
 
-      const { nodes, nodeCounter, edges } = useGraphStore.getState()
+      const { data } = useGraphStore.getState()
+      const { nodes, nodeCounter, edges } = data
       expect(nodes).toHaveLength(1)
       expect(nodes[0].x).toBe(100)
       expect(nodes[0].y).toBe(200)
@@ -52,10 +57,11 @@ describe('graphStore', () => {
       addNode(50, 50)
       addNode(100, 100)
 
-      const { nodes, nodeCounter } = useGraphStore.getState()
+      const { data } = useGraphStore.getState()
+      const { nodes, nodeCounter } = data
       expect(nodes).toHaveLength(3)
       expect(nodeCounter).toBe(3)
-      expect(nodes.map(n => n.id)).toEqual([1, 2, 3])
+      expect(nodes.map((n: { id: number }) => n.id)).toEqual([1, 2, 3])
     })
 
     it('deleteNode removes node and its edges', () => {
@@ -67,17 +73,17 @@ describe('graphStore', () => {
 
       // Get state and add edge manually for testing
       let state = useGraphStore.getState()
-      const fromNode = state.nodes[0]
-      const toNode = state.nodes[1]
+      const fromNode = state.data.nodes[0]
+      const toNode = state.data.nodes[1]
       state.addEdge(fromNode, toNode)
 
       // Delete first node
       deleteNode(1)
 
       state = useGraphStore.getState()
-      expect(state.nodes).toHaveLength(1)
-      expect(state.nodes[0].id).toBe(2)
-      expect(state.edges.has(1)).toBe(false)
+      expect(state.data.nodes).toHaveLength(1)
+      expect(state.data.nodes[0].id).toBe(2)
+      expect(state.data.edges.has(1)).toBe(false)
     })
 
     it('selectNode updates selectedNodeId', () => {
@@ -86,10 +92,10 @@ describe('graphStore', () => {
       addNode(0, 0)
       selectNode(1)
 
-      expect(useGraphStore.getState().selectedNodeId).toBe(1)
+      expect(useGraphStore.getState().selection.nodeId).toBe(1)
 
       selectNode(null)
-      expect(useGraphStore.getState().selectedNodeId).toBe(null)
+      expect(useGraphStore.getState().selection.nodeId).toBe(null)
     })
   })
 
@@ -101,9 +107,9 @@ describe('graphStore', () => {
       addNode(100, 100)
 
       const state = useGraphStore.getState()
-      addEdge(state.nodes[0], state.nodes[1])
+      addEdge(state.data.nodes[0], state.data.nodes[1])
 
-      const edges = useGraphStore.getState().edges
+      const edges = useGraphStore.getState().data.edges
       const node1Edges = edges.get(1)
       expect(node1Edges).toHaveLength(1)
       expect(node1Edges![0].from).toBe('1')
@@ -117,16 +123,16 @@ describe('graphStore', () => {
       addNode(100, 100)
 
       let state = useGraphStore.getState()
-      addEdge(state.nodes[0], state.nodes[1])
+      addEdge(state.data.nodes[0], state.data.nodes[1])
 
       updateEdgeType(1, 2, 'undirected')
 
       state = useGraphStore.getState()
-      const edge = state.edges.get(1)![0]
+      const edge = state.data.edges.get(1)![0]
       expect(edge.type).toBe('undirected')
 
       // Should have reverse edge
-      const reverseEdges = state.edges.get(2)
+      const reverseEdges = state.data.edges.get(2)
       expect(reverseEdges).toHaveLength(1)
       expect(reverseEdges![0].from).toBe('2')
       expect(reverseEdges![0].to).toBe('1')
@@ -139,12 +145,12 @@ describe('graphStore', () => {
       addNode(100, 100)
 
       let state = useGraphStore.getState()
-      addEdge(state.nodes[0], state.nodes[1])
+      addEdge(state.data.nodes[0], state.data.nodes[1])
 
       deleteEdge(1, 2)
 
       state = useGraphStore.getState()
-      expect(state.edges.get(1)).toHaveLength(0)
+      expect(state.data.edges.get(1)).toHaveLength(0)
     })
   })
 
@@ -165,11 +171,11 @@ describe('graphStore', () => {
       addNode(0, 0)
       addNode(100, 100)
 
-      expect(useGraphStore.getState().nodes).toHaveLength(2)
+      expect(useGraphStore.getState().data.nodes).toHaveLength(2)
 
       undo()
 
-      expect(useGraphStore.getState().nodes).toHaveLength(1)
+      expect(useGraphStore.getState().data.nodes).toHaveLength(1)
     })
 
     it('redo restores undone action', () => {
@@ -179,10 +185,10 @@ describe('graphStore', () => {
       addNode(100, 100)
 
       undo()
-      expect(useGraphStore.getState().nodes).toHaveLength(1)
+      expect(useGraphStore.getState().data.nodes).toHaveLength(1)
 
       redo()
-      expect(useGraphStore.getState().nodes).toHaveLength(2)
+      expect(useGraphStore.getState().data.nodes).toHaveLength(2)
     })
 
     it('canRedo returns true after undo', () => {
@@ -204,8 +210,8 @@ describe('graphStore', () => {
       resetGraph()
 
       const state = useGraphStore.getState()
-      expect(state.nodes).toHaveLength(0)
-      expect(state.edges.size).toBe(0)
+      expect(state.data.nodes).toHaveLength(0)
+      expect(state.data.edges.size).toBe(0)
 
       // History is now in the history store
       const historyState = useGraphHistoryStore.getState()
@@ -299,7 +305,7 @@ describe('graphStore', () => {
       addNode(100, 100)
       addNode(200, 200)
       const state = useGraphStore.getState()
-      addEdge(state.nodes[0], state.nodes[1])
+      addEdge(state.data.nodes[0], state.data.nodes[1])
 
       setTraceEdge(1, 2, { isUsedInTraversal: true })
 
@@ -332,11 +338,11 @@ describe('graphStore', () => {
       addNode(100, 100)
       addNode(200, 200)
       const state = useGraphStore.getState()
-      addEdge(state.nodes[0], state.nodes[1])
+      addEdge(state.data.nodes[0], state.data.nodes[1])
 
       // Get original references
-      const originalNode = useGraphStore.getState().nodes[0]
-      const originalEdge = useGraphStore.getState().edges.get(1)?.[0]
+      const originalNode = useGraphStore.getState().data.nodes[0]
+      const originalEdge = useGraphStore.getState().data.edges.get(1)?.[0]
 
       // Set visualization flags
       setTraceNode(1, { isVisited: true })
@@ -344,8 +350,8 @@ describe('graphStore', () => {
 
       // Node and edge objects should be unchanged
       const newState = useGraphStore.getState()
-      expect(newState.nodes[0]).toBe(originalNode)
-      expect(newState.edges.get(1)?.[0]).toBe(originalEdge)
+      expect(newState.data.nodes[0]).toBe(originalNode)
+      expect(newState.data.edges.get(1)?.[0]).toBe(originalEdge)
 
       // Visualization flags are in trace maps
       expect(newState.visualization.trace.nodes.get(1)?.isVisited).toBe(true)

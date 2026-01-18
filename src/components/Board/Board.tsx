@@ -34,7 +34,7 @@ export const Board = () => {
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const visualizationState = useGraphStore((state) => state.visualization.state);
   const visualizationInput = useGraphStore((state) => state.visualization.input);
-  const hasNodes = useGraphStore((state) => state.nodes.length > 0);
+  const hasNodes = useGraphStore((state) => state.data.nodes.length > 0);
   const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
   const zoom = useGraphStore((state) => state.viewport.zoom);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);

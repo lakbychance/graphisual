@@ -1,5 +1,6 @@
 import { createHistoryStore, withAutoHistory, withBatchedAutoHistory } from "./historyStore";
 import { GraphSnapshot, INode, IEdge } from "../components/Graph/IGraph";
+import { GraphData } from "./graphStore";
 
 // ============================================================================
 // Graph History Store
@@ -32,20 +33,20 @@ export const createGraphSnapshot = (
 // Graph-Specific Auto-History Wrappers
 // ============================================================================
 
-type GraphState = { nodes: INode[]; edges: Map<number, IEdge[]>; nodeCounter: number };
+type GraphStoreState = { data: GraphData };
 
 /**
  * Graph-specific auto-history wrapper.
  * Captures a graph snapshot before each mutation for undo/redo support.
  */
 export function withGraphAutoHistory<TArgs extends unknown[], TReturn>(
-  getState: () => GraphState,
+  getState: () => GraphStoreState,
   mutation: (...args: TArgs) => TReturn
 ): (...args: TArgs) => TReturn {
   return withAutoHistory(
     useGraphHistoryStore,
     () => {
-      const { nodes, edges, nodeCounter } = getState();
+      const { nodes, edges, nodeCounter } = getState().data;
       return createGraphSnapshot(nodes, edges, nodeCounter);
     },
     mutation
@@ -57,14 +58,14 @@ export function withGraphAutoHistory<TArgs extends unknown[], TReturn>(
  * Captures a snapshot on first call, then debounces pushing to history.
  */
 export function withGraphBatchedAutoHistory<TArgs extends unknown[], TReturn>(
-  getState: () => GraphState,
+  getState: () => GraphStoreState,
   mutation: (...args: TArgs) => TReturn,
   debounceMs?: number
 ): (...args: TArgs) => TReturn {
   return withBatchedAutoHistory(
     useGraphHistoryStore,
     () => {
-      const { nodes, edges, nodeCounter } = getState();
+      const { nodes, edges, nodeCounter } = getState().data;
       return createGraphSnapshot(nodes, edges, nodeCounter);
     },
     mutation,

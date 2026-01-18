@@ -17,14 +17,14 @@ import { DragPreviewEdge } from "./DragPreviewEdge";
 
 export const Graph = () => {
   // Get state from store
-  const nodes = useGraphStore((state) => state.nodes);
-  const edges = useGraphStore((state) => state.edges);
+  const nodes = useGraphStore((state) => state.data.nodes);
+  const edges = useGraphStore((state) => state.data.edges);
   // Subscribe to node IDs only for rendering - prevents re-renders when node positions change
   const nodeIds = useGraphStore(
-    useShallow((state) => state.nodes.map((n) => n.id))
+    useShallow((state) => state.data.nodes.map((n) => n.id))
   );
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
-  const selectedEdgeForEdit = useGraphStore((state) => state.selectedEdgeForEdit);
+  const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
+  const selectedEdge = useGraphStore((state) => state.selection.edge);
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const visualizationInput = useGraphStore((state) => state.visualization.input);
   const visualizationState = useGraphStore((state) => state.visualization.state);
@@ -42,7 +42,7 @@ export const Graph = () => {
   const moveNode = useGraphStore((state) => state.moveNode);
   const addEdge = useGraphStore((state) => state.addEdge);
   const selectNode = useGraphStore((state) => state.selectNode);
-  const selectEdgeForEdit = useGraphStore((state) => state.selectEdgeForEdit);
+  const selectEdgeAction = useGraphStore((state) => state.selectEdge);
   const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
   const setVisualizationInput = useGraphStore((state) => state.setVisualizationInput);
   const setVisualizationState = useGraphStore((state) => state.setVisualizationState);
@@ -381,20 +381,20 @@ export const Graph = () => {
     }
 
     // Create node on empty canvas (not during visualization or algorithm selection)
-    if (!isNode && selectedNodeId === null && !selectedEdgeForEdit && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
+    if (!isNode && selectedNodeId === null && !selectedEdge && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, visualizationInput, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, runAlgorithm, setVisualizationInput, selectNode, addNode]);
+  }, [currentAlgorithm, isVisualizing, visualizationInput, selectedNodeId, selectedEdge, screenToSvgCoords, runAlgorithm, setVisualizationInput, selectNode, addNode]);
 
   // Handle edge click
   const handleEdge = useCallback((edge: IEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => {
     if (isVisualizing) return;
-    const { nodes } = useGraphStore.getState();
-    const fromNode = nodes.find(n => n.id === fromNodeId);
+    const { data } = useGraphStore.getState();
+    const fromNode = data.nodes.find(n => n.id === fromNodeId);
     if (!fromNode) return;
-    selectEdgeForEdit(edge, fromNode, clickPosition);
-  }, [isVisualizing, selectEdgeForEdit]);
+    selectEdgeAction(edge, fromNode, clickPosition);
+  }, [isVisualizing, selectEdgeAction]);
 
   // Close edge popup
   const closeEdgePopup = useCallback(() => {
@@ -405,31 +405,31 @@ export const Graph = () => {
 
   // Update edge type
   const updateEdgeType = useCallback((newType: "directed" | "undirected") => {
-    if (!selectedEdgeForEdit) return;
-    const { edge, sourceNode } = selectedEdgeForEdit;
+    if (!selectedEdge) return;
+    const { edge, sourceNode } = selectedEdge;
     updateEdgeTypeAction(sourceNode.id, parseInt(edge.to), newType);
-  }, [selectedEdgeForEdit, updateEdgeTypeAction]);
+  }, [selectedEdge, updateEdgeTypeAction]);
 
   // Update edge weight
   const updateEdgeWeight = useCallback((newWeight: number) => {
-    if (!selectedEdgeForEdit) return;
-    const { edge, sourceNode } = selectedEdgeForEdit;
+    if (!selectedEdge) return;
+    const { edge, sourceNode } = selectedEdge;
     updateEdgeWeightAction(sourceNode.id, parseInt(edge.to), newWeight);
-  }, [selectedEdgeForEdit, updateEdgeWeightAction]);
+  }, [selectedEdge, updateEdgeWeightAction]);
 
   // Reverse edge
   const reverseEdge = useCallback(() => {
-    if (!selectedEdgeForEdit) return;
-    const { edge, sourceNode } = selectedEdgeForEdit;
+    if (!selectedEdge) return;
+    const { edge, sourceNode } = selectedEdge;
     reverseEdgeAction(sourceNode.id, parseInt(edge.to));
-  }, [selectedEdgeForEdit, reverseEdgeAction]);
+  }, [selectedEdge, reverseEdgeAction]);
 
   // Delete edge
   const deleteEdge = useCallback(() => {
-    if (!selectedEdgeForEdit) return;
-    const { edge, sourceNode } = selectedEdgeForEdit;
+    if (!selectedEdge) return;
+    const { edge, sourceNode } = selectedEdge;
     deleteEdgeAction(sourceNode.id, parseInt(edge.to));
-  }, [selectedEdgeForEdit, deleteEdgeAction]);
+  }, [selectedEdge, deleteEdgeAction]);
 
   // Handle node movement - history is now managed by batchedAutoHistory in the store
   const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
@@ -457,7 +457,8 @@ export const Graph = () => {
         document.removeEventListener("pointerup", handlePointerUp);
 
         // Get current state at call-time
-        const { nodes, edges } = useGraphStore.getState();
+        const { data } = useGraphStore.getState();
+        const { nodes, edges } = data;
         const sourceNode = nodes.find(n => n.id === sourceNodeId);
         if (!sourceNode) { setMockEdge(null); return; }
 
@@ -533,8 +534,8 @@ export const Graph = () => {
       </svg>
 
       {/* Edge popup - rendered outside SVG using Popover */}
-      {selectedEdgeForEdit && (() => {
-        const { edge, clickPosition } = selectedEdgeForEdit;
+      {selectedEdge && (() => {
+        const { edge, clickPosition } = selectedEdge;
         return (
           <EdgePopup
             edge={edge}
