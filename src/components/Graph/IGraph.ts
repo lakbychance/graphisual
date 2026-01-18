@@ -10,20 +10,34 @@ export interface SelectedOption {
 }
 
 /**
- * Node in the graph.
+ * Visualization flags for a node (stored separately from node data).
+ */
+export interface NodeVisualizationFlags {
+  isVisited?: boolean;
+  isInShortestPath?: boolean;
+}
+
+/**
+ * Visualization flags for an edge (stored separately from edge data).
+ * Key format: "fromId-toId"
+ */
+export interface EdgeVisualizationFlags {
+  isUsedInTraversal?: boolean;
+  isUsedInShortestPath?: boolean;
+}
+
+/**
+ * Node in the graph (core structural/positional data only).
  */
 export interface INode {
   x: number;
   y: number;
   r: number;
   id: number;
-  isInShortestPath?: boolean;
-  isVisited?: boolean;
-  [key: string]: unknown;
 }
 
 /**
- * Edge in the graph.
+ * Edge in the graph (core structural data only).
  */
 export interface IEdge {
   x1: number;
@@ -36,9 +50,6 @@ export interface IEdge {
   to: string;
   weight: number;
   type: string;
-  isUsedInTraversal?: boolean;
-  isUsedInShortestPath?: boolean;
-  [key: string]: unknown;
 }
 
 /**

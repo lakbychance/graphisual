@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, MutableRefObject } from "react";
-import { useGraphStore } from "../store/graphStore";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
 import { isModKey } from "../utility/keyboard";
 import { ZOOM } from "../utility/constants";
 
@@ -37,16 +37,16 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const canUndo = useGraphStore((state) => state.canUndo());
   const canRedo = useGraphStore((state) => state.canRedo());
-  const visualizationState = useGraphStore((state) => state.visualizationState);
-  const stepMode = useGraphStore((state) => state.stepMode);
-  const stepIndex = useGraphStore((state) => state.stepIndex);
-  const stepHistory = useGraphStore((state) => state.stepHistory);
-  const isStepComplete = useGraphStore((state) => state.isStepComplete);
-  const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
+  const visualizationState = useGraphStore((state) => state.visualization.state);
+  const visualizationMode = useGraphStore((state) => state.visualization.mode);
+  const stepIndex = useGraphStore(selectStepIndex);
+  const stepHistory = useGraphStore(selectStepHistory);
+  const isStepComplete = useGraphStore(selectIsStepComplete);
+  const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
 
   // Derived state
   const isVisualizing = visualizationState === "running";
-  const isInStepMode = stepMode === "manual" && isVisualizing && stepHistory.length > 0;
+  const isInStepMode = visualizationMode === "manual" && isVisualizing && stepHistory.length > 0;
 
   // Store actions
   const undo = useGraphStore((state) => state.undo);
@@ -140,7 +140,11 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       ps.setIsPlaying(true);
       ps.playIntervalRef.current = window.setInterval(() => {
         const state = useGraphStore.getState();
-        if (state.isStepComplete || state.stepIndex >= state.stepHistory.length - 1) {
+        const vis = state.visualization;
+        const stepComplete = vis.mode === 'manual' ? vis.step.isComplete : false;
+        const stepIdx = vis.mode === 'manual' ? vis.step.index : -1;
+        const stepHist = vis.mode === 'manual' ? vis.step.history : [];
+        if (stepComplete || stepIdx >= stepHist.length - 1) {
           if (ps.playIntervalRef.current !== null) {
             clearInterval(ps.playIntervalRef.current);
             ps.playIntervalRef.current = null;
@@ -163,9 +167,9 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       ps.setIsPlaying(false);
     }
     resetStepThrough();
-    const { resetAlgorithmState, resetVisualizationFlags } = useGraphStore.getState();
-    resetAlgorithmState();
-    resetVisualizationFlags();
+    const { resetVisualization, clearVisualization } = useGraphStore.getState();
+    resetVisualization();
+    clearVisualization();
   }, [resetStepThrough]);
 
   // Define all actions with their shortcuts

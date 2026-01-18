@@ -2,6 +2,7 @@ import { memo } from "react";
 import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
 import { IEdge } from "../IGraph";
 import { cn } from "@/lib/utils";
+import { useGraphStore } from "../../../store/graphStore";
 
 export interface EdgeProps {
   edge: IEdge;
@@ -16,20 +17,25 @@ export const Edge = memo(function Edge({
   isVisualizing,
   onEdgeClick,
 }: EdgeProps) {
+  // Subscribe to THIS edge's visualization flags only
+  const visFlags = useGraphStore((state) =>
+    state.visualization.trace.edges.get(`${sourceNodeId}-${edge.to}`)
+  );
+
   const directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
   const undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
   const textCoordDirected = calculateTextLoc(edge.x1, edge.y1, edge.x2, edge.y2);
   const edgeKey = `${sourceNodeId}-${edge.to}`;
 
   const getEdgeColor = () => {
-    if (edge.isUsedInShortestPath) return "var(--color-edge-path)";
-    if (edge.isUsedInTraversal) return "var(--color-edge-traversal)";
+    if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
+    if (visFlags?.isUsedInTraversal) return "var(--color-edge-traversal)";
     return "var(--color-edge-default)";
   };
 
   const getEdgeArrowColor = () => {
-    if (edge.isUsedInShortestPath) return "var(--color-edge-path)";
-    if (edge.isUsedInTraversal) return "var(--color-edge-traversal)";
+    if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
+    if (visFlags?.isUsedInTraversal) return "var(--color-edge-traversal)";
     return "var(--color-node-stroke)";
   };
 
@@ -55,8 +61,8 @@ export const Edge = memo(function Edge({
   };
 
   const getStrokeWidth = () => {
-    if (edge.isUsedInShortestPath) return 3.5;
-    if (edge.isUsedInTraversal) return 3;
+    if (visFlags?.isUsedInShortestPath) return 3.5;
+    if (visFlags?.isUsedInTraversal) return 3;
     return edge.type === "directed" ? 2 : 2.5;
   };
 

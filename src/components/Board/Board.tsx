@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { useGraphStore } from "../../store/graphStore";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { MOD_KEY } from "../../utility/keyboard";
@@ -31,16 +31,16 @@ import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
 
 export const Board = () => {
   // Get state from store
-  const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
-  const visualizationState = useGraphStore((state) => state.visualizationState);
-  const algorithmSelection = useGraphStore((state) => state.algorithmSelection);
+  const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
+  const visualizationState = useGraphStore((state) => state.visualization.state);
+  const visualizationInput = useGraphStore((state) => state.visualization.input);
   const hasNodes = useGraphStore((state) => state.nodes.length > 0);
-  const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
+  const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
   const zoom = useGraphStore((state) => state.zoom);
-  const stepMode = useGraphStore((state) => state.stepMode);
-  const stepIndex = useGraphStore((state) => state.stepIndex);
-  const stepHistory = useGraphStore((state) => state.stepHistory);
-  const isStepComplete = useGraphStore((state) => state.isStepComplete);
+  const visualizationMode = useGraphStore((state) => state.visualization.mode);
+  const stepIndex = useGraphStore(selectStepIndex);
+  const stepHistory = useGraphStore(selectStepHistory);
+  const isStepComplete = useGraphStore(selectIsStepComplete);
 
   // Derive boolean for simpler component logic
   const isVisualizing = visualizationState === 'running';
@@ -50,10 +50,10 @@ export const Board = () => {
   const setTheme = useSettingsStore((state) => state.setTheme);
 
   // Actions from store
-  const setAlgorithm = useGraphStore((state) => state.setAlgorithm);
+  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
   const setVisualizationSpeed = useGraphStore((state) => state.setVisualizationSpeed);
   const resetGraph = useGraphStore((state) => state.resetGraph);
-  const setStepMode = useGraphStore((state) => state.setStepMode);
+  const setVisualizationMode = useGraphStore((state) => state.setVisualizationMode);
 
   // Auto-play state for step mode
   const [isPlaying, setIsPlaying] = useState(false);
@@ -84,14 +84,14 @@ export const Board = () => {
 
   // Stop auto-play when step mode visualization ends
   useEffect(() => {
-    if (!isVisualizing || stepMode !== 'manual') {
+    if (!isVisualizing || visualizationMode !== 'manual') {
       if (playIntervalRef.current !== null) {
         clearInterval(playIntervalRef.current);
         playIntervalRef.current = null;
       }
       setIsPlaying(false);
     }
-  }, [isVisualizing, stepMode]);
+  }, [isVisualizing, visualizationMode]);
 
   // Stop auto-play when we reach the end
   useEffect(() => {
@@ -114,7 +114,7 @@ export const Board = () => {
       data: algo.metadata.type,
     };
 
-    setAlgorithm(selectedOption);
+    setVisualizationAlgorithm(selectedOption);
   };
 
   const handleReset = () => {
@@ -240,12 +240,12 @@ export const Board = () => {
           {/* Mode toggle - hidden during step visualization */}
           <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
             <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
-            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
                 <RadixToggleGroup
                   type="single"
-                  value={stepMode}
-                  onValueChange={(value) => value && setStepMode(value as 'auto' | 'manual')}
+                  value={visualizationMode}
+                  onValueChange={(value) => value && setVisualizationMode(value as 'auto' | 'manual')}
                   variant="pressed"
                   disabled={isVisualizing}
                 >
@@ -283,17 +283,17 @@ export const Board = () => {
 
             {/* Algorithm picker - hidden on mobile during step mode */}
             <div className={cn(
-              stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && "hidden md:block"
+              visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0 && "hidden md:block"
             )}>
               <AlgorithmPicker
-                selectedAlgo={selectedAlgo}
+                selectedAlgo={visualizationAlgorithm}
                 onSelect={handleAlgoChange}
                 disabled={isVisualizing || !hasNodes}
               />
             </div>
 
             {/* Graph Generator - hidden during step mode visualization */}
-            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
                 <GraphGenerator disabled={isVisualizing} />
@@ -301,7 +301,7 @@ export const Board = () => {
             )}
 
             {/* Step controls - shown when in manual step mode during visualization */}
-            {stepMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
+            {visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
               <>
                 {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
                 <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
@@ -415,7 +415,7 @@ export const Board = () => {
             )}
 
             {/* Speed control - Desktop only (hidden during step mode) */}
-            <div className={cn("hidden md:flex items-center", stepMode === 'manual' && isVisualizing && "!hidden")}>
+            <div className={cn("hidden md:flex items-center", visualizationMode === 'manual' && isVisualizing && "!hidden")}>
               {/* Divider */}
               <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
@@ -463,7 +463,7 @@ export const Board = () => {
             </div>
 
             {/* Normal toolbar controls - hidden during step mode visualization */}
-            {!(stepMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
               <>
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
@@ -490,7 +490,7 @@ export const Board = () => {
         </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
-        {selectedAlgo?.key && selectedAlgo.key !== "select" && !isVisualizing && (
+        {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && (
           <motion.div
             initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -507,9 +507,9 @@ export const Board = () => {
             <div className="relative px-4 py-2.5 rounded-md text-[13px] font-['Outfit'] text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
               <span className="relative z-10">
                 {/* Show different hint for pathfinding after first node is selected */}
-                {algorithmSelection && algorithmSelection.startNodeId !== -1 && algorithmSelection.endNodeId === -1
+                {visualizationInput && visualizationInput.startNodeId !== -1 && visualizationInput.endNodeId === -1
                   ? "Now select the destination node"
-                  : algorithmRegistry.get(selectedAlgo.key)?.metadata.description}
+                  : algorithmRegistry.get(visualizationAlgorithm.key)?.metadata.description}
               </span>
             </div>
           </motion.div>

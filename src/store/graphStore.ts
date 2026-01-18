@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { INode, IEdge, GraphSnapshot, SelectedOption } from "../components/Graph/IGraph";
+import { INode, IEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/IGraph";
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
 
@@ -17,13 +17,50 @@ import { NODE, TIMING } from "../utility/constants";
 // Types
 // ============================================================================
 
-type VisualizationState = 'idle' | 'running' | 'done';
+// Visualization trace - which nodes/edges are highlighted
+interface VisualizationTrace {
+  nodes: Map<number, NodeVisualizationFlags>;
+  edges: Map<string, EdgeVisualizationFlags>; // key: "fromId-toId"
+}
+
+// Step-through state (only exists in manual mode)
+interface StepState {
+  index: number;
+  history: Array<{ type: 'visit' | 'result'; edge: { from: number; to: number } }>;
+  isComplete: boolean;
+}
+
+// Base visualization properties (shared by both modes)
+interface VisualizationBase {
+  algorithm: SelectedOption | undefined;
+  trace: VisualizationTrace;
+  state: 'idle' | 'running' | 'done';
+  input: { startNodeId: number; endNodeId: number } | null;
+  speed: number;
+}
+
+// Auto mode - step state doesn't exist
+interface AutoVisualization extends VisualizationBase {
+  mode: 'auto';
+}
+
+// Manual mode - step state required
+interface ManualVisualization extends VisualizationBase {
+  mode: 'manual';
+  step: StepState;
+}
+
+// Discriminated union
+type Visualization = AutoVisualization | ManualVisualization;
 
 interface GraphState {
   // === Graph Data ===
   nodes: INode[];
   edges: Map<number, IEdge[]>;
   nodeCounter: number;
+
+  // === Unified Visualization State ===
+  visualization: Visualization;
 
   // === History ===
   past: GraphSnapshot[];
@@ -33,21 +70,9 @@ interface GraphState {
   selectedNodeId: number | null;
   selectedEdgeForEdit: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
 
-  // === Algorithm State ===
-  selectedAlgo: SelectedOption | undefined;
-  algorithmSelection: { startNodeId: number; endNodeId: number } | null;
-  visualizationState: VisualizationState;
-  visualizationSpeed: number;
-
   // === UI State ===
   zoom: number;
   pan: { x: number; y: number };
-
-  // === Step-Through Mode ===
-  stepMode: 'auto' | 'manual';
-  stepIndex: number;
-  stepHistory: Array<{ type: 'visit' | 'result'; edge: { from: number; to: number } }>;
-  isStepComplete: boolean;
 }
 
 interface GraphActions {
@@ -74,24 +99,24 @@ interface GraphActions {
   selectEdgeForEdit: (edge: IEdge, sourceNode: INode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
 
-  // === Algorithm Actions ===
-  setAlgorithm: (algo: SelectedOption | undefined) => void;
-  setAlgorithmSelection: (selection: { startNodeId: number; endNodeId: number } | null) => void;
-  setVisualizationState: (state: VisualizationState) => void;
+  // === Visualization Actions ===
+  setVisualizationAlgorithm: (algo: SelectedOption | undefined) => void;
+  setVisualizationInput: (input: { startNodeId: number; endNodeId: number } | null) => void;
+  setVisualizationState: (state: 'idle' | 'running' | 'done') => void;
   setVisualizationSpeed: (speed: number) => void;
-  resetAlgorithmState: () => void;
+  setVisualizationMode: (mode: 'auto' | 'manual') => void;
+  resetVisualization: () => void;
 
-  // === Visualization State (no history) ===
-  updateVisualizationState: (nodes: INode[], edges: Map<number, IEdge[]>) => void;
-  resetVisualizationFlags: () => void;
-  clearVisualizationState: () => void;  // Clear visualization without creating new references
+  // === Trace Actions (node/edge visualization) ===
+  setTraceNode: (nodeId: number, flags: NodeVisualizationFlags) => void;
+  setTraceEdge: (fromId: number, toId: number, flags: EdgeVisualizationFlags) => void;
+  clearVisualization: () => void;
 
   // === UI Actions ===
   setZoom: (zoom: number) => void;
   setPan: (x: number, y: number) => void;
 
   // === Step-Through Actions ===
-  setStepMode: (mode: 'auto' | 'manual') => void;
   initStepThrough: (steps: Array<{ type: 'visit' | 'result'; edge: { from: number; to: number } }>) => void;
   stepForward: () => void;
   stepBackward: () => void;
@@ -102,7 +127,6 @@ interface GraphActions {
   canUndo: () => boolean;
   canRedo: () => boolean;
   createSnapshot: () => GraphSnapshot;
-  getCleanedState: () => { cleanedNodes: INode[]; cleanedEdges: Map<number, IEdge[]> };
 }
 
 type GraphStore = GraphState & GraphActions;
@@ -135,11 +159,26 @@ const areSnapshotsEqual = (a: GraphSnapshot, b: GraphSnapshot): boolean => {
 // Initial State
 // ============================================================================
 
+const initialVisualization: AutoVisualization = {
+  algorithm: { key: 'select', text: 'Select Algorithm' },
+  trace: {
+    nodes: new Map(),
+    edges: new Map(),
+  },
+  state: 'idle',
+  input: null,
+  speed: TIMING.DEFAULT_VISUALIZATION_SPEED,
+  mode: 'auto',
+};
+
 const initialState: GraphState = {
   // Graph data
   nodes: [],
   edges: new Map(),
   nodeCounter: 0,
+
+  // Unified visualization state
+  visualization: initialVisualization,
 
   // History
   past: [],
@@ -149,21 +188,9 @@ const initialState: GraphState = {
   selectedNodeId: null,
   selectedEdgeForEdit: null,
 
-  // Algorithm
-  selectedAlgo: { key: "select", text: "Select Algorithm" },
-  algorithmSelection: null,
-  visualizationState: 'idle',
-  visualizationSpeed: TIMING.DEFAULT_VISUALIZATION_SPEED,
-
   // UI
   zoom: 1,
   pan: { x: 0, y: 0 },
-
-  // Step-through mode
-  stepMode: 'auto',
-  stepIndex: -1,
-  stepHistory: [],
-  isStepComplete: false,
 };
 
 // ============================================================================
@@ -187,35 +214,13 @@ export const useGraphStore = create<GraphStore>()(
         return createSnapshot(nodes, edges, nodeCounter);
       },
 
-      getCleanedState: () => {
-        const { nodes, edges } = get();
-
-        const cleanedNodes = nodes.map((node) => ({
-          ...node,
-          isInShortestPath: false,
-          isVisited: false,
-        }));
-
-        const cleanedEdges = new Map<number, IEdge[]>();
-        edges.forEach((list, nodeId) => {
-          const newList = (list || []).map((edge) => ({
-            ...edge,
-            isUsedInTraversal: false,
-            isUsedInShortestPath: false,
-          }));
-          cleanedEdges.set(nodeId, newList);
-        });
-
-        return { cleanedNodes, cleanedEdges };
-      },
-
       // ========================================
       // Graph Mutations
       // ========================================
 
       addNode: (x, y) => {
-        get().clearVisualizationState();
-        const { nodes, edges, nodeCounter, past } = get();
+        get().clearVisualization();
+        const { nodes, edges, nodeCounter, past, visualization } = get();
         const newNodeId = nodeCounter + 1;
         const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
@@ -232,12 +237,11 @@ export const useGraphStore = create<GraphStore>()(
           nodeCounter: newNodeId,
           past: [...past, currentSnapshot],
           future: [],
-          algorithmSelection: null,
+          visualization: { ...visualization, input: null },
         });
       },
 
       moveNode: (nodeId, x, y) => {
-        get().clearVisualizationState();
         const { nodes, edges } = get();
 
         // Only create new object for the moved node, keep same references for others
@@ -283,7 +287,7 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       deleteNode: (nodeId) => {
-        get().clearVisualizationState();
+        get().clearVisualization();
         const { nodes, edges, nodeCounter, past } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
@@ -312,8 +316,8 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       addEdge: (fromNode, toNode) => {
-        get().clearVisualizationState();
-        const { nodes, edges, nodeCounter, past } = get();
+        get().clearVisualization();
+        const { nodes, edges, nodeCounter, past, visualization } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
         const { tempX, tempY } = calculateAccurateCoords(
@@ -346,12 +350,13 @@ export const useGraphStore = create<GraphStore>()(
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
-          algorithmSelection: null,
+          visualization: { ...visualization, input: null },
         });
       },
 
       setGraph: (nodes, edges, nodeCounter) => {
-        const { nodes: currentNodes, edges: currentEdges, nodeCounter: currentCounter } = get();
+        get().clearVisualization();
+        const { nodes: currentNodes, edges: currentEdges, nodeCounter: currentCounter, visualization } = get();
         const currentSnapshot = createSnapshot(currentNodes, currentEdges, currentCounter);
 
         set({
@@ -362,12 +367,12 @@ export const useGraphStore = create<GraphStore>()(
           future: [],
           selectedNodeId: null,
           selectedEdgeForEdit: null,
-          algorithmSelection: null,
+          visualization: { ...visualization, input: null },
         });
       },
 
       updateEdgeType: (fromNodeId, toNodeId, newType) => {
-        get().clearVisualizationState();
+        get().clearVisualization();
         const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
@@ -443,7 +448,7 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       updateEdgeWeight: (fromNodeId, toNodeId, newWeight) => {
-        get().clearVisualizationState();
+        get().clearVisualization();
         const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
@@ -485,7 +490,7 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       reverseEdge: (fromNodeId, toNodeId) => {
-        get().clearVisualizationState();
+        get().clearVisualization();
         const { nodes, edges, nodeCounter, past } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
@@ -537,7 +542,7 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       deleteEdge: (fromNodeId, toNodeId) => {
-        get().clearVisualizationState();
+        get().clearVisualization();
         const { nodes, edges, nodeCounter, past } = get();
         const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
 
@@ -573,6 +578,7 @@ export const useGraphStore = create<GraphStore>()(
       // ========================================
 
       undo: () => {
+        get().clearVisualization();
         const { past, nodes, edges, nodeCounter, future } = get();
         if (past.length === 0) return;
 
@@ -590,6 +596,7 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       redo: () => {
+        get().clearVisualization();
         const { past, nodes, edges, nodeCounter, future } = get();
         if (future.length === 0) return;
 
@@ -607,9 +614,10 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       resetGraph: () => {
+        const { visualization } = get();
         set({
           ...initialState,
-          visualizationSpeed: get().visualizationSpeed, // Preserve speed setting
+          visualization: { ...initialVisualization, speed: visualization.speed }, // Preserve speed setting
         });
       },
 
@@ -646,122 +654,132 @@ export const useGraphStore = create<GraphStore>()(
       },
 
       // ========================================
-      // Algorithm Actions
+      // Visualization Actions
       // ========================================
 
-      setAlgorithm: (algo) => {
-        const { visualizationState } = get();
+      setVisualizationAlgorithm: (algo) => {
+        const { visualization } = get();
 
-        // Reset visualization flags if previous visualization was completed
-        if (visualizationState === 'done' && algo?.key && algo.key !== "select") {
-          const { cleanedNodes, cleanedEdges } = get().getCleanedState();
+        // Clear visualization if previous visualization was completed
+        if (visualization.state === 'done' && algo?.key && algo.key !== "select") {
           set({
-            selectedAlgo: algo,
-            algorithmSelection: null,
-            nodes: cleanedNodes,
-            edges: cleanedEdges,
-            visualizationState: 'idle',
+            visualization: {
+              ...visualization,
+              algorithm: algo,
+              input: null,
+              trace: { nodes: new Map(), edges: new Map() },
+              state: 'idle',
+            },
           });
         } else {
           set({
-            selectedAlgo: algo,
-            algorithmSelection: null,
+            visualization: {
+              ...visualization,
+              algorithm: algo,
+              input: null,
+            },
           });
         }
       },
 
-      setAlgorithmSelection: (selection) => {
-        set({ algorithmSelection: selection });
+      setVisualizationInput: (input) => {
+        const { visualization } = get();
+        set({
+          visualization: { ...visualization, input },
+        });
       },
 
       setVisualizationState: (state) => {
-        set({ visualizationState: state });
+        const { visualization } = get();
+        set({
+          visualization: { ...visualization, state },
+        });
       },
 
       setVisualizationSpeed: (speed) => {
-        set({ visualizationSpeed: speed });
-      },
-
-      resetAlgorithmState: () => {
+        const { visualization } = get();
         set({
-          selectedAlgo: { key: "select", text: "Select Algorithm" },
-          algorithmSelection: null,
+          visualization: { ...visualization, speed },
         });
       },
 
-      // ========================================
-      // Visualization State (no history)
-      // ========================================
-
-      updateVisualizationState: (nodes, edges) => {
-        set({ nodes, edges });
-      },
-
-      resetVisualizationFlags: () => {
-        const { nodes, edges } = get();
-
-        const cleanedNodes = nodes.map((node) => ({
-          ...node,
-          isInShortestPath: false,
-          isVisited: false,
-        }));
-
-        const cleanedEdges = new Map<number, IEdge[]>();
-        edges.forEach((list, nodeId) => {
-          const newList = (list || []).map((edge) => ({
-            ...edge,
-            isUsedInTraversal: false,
-            isUsedInShortestPath: false,
-          }));
-          cleanedEdges.set(nodeId, newList);
-        });
-
-        set({
-          nodes: cleanedNodes,
-          edges: cleanedEdges,
-          algorithmSelection: null,
-        });
-      },
-
-      clearVisualizationState: () => {
-        const { nodes, edges, visualizationState } = get();
-
-        // Only clear if there's visualization state to clear
-        if (visualizationState === 'idle') {
-          // Check if any node/edge has visualization flags set
-          const hasVisualizationState = nodes.some(n => n.isVisited || n.isInShortestPath) ||
-            Array.from(edges.values()).some(list =>
-              list?.some(e => e.isUsedInTraversal || e.isUsedInShortestPath)
-            );
-          if (!hasVisualizationState) return;
+      setVisualizationMode: (mode) => {
+        const { visualization } = get();
+        if (mode === 'manual') {
+          set({
+            visualization: {
+              ...visualization,
+              mode: 'manual',
+              step: { index: -1, history: [], isComplete: false },
+            } as ManualVisualization,
+          });
+        } else {
+          // When switching to auto, remove step state
+          const { algorithm, trace, state, input, speed } = visualization;
+          set({
+            visualization: {
+              algorithm,
+              trace,
+              state,
+              input,
+              speed,
+              mode: 'auto',
+            } as AutoVisualization,
+          });
         }
+      },
 
-        // Create new objects with cleared flags (required for React shallow comparison to detect changes)
-        const cleanedNodes = nodes.map(node => ({
-          ...node,
-          isVisited: false,
-          isInShortestPath: false,
-        }));
-
-        const cleanedEdges = new Map<number, IEdge[]>();
-        edges.forEach((list, nodeId) => {
-          if (!list) {
-            cleanedEdges.set(nodeId, []);
-            return;
-          }
-          const newList = list.map(edge => ({
-            ...edge,
-            isUsedInTraversal: false,
-            isUsedInShortestPath: false,
-          }));
-          cleanedEdges.set(nodeId, newList);
-        });
-
+      resetVisualization: () => {
+        const { visualization } = get();
         set({
-          nodes: cleanedNodes,
-          edges: cleanedEdges,
-          visualizationState: 'idle',
-          algorithmSelection: null,
+          visualization: {
+            ...visualization,
+            algorithm: { key: 'select', text: 'Select Algorithm' },
+            input: null,
+          },
+        });
+      },
+
+      // ========================================
+      // Trace Actions (node/edge visualization)
+      // ========================================
+
+      setTraceNode: (nodeId, flags) => {
+        const { visualization } = get();
+        const newNodes = new Map(visualization.trace.nodes);
+        const existing = newNodes.get(nodeId) || {};
+        newNodes.set(nodeId, { ...existing, ...flags });
+        set({
+          visualization: {
+            ...visualization,
+            trace: { ...visualization.trace, nodes: newNodes },
+          },
+        });
+      },
+
+      setTraceEdge: (fromId, toId, flags) => {
+        const { visualization } = get();
+        const key = `${fromId}-${toId}`;
+        const newEdges = new Map(visualization.trace.edges);
+        const existing = newEdges.get(key) || {};
+        newEdges.set(key, { ...existing, ...flags });
+        set({
+          visualization: {
+            ...visualization,
+            trace: { ...visualization.trace, edges: newEdges },
+          },
+        });
+      },
+
+      clearVisualization: () => {
+        const { visualization } = get();
+        set({
+          visualization: {
+            ...visualization,
+            trace: { nodes: new Map(), edges: new Map() },
+            state: 'idle',
+            input: null,
+          },
         });
       },
 
@@ -781,55 +799,88 @@ export const useGraphStore = create<GraphStore>()(
       // Step-Through Actions
       // ========================================
 
-      setStepMode: (mode) => {
-        set({ stepMode: mode });
-      },
-
       initStepThrough: (steps) => {
+        const { visualization } = get();
         set({
-          stepHistory: steps,
-          stepIndex: -1,
-          isStepComplete: false,
-          visualizationState: 'running',
+          visualization: {
+            ...visualization,
+            mode: 'manual',
+            state: 'running',
+            step: { index: -1, history: steps, isComplete: false },
+          } as ManualVisualization,
         });
       },
 
       stepForward: () => {
-        const { stepIndex, stepHistory } = get();
-        const nextIndex = stepIndex + 1;
-        if (nextIndex < stepHistory.length) {
+        const { visualization } = get();
+        if (visualization.mode !== 'manual') return;
+
+        const { step } = visualization;
+        const nextIndex = step.index + 1;
+        if (nextIndex < step.history.length) {
           set({
-            stepIndex: nextIndex,
-            isStepComplete: nextIndex === stepHistory.length - 1,
+            visualization: {
+              ...visualization,
+              step: {
+                ...step,
+                index: nextIndex,
+                isComplete: nextIndex === step.history.length - 1,
+              },
+            } as ManualVisualization,
           });
         }
       },
 
       stepBackward: () => {
-        const { stepIndex } = get();
-        if (stepIndex > 0) {
+        const { visualization } = get();
+        if (visualization.mode !== 'manual') return;
+
+        const { step } = visualization;
+        if (step.index > 0) {
           set({
-            stepIndex: stepIndex - 1,
-            isStepComplete: false,
+            visualization: {
+              ...visualization,
+              step: {
+                ...step,
+                index: step.index - 1,
+                isComplete: false,
+              },
+            } as ManualVisualization,
           });
         }
       },
 
       jumpToStep: (index) => {
-        const { stepHistory } = get();
-        const clampedIndex = Math.max(-1, Math.min(index, stepHistory.length - 1));
+        const { visualization } = get();
+        if (visualization.mode !== 'manual') return;
+
+        const { step } = visualization;
+        const clampedIndex = Math.max(-1, Math.min(index, step.history.length - 1));
         set({
-          stepIndex: clampedIndex,
-          isStepComplete: clampedIndex === stepHistory.length - 1,
+          visualization: {
+            ...visualization,
+            step: {
+              ...step,
+              index: clampedIndex,
+              isComplete: clampedIndex === step.history.length - 1,
+            },
+          } as ManualVisualization,
         });
       },
 
       resetStepThrough: () => {
+        const { visualization } = get();
+        // Switch back to auto mode and clear
+        const { algorithm, input, speed } = visualization;
         set({
-          stepHistory: [],
-          stepIndex: -1,
-          isStepComplete: false,
-          visualizationState: 'idle',
+          visualization: {
+            algorithm,
+            trace: { nodes: new Map(), edges: new Map() },
+            state: 'idle',
+            input,
+            speed,
+            mode: 'auto',
+          } as AutoVisualization,
         });
       },
     }),
@@ -845,16 +896,31 @@ export const selectNodes = (state: GraphStore) => state.nodes;
 export const selectEdges = (state: GraphStore) => state.edges;
 export const selectSelectedNodeId = (state: GraphStore) => state.selectedNodeId;
 export const selectSelectedEdgeForEdit = (state: GraphStore) => state.selectedEdgeForEdit;
-export const selectSelectedAlgo = (state: GraphStore) => state.selectedAlgo;
-export const selectVisualizationState = (state: GraphStore) => state.visualizationState;
-// Derived selectors for convenience
-export const selectIsVisualizing = (state: GraphStore) => state.visualizationState === 'running';
-export const selectIsVisualizationDone = (state: GraphStore) => state.visualizationState === 'done';
-export const selectVisualizationSpeed = (state: GraphStore) => state.visualizationSpeed;
 export const selectZoom = (state: GraphStore) => state.zoom;
 export const selectPan = (state: GraphStore) => state.pan;
-export const selectAlgorithmSelection = (state: GraphStore) => state.algorithmSelection;
-export const selectStepMode = (state: GraphStore) => state.stepMode;
-export const selectStepIndex = (state: GraphStore) => state.stepIndex;
-export const selectStepHistory = (state: GraphStore) => state.stepHistory;
-export const selectIsStepComplete = (state: GraphStore) => state.isStepComplete;
+
+// Visualization selectors
+export const selectVisualization = (state: GraphStore) => state.visualization;
+export const selectVisualizationAlgorithm = (state: GraphStore) => state.visualization.algorithm;
+export const selectVisualizationInput = (state: GraphStore) => state.visualization.input;
+export const selectVisualizationState = (state: GraphStore) => state.visualization.state;
+export const selectVisualizationSpeed = (state: GraphStore) => state.visualization.speed;
+export const selectVisualizationMode = (state: GraphStore) => state.visualization.mode;
+export const selectVisualizationTrace = (state: GraphStore) => state.visualization.trace;
+export const selectTraceNodes = (state: GraphStore) => state.visualization.trace.nodes;
+export const selectTraceEdges = (state: GraphStore) => state.visualization.trace.edges;
+
+// Derived visualization selectors
+export const selectIsVisualizing = (state: GraphStore) => state.visualization.state === 'running';
+export const selectIsVisualizationDone = (state: GraphStore) => state.visualization.state === 'done';
+
+// Stable empty array for selectors (prevents infinite re-renders)
+const EMPTY_STEP_HISTORY: Array<{ type: 'visit' | 'result'; edge: { from: number; to: number } }> = [];
+
+// Step-through selectors (only available in manual mode)
+export const selectStepIndex = (state: GraphStore) =>
+  state.visualization.mode === 'manual' ? state.visualization.step.index : -1;
+export const selectStepHistory = (state: GraphStore) =>
+  state.visualization.mode === 'manual' ? state.visualization.step.history : EMPTY_STEP_HISTORY;
+export const selectIsStepComplete = (state: GraphStore) =>
+  state.visualization.mode === 'manual' ? state.visualization.step.isComplete : false;

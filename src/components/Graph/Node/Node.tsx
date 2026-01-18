@@ -27,7 +27,10 @@ export const Node = memo(function Node(props: NodeProps) {
     state.nodes.find((n) => n.id === nodeId)
   ));
 
-  const algorithmSelection = useGraphStore((state) => state.algorithmSelection);
+  // Subscribe to THIS node's visualization flags only
+  const visFlags = useGraphStore((state) => state.visualization.trace.nodes.get(nodeId));
+
+  const visualizationInput = useGraphStore((state) => state.visualization.input);
 
   // Subscribe to THIS node's edges only
   const nodeEdges = useGraphStore(useShallow((state) => state.edges.get(nodeId)));
@@ -112,20 +115,20 @@ export const Node = memo(function Node(props: NodeProps) {
 
   // Determine node fill - using gradient references for tactile button look
   const getNodeFill = () => {
-    if (algorithmSelection?.startNodeId === node.id) return "url(#nodeGradientStart)";
-    if (algorithmSelection?.endNodeId === node.id) return "url(#nodeGradientEnd)";
-    if (node.isInShortestPath) return "url(#nodeGradientPath)";
-    if (node.isVisited) return "url(#nodeGradientVisited)";
+    if (visualizationInput?.startNodeId === node.id) return "url(#nodeGradientStart)";
+    if (visualizationInput?.endNodeId === node.id) return "url(#nodeGradientEnd)";
+    if (visFlags?.isInShortestPath) return "url(#nodeGradientPath)";
+    if (visFlags?.isVisited) return "url(#nodeGradientVisited)";
     return "url(#nodeGradientDefault)";
   };
 
   // Stroke color for edge definition and selected state
   const getNodeStroke = () => {
     if (isSelected) return "var(--color-accent-form)"; // Focus color for selected
-    if (algorithmSelection?.startNodeId === node.id) return "var(--color-tint-start)";
-    if (algorithmSelection?.endNodeId === node.id) return "var(--color-tint-end)";
-    if (node.isInShortestPath) return "var(--color-tint-path)";
-    if (node.isVisited) return "var(--color-tint-visited)";
+    if (visualizationInput?.startNodeId === node.id) return "var(--color-tint-start)";
+    if (visualizationInput?.endNodeId === node.id) return "var(--color-tint-end)";
+    if (visFlags?.isInShortestPath) return "var(--color-tint-path)";
+    if (visFlags?.isVisited) return "var(--color-tint-visited)";
     return "var(--color-node-stroke)";
   };
 
