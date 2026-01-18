@@ -12,8 +12,7 @@ import { devtools } from "zustand/middleware";
 import { INode, IEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/IGraph";
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
-import { useGraphHistoryStore } from "./graphHistoryStore";
-import { withAutoHistory, withBatchedAutoHistory } from "./middleware/withAutoHistory";
+import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
 
 // ============================================================================
 // Types
@@ -136,16 +135,6 @@ type GraphStore = GraphState & GraphActions;
 // Helper Functions
 // ============================================================================
 
-const createSnapshot = (
-  nodes: INode[],
-  edges: Map<number, IEdge[]>,
-  nodeCounter: number
-): GraphSnapshot => ({
-  nodes,
-  edges: Array.from(edges.entries()).map(([k, v]) => [k, v || []]),
-  nodeCounter,
-});
-
 const snapshotToState = (snapshot: GraphSnapshot) => ({
   nodes: snapshot.nodes,
   edges: new Map<number, IEdge[]>(snapshot.edges),
@@ -199,12 +188,12 @@ export const useGraphStore = create<GraphStore>()(
     (set, get) => {
       const autoHistory = <TArgs extends unknown[], TReturn>(
         mutation: (...args: TArgs) => TReturn
-      ) => withAutoHistory(get, mutation);
+      ) => withGraphAutoHistory(get, mutation);
 
       const batchedAutoHistory = <TArgs extends unknown[], TReturn>(
         mutation: (...args: TArgs) => TReturn,
         debounceMs?: number
-      ) => withBatchedAutoHistory(get, mutation, debounceMs);
+      ) => withGraphBatchedAutoHistory(get, mutation, debounceMs);
 
       return {
         ...initialState,
@@ -218,7 +207,7 @@ export const useGraphStore = create<GraphStore>()(
 
         createSnapshot: () => {
           const { nodes, edges, nodeCounter } = get();
-          return createSnapshot(nodes, edges, nodeCounter);
+          return createGraphSnapshot(nodes, edges, nodeCounter);
         },
 
         // ========================================
@@ -563,7 +552,7 @@ export const useGraphStore = create<GraphStore>()(
           get().clearVisualization();
           const historyStore = useGraphHistoryStore.getState();
           historyStore.undo(
-            () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+            () => createGraphSnapshot(get().nodes, get().edges, get().nodeCounter),
             (snapshot) => set({
               ...snapshotToState(snapshot),
               selectedNodeId: null,
@@ -576,7 +565,7 @@ export const useGraphStore = create<GraphStore>()(
           get().clearVisualization();
           const historyStore = useGraphHistoryStore.getState();
           historyStore.redo(
-            () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+            () => createGraphSnapshot(get().nodes, get().edges, get().nodeCounter),
             (snapshot) => set({
               ...snapshotToState(snapshot),
               selectedNodeId: null,
