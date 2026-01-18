@@ -28,6 +28,7 @@ import { MOD_KEY } from "../../utility/keyboard";
 import { ZOOM, TIMING, SPEED_LEVELS } from "../../utility/constants";
 import { GrainTexture } from "../ui/grain-texture";
 import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
+import { VisualizationState, VisualizationMode, THEME } from "../../constants";
 
 export const Board = () => {
   // Get state from store
@@ -43,7 +44,7 @@ export const Board = () => {
   const isStepComplete = useGraphStore(selectIsStepComplete);
 
   // Derive boolean for simpler component logic
-  const isVisualizing = visualizationState === 'running';
+  const isVisualizing = visualizationState === VisualizationState.RUNNING;
 
   // Theme state (from separate settings store - persists across graph resets)
   const theme = useSettingsStore((state) => state.theme);
@@ -84,7 +85,7 @@ export const Board = () => {
 
   // Stop auto-play when step mode visualization ends
   useEffect(() => {
-    if (!isVisualizing || visualizationMode !== 'manual') {
+    if (!isVisualizing || visualizationMode !== VisualizationMode.MANUAL) {
       if (playIntervalRef.current !== null) {
         clearInterval(playIntervalRef.current);
         playIntervalRef.current = null;
@@ -240,12 +241,12 @@ export const Board = () => {
           {/* Mode toggle - hidden during step visualization */}
           <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
             <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
-            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
               <>
                 <RadixToggleGroup
                   type="single"
                   value={visualizationMode}
-                  onValueChange={(value) => value && setVisualizationMode(value as 'auto' | 'manual')}
+                  onValueChange={(value) => value && setVisualizationMode(value as VisualizationMode)}
                   variant="pressed"
                   disabled={isVisualizing}
                 >
@@ -253,7 +254,7 @@ export const Board = () => {
                     <TooltipTrigger asChild>
                       <span className="flex-1">
                         <RadixToggleGroupItem
-                          value="auto"
+                          value={VisualizationMode.AUTO}
                           className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
                         >
                           Auto
@@ -266,7 +267,7 @@ export const Board = () => {
                     <TooltipTrigger asChild>
                       <span className="flex-1">
                         <RadixToggleGroupItem
-                          value="manual"
+                          value={VisualizationMode.MANUAL}
                           className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
                         >
                           Step
@@ -283,7 +284,7 @@ export const Board = () => {
 
             {/* Algorithm picker - hidden on mobile during step mode */}
             <div className={cn(
-              visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0 && "hidden md:block"
+              visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0 && "hidden md:block"
             )}>
               <AlgorithmPicker
                 selectedAlgo={visualizationAlgorithm}
@@ -293,7 +294,7 @@ export const Board = () => {
             </div>
 
             {/* Graph Generator - hidden during step mode visualization */}
-            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
               <>
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
                 <GraphGenerator disabled={isVisualizing} />
@@ -301,7 +302,7 @@ export const Board = () => {
             )}
 
             {/* Step controls - shown when in manual step mode during visualization */}
-            {visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0 && (
+            {visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0 && (
               <>
                 {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
                 <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
@@ -415,7 +416,7 @@ export const Board = () => {
             )}
 
             {/* Speed control - Desktop only (hidden during step mode) */}
-            <div className={cn("hidden md:flex items-center", visualizationMode === 'manual' && isVisualizing && "!hidden")}>
+            <div className={cn("hidden md:flex items-center", visualizationMode === VisualizationMode.MANUAL && isVisualizing && "!hidden")}>
               {/* Divider */}
               <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
@@ -463,7 +464,7 @@ export const Board = () => {
             </div>
 
             {/* Normal toolbar controls - hidden during step mode visualization */}
-            {!(visualizationMode === 'manual' && isVisualizing && stepHistory.length > 0) && (
+            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
               <>
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
@@ -618,28 +619,28 @@ export const Board = () => {
             <DropdownMenuContent align={isDesktop ? "end" : "start"} sideOffset={8} className="w-40 font-['Outfit']">
               <DropdownMenuLabel className="text-xs font-medium">Theme</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => setTheme('light')}
+                onClick={() => setTheme(THEME.LIGHT)}
                 className="cursor-pointer gap-2"
               >
                 <Sun className="h-4 w-4" />
                 <span className="flex-1">Light</span>
-                {theme === 'light' && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+                {theme === THEME.LIGHT && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setTheme('dark')}
+                onClick={() => setTheme(THEME.DARK)}
                 className="cursor-pointer gap-2"
               >
                 <Moon className="h-4 w-4" />
                 <span className="flex-1">Dark</span>
-                {theme === 'dark' && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+                {theme === THEME.DARK && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setTheme('system')}
+                onClick={() => setTheme(THEME.SYSTEM)}
                 className="cursor-pointer gap-2"
               >
                 <Monitor className="h-4 w-4" />
                 <span className="flex-1">System</span>
-                {theme === 'system' && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+                {theme === THEME.SYSTEM && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

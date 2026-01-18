@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSettingsStore } from "../store/settingsStore";
+import { THEME, type Theme, type ResolvedTheme } from "../constants";
 
 /**
  * Hook to manage theme state and system preference detection.
@@ -12,19 +13,19 @@ export const useTheme = () => {
 
   // Apply theme to document
   useEffect(() => {
-    const applyTheme = (resolvedTheme: "light" | "dark") => {
+    const applyTheme = (resolvedTheme: ResolvedTheme) => {
       document.documentElement.setAttribute("data-theme", resolvedTheme);
     };
 
-    if (theme === "system") {
+    if (theme === THEME.SYSTEM) {
       // Use system preference
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const systemTheme = mediaQuery.matches ? "dark" : "light";
+      const systemTheme = mediaQuery.matches ? THEME.DARK : THEME.LIGHT;
       applyTheme(systemTheme);
 
       // Listen for system preference changes
       const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? "dark" : "light");
+        applyTheme(e.matches ? THEME.DARK : THEME.LIGHT);
       };
       mediaQuery.addEventListener("change", handleChange);
       return () => mediaQuery.removeEventListener("change", handleChange);
@@ -40,13 +41,11 @@ export const useTheme = () => {
 /**
  * Get the resolved theme (light or dark), accounting for system preference.
  */
-export const getResolvedTheme = (
-  theme: "system" | "light" | "dark"
-): "light" | "dark" => {
-  if (theme === "system") {
+export const getResolvedTheme = (theme: Theme): ResolvedTheme => {
+  if (theme === THEME.SYSTEM) {
     return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+      ? THEME.DARK
+      : THEME.LIGHT;
   }
   return theme;
 };

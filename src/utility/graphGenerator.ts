@@ -1,6 +1,7 @@
 import { INode, IEdge } from "../components/Graph/IGraph";
 import { NODE } from "./constants";
 import { calculateAccurateCoords } from "./calc";
+import { EDGE_TYPE, type EdgeType } from "../constants";
 
 export interface GeneratedGraph {
   nodes: INode[];
@@ -31,7 +32,7 @@ const PADDING = 100;
 function createEdge(
   fromNode: INode,
   toNode: INode,
-  type: "directed" | "undirected",
+  type: EdgeType,
   weight: number = 0
 ): IEdge {
   const { tempX, tempY } = calculateAccurateCoords(
@@ -62,7 +63,7 @@ function addEdgeToMap(
   edges: Map<number, IEdge[]>,
   fromNode: INode,
   toNode: INode,
-  type: "directed" | "undirected",
+  type: EdgeType,
   weight: number = 0
 ): void {
   const edge = createEdge(fromNode, toNode, type, weight);
@@ -71,7 +72,7 @@ function addEdgeToMap(
   edges.set(fromNode.id, fromEdges);
 
   // For undirected edges, add reverse edge
-  if (type === "undirected") {
+  if (type === EDGE_TYPE.UNDIRECTED) {
     const reverseEdge = createEdge(toNode, fromNode, type, weight);
     const toEdges = edges.get(toNode.id) || [];
     toEdges.push(reverseEdge);
@@ -205,7 +206,7 @@ export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedG
   const targetEdges = Math.floor(maxEdges * edgeDensity);
 
   // Generate random edges
-  const edgeType = directed ? "directed" : "undirected";
+  const edgeType = directed ? EDGE_TYPE.DIRECTED : EDGE_TYPE.UNDIRECTED;
   const addedEdges = new Set<string>();
   let edgeCount = 0;
 
@@ -255,7 +256,7 @@ export function generatePath(nodeCount: number): GeneratedGraph {
 
   // Create edges
   for (let i = 0; i < nodeCount - 1; i++) {
-    addEdgeToMap(edges, nodes[i], nodes[i + 1], "undirected");
+    addEdgeToMap(edges, nodes[i], nodes[i + 1], EDGE_TYPE.UNDIRECTED);
   }
 
   return { nodes, edges, nodeCounter: nodeCount };
@@ -287,7 +288,7 @@ export function generateCycle(nodeCount: number): GeneratedGraph {
   // Create edges (including closing edge)
   for (let i = 0; i < nodeCount; i++) {
     const nextIdx = (i + 1) % nodeCount;
-    addEdgeToMap(edges, nodes[i], nodes[nextIdx], "undirected");
+    addEdgeToMap(edges, nodes[i], nodes[nextIdx], EDGE_TYPE.UNDIRECTED);
   }
 
   return { nodes, edges, nodeCounter: nodeCount };
@@ -319,7 +320,7 @@ export function generateComplete(nodeCount: number): GeneratedGraph {
   // Create all possible edges
   for (let i = 0; i < nodeCount; i++) {
     for (let j = i + 1; j < nodeCount; j++) {
-      addEdgeToMap(edges, nodes[i], nodes[j], "undirected");
+      addEdgeToMap(edges, nodes[i], nodes[j], EDGE_TYPE.UNDIRECTED);
     }
   }
 
@@ -360,7 +361,7 @@ export function generateStar(nodeCount: number): GeneratedGraph {
     edges.set(i + 2, []);
 
     // Connect to center
-    addEdgeToMap(edges, nodes[0], nodes[i + 1], "undirected");
+    addEdgeToMap(edges, nodes[0], nodes[i + 1], EDGE_TYPE.UNDIRECTED);
   }
 
   return { nodes, edges, nodeCounter: nodeCount };
@@ -404,10 +405,10 @@ export function generateBinaryTree(depth: number): GeneratedGraph {
     const rightChildIdx = 2 * i + 2;
 
     if (leftChildIdx < nodes.length) {
-      addEdgeToMap(edges, nodes[i], nodes[leftChildIdx], "undirected");
+      addEdgeToMap(edges, nodes[i], nodes[leftChildIdx], EDGE_TYPE.UNDIRECTED);
     }
     if (rightChildIdx < nodes.length) {
-      addEdgeToMap(edges, nodes[i], nodes[rightChildIdx], "undirected");
+      addEdgeToMap(edges, nodes[i], nodes[rightChildIdx], EDGE_TYPE.UNDIRECTED);
     }
   }
 
@@ -461,7 +462,7 @@ export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGra
       const shuffled = [...nextLayer].sort(() => Math.random() - 0.5);
 
       for (let i = 0; i < connectionCount; i++) {
-        addEdgeToMap(edges, node, shuffled[i], "directed");
+        addEdgeToMap(edges, node, shuffled[i], EDGE_TYPE.DIRECTED);
       }
     }
 
@@ -475,7 +476,7 @@ export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGra
       if (!hasIncoming) {
         // Connect from a random node in the current layer
         const randomFrom = currentLayer[Math.floor(Math.random() * currentLayer.length)];
-        addEdgeToMap(edges, randomFrom, nextNode, "directed");
+        addEdgeToMap(edges, randomFrom, nextNode, EDGE_TYPE.DIRECTED);
       }
     }
   }
@@ -515,12 +516,12 @@ export function generateGrid(rows: number, cols: number): GeneratedGraph {
 
       // Right neighbor
       if (col < cols - 1) {
-        addEdgeToMap(edges, nodes[idx], nodes[idx + 1], "undirected");
+        addEdgeToMap(edges, nodes[idx], nodes[idx + 1], EDGE_TYPE.UNDIRECTED);
       }
 
       // Bottom neighbor
       if (row < rows - 1) {
-        addEdgeToMap(edges, nodes[idx], nodes[idx + cols], "undirected");
+        addEdgeToMap(edges, nodes[idx], nodes[idx + cols], EDGE_TYPE.UNDIRECTED);
       }
     }
   }

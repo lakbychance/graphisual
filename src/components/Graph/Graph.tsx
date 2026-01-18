@@ -14,6 +14,7 @@ import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
+import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, type EdgeType } from "../../constants";
 
 export const Graph = () => {
   // Get state from store
@@ -31,7 +32,7 @@ export const Graph = () => {
   const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
 
   // Derive boolean for simpler component logic and Node prop
-  const isVisualizing = visualizationState === 'running';
+  const isVisualizing = visualizationState === VisualizationState.RUNNING;
   const zoom = useGraphStore((state) => state.viewport.zoom);
   const pan = useGraphStore((state) => state.viewport.pan);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
@@ -123,7 +124,7 @@ export const Graph = () => {
 
   // Apply step-through visualization when stepIndex changes
   useEffect(() => {
-    if (visualizationMode !== 'manual' || stepHistory.length === 0) return;
+    if (visualizationMode !== VisualizationMode.MANUAL || stepHistory.length === 0) return;
 
     // Clear all visualization and rebuild from scratch
     const { clearVisualization: clearVis, setTraceNode, setTraceEdge } = useGraphStore.getState();
@@ -132,7 +133,7 @@ export const Graph = () => {
     clearVis();
     // Restore running state since clearVisualization sets it to idle
     const { visualization } = useGraphStore.getState();
-    useGraphStore.setState({ visualization: { ...visualization, state: 'running' } });
+    useGraphStore.setState({ visualization: { ...visualization, state: VisualizationState.RUNNING } });
 
     if (stepIndex < 0) return;
 
@@ -143,7 +144,7 @@ export const Graph = () => {
       const fromId = step.edge.from;
 
       // Mark the node
-      if (step.type === 'visit') {
+      if (step.type === StepType.VISIT) {
         setTraceNode(targetId, { isVisited: true });
       } else {
         setTraceNode(targetId, { isInShortestPath: true });
@@ -151,7 +152,7 @@ export const Graph = () => {
 
       // Mark the edge (if not from root)
       if (fromId !== -1) {
-        if (step.type === 'visit') {
+        if (step.type === StepType.VISIT) {
           setTraceEdge(fromId, targetId, { isUsedInTraversal: true });
         } else {
           setTraceEdge(fromId, targetId, { isUsedInShortestPath: true });
@@ -182,7 +183,7 @@ export const Graph = () => {
       if (edge) {
         setTraceEdge(fromId, toId, { [edgeAttribute]: true });
         // For undirected edges, also mark the reverse direction
-        if (edge.type === "undirected") {
+        if (edge.type === EDGE_TYPE.UNDIRECTED) {
           setTraceEdge(toId, fromId, { [edgeAttribute]: true });
         }
       }
@@ -193,7 +194,7 @@ export const Graph = () => {
     for (let i = 0; i <= shortestPath.length; i++) {
       if (i === shortestPath.length) {
         setTimeout(() => {
-          setVisualizationState('done');
+          setVisualizationState(VisualizationState.DONE);
           resetVisualization();
         }, visualizationSpeed * i);
         return;
@@ -211,7 +212,7 @@ export const Graph = () => {
   }, [visualizationSpeed, visualizeSetState, setVisualizationState, resetVisualization]);
 
   const visualizeGraph = useCallback((visitedEdges: IEdge[], shortestPath: IEdge[] = []) => {
-    setVisualizationState('running');
+    setVisualizationState(VisualizationState.RUNNING);
 
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
@@ -241,7 +242,7 @@ export const Graph = () => {
         from: parseInt(e.from),
         to: parseInt(e.to),
         weight: e.weight,
-        type: e.type as "directed" | "undirected",
+        type: e.type as EdgeType,
       }));
       result.set(nodeId, converted);
     });
@@ -254,7 +255,7 @@ export const Graph = () => {
       x1: NaN, x2: NaN, y1: NaN, y2: NaN, nodeX2: NaN, nodeY2: NaN,
       from: ref.from === -1 ? "Infinity" : ref.from.toString(),
       to: ref.to.toString(),
-      type: "directed",
+      type: EDGE_TYPE.DIRECTED,
       weight: NaN,
       isUsedInTraversal: false,
     }));
@@ -280,7 +281,7 @@ export const Graph = () => {
     };
 
     // Check if algorithm has a generator (for step-through mode)
-    if (visualizationMode === 'manual' && currentAlgorithm.generator) {
+    if (visualizationMode === VisualizationMode.MANUAL && currentAlgorithm.generator) {
       // Run execute() first to check for errors (same logic as auto mode)
       const result = currentAlgorithm.execute(input);
 
@@ -404,7 +405,7 @@ export const Graph = () => {
   }, [clearEdgeSelection]);
 
   // Update edge type
-  const updateEdgeType = useCallback((newType: "directed" | "undirected") => {
+  const updateEdgeType = useCallback((newType: EdgeType) => {
     if (!selectedEdge) return;
     const { edge, sourceNode } = selectedEdge;
     updateEdgeTypeAction(sourceNode.id, parseInt(edge.to), newType);
@@ -448,7 +449,7 @@ export const Graph = () => {
           x1: startX, y1: startY, x2: endX, y2: endY,
           nodeX2: 0, nodeY2: 0,
           from: sourceNodeId.toString(), to: "",
-          weight: 0, type: "directed",
+          weight: 0, type: EDGE_TYPE.DIRECTED,
         });
       };
 

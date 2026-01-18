@@ -7,12 +7,13 @@ import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { EDGE_TYPE, type EdgeType } from "../../constants";
 
 interface EdgePopupProps {
   edge: IEdge;
   anchorPosition: { x: number; y: number };
   onClose: () => void;
-  onUpdateType: (type: "directed" | "undirected") => void;
+  onUpdateType: (type: EdgeType) => void;
   onUpdateWeight: (weight: number) => void;
   onReverse: () => void;
   onDelete: () => void;
@@ -28,9 +29,7 @@ export const EdgePopup = memo(function EdgePopup({
   onDelete,
 }: EdgePopupProps) {
   const [weight, setWeight] = useState(edge.weight || 0);
-  const [type, setType] = useState<"directed" | "undirected">(
-    edge.type as "directed" | "undirected"
-  );
+  const [type, setType] = useState<EdgeType>(edge.type as EdgeType);
   const [isOpen, setIsOpen] = useState(true);
   const weightInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +47,7 @@ export const EdgePopup = memo(function EdgePopup({
     setTimeout(onClose, 150);
   };
 
-  const handleTypeChange = (newType: "directed" | "undirected") => {
+  const handleTypeChange = (newType: EdgeType) => {
     setType(newType);
     onUpdateType(newType);
   };
@@ -93,7 +92,7 @@ export const EdgePopup = memo(function EdgePopup({
             <RadixToggleGroup
               type="single"
               value={type}
-              onValueChange={(value) => value && handleTypeChange(value as "directed" | "undirected")}
+              onValueChange={(value) => value && handleTypeChange(value as EdgeType)}
               variant="etched"
             >
               <Tooltip>
@@ -101,7 +100,7 @@ export const EdgePopup = memo(function EdgePopup({
                   <span className="flex-1">
                     <RadixToggleGroupItem
 
-                      value="directed"
+                      value={EDGE_TYPE.DIRECTED}
                       className="w-8 h-8 flex-none px-1.5"
                     >
                       <MoveRight className="w-4 h-4" />
@@ -115,7 +114,7 @@ export const EdgePopup = memo(function EdgePopup({
                   <span className="flex-1">
                     <RadixToggleGroupItem
 
-                      value="undirected"
+                      value={EDGE_TYPE.UNDIRECTED}
                       className="w-8 h-8 flex-none px-1.5"
                     >
                       <Minus className="w-4 h-4" />
@@ -157,7 +156,7 @@ export const EdgePopup = memo(function EdgePopup({
 
             {/* Actions section */}
             <div className="flex gap-1">
-              {type === "directed" && (
+              {type === EDGE_TYPE.DIRECTED && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

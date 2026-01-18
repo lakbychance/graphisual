@@ -13,6 +13,7 @@ import {
   AlgorithmType,
   AlgorithmGenerator,
   EdgeRef,
+  StepType,
 } from "../types";
 
 /**
@@ -29,8 +30,8 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
   // Handle same start and end
   if (startNodeId === endNodeId) {
-    yield { type: 'visit', edge: { from: -1, to: startNodeId } };
-    yield { type: 'result', edge: { from: -1, to: startNodeId } };
+    yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
     return;
   }
 
@@ -56,7 +57,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
   }
 
   // Yield start node
-  yield { type: 'visit', edge: { from: -1, to: startNodeId } };
+  yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
 
   while (unvisited.size > 0) {
     // Find the unvisited node with minimum distance
@@ -83,7 +84,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     if (currentNode !== startNodeId) {
       const prevNode = previous.get(currentNode);
       if (prevNode !== undefined) {
-        yield { type: 'visit', edge: { from: prevNode, to: currentNode } };
+        yield { type: StepType.VISIT, edge: { from: prevNode, to: currentNode } };
       }
     }
 
@@ -91,7 +92,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     if (currentNode === endNodeId) {
       const resultEdges = reconstructPath(previous, startNodeId, endNodeId);
       for (const edge of resultEdges) {
-        yield { type: 'result', edge };
+        yield { type: StepType.RESULT, edge };
       }
       return;
     }
@@ -169,10 +170,10 @@ const dijkstraAdapter: AlgorithmAdapter = {
 
     const steps = [...dijkstraGenerator(input)];
     const visitedEdges = steps
-      .filter((s) => s.type === 'visit')
+      .filter((s) => s.type === StepType.VISIT)
       .map((s) => s.edge);
     const resultEdges = steps
-      .filter((s) => s.type === 'result')
+      .filter((s) => s.type === StepType.RESULT)
       .map((s) => s.edge);
 
     if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {

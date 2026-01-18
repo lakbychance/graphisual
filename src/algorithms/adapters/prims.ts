@@ -13,7 +13,9 @@ import {
   AlgorithmResult,
   AlgorithmType,
   AlgorithmGenerator,
+  StepType,
 } from "../types";
+import { EDGE_TYPE } from "../../constants";
 
 /**
  * Generator function for step-through Prim's execution.
@@ -26,7 +28,7 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
   let hasDirectedEdge = false;
   adjacencyList.forEach((edges) => {
     edges?.forEach((edge) => {
-      if (edge.type === "directed") {
+      if (edge.type === EDGE_TYPE.DIRECTED) {
         hasDirectedEdge = true;
       }
     });
@@ -73,7 +75,7 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     // Yield the edge
     const parentNode = parent.get(minNode);
     yield {
-      type: 'visit',
+      type: StepType.VISIT,
       edge: {
         from: parentNode !== undefined ? parentNode : -1,
         to: minNode,
@@ -123,7 +125,7 @@ const primsAdapter: AlgorithmAdapter = {
     let hasDirectedEdge = false;
     adjacencyList.forEach((edges) => {
       edges?.forEach((edge) => {
-        if (edge.type === "directed") {
+        if (edge.type === EDGE_TYPE.DIRECTED) {
           hasDirectedEdge = true;
         }
       });
@@ -138,7 +140,7 @@ const primsAdapter: AlgorithmAdapter = {
 
     const steps = [...primsGenerator(input)];
     const visitedEdges = steps
-      .filter((s) => s.type === 'visit')
+      .filter((s) => s.type === StepType.VISIT)
       .map((s) => s.edge);
 
     // Check if all nodes are included (graph is connected)

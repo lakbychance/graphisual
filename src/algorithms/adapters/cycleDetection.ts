@@ -15,7 +15,9 @@ import {
   AlgorithmGenerator,
   AlgorithmStep,
   EdgeRef,
+  StepType,
 } from "../types";
+import { EDGE_TYPE } from "../../constants";
 
 // Node colors for DFS
 const WHITE = 0; // Unvisited
@@ -44,7 +46,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
   let hasDirectedEdge = false;
   adjacencyList.forEach((edges) => {
     edges.forEach((edge) => {
-      if (edge.type === "directed") {
+      if (edge.type === EDGE_TYPE.DIRECTED) {
         hasDirectedEdge = true;
       }
     });
@@ -86,7 +88,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
     parent.set(nodeId, parentId);
 
     // Record visiting this node
-    stepsToYield.push({ type: 'visit', edge: { from: parentId, to: nodeId } });
+    stepsToYield.push({ type: StepType.VISIT, edge: { from: parentId, to: nodeId } });
 
     const neighbors = adjacencyList.get(nodeId) || [];
 
@@ -107,7 +109,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
         }
 
         // Record the edge that completes the cycle
-        stepsToYield.push({ type: 'visit', edge: { from: nodeId, to: neighborId } });
+        stepsToYield.push({ type: StepType.VISIT, edge: { from: nodeId, to: neighborId } });
 
         // Reconstruct the cycle path
         cycleEdges = reconstructCycle(nodeId, neighborId, parent);
@@ -140,7 +142,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
   // If cycle found, yield result steps
   if (cycleFound) {
     for (const edge of cycleEdges) {
-      yield { type: 'result', edge };
+      yield { type: StepType.RESULT, edge };
     }
   }
 }
@@ -167,10 +169,10 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     const steps = [...cycleDetectionGenerator(input)];
     const visitedEdges = steps
-      .filter((s) => s.type === 'visit')
+      .filter((s) => s.type === StepType.VISIT)
       .map((s) => s.edge);
     const resultEdges = steps
-      .filter((s) => s.type === 'result')
+      .filter((s) => s.type === StepType.RESULT)
       .map((s) => s.edge);
 
     if (resultEdges.length === 0) {

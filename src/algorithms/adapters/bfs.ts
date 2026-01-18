@@ -12,6 +12,7 @@ import {
   AlgorithmResult,
   AlgorithmType,
   AlgorithmGenerator,
+  StepType,
 } from "../types";
 
 /**
@@ -55,7 +56,7 @@ function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
     // Mark as visited and yield the step
     visited.add(nodeId);
-    yield { type: 'visit', edge: { from: current.from, to: nodeId } };
+    yield { type: StepType.VISIT, edge: { from: current.from, to: nodeId } };
 
     // Get neighbors and add unvisited ones to queue
     const neighbors = adjacencyList.get(nodeId) || [];
@@ -91,10 +92,10 @@ const bfsAdapter: AlgorithmAdapter = {
     const steps = [...bfsGenerator(input)];
     return {
       visitedEdges: steps
-        .filter((s) => s.type === 'visit')
+        .filter((s) => s.type === StepType.VISIT)
         .map((s) => s.edge),
       resultEdges: steps
-        .filter((s) => s.type === 'result')
+        .filter((s) => s.type === StepType.RESULT)
         .map((s) => s.edge),
     };
   },

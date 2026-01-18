@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, MutableRefObject } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
 import { isModKey } from "../utility/keyboard";
 import { ZOOM } from "../utility/constants";
+import { VisualizationState, VisualizationMode } from "../constants";
 
 interface ShortcutConfig {
   key: string | string[];
@@ -45,8 +46,8 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
 
   // Derived state
-  const isVisualizing = visualizationState === "running";
-  const isInStepMode = visualizationMode === "manual" && isVisualizing && stepHistory.length > 0;
+  const isVisualizing = visualizationState === VisualizationState.RUNNING;
+  const isInStepMode = visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0;
 
   // Store actions
   const undo = useGraphStore((state) => state.undo);
@@ -141,9 +142,9 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       ps.playIntervalRef.current = window.setInterval(() => {
         const state = useGraphStore.getState();
         const vis = state.visualization;
-        const stepComplete = vis.mode === 'manual' ? vis.step.isComplete : false;
-        const stepIdx = vis.mode === 'manual' ? vis.step.index : -1;
-        const stepHist = vis.mode === 'manual' ? vis.step.history : [];
+        const stepComplete = vis.mode === VisualizationMode.MANUAL ? vis.step.isComplete : false;
+        const stepIdx = vis.mode === VisualizationMode.MANUAL ? vis.step.index : -1;
+        const stepHist = vis.mode === VisualizationMode.MANUAL ? vis.step.history : [];
         if (stepComplete || stepIdx >= stepHist.length - 1) {
           if (ps.playIntervalRef.current !== null) {
             clearInterval(ps.playIntervalRef.current);

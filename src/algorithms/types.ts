@@ -6,6 +6,10 @@
  */
 
 import type React from "react";
+import { StepType, type EdgeType } from "../constants";
+
+// Re-export StepType for convenience
+export { StepType };
 
 /**
  * Categories of graph algorithms.
@@ -58,7 +62,7 @@ export interface EdgeInfo {
   /** Edge weight (for weighted algorithms) */
   weight: number;
   /** Edge type */
-  type: "directed" | "undirected";
+  type: EdgeType;
 }
 
 /**
@@ -77,8 +81,8 @@ export interface EdgeRef {
  * Used for step-through visualization mode.
  */
 export interface AlgorithmStep {
-  /** Step type: 'visit' for traversal, 'result' for final path edges */
-  type: 'visit' | 'result';
+  /** Step type: StepType.VISIT for traversal, StepType.RESULT for final path edges */
+  type: StepType;
   /** The edge being visualized in this step */
   edge: EdgeRef;
 }

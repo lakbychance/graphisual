@@ -15,6 +15,7 @@ import {
   AlgorithmGenerator,
   EdgeRef,
   EdgeInfo,
+  StepType,
 } from "../types";
 
 /**
@@ -31,8 +32,8 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
   // Handle same start and end
   if (startNodeId === endNodeId) {
-    yield { type: "visit", edge: { from: -1, to: startNodeId } };
-    yield { type: "result", edge: { from: -1, to: startNodeId } };
+    yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
     return;
   }
 
@@ -61,7 +62,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
   });
 
   // Yield start node
-  yield { type: "visit", edge: { from: -1, to: startNodeId } };
+  yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
 
   // Relax all edges V-1 times
   const V = Math.max(nodes.length, distances.size);
@@ -79,7 +80,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
         updated = true;
 
         // Yield the relaxation step
-        yield { type: "visit", edge: { from: edge.from, to: edge.to } };
+        yield { type: StepType.VISIT, edge: { from: edge.from, to: edge.to } };
       }
     }
 
@@ -106,7 +107,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
   // Reconstruct and yield result path
   const resultEdges = reconstructPath(previous, startNodeId, endNodeId);
   for (const edge of resultEdges) {
-    yield { type: "result", edge };
+    yield { type: StepType.RESULT, edge };
   }
 }
 
@@ -173,10 +174,10 @@ const bellmanFordAdapter: AlgorithmAdapter = {
 
     const steps = [...bellmanFordGenerator(input)];
     const visitedEdges = steps
-      .filter((s) => s.type === "visit")
+      .filter((s) => s.type === StepType.VISIT)
       .map((s) => s.edge);
     const resultEdges = steps
-      .filter((s) => s.type === "result")
+      .filter((s) => s.type === StepType.RESULT)
       .map((s) => s.edge);
 
     if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {

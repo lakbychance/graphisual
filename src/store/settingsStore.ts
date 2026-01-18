@@ -8,8 +8,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-type Theme = "system" | "light" | "dark";
+import { THEME, STORE_NAME, type Theme } from "../constants";
 
 interface SettingsState {
   theme: Theme;
@@ -25,7 +24,7 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       // State
-      theme: "system",
+      theme: THEME.SYSTEM,
 
       // Actions
       setTheme: (theme) => {
@@ -33,7 +32,7 @@ export const useSettingsStore = create<SettingsStore>()(
       },
     }),
     {
-      name: "graphisual-settings",
+      name: STORE_NAME.SETTINGS,
     }
   )
 );

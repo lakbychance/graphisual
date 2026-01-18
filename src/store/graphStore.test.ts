@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
 import { useGraphHistoryStore } from './graphHistoryStore'
+import { VisualizationState, VisualizationMode } from '../constants'
 
 // Reset store before each test
 beforeEach(() => {
@@ -20,10 +21,10 @@ beforeEach(() => {
         nodes: new Map(),
         edges: new Map(),
       },
-      state: 'idle',
+      state: VisualizationState.IDLE,
       input: null,
       speed: 400,
-      mode: 'auto',
+      mode: VisualizationMode.AUTO,
     },
     selection: {
       nodeId: null,
@@ -244,14 +245,14 @@ describe('graphStore', () => {
     it('setVisualizationState updates state', () => {
       const { setVisualizationState } = useGraphStore.getState()
 
-      setVisualizationState('running')
-      expect(useGraphStore.getState().visualization.state).toBe('running')
+      setVisualizationState(VisualizationState.RUNNING)
+      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.RUNNING)
 
-      setVisualizationState('done')
-      expect(useGraphStore.getState().visualization.state).toBe('done')
+      setVisualizationState(VisualizationState.DONE)
+      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.DONE)
 
-      setVisualizationState('idle')
-      expect(useGraphStore.getState().visualization.state).toBe('idle')
+      setVisualizationState(VisualizationState.IDLE)
+      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.IDLE)
     })
 
     it('resetVisualization resets to defaults', () => {
@@ -330,7 +331,7 @@ describe('graphStore', () => {
       const state = useGraphStore.getState()
       expect(state.visualization.trace.nodes.size).toBe(0)
       expect(state.visualization.trace.edges.size).toBe(0)
-      expect(state.visualization.state).toBe('idle')
+      expect(state.visualization.state).toBe(VisualizationState.IDLE)
     })
 
     it('trace maps are separate from graph data', () => {

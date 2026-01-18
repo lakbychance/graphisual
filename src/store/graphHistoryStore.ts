@@ -1,6 +1,7 @@
 import { createHistoryStore, withAutoHistory, withBatchedAutoHistory } from "./historyStore";
 import { GraphSnapshot, INode, IEdge } from "../components/Graph/IGraph";
 import { GraphData } from "./graphStore";
+import { STORE_NAME } from "../constants";
 
 // ============================================================================
 // Graph History Store
@@ -11,7 +12,7 @@ const areSnapshotsEqual = (a: GraphSnapshot, b: GraphSnapshot): boolean => {
 };
 
 export const useGraphHistoryStore = createHistoryStore<GraphSnapshot>({
-  name: "GraphHistoryStore",
+  name: STORE_NAME.GRAPH_HISTORY,
   areEqual: areSnapshotsEqual,
 });
 

@@ -7,6 +7,7 @@ import { Edge } from "../Edge/Edge";
 import { DRAG_THRESHOLD, NODE } from "../../../utility/constants";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
+import { NODE_GRADIENT, gradientUrl } from "../../../constants";
 
 export interface NodeProps {
   nodeId: number;
@@ -132,11 +133,11 @@ export const Node = memo(function Node(props: NodeProps) {
 
   // Determine node fill - using gradient references for tactile button look
   const getNodeFill = () => {
-    if (visualizationInput?.startNodeId === node.id) return "url(#nodeGradientStart)";
-    if (visualizationInput?.endNodeId === node.id) return "url(#nodeGradientEnd)";
-    if (visFlags?.isInShortestPath) return "url(#nodeGradientPath)";
-    if (visFlags?.isVisited) return "url(#nodeGradientVisited)";
-    return "url(#nodeGradientDefault)";
+    if (visualizationInput?.startNodeId === node.id) return gradientUrl(NODE_GRADIENT.START);
+    if (visualizationInput?.endNodeId === node.id) return gradientUrl(NODE_GRADIENT.END);
+    if (visFlags?.isInShortestPath) return gradientUrl(NODE_GRADIENT.PATH);
+    if (visFlags?.isVisited) return gradientUrl(NODE_GRADIENT.VISITED);
+    return gradientUrl(NODE_GRADIENT.DEFAULT);
   };
 
   // Stroke color for edge definition and selected state

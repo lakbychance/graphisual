@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { NODE_GRADIENT } from "../../../constants";
 
 /**
  * Node-related SVG definitions (crosshatch pattern, sphere mask, gradients)
@@ -24,31 +25,31 @@ export const NodeDefs = memo(() => (
     </mask>
 
     {/* Node gradients for different states */}
-    <linearGradient id="nodeGradientDefault" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id={NODE_GRADIENT.DEFAULT} x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{ stopColor: 'var(--gradient-default-start)' }} />
       <stop offset="50%" style={{ stopColor: 'var(--gradient-default-mid)' }} />
       <stop offset="100%" style={{ stopColor: 'var(--gradient-default-end)' }} />
     </linearGradient>
 
-    <linearGradient id="nodeGradientVisited" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id={NODE_GRADIENT.VISITED} x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{ stopColor: 'var(--gradient-visited-start)' }} />
       <stop offset="50%" style={{ stopColor: 'var(--gradient-visited-mid)' }} />
       <stop offset="100%" style={{ stopColor: 'var(--gradient-visited-end)' }} />
     </linearGradient>
 
-    <linearGradient id="nodeGradientPath" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id={NODE_GRADIENT.PATH} x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{ stopColor: 'var(--gradient-path-start)' }} />
       <stop offset="50%" style={{ stopColor: 'var(--gradient-path-mid)' }} />
       <stop offset="100%" style={{ stopColor: 'var(--gradient-path-end)' }} />
     </linearGradient>
 
-    <linearGradient id="nodeGradientStart" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id={NODE_GRADIENT.START} x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{ stopColor: 'var(--gradient-start-start)' }} />
       <stop offset="50%" style={{ stopColor: 'var(--gradient-start-mid)' }} />
       <stop offset="100%" style={{ stopColor: 'var(--gradient-start-end)' }} />
     </linearGradient>
 
-    <linearGradient id="nodeGradientEnd" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id={NODE_GRADIENT.END} x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{ stopColor: 'var(--gradient-end-start)' }} />
       <stop offset="50%" style={{ stopColor: 'var(--gradient-end-mid)' }} />
       <stop offset="100%" style={{ stopColor: 'var(--gradient-end-end)' }} />
