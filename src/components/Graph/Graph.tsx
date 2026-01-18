@@ -7,14 +7,16 @@ import { INode, IEdge } from "./IGraph";
 import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
 import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
-import { useGraphStore, selectStepIndex, selectStepHistory } from "../../store/graphStore";
+import { useGraphStore } from "../../store/graphStore";
+import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useShallow } from "zustand/shallow";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
-import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, type EdgeType } from "../../constants";
+import { VisualizationState, VisualizationMode, EDGE_TYPE, StepType, type EdgeType } from "../../constants";
+import { animateSequence, AnimationController } from "../../utility/animateSequence";
 
 export const Graph = () => {
   // Get state from store
@@ -36,8 +38,6 @@ export const Graph = () => {
   const zoom = useGraphStore((state) => state.viewport.zoom);
   const pan = useGraphStore((state) => state.viewport.pan);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
-  const stepIndex = useGraphStore(selectStepIndex);
-  const stepHistory = useGraphStore(selectStepHistory);
 
   const addNode = useGraphStore((state) => state.addNode);
   const moveNode = useGraphStore((state) => state.moveNode);
@@ -70,6 +70,16 @@ export const Graph = () => {
   const edgesRef = useRef(edges);
   nodesRef.current = nodes;
   edgesRef.current = edges;
+
+  // Animation controller for cancellation
+  const animationRef = useRef<AnimationController | null>(null);
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => {
+      animationRef.current?.cancel();
+    };
+  }, []);
 
   // Update SVG dimensions on mount and resize
   useEffect(() => {
@@ -123,116 +133,79 @@ export const Graph = () => {
   }, []);
 
   // Apply step-through visualization when stepIndex changes
-  useEffect(() => {
-    if (visualizationMode !== VisualizationMode.MANUAL || stepHistory.length === 0) return;
+  useStepThroughVisualization();
 
-    // Clear all visualization and rebuild from scratch
-    const { clearVisualization: clearVis, setTraceNode, setTraceEdge } = useGraphStore.getState();
-
-    // Clear previous visualization state (but keep visualizationState as 'running')
-    clearVis();
-    // Restore running state since clearVisualization sets it to idle
-    const { visualization } = useGraphStore.getState();
-    useGraphStore.setState({ visualization: { ...visualization, state: VisualizationState.RUNNING } });
-
-    if (stepIndex < 0) return;
-
-    // Apply all steps up to current index
-    for (let i = 0; i <= stepIndex; i++) {
-      const step = stepHistory[i];
-      const targetId = step.edge.to;
-      const fromId = step.edge.from;
-
-      // Mark the node
-      if (step.type === StepType.VISIT) {
-        setTraceNode(targetId, { isVisited: true });
-      } else {
-        setTraceNode(targetId, { isInShortestPath: true });
-      }
-
-      // Mark the edge (if not from root)
-      if (fromId !== -1) {
-        if (step.type === StepType.VISIT) {
-          setTraceEdge(fromId, targetId, { isUsedInTraversal: true });
-        } else {
-          setTraceEdge(fromId, targetId, { isUsedInShortestPath: true });
-        }
-      }
-    }
-  }, [visualizationMode, stepIndex, stepHistory]);
-
-  // Visualization helper - uses separate visualization maps
-  const visualizeSetState = useCallback((
-    currentEdge: IEdge,
-    edgeAttribute: string,
-    nodeAttribute: string
-  ) => {
+  // Marks an edge and its target node for visualization
+  const markEdgeAndNode = useCallback((currentEdge: IEdge, stepType: StepType) => {
     const { setTraceNode, setTraceEdge } = useGraphStore.getState();
-    const currentEdges = edgesRef.current;
-
     const fromId = parseInt(currentEdge.from);
     const toId = parseInt(currentEdge.to);
 
-    // Set node visualization
-    setTraceNode(toId, { [nodeAttribute]: true });
+    // Type-safe node flags
+    if (stepType === StepType.VISIT) {
+      setTraceNode(toId, { isVisited: true });
+    } else {
+      setTraceNode(toId, { isInShortestPath: true });
+    }
 
-    // Set edge visualization - handle both directed and undirected edges
-    const edgeList = currentEdges.get(fromId);
+    // Type-safe edge flags
+    const edgeList = edgesRef.current.get(fromId);
     if (edgeList) {
       const edge = edgeList.find((e) => parseInt(e.to) === toId);
       if (edge) {
-        setTraceEdge(fromId, toId, { [edgeAttribute]: true });
+        const edgeFlags = stepType === StepType.VISIT
+          ? { isUsedInTraversal: true }
+          : { isUsedInShortestPath: true };
+
+        setTraceEdge(fromId, toId, edgeFlags);
         // For undirected edges, also mark the reverse direction
         if (edge.type === EDGE_TYPE.UNDIRECTED) {
-          setTraceEdge(toId, fromId, { [edgeAttribute]: true });
+          setTraceEdge(toId, fromId, edgeFlags);
         }
       }
     }
   }, []);
 
-  const visualizeShortestPath = useCallback((shortestPath: IEdge[]) => {
-    for (let i = 0; i <= shortestPath.length; i++) {
-      if (i === shortestPath.length) {
-        setTimeout(() => {
-          setVisualizationState(VisualizationState.DONE);
-          resetVisualization();
-        }, visualizationSpeed * i);
-        return;
-      }
-      setTimeout(() => {
-        const currentEdge = shortestPath[i];
-        const toId = parseInt(currentEdge.to);
+  // Animates the result/shortest path
+  const visualizeResultPath = useCallback((resultEdges: IEdge[]) => {
+    animationRef.current = animateSequence({
+      items: resultEdges,
+      delayMs: visualizationSpeed,
+      onStep: (edge) => {
+        const toId = parseInt(edge.to);
         const { visualization } = useGraphStore.getState();
-        const isNodeInShortestPath = visualization.trace.nodes.get(toId)?.isInShortestPath === true;
-        if (!isNodeInShortestPath) {
-          visualizeSetState(currentEdge, "isUsedInShortestPath", "isInShortestPath");
+        if (!visualization.trace.nodes.get(toId)?.isInShortestPath) {
+          markEdgeAndNode(edge, StepType.RESULT);
         }
-      }, visualizationSpeed * i);
-    }
-  }, [visualizationSpeed, visualizeSetState, setVisualizationState, resetVisualization]);
+      },
+      onComplete: () => {
+        setVisualizationState(VisualizationState.DONE);
+        resetVisualization();
+      },
+    });
+  }, [visualizationSpeed, markEdgeAndNode, setVisualizationState, resetVisualization]);
 
-  const visualizeGraph = useCallback((visitedEdges: IEdge[], shortestPath: IEdge[] = []) => {
+  // Animates traversal, then chains to result path visualization
+  const visualizeTraversedEdges = useCallback((visitedEdges: IEdge[], resultEdges: IEdge[] = []) => {
+    animationRef.current?.cancel();
     setVisualizationState(VisualizationState.RUNNING);
 
-    for (let i = 0; i <= visitedEdges.length; i++) {
-      if (i === visitedEdges.length) {
-        setTimeout(() => {
-          setVisualizationInput(null);
-          visualizeShortestPath(shortestPath);
-        }, visualizationSpeed * i);
-        return;
-      }
-      setTimeout(() => {
-        const currentEdge = visitedEdges[i];
-        const toId = parseInt(currentEdge.to);
+    animationRef.current = animateSequence({
+      items: visitedEdges,
+      delayMs: visualizationSpeed,
+      onStep: (edge) => {
+        const toId = parseInt(edge.to);
         const { visualization } = useGraphStore.getState();
-        const isNodeTraversed = visualization.trace.nodes.get(toId)?.isVisited === true;
-        if (!isNodeTraversed) {
-          visualizeSetState(currentEdge, "isUsedInTraversal", "isVisited");
+        if (!visualization.trace.nodes.get(toId)?.isVisited) {
+          markEdgeAndNode(edge, StepType.VISIT);
         }
-      }, visualizationSpeed * i);
-    }
-  }, [visualizationSpeed, visualizeShortestPath, visualizeSetState, setVisualizationState, setVisualizationInput]);
+      },
+      onComplete: () => {
+        setVisualizationInput(null);
+        visualizeResultPath(resultEdges);
+      },
+    });
+  }, [visualizationSpeed, visualizeResultPath, markEdgeAndNode, setVisualizationState, setVisualizationInput]);
 
   // Convert edges to algorithm input format
   const convertToAlgorithmInput = useCallback((): Map<number, EdgeInfo[]> => {
@@ -315,8 +288,8 @@ export const Graph = () => {
 
     const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
-    visualizeGraph(visitedEdges, resultEdges);
-  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setVisualizationInput, resetVisualization, initStepThrough]);
+    visualizeTraversedEdges(visitedEdges, resultEdges);
+  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough]);
 
   // Store pan at drag start for relative panning
   const panAtDragStart = useRef({ x: 0, y: 0 });
