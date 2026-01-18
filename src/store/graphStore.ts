@@ -13,7 +13,7 @@ import { INode, IEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, Ed
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
 import { useGraphHistoryStore } from "./graphHistoryStore";
-import { withAutoHistory } from "./middleware/withAutoHistory";
+import { withAutoHistory, withBatchedAutoHistory } from "./middleware/withAutoHistory";
 
 // ============================================================================
 // Types
@@ -94,7 +94,6 @@ interface GraphActions {
   undo: () => void;
   redo: () => void;
   resetGraph: () => void;
-  setPresent: (snapshot: GraphSnapshot) => void;
 
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
@@ -202,647 +201,648 @@ export const useGraphStore = create<GraphStore>()(
         mutation: (...args: TArgs) => TReturn
       ) => withAutoHistory(get, mutation);
 
+      const batchedAutoHistory = <TArgs extends unknown[], TReturn>(
+        mutation: (...args: TArgs) => TReturn,
+        debounceMs?: number
+      ) => withBatchedAutoHistory(get, mutation, debounceMs);
+
       return {
-      ...initialState,
+        ...initialState,
 
-      // ========================================
-      // Computed
-      // ========================================
+        // ========================================
+        // Computed
+        // ========================================
 
-      canUndo: () => useGraphHistoryStore.getState().canUndo(),
-      canRedo: () => useGraphHistoryStore.getState().canRedo(),
+        canUndo: () => useGraphHistoryStore.getState().canUndo(),
+        canRedo: () => useGraphHistoryStore.getState().canRedo(),
 
-      createSnapshot: () => {
-        const { nodes, edges, nodeCounter } = get();
-        return createSnapshot(nodes, edges, nodeCounter);
-      },
+        createSnapshot: () => {
+          const { nodes, edges, nodeCounter } = get();
+          return createSnapshot(nodes, edges, nodeCounter);
+        },
 
-      // ========================================
-      // Graph Mutations
-      // ========================================
+        // ========================================
+        // Graph Mutations
+        // ========================================
 
-      addNode: autoHistory((x: number, y: number) => {
-        get().clearVisualization();
-        const { nodes, edges, nodeCounter, visualization } = get();
-        const newNodeId = nodeCounter + 1;
-        const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
+        addNode: autoHistory((x: number, y: number) => {
+          get().clearVisualization();
+          const { nodes, edges, nodeCounter, visualization } = get();
+          const newNodeId = nodeCounter + 1;
+          const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
-        // Keep existing node references, just add the new one
-        const newNodes = [...nodes, newNode];
-        const newEdges = new Map(edges);
-        newEdges.set(newNodeId, []);
+          // Keep existing node references, just add the new one
+          const newNodes = [...nodes, newNode];
+          const newEdges = new Map(edges);
+          newEdges.set(newNodeId, []);
 
-        set({
-          nodes: newNodes,
-          edges: newEdges,
-          nodeCounter: newNodeId,
-          visualization: { ...visualization, input: null },
-        });
-      }),
-
-      moveNode: (nodeId, x, y) => {
-        const { nodes, edges } = get();
-
-        // Only create new object for the moved node, keep same references for others
-        const newNodes = nodes.map((node) =>
-          node.id === nodeId ? { ...node, x, y } : node
-        );
-
-        const newEdges = new Map(edges);
-
-        // Update edges starting from this node
-        const nodeEdges = edges.get(nodeId);
-        if (nodeEdges) {
-          const updatedNodeEdges = nodeEdges.map((edge) => {
-            const { tempX, tempY } = calculateAccurateCoords(x, y, edge.nodeX2, edge.nodeY2);
-            return { ...edge, x1: x, y1: y, x2: tempX, y2: tempY };
+          set({
+            nodes: newNodes,
+            edges: newEdges,
+            nodeCounter: newNodeId,
+            visualization: { ...visualization, input: null },
           });
-          newEdges.set(nodeId, updatedNodeEdges);
-        }
+        }),
 
-        // Update edges pointing to this node (only if they actually have edges to this node)
-        edges.forEach((list, fromNodeId) => {
-          if (list && fromNodeId !== nodeId) {
-            let hasChanges = false;
-            const updatedList = list.map((edge) => {
-              if (parseInt(edge.to) === nodeId) {
-                hasChanges = true;
-                const { tempX, tempY } = calculateAccurateCoords(edge.x1, edge.y1, x, y);
-                return { ...edge, x2: tempX, y2: tempY, nodeX2: x, nodeY2: y };
-              }
-              return edge;
+        moveNode: batchedAutoHistory((nodeId: number, x: number, y: number) => {
+          const { nodes, edges } = get();
+
+          // Only create new object for the moved node, keep same references for others
+          const newNodes = nodes.map((node) =>
+            node.id === nodeId ? { ...node, x, y } : node
+          );
+
+          const newEdges = new Map(edges);
+
+          // Update edges starting from this node
+          const nodeEdges = edges.get(nodeId);
+          if (nodeEdges) {
+            const updatedNodeEdges = nodeEdges.map((edge) => {
+              const { tempX, tempY } = calculateAccurateCoords(x, y, edge.nodeX2, edge.nodeY2);
+              return { ...edge, x1: x, y1: y, x2: tempX, y2: tempY };
             });
-            // Only update if edges actually changed
-            if (hasChanges) {
-              newEdges.set(fromNodeId, updatedList);
-            }
+            newEdges.set(nodeId, updatedNodeEdges);
           }
-        });
 
-        set({
-          nodes: newNodes,
-          edges: newEdges,
-        });
-      },
-
-      deleteNode: autoHistory((nodeId: number) => {
-        get().clearVisualization();
-        const { nodes, edges } = get();
-
-        const newNodes = nodes.filter((n) => n.id !== nodeId);
-        const newEdges = new Map(edges);
-        newEdges.delete(nodeId);
-
-        // Only update edge arrays that actually have edges to the deleted node
-        edges.forEach((edgeList, nId) => {
-          if (edgeList && nId !== nodeId) {
-            const hasEdgeToDeleted = edgeList.some((edge) => edge.to === String(nodeId));
-            if (hasEdgeToDeleted) {
-              const filtered = edgeList.filter((edge) => edge.to !== String(nodeId));
-              newEdges.set(nId, filtered);
+          // Update edges pointing to this node (only if they actually have edges to this node)
+          edges.forEach((list, fromNodeId) => {
+            if (list && fromNodeId !== nodeId) {
+              let hasChanges = false;
+              const updatedList = list.map((edge) => {
+                if (parseInt(edge.to) === nodeId) {
+                  hasChanges = true;
+                  const { tempX, tempY } = calculateAccurateCoords(edge.x1, edge.y1, x, y);
+                  return { ...edge, x2: tempX, y2: tempY, nodeX2: x, nodeY2: y };
+                }
+                return edge;
+              });
+              // Only update if edges actually changed
+              if (hasChanges) {
+                newEdges.set(fromNodeId, updatedList);
+              }
             }
-          }
-        });
+          });
 
-        set({
-          nodes: newNodes,
-          edges: newEdges,
-          selectedNodeId: null,
-        });
-      }),
+          set({
+            nodes: newNodes,
+            edges: newEdges,
+          });
+        }),
 
-      addEdge: autoHistory((fromNode: INode, toNode: INode) => {
-        get().clearVisualization();
-        const { nodes, edges, visualization } = get();
+        deleteNode: autoHistory((nodeId: number) => {
+          get().clearVisualization();
+          const { nodes, edges } = get();
 
-        const { tempX, tempY } = calculateAccurateCoords(
-          fromNode.x,
-          fromNode.y,
-          toNode.x,
-          toNode.y
-        );
+          const newNodes = nodes.filter((n) => n.id !== nodeId);
+          const newEdges = new Map(edges);
+          newEdges.delete(nodeId);
 
-        const newEdge: IEdge = {
-          x1: fromNode.x,
-          y1: fromNode.y,
-          x2: tempX,
-          y2: tempY,
-          nodeX2: toNode.x,
-          nodeY2: toNode.y,
-          from: fromNode.id.toString(),
-          to: toNode.id.toString(),
-          weight: 0,
-          type: "directed",
-        };
+          // Only update edge arrays that actually have edges to the deleted node
+          edges.forEach((edgeList, nId) => {
+            if (edgeList && nId !== nodeId) {
+              const hasEdgeToDeleted = edgeList.some((edge) => edge.to === String(nodeId));
+              if (hasEdgeToDeleted) {
+                const filtered = edgeList.filter((edge) => edge.to !== String(nodeId));
+                newEdges.set(nId, filtered);
+              }
+            }
+          });
 
-        // Only update the source node's edge array
-        const newEdges = new Map(edges);
-        const sourceEdges = edges.get(fromNode.id) || [];
-        newEdges.set(fromNode.id, [...sourceEdges, newEdge]);
+          set({
+            nodes: newNodes,
+            edges: newEdges,
+            selectedNodeId: null,
+          });
+        }),
 
-        set({
-          nodes,  // Keep same node references
-          edges: newEdges,
-          visualization: { ...visualization, input: null },
-        });
-      }),
+        addEdge: autoHistory((fromNode: INode, toNode: INode) => {
+          get().clearVisualization();
+          const { nodes, edges, visualization } = get();
 
-      setGraph: autoHistory((nodes: INode[], edges: Map<number, IEdge[]>, nodeCounter: number) => {
-        get().clearVisualization();
-        const { visualization } = get();
-
-        set({
-          nodes,
-          edges,
-          nodeCounter,
-          selectedNodeId: null,
-          selectedEdgeForEdit: null,
-          visualization: { ...visualization, input: null },
-        });
-      }),
-
-      updateEdgeType: autoHistory((fromNodeId: number, toNodeId: number, newType: "directed" | "undirected") => {
-        get().clearVisualization();
-        const { nodes, edges, selectedEdgeForEdit } = get();
-
-        const sourceNode = nodes.find((n) => n.id === fromNodeId);
-        const targetNode = nodes.find((n) => n.id === toNodeId);
-
-        if (!sourceNode || !targetNode) return;
-
-        // Get the current edge
-        const sourceEdges = edges.get(fromNodeId) || [];
-        const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
-        if (!currentEdge) return;
-
-        // Only update affected edge arrays
-        const newEdges = new Map(edges);
-
-        if (newType === "undirected" && currentEdge.type === "directed") {
-          // Update original edge
-          const updatedSourceEdges = sourceEdges.map((e) =>
-            parseInt(e.to) === toNodeId ? { ...e, type: "undirected" } : e
+          const { tempX, tempY } = calculateAccurateCoords(
+            fromNode.x,
+            fromNode.y,
+            toNode.x,
+            toNode.y
           );
-          newEdges.set(fromNodeId, updatedSourceEdges);
 
-          // Add reverse edge
-          const targetEdges = edges.get(toNodeId) || [];
-          const reverseExists = targetEdges.some((e) => parseInt(e.to) === fromNodeId);
-          if (!reverseExists) {
-            const { tempX, tempY } = calculateAccurateCoords(
-              targetNode.x,
-              targetNode.y,
-              sourceNode.x,
-              sourceNode.y
+          const newEdge: IEdge = {
+            x1: fromNode.x,
+            y1: fromNode.y,
+            x2: tempX,
+            y2: tempY,
+            nodeX2: toNode.x,
+            nodeY2: toNode.y,
+            from: fromNode.id.toString(),
+            to: toNode.id.toString(),
+            weight: 0,
+            type: "directed",
+          };
+
+          // Only update the source node's edge array
+          const newEdges = new Map(edges);
+          const sourceEdges = edges.get(fromNode.id) || [];
+          newEdges.set(fromNode.id, [...sourceEdges, newEdge]);
+
+          set({
+            nodes,  // Keep same node references
+            edges: newEdges,
+            visualization: { ...visualization, input: null },
+          });
+        }),
+
+        setGraph: autoHistory((nodes: INode[], edges: Map<number, IEdge[]>, nodeCounter: number) => {
+          get().clearVisualization();
+          const { visualization } = get();
+
+          set({
+            nodes,
+            edges,
+            nodeCounter,
+            selectedNodeId: null,
+            selectedEdgeForEdit: null,
+            visualization: { ...visualization, input: null },
+          });
+        }),
+
+        updateEdgeType: autoHistory((fromNodeId: number, toNodeId: number, newType: "directed" | "undirected") => {
+          get().clearVisualization();
+          const { nodes, edges, selectedEdgeForEdit } = get();
+
+          const sourceNode = nodes.find((n) => n.id === fromNodeId);
+          const targetNode = nodes.find((n) => n.id === toNodeId);
+
+          if (!sourceNode || !targetNode) return;
+
+          // Get the current edge
+          const sourceEdges = edges.get(fromNodeId) || [];
+          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          if (!currentEdge) return;
+
+          // Only update affected edge arrays
+          const newEdges = new Map(edges);
+
+          if (newType === "undirected" && currentEdge.type === "directed") {
+            // Update original edge
+            const updatedSourceEdges = sourceEdges.map((e) =>
+              parseInt(e.to) === toNodeId ? { ...e, type: "undirected" } : e
             );
-            const reverseEdge: IEdge = {
-              x1: targetNode.x,
-              y1: targetNode.y,
-              x2: tempX,
-              y2: tempY,
-              nodeX2: sourceNode.x,
-              nodeY2: sourceNode.y,
-              from: toNodeId.toString(),
-              to: fromNodeId.toString(),
-              weight: currentEdge.weight,
-              type: "undirected",
-            };
-            newEdges.set(toNodeId, [...targetEdges, reverseEdge]);
+            newEdges.set(fromNodeId, updatedSourceEdges);
+
+            // Add reverse edge
+            const targetEdges = edges.get(toNodeId) || [];
+            const reverseExists = targetEdges.some((e) => parseInt(e.to) === fromNodeId);
+            if (!reverseExists) {
+              const { tempX, tempY } = calculateAccurateCoords(
+                targetNode.x,
+                targetNode.y,
+                sourceNode.x,
+                sourceNode.y
+              );
+              const reverseEdge: IEdge = {
+                x1: targetNode.x,
+                y1: targetNode.y,
+                x2: tempX,
+                y2: tempY,
+                nodeX2: sourceNode.x,
+                nodeY2: sourceNode.y,
+                from: toNodeId.toString(),
+                to: fromNodeId.toString(),
+                weight: currentEdge.weight,
+                type: "undirected",
+              };
+              newEdges.set(toNodeId, [...targetEdges, reverseEdge]);
+            }
+          } else if (newType === "directed" && currentEdge.type === "undirected") {
+            // Update original edge
+            const updatedSourceEdges = sourceEdges.map((e) =>
+              parseInt(e.to) === toNodeId ? { ...e, type: "directed" } : e
+            );
+            newEdges.set(fromNodeId, updatedSourceEdges);
+
+            // Remove reverse edge
+            const targetEdges = edges.get(toNodeId) || [];
+            const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
+            newEdges.set(toNodeId, filteredTargetEdges);
           }
-        } else if (newType === "directed" && currentEdge.type === "undirected") {
-          // Update original edge
+
+          // Update selectedEdgeForEdit if it exists
+          const updatedEdge = { ...currentEdge, type: newType };
+
+          set({
+            nodes,  // Keep same node references
+            edges: newEdges,
+            selectedEdgeForEdit: selectedEdgeForEdit
+              ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
+              : null,
+          });
+        }),
+
+        updateEdgeWeight: autoHistory((fromNodeId: number, toNodeId: number, newWeight: number) => {
+          get().clearVisualization();
+          const { nodes, edges, selectedEdgeForEdit } = get();
+
+          const sourceNode = nodes.find((n) => n.id === fromNodeId);
+
+          // Update edge weight
+          const sourceEdges = edges.get(fromNodeId) || [];
+          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          if (!currentEdge || !sourceNode) return;
+
+          // Only update affected edge arrays
+          const newEdges = new Map(edges);
+
           const updatedSourceEdges = sourceEdges.map((e) =>
-            parseInt(e.to) === toNodeId ? { ...e, type: "directed" } : e
+            parseInt(e.to) === toNodeId ? { ...e, weight: newWeight } : e
           );
           newEdges.set(fromNodeId, updatedSourceEdges);
 
-          // Remove reverse edge
-          const targetEdges = edges.get(toNodeId) || [];
-          const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
-          newEdges.set(toNodeId, filteredTargetEdges);
-        }
+          // If undirected, update reverse edge too
+          if (currentEdge.type === "undirected") {
+            const targetEdges = edges.get(toNodeId) || [];
+            const updatedTargetEdges = targetEdges.map((e) =>
+              parseInt(e.to) === fromNodeId ? { ...e, weight: newWeight } : e
+            );
+            newEdges.set(toNodeId, updatedTargetEdges);
+          }
 
-        // Update selectedEdgeForEdit if it exists
-        const updatedEdge = { ...currentEdge, type: newType };
+          const updatedEdge = { ...currentEdge, weight: newWeight };
 
-        set({
-          nodes,  // Keep same node references
-          edges: newEdges,
-          selectedEdgeForEdit: selectedEdgeForEdit
-            ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
-            : null,
-        });
-      }),
+          set({
+            nodes,  // Keep same node references
+            edges: newEdges,
+            selectedEdgeForEdit: selectedEdgeForEdit
+              ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
+              : null,
+          });
+        }),
 
-      updateEdgeWeight: autoHistory((fromNodeId: number, toNodeId: number, newWeight: number) => {
-        get().clearVisualization();
-        const { nodes, edges, selectedEdgeForEdit } = get();
+        reverseEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
+          get().clearVisualization();
+          const { nodes, edges } = get();
 
-        const sourceNode = nodes.find((n) => n.id === fromNodeId);
+          const sourceNode = nodes.find((n) => n.id === fromNodeId);
+          const targetNode = nodes.find((n) => n.id === toNodeId);
+          if (!sourceNode || !targetNode) return;
 
-        // Update edge weight
-        const sourceEdges = edges.get(fromNodeId) || [];
-        const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
-        if (!currentEdge || !sourceNode) return;
+          // Get the current edge
+          const sourceEdges = edges.get(fromNodeId) || [];
+          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          if (!currentEdge) return;
 
-        // Only update affected edge arrays
-        const newEdges = new Map(edges);
+          // Only update affected edge arrays
+          const newEdges = new Map(edges);
 
-        const updatedSourceEdges = sourceEdges.map((e) =>
-          parseInt(e.to) === toNodeId ? { ...e, weight: newWeight } : e
-        );
-        newEdges.set(fromNodeId, updatedSourceEdges);
+          // Remove original edge
+          const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
+          newEdges.set(fromNodeId, filteredSourceEdges);
 
-        // If undirected, update reverse edge too
-        if (currentEdge.type === "undirected") {
-          const targetEdges = edges.get(toNodeId) || [];
-          const updatedTargetEdges = targetEdges.map((e) =>
-            parseInt(e.to) === fromNodeId ? { ...e, weight: newWeight } : e
+          // Add reversed edge
+          const { tempX, tempY } = calculateAccurateCoords(
+            targetNode.x,
+            targetNode.y,
+            sourceNode.x,
+            sourceNode.y
           );
-          newEdges.set(toNodeId, updatedTargetEdges);
-        }
-
-        const updatedEdge = { ...currentEdge, weight: newWeight };
-
-        set({
-          nodes,  // Keep same node references
-          edges: newEdges,
-          selectedEdgeForEdit: selectedEdgeForEdit
-            ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
-            : null,
-        });
-      }),
-
-      reverseEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
-        get().clearVisualization();
-        const { nodes, edges } = get();
-
-        const sourceNode = nodes.find((n) => n.id === fromNodeId);
-        const targetNode = nodes.find((n) => n.id === toNodeId);
-        if (!sourceNode || !targetNode) return;
-
-        // Get the current edge
-        const sourceEdges = edges.get(fromNodeId) || [];
-        const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
-        if (!currentEdge) return;
-
-        // Only update affected edge arrays
-        const newEdges = new Map(edges);
-
-        // Remove original edge
-        const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
-        newEdges.set(fromNodeId, filteredSourceEdges);
-
-        // Add reversed edge
-        const { tempX, tempY } = calculateAccurateCoords(
-          targetNode.x,
-          targetNode.y,
-          sourceNode.x,
-          sourceNode.y
-        );
-        const reversedEdge: IEdge = {
-          x1: targetNode.x,
-          y1: targetNode.y,
-          x2: tempX,
-          y2: tempY,
-          nodeX2: sourceNode.x,
-          nodeY2: sourceNode.y,
-          from: toNodeId.toString(),
-          to: fromNodeId.toString(),
-          weight: currentEdge.weight,
-          type: "directed",
-        };
-        const targetEdges = edges.get(toNodeId) || [];
-        newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
-
-        set({
-          nodes,  // Keep same node references
-          edges: newEdges,
-          selectedEdgeForEdit: null,
-        });
-      }),
-
-      deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
-        get().clearVisualization();
-        const { nodes, edges } = get();
-
-        // Get the edge to check if undirected
-        const sourceEdges = edges.get(fromNodeId) || [];
-        const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
-
-        // Only update affected edge arrays
-        const newEdges = new Map(edges);
-
-        // Remove the edge
-        const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
-        newEdges.set(fromNodeId, filteredSourceEdges);
-
-        // If undirected, also remove reverse edge
-        if (currentEdge?.type === "undirected") {
+          const reversedEdge: IEdge = {
+            x1: targetNode.x,
+            y1: targetNode.y,
+            x2: tempX,
+            y2: tempY,
+            nodeX2: sourceNode.x,
+            nodeY2: sourceNode.y,
+            from: toNodeId.toString(),
+            to: fromNodeId.toString(),
+            weight: currentEdge.weight,
+            type: "directed",
+          };
           const targetEdges = edges.get(toNodeId) || [];
-          const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
-          newEdges.set(toNodeId, filteredTargetEdges);
-        }
+          newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
 
-        set({
-          nodes,  // Keep same node references
-          edges: newEdges,
-          selectedEdgeForEdit: null,
-        });
-      }),
-
-      // ========================================
-      // History Actions
-      // ========================================
-
-      undo: () => {
-        get().clearVisualization();
-        const historyStore = useGraphHistoryStore.getState();
-        historyStore.undo(
-          () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
-          (snapshot) => set({
-            ...snapshotToState(snapshot),
-            selectedNodeId: null,
+          set({
+            nodes,  // Keep same node references
+            edges: newEdges,
             selectedEdgeForEdit: null,
-          })
-        );
-      },
+          });
+        }),
 
-      redo: () => {
-        get().clearVisualization();
-        const historyStore = useGraphHistoryStore.getState();
-        historyStore.redo(
-          () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
-          (snapshot) => set({
-            ...snapshotToState(snapshot),
-            selectedNodeId: null,
+        deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
+          get().clearVisualization();
+          const { nodes, edges } = get();
+
+          // Get the edge to check if undirected
+          const sourceEdges = edges.get(fromNodeId) || [];
+          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+
+          // Only update affected edge arrays
+          const newEdges = new Map(edges);
+
+          // Remove the edge
+          const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
+          newEdges.set(fromNodeId, filteredSourceEdges);
+
+          // If undirected, also remove reverse edge
+          if (currentEdge?.type === "undirected") {
+            const targetEdges = edges.get(toNodeId) || [];
+            const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
+            newEdges.set(toNodeId, filteredTargetEdges);
+          }
+
+          set({
+            nodes,  // Keep same node references
+            edges: newEdges,
             selectedEdgeForEdit: null,
-          })
-        );
-      },
+          });
+        }),
 
-      resetGraph: () => {
-        const { visualization } = get();
-        useGraphHistoryStore.getState().clear();
-        set({
-          ...initialState,
-          visualization: { ...initialVisualization, speed: visualization.speed }, // Preserve speed setting
-        });
-      },
+        // ========================================
+        // History Actions
+        // ========================================
 
-      setPresent: (snapshot) => {
-        set(snapshotToState(snapshot));
-      },
+        undo: () => {
+          get().clearVisualization();
+          const historyStore = useGraphHistoryStore.getState();
+          historyStore.undo(
+            () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+            (snapshot) => set({
+              ...snapshotToState(snapshot),
+              selectedNodeId: null,
+              selectedEdgeForEdit: null,
+            })
+          );
+        },
 
-      // ========================================
-      // Selection Actions
-      // ========================================
+        redo: () => {
+          get().clearVisualization();
+          const historyStore = useGraphHistoryStore.getState();
+          historyStore.redo(
+            () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+            (snapshot) => set({
+              ...snapshotToState(snapshot),
+              selectedNodeId: null,
+              selectedEdgeForEdit: null,
+            })
+          );
+        },
 
-      selectNode: (nodeId) => {
-        set({ selectedNodeId: nodeId });
-      },
+        resetGraph: () => {
+          const { visualization } = get();
+          useGraphHistoryStore.getState().clear();
+          set({
+            ...initialState,
+            visualization: { ...initialVisualization, speed: visualization.speed }, // Preserve speed setting
+          });
+        },
 
-      selectEdgeForEdit: (edge, sourceNode, clickPosition) => {
-        set({ selectedEdgeForEdit: { edge, sourceNode, clickPosition } });
-      },
+        // ========================================
+        // Selection Actions
+        // ========================================
 
-      clearEdgeSelection: () => {
-        set({ selectedEdgeForEdit: null });
-      },
+        selectNode: (nodeId) => {
+          set({ selectedNodeId: nodeId });
+        },
 
-      // ========================================
-      // Visualization Actions
-      // ========================================
+        selectEdgeForEdit: (edge, sourceNode, clickPosition) => {
+          set({ selectedEdgeForEdit: { edge, sourceNode, clickPosition } });
+        },
 
-      setVisualizationAlgorithm: (algo) => {
-        const { visualization } = get();
+        clearEdgeSelection: () => {
+          set({ selectedEdgeForEdit: null });
+        },
 
-        // Clear visualization if previous visualization was completed
-        if (visualization.state === 'done' && algo?.key && algo.key !== "select") {
+        // ========================================
+        // Visualization Actions
+        // ========================================
+
+        setVisualizationAlgorithm: (algo) => {
+          const { visualization } = get();
+
+          // Clear visualization if previous visualization was completed
+          if (visualization.state === 'done' && algo?.key && algo.key !== "select") {
+            set({
+              visualization: {
+                ...visualization,
+                algorithm: algo,
+                input: null,
+                trace: { nodes: new Map(), edges: new Map() },
+                state: 'idle',
+              },
+            });
+          } else {
+            set({
+              visualization: {
+                ...visualization,
+                algorithm: algo,
+                input: null,
+              },
+            });
+          }
+        },
+
+        setVisualizationInput: (input) => {
+          const { visualization } = get();
+          set({
+            visualization: { ...visualization, input },
+          });
+        },
+
+        setVisualizationState: (state) => {
+          const { visualization } = get();
+          set({
+            visualization: { ...visualization, state },
+          });
+        },
+
+        setVisualizationSpeed: (speed) => {
+          const { visualization } = get();
+          set({
+            visualization: { ...visualization, speed },
+          });
+        },
+
+        setVisualizationMode: (mode) => {
+          const { visualization } = get();
+          if (mode === 'manual') {
+            set({
+              visualization: {
+                ...visualization,
+                mode: 'manual',
+                step: { index: -1, history: [], isComplete: false },
+              } as ManualVisualization,
+            });
+          } else {
+            // When switching to auto, remove step state
+            const { algorithm, trace, state, input, speed } = visualization;
+            set({
+              visualization: {
+                algorithm,
+                trace,
+                state,
+                input,
+                speed,
+                mode: 'auto',
+              } as AutoVisualization,
+            });
+          }
+        },
+
+        resetVisualization: () => {
+          const { visualization } = get();
           set({
             visualization: {
               ...visualization,
-              algorithm: algo,
+              algorithm: { key: 'select', text: 'Select Algorithm' },
               input: null,
+            },
+          });
+        },
+
+        // ========================================
+        // Trace Actions (node/edge visualization)
+        // ========================================
+
+        setTraceNode: (nodeId, flags) => {
+          const { visualization } = get();
+          const newNodes = new Map(visualization.trace.nodes);
+          const existing = newNodes.get(nodeId) || {};
+          newNodes.set(nodeId, { ...existing, ...flags });
+          set({
+            visualization: {
+              ...visualization,
+              trace: { ...visualization.trace, nodes: newNodes },
+            },
+          });
+        },
+
+        setTraceEdge: (fromId, toId, flags) => {
+          const { visualization } = get();
+          const key = `${fromId}-${toId}`;
+          const newEdges = new Map(visualization.trace.edges);
+          const existing = newEdges.get(key) || {};
+          newEdges.set(key, { ...existing, ...flags });
+          set({
+            visualization: {
+              ...visualization,
+              trace: { ...visualization.trace, edges: newEdges },
+            },
+          });
+        },
+
+        clearVisualization: () => {
+          const { visualization } = get();
+          set({
+            visualization: {
+              ...visualization,
               trace: { nodes: new Map(), edges: new Map() },
               state: 'idle',
-            },
-          });
-        } else {
-          set({
-            visualization: {
-              ...visualization,
-              algorithm: algo,
               input: null,
             },
           });
-        }
-      },
+        },
 
-      setVisualizationInput: (input) => {
-        const { visualization } = get();
-        set({
-          visualization: { ...visualization, input },
-        });
-      },
+        // ========================================
+        // UI Actions
+        // ========================================
 
-      setVisualizationState: (state) => {
-        const { visualization } = get();
-        set({
-          visualization: { ...visualization, state },
-        });
-      },
+        setViewportZoom: (zoom) => {
+          const { viewport } = get();
+          set({ viewport: { ...viewport, zoom } });
+        },
 
-      setVisualizationSpeed: (speed) => {
-        const { visualization } = get();
-        set({
-          visualization: { ...visualization, speed },
-        });
-      },
+        setViewportPan: (x, y) => {
+          const { viewport } = get();
+          set({ viewport: { ...viewport, pan: { x, y } } });
+        },
 
-      setVisualizationMode: (mode) => {
-        const { visualization } = get();
-        if (mode === 'manual') {
+        // ========================================
+        // Step-Through Actions
+        // ========================================
+
+        initStepThrough: (steps) => {
+          const { visualization } = get();
           set({
             visualization: {
               ...visualization,
               mode: 'manual',
-              step: { index: -1, history: [], isComplete: false },
+              state: 'running',
+              step: { index: -1, history: steps, isComplete: false },
             } as ManualVisualization,
           });
-        } else {
-          // When switching to auto, remove step state
-          const { algorithm, trace, state, input, speed } = visualization;
+        },
+
+        stepForward: () => {
+          const { visualization } = get();
+          if (visualization.mode !== 'manual') return;
+
+          const { step } = visualization;
+          const nextIndex = step.index + 1;
+          if (nextIndex < step.history.length) {
+            set({
+              visualization: {
+                ...visualization,
+                step: {
+                  ...step,
+                  index: nextIndex,
+                  isComplete: nextIndex === step.history.length - 1,
+                },
+              } as ManualVisualization,
+            });
+          }
+        },
+
+        stepBackward: () => {
+          const { visualization } = get();
+          if (visualization.mode !== 'manual') return;
+
+          const { step } = visualization;
+          if (step.index > 0) {
+            set({
+              visualization: {
+                ...visualization,
+                step: {
+                  ...step,
+                  index: step.index - 1,
+                  isComplete: false,
+                },
+              } as ManualVisualization,
+            });
+          }
+        },
+
+        jumpToStep: (index) => {
+          const { visualization } = get();
+          if (visualization.mode !== 'manual') return;
+
+          const { step } = visualization;
+          const clampedIndex = Math.max(-1, Math.min(index, step.history.length - 1));
+          set({
+            visualization: {
+              ...visualization,
+              step: {
+                ...step,
+                index: clampedIndex,
+                isComplete: clampedIndex === step.history.length - 1,
+              },
+            } as ManualVisualization,
+          });
+        },
+
+        resetStepThrough: () => {
+          const { visualization } = get();
+          // Switch back to auto mode and clear
+          const { algorithm, input, speed } = visualization;
           set({
             visualization: {
               algorithm,
-              trace,
-              state,
+              trace: { nodes: new Map(), edges: new Map() },
+              state: 'idle',
               input,
               speed,
               mode: 'auto',
             } as AutoVisualization,
           });
-        }
-      },
-
-      resetVisualization: () => {
-        const { visualization } = get();
-        set({
-          visualization: {
-            ...visualization,
-            algorithm: { key: 'select', text: 'Select Algorithm' },
-            input: null,
-          },
-        });
-      },
-
-      // ========================================
-      // Trace Actions (node/edge visualization)
-      // ========================================
-
-      setTraceNode: (nodeId, flags) => {
-        const { visualization } = get();
-        const newNodes = new Map(visualization.trace.nodes);
-        const existing = newNodes.get(nodeId) || {};
-        newNodes.set(nodeId, { ...existing, ...flags });
-        set({
-          visualization: {
-            ...visualization,
-            trace: { ...visualization.trace, nodes: newNodes },
-          },
-        });
-      },
-
-      setTraceEdge: (fromId, toId, flags) => {
-        const { visualization } = get();
-        const key = `${fromId}-${toId}`;
-        const newEdges = new Map(visualization.trace.edges);
-        const existing = newEdges.get(key) || {};
-        newEdges.set(key, { ...existing, ...flags });
-        set({
-          visualization: {
-            ...visualization,
-            trace: { ...visualization.trace, edges: newEdges },
-          },
-        });
-      },
-
-      clearVisualization: () => {
-        const { visualization } = get();
-        set({
-          visualization: {
-            ...visualization,
-            trace: { nodes: new Map(), edges: new Map() },
-            state: 'idle',
-            input: null,
-          },
-        });
-      },
-
-      // ========================================
-      // UI Actions
-      // ========================================
-
-      setViewportZoom: (zoom) => {
-        const { viewport } = get();
-        set({ viewport: { ...viewport, zoom } });
-      },
-
-      setViewportPan: (x, y) => {
-        const { viewport } = get();
-        set({ viewport: { ...viewport, pan: { x, y } } });
-      },
-
-      // ========================================
-      // Step-Through Actions
-      // ========================================
-
-      initStepThrough: (steps) => {
-        const { visualization } = get();
-        set({
-          visualization: {
-            ...visualization,
-            mode: 'manual',
-            state: 'running',
-            step: { index: -1, history: steps, isComplete: false },
-          } as ManualVisualization,
-        });
-      },
-
-      stepForward: () => {
-        const { visualization } = get();
-        if (visualization.mode !== 'manual') return;
-
-        const { step } = visualization;
-        const nextIndex = step.index + 1;
-        if (nextIndex < step.history.length) {
-          set({
-            visualization: {
-              ...visualization,
-              step: {
-                ...step,
-                index: nextIndex,
-                isComplete: nextIndex === step.history.length - 1,
-              },
-            } as ManualVisualization,
-          });
-        }
-      },
-
-      stepBackward: () => {
-        const { visualization } = get();
-        if (visualization.mode !== 'manual') return;
-
-        const { step } = visualization;
-        if (step.index > 0) {
-          set({
-            visualization: {
-              ...visualization,
-              step: {
-                ...step,
-                index: step.index - 1,
-                isComplete: false,
-              },
-            } as ManualVisualization,
-          });
-        }
-      },
-
-      jumpToStep: (index) => {
-        const { visualization } = get();
-        if (visualization.mode !== 'manual') return;
-
-        const { step } = visualization;
-        const clampedIndex = Math.max(-1, Math.min(index, step.history.length - 1));
-        set({
-          visualization: {
-            ...visualization,
-            step: {
-              ...step,
-              index: clampedIndex,
-              isComplete: clampedIndex === step.history.length - 1,
-            },
-          } as ManualVisualization,
-        });
-      },
-
-      resetStepThrough: () => {
-        const { visualization } = get();
-        // Switch back to auto mode and clear
-        const { algorithm, input, speed } = visualization;
-        set({
-          visualization: {
-            algorithm,
-            trace: { nodes: new Map(), edges: new Map() },
-            state: 'idle',
-            input,
-            speed,
-            mode: 'auto',
-          } as AutoVisualization,
-        });
-      },
-    };
+        },
+      };
     },
     { name: "GraphStore" }
   )

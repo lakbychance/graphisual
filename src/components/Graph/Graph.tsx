@@ -3,14 +3,12 @@ import { Node } from "../Graph/Node/Node";
 import { findToNodeForTouchBasedDevices } from "../../utility/calc";
 import { DRAG_THRESHOLD, TIMING } from "../../utility/constants";
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../../utility/graphUtils";
-import { INode, IEdge, GraphSnapshot } from "./IGraph";
+import { INode, IEdge } from "./IGraph";
 import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
 import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
 import { useGraphStore, selectStepIndex, selectStepHistory } from "../../store/graphStore";
-import { useGraphHistoryStore } from "../../store/graphHistoryStore";
 import { useShallow } from "zustand/shallow";
-import { debounce } from "../../utility/debounce";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
@@ -65,35 +63,12 @@ export const Graph = () => {
   const isDraggingEdge = useRef(false);
   const justClosedPopup = useRef(false);
   const isDraggingCanvas = useRef(false);
-  const dragStartSnapshot = useRef<GraphSnapshot | null>(null);
 
   // Refs to track latest state during visualization (for setTimeout callbacks)
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   nodesRef.current = nodes;
   edgesRef.current = edges;
-
-  // Helper to create a snapshot for history
-  const createSnapshot = useCallback((
-    newNodes: INode[],
-    newEdges: Map<number, IEdge[]>,
-    newNodeCounter: number
-  ): GraphSnapshot => ({
-    nodes: newNodes,
-    edges: Array.from(newEdges.entries()).map(([k, v]) => [k, v || []]),
-    nodeCounter: newNodeCounter,
-  }), []);
-
-  // Debounced function to record drag start state to history
-  const debouncedRecordDrag = useMemo(
-    () => debounce(() => {
-      if (dragStartSnapshot.current) {
-        useGraphHistoryStore.getState().push(dragStartSnapshot.current);
-        dragStartSnapshot.current = null;
-      }
-    }, TIMING.DEBOUNCE),
-    []
-  );
 
   // Update SVG dimensions on mount and resize
   useEffect(() => {
@@ -456,18 +431,10 @@ export const Graph = () => {
     deleteEdgeAction(sourceNode.id, parseInt(edge.to));
   }, [selectedEdgeForEdit, deleteEdgeAction]);
 
-  // Handle node movement
+  // Handle node movement - history is now managed by batchedAutoHistory in the store
   const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
-    // Get current state at call-time instead of closing over nodes/edges
-    const { nodes, edges, nodeCounter } = useGraphStore.getState();
-
-    // Capture state before first move
-    if (!dragStartSnapshot.current) {
-      dragStartSnapshot.current = createSnapshot(nodes, edges, nodeCounter);
-    }
     moveNode(nodeId, x, y);
-    debouncedRecordDrag();
-  }, [createSnapshot, debouncedRecordDrag, moveNode]);
+  }, [moveNode]);
 
   // Handle connector drag start
   const handleConnectorDragStart = useCallback(
