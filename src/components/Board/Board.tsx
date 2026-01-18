@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
-import { motion, useReducedMotion } from "motion/react";
 import { Graph } from "../Graph/Graph";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
@@ -8,27 +7,21 @@ import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import {
-  RotateCcw, Undo2, Redo2, ZoomIn, ZoomOut, Trash2,
-  SkipBack, ChevronLeft, ChevronRight, SkipForward, Play, Pause,
-  Sun, Moon, Monitor, Check, Minus, Plus
-} from "lucide-react";
-import { SunMoonIcon as ThemeIcon } from '../ui/icons/SunMoonIcon'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+import { RotateCcw, Undo2, Redo2, Trash2 } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
-import { MOD_KEY } from "../../utility/keyboard";
-import { ZOOM, TIMING, SPEED_LEVELS } from "../../utility/constants";
+import { TIMING, SPEED_LEVELS } from "../../utility/constants";
 import { GrainTexture } from "../ui/grain-texture";
-import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
-import { VisualizationState, VisualizationMode, THEME } from "../../constants";
+import { VisualizationState, VisualizationMode } from "../../constants";
+
+// Extracted components
+import { ThemeSelector } from "./ThemeSelector";
+import { AlgorithmHint } from "./AlgorithmHint";
+import { StepControls } from "./StepControls";
+import { SpeedControl } from "./SpeedControl";
+import { ModeToggle } from "./ModeToggle";
+import { ZoomControls } from "./ZoomControls";
 
 export const Board = () => {
   // Get state from store
@@ -70,9 +63,6 @@ export const Board = () => {
 
   // Track if we're on desktop for responsive dropdown alignment
   const isDesktop = useIsDesktop();
-
-  // Respect user's reduced motion preferences
-  const prefersReducedMotion = useReducedMotion();
 
   // Clear play interval on unmount or when visualization ends
   useEffect(() => {
@@ -140,6 +130,17 @@ export const Board = () => {
     }
   };
 
+  // Determine if we should show step mode controls
+  const isInStepMode = visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0;
+
+  // Get algorithm hint text
+  const getAlgorithmHintText = () => {
+    if (visualizationInput && visualizationInput.startNodeId !== -1 && visualizationInput.endNodeId === -1) {
+      return "Now select the destination node";
+    }
+    return algorithmRegistry.get(visualizationAlgorithm?.key || '')?.metadata.description || '';
+  };
+
   return (
     <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
       <div className="h-dvh w-screen relative overflow-hidden">
@@ -156,53 +157,15 @@ export const Board = () => {
           {/* Mobile: Floating Undo/Redo/Delete - aligned to right edge of toolbar */}
           <div className="flex justify-between">
             <div className="z-40 gap-2">
-              {/* Zoom controls group */}
+              {/* Zoom controls group - Mobile only */}
               <div className="md:hidden relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden backdrop-blur-sm">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={actions.zoomOut.execute}
-                      disabled={zoom <= ZOOM.MIN}
-                      variant="ghost"
-                      size="icon-sm"
-                      className="relative z-10"
-                    >
-                      <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Zoom Out ({MOD_KEY}−)</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={actions.resetZoom.execute}
-                      aria-label="Reset zoom"
-                      className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
-                    >
-                      {Math.round(zoom * 100)}%
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Reset Zoom</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={actions.zoomIn.execute}
-                      disabled={zoom >= ZOOM.MAX}
-                      variant="ghost"
-                      size="icon-sm"
-                      className="relative z-10"
-                      aria-label="Zoom in"
-                    >
-                      <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Zoom In ({MOD_KEY}+)</TooltipContent>
-                </Tooltip>
+                <ZoomControls
+                  zoom={zoom}
+                  onZoomIn={actions.zoomIn.execute}
+                  onZoomOut={actions.zoomOut.execute}
+                  onZoomReset={actions.resetZoom.execute}
+                />
               </div>
-
             </div>
             <div className="flex md:hidden items-center gap-0.5 px-1 py-1 rounded-md backdrop-blur-sm">
               <Button
@@ -237,55 +200,20 @@ export const Board = () => {
           </div>
 
           {/* Main toolbar */}
-
-          {/* Mode toggle - hidden during step visualization */}
           <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
             <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
-            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
-              <>
-                <RadixToggleGroup
-                  type="single"
-                  value={visualizationMode}
-                  onValueChange={(value) => value && setVisualizationMode(value as VisualizationMode)}
-                  variant="pressed"
-                  disabled={isVisualizing}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="flex-1">
-                        <RadixToggleGroupItem
-                          value={VisualizationMode.AUTO}
-                          className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
-                        >
-                          Auto
-                        </RadixToggleGroupItem>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Runs visualization automatically</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="flex-1">
-                        <RadixToggleGroupItem
-                          value={VisualizationMode.MANUAL}
-                          className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
-                        >
-                          Step
-                        </RadixToggleGroupItem>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Control each step manually</TooltipContent>
-                  </Tooltip>
-                </RadixToggleGroup>
 
-                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
-              </>
+            {/* Mode toggle - hidden during step visualization */}
+            {!isInStepMode && (
+              <ModeToggle
+                mode={visualizationMode}
+                onModeChange={setVisualizationMode}
+                disabled={isVisualizing}
+              />
             )}
 
             {/* Algorithm picker - hidden on mobile during step mode */}
-            <div className={cn(
-              visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0 && "hidden md:block"
-            )}>
+            <div className={cn(isInStepMode && "hidden md:block")}>
               <AlgorithmPicker
                 selectedAlgo={visualizationAlgorithm}
                 onSelect={handleAlgoChange}
@@ -294,7 +222,7 @@ export const Board = () => {
             </div>
 
             {/* Graph Generator - hidden during step mode visualization */}
-            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
+            {!isInStepMode && (
               <>
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
                 <GraphGenerator disabled={isVisualizing} />
@@ -302,169 +230,36 @@ export const Board = () => {
             )}
 
             {/* Step controls - shown when in manual step mode during visualization */}
-            {visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0 && (
-              <>
-                {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
-                <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
-
-                <div className="flex items-center gap-0.5">
-                  {/* Jump to start */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={actions.jumpToStart.execute}
-                        disabled={!actions.stepBackward.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                      >
-                        <SkipBack className={cn("h-4 w-4", actions.stepBackward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Jump to Start (Home)</TooltipContent>
-                  </Tooltip>
-
-                  {/* Step backward */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={actions.stepBackward.execute}
-                        disabled={!actions.stepBackward.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                      >
-                        <ChevronLeft className={cn("h-4 w-4", actions.stepBackward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Previous Step (←)</TooltipContent>
-                  </Tooltip>
-
-                  {/* Step counter */}
-                  <span className="font-['JetBrains_Mono'] text-[12px] md:text-[13px] tabular-nums px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
-                    {stepIndex + 1} / {stepHistory.length}
-                  </span>
-
-                  {/* Step forward */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={actions.stepForward.execute}
-                        disabled={!actions.stepForward.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                      >
-                        <ChevronRight className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Next Step (→)</TooltipContent>
-                  </Tooltip>
-
-                  {/* Jump to end */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={actions.jumpToEnd.execute}
-                        disabled={!actions.stepForward.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                      >
-                        <SkipForward className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Jump to End (End)</TooltipContent>
-                  </Tooltip>
-
-                  {/* Play/Pause */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={actions.togglePlay.execute}
-                        disabled={!actions.togglePlay.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                      >
-                        {isPlaying ? (
-                          <Pause className="h-4 w-4 text-[var(--color-text)]" />
-                        ) : (
-                          <Play className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
-                  </Tooltip>
-                </div>
-
-                {/* Stop/Done button */}
-                <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={actions.stopVisualization.execute}
-                      variant="ghost"
-                      className="h-9 px-3 z-10 !rounded-md font-['Outfit'] text-[13px] text-[var(--color-error)]"
-                    >
-                      Done
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>End Visualization</TooltipContent>
-                </Tooltip>
-              </>
+            {isInStepMode && (
+              <StepControls
+                stepIndex={stepIndex}
+                totalSteps={stepHistory.length}
+                isPlaying={isPlaying}
+                canStepBackward={actions.stepBackward.enabled}
+                canStepForward={actions.stepForward.enabled}
+                onJumpToStart={actions.jumpToStart.execute}
+                onStepBackward={actions.stepBackward.execute}
+                onStepForward={actions.stepForward.execute}
+                onJumpToEnd={actions.jumpToEnd.execute}
+                onTogglePlay={actions.togglePlay.execute}
+                onStop={actions.stopVisualization.execute}
+              />
             )}
 
             {/* Speed control - Desktop only (hidden during step mode) */}
-            <div className={cn("hidden md:flex items-center", visualizationMode === VisualizationMode.MANUAL && isVisualizing && "!hidden")}>
-              {/* Divider */}
-              <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
-
-              {/* Speed stepper */}
-              <div className="flex items-center gap-0.5 px-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleDecreaseSpeed}
-                      disabled={isVisualizing || currentSpeedIndex <= 0}
-                      variant="ghost"
-                      size="icon-xs"
-                      className="z-10"
-                    >
-                      <Minus className={cn("h-3.5 w-3.5", currentSpeedIndex > 0 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Slower</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="font-['JetBrains_Mono'] text-[12px] min-w-[32px] text-center tabular-nums cursor-help text-[var(--color-text)]">
-                      {currentSpeedMultiplier}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Visualization Speed</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleIncreaseSpeed}
-                      disabled={isVisualizing || currentSpeedIndex >= SPEED_LEVELS.length - 1}
-                      variant="ghost"
-                      size="icon-xs"
-                      className="z-10"
-                    >
-                      <Plus className={cn("h-3.5 w-3.5", currentSpeedIndex < SPEED_LEVELS.length - 1 && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Faster</TooltipContent>
-                </Tooltip>
-              </div>
+            <div className={cn("hidden md:flex items-center", isInStepMode && "!hidden")}>
+              <SpeedControl
+                speedMultiplier={currentSpeedMultiplier}
+                disabled={isVisualizing}
+                canDecrease={currentSpeedIndex > 0}
+                canIncrease={currentSpeedIndex < SPEED_LEVELS.length - 1}
+                onDecrease={handleDecreaseSpeed}
+                onIncrease={handleIncreaseSpeed}
+              />
             </div>
 
             {/* Normal toolbar controls - hidden during step mode visualization */}
-            {!(visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0) && (
+            {!isInStepMode && (
               <>
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
@@ -487,33 +282,11 @@ export const Board = () => {
               </>
             )}
           </div>
-
         </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
         {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && (
-          <motion.div
-            initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={prefersReducedMotion ? { duration: 0 } : undefined}
-            className={cn(
-              "fixed z-40 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]",
-              // Mobile: center top
-              "top-4",
-              // Desktop: center bottom
-              "md:top-auto md:bottom-5",
-
-            )}
-          >
-            <div className="relative px-4 py-2.5 rounded-md text-[13px] font-['Outfit'] text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
-              <span className="relative z-10">
-                {/* Show different hint for pathfinding after first node is selected */}
-                {visualizationInput && visualizationInput.startNodeId !== -1 && visualizationInput.endNodeId === -1
-                  ? "Now select the destination node"
-                  : algorithmRegistry.get(visualizationAlgorithm.key)?.metadata.description}
-              </span>
-            </div>
-          </motion.div>
+          <AlgorithmHint text={getAlgorithmHintText()} />
         )}
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
@@ -521,50 +294,12 @@ export const Board = () => {
           {/* Zoom controls group */}
           <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
             <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={actions.zoomOut.execute}
-                  disabled={zoom <= ZOOM.MIN}
-                  variant="ghost"
-                  size="icon-sm"
-                  className="relative z-10"
-                  aria-label="Zoom out"
-                >
-                  <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Zoom Out ({MOD_KEY}−)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={actions.resetZoom.execute}
-                  aria-label="Reset zoom"
-                  className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
-                >
-                  {Math.round(zoom * 100)}%
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Reset Zoom</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={actions.zoomIn.execute}
-                  disabled={zoom >= ZOOM.MAX}
-                  variant="ghost"
-                  size="icon-sm"
-                  className="relative z-10"
-                  aria-label="Zoom in"
-                >
-                  <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Zoom In ({MOD_KEY}+)</TooltipContent>
-            </Tooltip>
+            <ZoomControls
+              zoom={zoom}
+              onZoomIn={actions.zoomIn.execute}
+              onZoomOut={actions.zoomOut.execute}
+              onZoomReset={actions.resetZoom.execute}
+            />
           </div>
 
           {/* Undo/Redo controls group - with grainy texture */}
@@ -583,7 +318,7 @@ export const Board = () => {
                   <Undo2 size={16} className={cn(actions.undo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Undo ({MOD_KEY}+Z)</TooltipContent>
+              <TooltipContent>Undo (⌘+Z)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -599,51 +334,18 @@ export const Board = () => {
                   <Redo2 size={16} className={cn(actions.redo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Redo ({MOD_KEY}+Shift+Z)</TooltipContent>
+              <TooltipContent>Redo (⌘+Shift+Z)</TooltipContent>
             </Tooltip>
           </div>
         </div>
 
         {/* Settings button - Top left on mobile, bottom right on desktop */}
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                aria-label="Theme settings"
-                className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
-              >
-                <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md overflow-hidden" />
-                <ThemeIcon size={24} className="text-[var(--color-text-muted)]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={isDesktop ? "end" : "start"} sideOffset={8} className="w-40 font-['Outfit']">
-              <DropdownMenuLabel className="text-xs font-medium">Theme</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => setTheme(THEME.LIGHT)}
-                className="cursor-pointer gap-2"
-              >
-                <Sun className="h-4 w-4" />
-                <span className="flex-1">Light</span>
-                {theme === THEME.LIGHT && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setTheme(THEME.DARK)}
-                className="cursor-pointer gap-2"
-              >
-                <Moon className="h-4 w-4" />
-                <span className="flex-1">Dark</span>
-                {theme === THEME.DARK && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setTheme(THEME.SYSTEM)}
-                className="cursor-pointer gap-2"
-              >
-                <Monitor className="h-4 w-4" />
-                <span className="flex-1">System</span>
-                {theme === THEME.SYSTEM && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ThemeSelector
+            theme={theme}
+            setTheme={setTheme}
+            alignDropdown={isDesktop ? "end" : "start"}
+          />
         </div>
 
       </div>
