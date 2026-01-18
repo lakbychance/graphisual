@@ -53,6 +53,12 @@ interface ManualVisualization extends VisualizationBase {
 // Discriminated union
 type Visualization = AutoVisualization | ManualVisualization;
 
+// Viewport state (zoom + pan)
+interface Viewport {
+  zoom: number;
+  pan: { x: number; y: number };
+}
+
 interface GraphState {
   // === Graph Data ===
   nodes: INode[];
@@ -71,8 +77,7 @@ interface GraphState {
   selectedEdgeForEdit: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
 
   // === UI State ===
-  zoom: number;
-  pan: { x: number; y: number };
+  viewport: Viewport;
 }
 
 interface GraphActions {
@@ -113,8 +118,8 @@ interface GraphActions {
   clearVisualization: () => void;
 
   // === UI Actions ===
-  setZoom: (zoom: number) => void;
-  setPan: (x: number, y: number) => void;
+  setViewportZoom: (zoom: number) => void;
+  setViewportPan: (x: number, y: number) => void;
 
   // === Step-Through Actions ===
   initStepThrough: (steps: Array<{ type: 'visit' | 'result'; edge: { from: number; to: number } }>) => void;
@@ -171,6 +176,11 @@ const initialVisualization: AutoVisualization = {
   mode: 'auto',
 };
 
+const initialViewport: Viewport = {
+  zoom: 1,
+  pan: { x: 0, y: 0 },
+};
+
 const initialState: GraphState = {
   // Graph data
   nodes: [],
@@ -189,8 +199,7 @@ const initialState: GraphState = {
   selectedEdgeForEdit: null,
 
   // UI
-  zoom: 1,
-  pan: { x: 0, y: 0 },
+  viewport: initialViewport,
 };
 
 // ============================================================================
@@ -787,12 +796,14 @@ export const useGraphStore = create<GraphStore>()(
       // UI Actions
       // ========================================
 
-      setZoom: (zoom) => {
-        set({ zoom });
+      setViewportZoom: (zoom) => {
+        const { viewport } = get();
+        set({ viewport: { ...viewport, zoom } });
       },
 
-      setPan: (x, y) => {
-        set({ pan: { x, y } });
+      setViewportPan: (x, y) => {
+        const { viewport } = get();
+        set({ viewport: { ...viewport, pan: { x, y } } });
       },
 
       // ========================================
@@ -896,8 +907,8 @@ export const selectNodes = (state: GraphStore) => state.nodes;
 export const selectEdges = (state: GraphStore) => state.edges;
 export const selectSelectedNodeId = (state: GraphStore) => state.selectedNodeId;
 export const selectSelectedEdgeForEdit = (state: GraphStore) => state.selectedEdgeForEdit;
-export const selectZoom = (state: GraphStore) => state.zoom;
-export const selectPan = (state: GraphStore) => state.pan;
+export const selectViewportZoom = (state: GraphStore) => state.viewport.zoom;
+export const selectViewportPan = (state: GraphStore) => state.viewport.pan;
 
 // Visualization selectors
 export const selectVisualization = (state: GraphStore) => state.visualization;

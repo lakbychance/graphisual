@@ -22,8 +22,7 @@ beforeEach(() => {
     future: [],
     selectedNodeId: null,
     selectedEdgeForEdit: null,
-    zoom: 1,
-    pan: { x: 0, y: 0 },
+    viewport: { zoom: 1, pan: { x: 0, y: 0 } },
   })
 })
 
@@ -260,14 +259,14 @@ describe('graphStore', () => {
   })
 
   describe('UI State', () => {
-    it('setZoom updates zoom level', () => {
-      const { setZoom } = useGraphStore.getState()
+    it('setViewportZoom updates zoom level', () => {
+      const { setViewportZoom } = useGraphStore.getState()
 
-      setZoom(1.5)
-      expect(useGraphStore.getState().zoom).toBe(1.5)
+      setViewportZoom(1.5)
+      expect(useGraphStore.getState().viewport.zoom).toBe(1.5)
 
-      setZoom(0.5)
-      expect(useGraphStore.getState().zoom).toBe(0.5)
+      setViewportZoom(0.5)
+      expect(useGraphStore.getState().viewport.zoom).toBe(0.5)
     })
 
     it('setVisualizationSpeed updates speed', () => {

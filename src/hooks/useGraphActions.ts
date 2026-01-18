@@ -33,7 +33,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const { playState } = options;
 
   // Store selectors
-  const zoom = useGraphStore((state) => state.zoom);
+  const zoom = useGraphStore((state) => state.viewport.zoom);
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const canUndo = useGraphStore((state) => state.canUndo());
   const canRedo = useGraphStore((state) => state.canRedo());
@@ -53,7 +53,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const redo = useGraphStore((state) => state.redo);
   const deleteNode = useGraphStore((state) => state.deleteNode);
   const selectNode = useGraphStore((state) => state.selectNode);
-  const setZoom = useGraphStore((state) => state.setZoom);
+  const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const stepForward = useGraphStore((state) => state.stepForward);
   const stepBackward = useGraphStore((state) => state.stepBackward);
   const jumpToStep = useGraphStore((state) => state.jumpToStep);
@@ -83,16 +83,16 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   }, [selectedNodeId, isVisualizing, deleteNode]);
 
   const executeZoomIn = useCallback(() => {
-    setZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
-  }, [zoom, setZoom]);
+    setViewportZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
+  }, [zoom, setViewportZoom]);
 
   const executeZoomOut = useCallback(() => {
-    setZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
-  }, [zoom, setZoom]);
+    setViewportZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
+  }, [zoom, setViewportZoom]);
 
   const executeResetZoom = useCallback(() => {
-    setZoom(1);
-  }, [setZoom]);
+    setViewportZoom(1);
+  }, [setViewportZoom]);
 
   const executeDeselect = useCallback(() => {
     if (!isInStepMode) {

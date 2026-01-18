@@ -33,8 +33,8 @@ export const Graph = () => {
 
   // Derive boolean for simpler component logic and Node prop
   const isVisualizing = visualizationState === 'running';
-  const zoom = useGraphStore((state) => state.zoom);
-  const pan = useGraphStore((state) => state.pan);
+  const zoom = useGraphStore((state) => state.viewport.zoom);
+  const pan = useGraphStore((state) => state.viewport.pan);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
@@ -53,7 +53,7 @@ export const Graph = () => {
   const updateEdgeWeightAction = useGraphStore((state) => state.updateEdgeWeight);
   const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
   const deleteEdgeAction = useGraphStore((state) => state.deleteEdge);
-  const setPan = useGraphStore((state) => state.setPan);
+  const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const initStepThrough = useGraphStore((state) => state.initStepThrough);
 
   // Local UI state (not shared with other components)
@@ -363,7 +363,7 @@ export const Graph = () => {
       if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
         isDraggingCanvas.current = true;
         // Scale delta by zoom for consistent feel at different zoom levels
-        setPan(panAtDragStart.current.x + deltaX / zoom, panAtDragStart.current.y + deltaY / zoom);
+        setViewportPan(panAtDragStart.current.x + deltaX / zoom, panAtDragStart.current.y + deltaY / zoom);
       }
     };
 
@@ -375,7 +375,7 @@ export const Graph = () => {
 
     document.addEventListener("pointermove", handlePointerMove);
     document.addEventListener("pointerup", handlePointerUp);
-  }, [pan, zoom, isVisualizing, setPan]);
+  }, [pan, zoom, isVisualizing, setViewportPan]);
 
   // Handle click on canvas/node
   const handleSelect = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
