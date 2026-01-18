@@ -1,6 +1,5 @@
 import React, { useRef, useCallback, useState, memo } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { NodeProps } from "./INode";
 import { IEdge } from "../IGraph";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
@@ -8,6 +7,24 @@ import { Edge } from "../Edge/Edge";
 import { DRAG_THRESHOLD, NODE } from "../../../utility/constants";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
+
+export interface NodeProps {
+  nodeId: number;
+  onNodeMove: (nodeId: number, x: number, y: number) => void;
+  onEdgeClick: (edge: IEdge, nodeId: number, clickPosition: { x: number; y: number }) => void;
+  onConnectorDragStart: (
+    sourceNodeId: number,
+    position: string,
+    startX: number,
+    startY: number
+  ) => void;
+  isVisualizing: boolean;
+  isAlgorithmSelected: boolean;
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  onNodeSelect: (nodeId: number | null) => void;
+  screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
+}
+
 
 export const Node = memo(function Node(props: NodeProps) {
   const {
