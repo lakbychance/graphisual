@@ -8,6 +8,7 @@ import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../..
 import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
 import { useGraphStore, selectStepIndex, selectStepHistory } from "../../store/graphStore";
+import { useGraphHistoryStore } from "../../store/graphHistoryStore";
 import { useShallow } from "zustand/shallow";
 import { debounce } from "../../utility/debounce";
 import { CanvasDefs } from "./defs/CanvasDefs";
@@ -48,7 +49,6 @@ export const Graph = () => {
   const setVisualizationInput = useGraphStore((state) => state.setVisualizationInput);
   const setVisualizationState = useGraphStore((state) => state.setVisualizationState);
   const resetVisualization = useGraphStore((state) => state.resetVisualization);
-  const pushToPast = useGraphStore((state) => state.pushToPast);
   const updateEdgeTypeAction = useGraphStore((state) => state.updateEdgeType);
   const updateEdgeWeightAction = useGraphStore((state) => state.updateEdgeWeight);
   const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
@@ -88,11 +88,11 @@ export const Graph = () => {
   const debouncedRecordDrag = useMemo(
     () => debounce(() => {
       if (dragStartSnapshot.current) {
-        pushToPast(dragStartSnapshot.current);
+        useGraphHistoryStore.getState().push(dragStartSnapshot.current);
         dragStartSnapshot.current = null;
       }
     }, TIMING.DEBOUNCE),
-    [pushToPast]
+    []
   );
 
   // Update SVG dimensions on mount and resize

@@ -12,6 +12,8 @@ import { devtools } from "zustand/middleware";
 import { INode, IEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/IGraph";
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
+import { useGraphHistoryStore } from "./graphHistoryStore";
+import { withAutoHistory } from "./middleware/withAutoHistory";
 
 // ============================================================================
 // Types
@@ -68,10 +70,6 @@ interface GraphState {
   // === Unified Visualization State ===
   visualization: Visualization;
 
-  // === History ===
-  past: GraphSnapshot[];
-  future: GraphSnapshot[];
-
   // === Selection State ===
   selectedNodeId: number | null;
   selectedEdgeForEdit: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
@@ -96,7 +94,6 @@ interface GraphActions {
   undo: () => void;
   redo: () => void;
   resetGraph: () => void;
-  pushToPast: (snapshot: GraphSnapshot) => void;
   setPresent: (snapshot: GraphSnapshot) => void;
 
   // === Selection Actions ===
@@ -156,10 +153,6 @@ const snapshotToState = (snapshot: GraphSnapshot) => ({
   nodeCounter: snapshot.nodeCounter,
 });
 
-const areSnapshotsEqual = (a: GraphSnapshot, b: GraphSnapshot): boolean => {
-  return JSON.stringify(a) === JSON.stringify(b);
-};
-
 // ============================================================================
 // Initial State
 // ============================================================================
@@ -190,10 +183,6 @@ const initialState: GraphState = {
   // Unified visualization state
   visualization: initialVisualization,
 
-  // History
-  past: [],
-  future: [],
-
   // Selection
   selectedNodeId: null,
   selectedEdgeForEdit: null,
@@ -208,15 +197,20 @@ const initialState: GraphState = {
 
 export const useGraphStore = create<GraphStore>()(
   devtools(
-    (set, get) => ({
+    (set, get) => {
+      const autoHistory = <TArgs extends unknown[], TReturn>(
+        mutation: (...args: TArgs) => TReturn
+      ) => withAutoHistory(get, mutation);
+
+      return {
       ...initialState,
 
       // ========================================
       // Computed
       // ========================================
 
-      canUndo: () => get().past.length > 0,
-      canRedo: () => get().future.length > 0,
+      canUndo: () => useGraphHistoryStore.getState().canUndo(),
+      canRedo: () => useGraphHistoryStore.getState().canRedo(),
 
       createSnapshot: () => {
         const { nodes, edges, nodeCounter } = get();
@@ -227,9 +221,9 @@ export const useGraphStore = create<GraphStore>()(
       // Graph Mutations
       // ========================================
 
-      addNode: (x, y) => {
+      addNode: autoHistory((x: number, y: number) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past, visualization } = get();
+        const { nodes, edges, nodeCounter, visualization } = get();
         const newNodeId = nodeCounter + 1;
         const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
@@ -238,17 +232,13 @@ export const useGraphStore = create<GraphStore>()(
         const newEdges = new Map(edges);
         newEdges.set(newNodeId, []);
 
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
-
         set({
           nodes: newNodes,
           edges: newEdges,
           nodeCounter: newNodeId,
-          past: [...past, currentSnapshot],
-          future: [],
           visualization: { ...visualization, input: null },
         });
-      },
+      }),
 
       moveNode: (nodeId, x, y) => {
         const { nodes, edges } = get();
@@ -295,10 +285,9 @@ export const useGraphStore = create<GraphStore>()(
         });
       },
 
-      deleteNode: (nodeId) => {
+      deleteNode: autoHistory((nodeId: number) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges } = get();
 
         const newNodes = nodes.filter((n) => n.id !== nodeId);
         const newEdges = new Map(edges);
@@ -318,16 +307,13 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes: newNodes,
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           selectedNodeId: null,
         });
-      },
+      }),
 
-      addEdge: (fromNode, toNode) => {
+      addEdge: autoHistory((fromNode: INode, toNode: INode) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past, visualization } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges, visualization } = get();
 
         const { tempX, tempY } = calculateAccurateCoords(
           fromNode.x,
@@ -357,33 +343,27 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes,  // Keep same node references
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           visualization: { ...visualization, input: null },
         });
-      },
+      }),
 
-      setGraph: (nodes, edges, nodeCounter) => {
+      setGraph: autoHistory((nodes: INode[], edges: Map<number, IEdge[]>, nodeCounter: number) => {
         get().clearVisualization();
-        const { nodes: currentNodes, edges: currentEdges, nodeCounter: currentCounter, visualization } = get();
-        const currentSnapshot = createSnapshot(currentNodes, currentEdges, currentCounter);
+        const { visualization } = get();
 
         set({
           nodes,
           edges,
           nodeCounter,
-          past: [...get().past, currentSnapshot],
-          future: [],
           selectedNodeId: null,
           selectedEdgeForEdit: null,
           visualization: { ...visualization, input: null },
         });
-      },
+      }),
 
-      updateEdgeType: (fromNodeId, toNodeId, newType) => {
+      updateEdgeType: autoHistory((fromNodeId: number, toNodeId: number, newType: "directed" | "undirected") => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges, selectedEdgeForEdit } = get();
 
         const sourceNode = nodes.find((n) => n.id === fromNodeId);
         const targetNode = nodes.find((n) => n.id === toNodeId);
@@ -448,18 +428,15 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes,  // Keep same node references
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           selectedEdgeForEdit: selectedEdgeForEdit
             ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
             : null,
         });
-      },
+      }),
 
-      updateEdgeWeight: (fromNodeId, toNodeId, newWeight) => {
+      updateEdgeWeight: autoHistory((fromNodeId: number, toNodeId: number, newWeight: number) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past, selectedEdgeForEdit } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges, selectedEdgeForEdit } = get();
 
         const sourceNode = nodes.find((n) => n.id === fromNodeId);
 
@@ -490,18 +467,15 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes,  // Keep same node references
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           selectedEdgeForEdit: selectedEdgeForEdit
             ? { edge: updatedEdge, sourceNode, clickPosition: selectedEdgeForEdit.clickPosition }
             : null,
         });
-      },
+      }),
 
-      reverseEdge: (fromNodeId, toNodeId) => {
+      reverseEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges } = get();
 
         const sourceNode = nodes.find((n) => n.id === fromNodeId);
         const targetNode = nodes.find((n) => n.id === toNodeId);
@@ -544,16 +518,13 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes,  // Keep same node references
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           selectedEdgeForEdit: null,
         });
-      },
+      }),
 
-      deleteEdge: (fromNodeId, toNodeId) => {
+      deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
         get().clearVisualization();
-        const { nodes, edges, nodeCounter, past } = get();
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
+        const { nodes, edges } = get();
 
         // Get the edge to check if undirected
         const sourceEdges = edges.get(fromNodeId) || [];
@@ -576,11 +547,9 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes,  // Keep same node references
           edges: newEdges,
-          past: [...past, currentSnapshot],
-          future: [],
           selectedEdgeForEdit: null,
         });
-      },
+      }),
 
       // ========================================
       // History Actions
@@ -588,57 +557,36 @@ export const useGraphStore = create<GraphStore>()(
 
       undo: () => {
         get().clearVisualization();
-        const { past, nodes, edges, nodeCounter, future } = get();
-        if (past.length === 0) return;
-
-        const previous = past[past.length - 1];
-        const newPast = past.slice(0, -1);
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
-
-        set({
-          ...snapshotToState(previous),
-          past: newPast,
-          future: [currentSnapshot, ...future],
-          selectedNodeId: null,
-          selectedEdgeForEdit: null,
-        });
+        const historyStore = useGraphHistoryStore.getState();
+        historyStore.undo(
+          () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+          (snapshot) => set({
+            ...snapshotToState(snapshot),
+            selectedNodeId: null,
+            selectedEdgeForEdit: null,
+          })
+        );
       },
 
       redo: () => {
         get().clearVisualization();
-        const { past, nodes, edges, nodeCounter, future } = get();
-        if (future.length === 0) return;
-
-        const next = future[0];
-        const newFuture = future.slice(1);
-        const currentSnapshot = createSnapshot(nodes, edges, nodeCounter);
-
-        set({
-          ...snapshotToState(next),
-          past: [...past, currentSnapshot],
-          future: newFuture,
-          selectedNodeId: null,
-          selectedEdgeForEdit: null,
-        });
+        const historyStore = useGraphHistoryStore.getState();
+        historyStore.redo(
+          () => createSnapshot(get().nodes, get().edges, get().nodeCounter),
+          (snapshot) => set({
+            ...snapshotToState(snapshot),
+            selectedNodeId: null,
+            selectedEdgeForEdit: null,
+          })
+        );
       },
 
       resetGraph: () => {
         const { visualization } = get();
+        useGraphHistoryStore.getState().clear();
         set({
           ...initialState,
           visualization: { ...initialVisualization, speed: visualization.speed }, // Preserve speed setting
-        });
-      },
-
-      pushToPast: (snapshot) => {
-        const { past } = get();
-        // Don't add duplicate
-        if (past.length > 0 && areSnapshotsEqual(snapshot, past[past.length - 1])) {
-          return;
-        }
-        set({
-          past: [...past, snapshot],
-          future: [],
         });
       },
 
@@ -894,7 +842,8 @@ export const useGraphStore = create<GraphStore>()(
           } as AutoVisualization,
         });
       },
-    }),
+    };
+    },
     { name: "GraphStore" }
   )
 );

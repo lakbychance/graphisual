@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
+import { useGraphHistoryStore } from './graphHistoryStore'
 
 // Reset store before each test
 beforeEach(() => {
+  // Reset history store
+  useGraphHistoryStore.setState({ past: [], future: [] })
+
+  // Reset graph store
   useGraphStore.setState({
     nodes: [],
     edges: new Map(),
@@ -18,8 +23,6 @@ beforeEach(() => {
       speed: 400,
       mode: 'auto',
     },
-    past: [],
-    future: [],
     selectedNodeId: null,
     selectedEdgeForEdit: null,
     viewport: { zoom: 1, pan: { x: 0, y: 0 } },
@@ -203,8 +206,11 @@ describe('graphStore', () => {
       const state = useGraphStore.getState()
       expect(state.nodes).toHaveLength(0)
       expect(state.edges.size).toBe(0)
-      expect(state.past).toHaveLength(0)
-      expect(state.future).toHaveLength(0)
+
+      // History is now in the history store
+      const historyState = useGraphHistoryStore.getState()
+      expect(historyState.past).toHaveLength(0)
+      expect(historyState.future).toHaveLength(0)
     })
   })
 
