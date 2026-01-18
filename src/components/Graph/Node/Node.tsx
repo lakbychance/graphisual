@@ -1,10 +1,10 @@
 import React, { useRef, useCallback, useState, memo } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
 import { NodeProps } from "./INode";
 import { IEdge } from "../IGraph";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
+import { Edge } from "../Edge/Edge";
 import { DRAG_THRESHOLD, NODE } from "../../../utility/constants";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
@@ -141,160 +141,15 @@ export const Node = memo(function Node(props: NodeProps) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Edges rendered first so they appear behind nodes */}
-      {nodeEdges?.map((edge: IEdge) => {
-        const directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
-        const undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
-        const textCoordDirected = calculateTextLoc(
-          edge.x1,
-          edge.y1,
-          edge.x2,
-          edge.y2
-        );
-        const edgeKey = `${node.id}-${edge.to}`;
-
-        // Determine edge color - warm tones matching the surface
-        const getEdgeColor = () => {
-          if (edge.isUsedInShortestPath) return "var(--color-edge-path)";
-          if (edge.isUsedInTraversal) return "var(--color-edge-traversal)";
-          return "var(--color-edge-default)";
-        };
-
-        const getEdgeArrowColor = () => {
-          if (edge.isUsedInShortestPath) return "var(--color-edge-path)";
-          if (edge.isUsedInTraversal) return "var(--color-edge-traversal)";
-          return "var(--color-node-stroke)";
-        }
-
-        const edgeColor = getEdgeColor();
-
-        const edgeArrowColor = getEdgeArrowColor();
-
-        const hoverColor = "var(--color-accent-form)";
-
-        return (
-          <g key={edgeKey}>
-            {edge.type === "directed" && (
-              <>
-                <marker
-                  style={{ fill: edgeArrowColor }}
-                  id={`arrowhead${node.id}${edge.to}`}
-                  markerWidth="9"
-                  markerHeight="7"
-                  refX="8.7"
-                  refY="3.5"
-                  orient="auto"
-                >
-                  <polygon points="0 0, 10 3.5, 0 7" />
-                </marker>
-                <path
-                  id={`${node.id}${edge.to}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isVisualizing) onEdgeClick(edge, node.id, { x: e.clientX, y: e.clientY });
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isVisualizing) e.currentTarget.style.stroke = hoverColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.stroke = edgeColor;
-                  }}
-                  d={directedPath}
-                  style={{
-                    stroke: edgeColor,
-                    strokeWidth: edge.isUsedInShortestPath ? 3.5 : edge.isUsedInTraversal ? 3 : 2,
-                  }}
-                  className={cn(
-                    "fill-transparent cursor-pointer",
-                    isVisualizing && "pointer-events-none"
-                  )}
-                  markerEnd={`url(#arrowhead${node.id}${edge.to})`}
-                />
-                {edge.weight !== undefined && edge.weight !== 0 && (() => {
-                  // Calculate actual center of quadratic bezier curve at t=0.5
-                  // Q(0.5) = (P0 + 2*P1 + P2) / 4
-                  const centerX = (edge.x1 + 2 * textCoordDirected.c1x + edge.x2) / 4;
-                  const centerY = (edge.y1 + 2 * textCoordDirected.c1y + edge.y2) / 4;
-                  return (
-                    <g>
-                      <rect
-                        x={centerX - 12}
-                        y={centerY - 10}
-                        width={24}
-                        height={20}
-                        fill="var(--color-paper)"
-                        rx={4}
-                      />
-                      <text
-                        className="pointer-events-none select-none font-['JetBrains_Mono'] font-semibold text-[13px] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-[11px]"
-                        style={{ fill: 'var(--color-text)' }}
-                        x={centerX}
-                        y={centerY}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                      >
-                        {edge.weight}
-                      </text>
-                    </g>
-                  );
-                })()}
-              </>
-            )}
-
-            {edge.type === "undirected" && (
-              <>
-                <path
-                  d={undirectedPath}
-                  id={`${node.id}${edge.to}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isVisualizing) onEdgeClick(edge, node.id, { x: e.clientX, y: e.clientY });
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isVisualizing) e.currentTarget.style.stroke = hoverColor;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.stroke = edgeColor;
-                  }}
-                  style={{
-                    stroke: edgeColor,
-                    strokeWidth: edge.isUsedInShortestPath ? 3.5 : edge.isUsedInTraversal ? 3 : 2.5,
-                  }}
-                  className={cn(
-                    "fill-transparent cursor-pointer",
-                    isVisualizing && "pointer-events-none"
-                  )}
-                />
-                {edge.weight !== undefined && edge.weight !== 0 && (() => {
-                  const centerX = (edge.x1 + edge.nodeX2) / 2;
-                  const centerY = (edge.y1 + edge.nodeY2) / 2;
-                  return (
-                    <g>
-                      <rect
-                        x={centerX - 12}
-                        y={centerY - 10}
-                        width={24}
-                        height={20}
-                        fill="var(--color-paper)"
-                        rx={4}
-                      />
-                      <text
-                        className="pointer-events-none select-none font-['JetBrains_Mono'] font-semibold text-[13px] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-[11px]"
-                        style={{ fill: 'var(--color-text)' }}
-                        x={centerX}
-                        y={centerY}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                      >
-                        {edge.weight}
-                      </text>
-                    </g>
-                  );
-                })()}
-              </>
-            )}
-          </g>
-        );
-      })}
+      {nodeEdges?.map((edge: IEdge) => (
+        <Edge
+          key={`${nodeId}-${edge.to}`}
+          edge={edge}
+          sourceNodeId={nodeId}
+          isVisualizing={isVisualizing}
+          onEdgeClick={onEdgeClick}
+        />
+      ))}
 
       {/* Node visual elements with spring animation on mount */}
       <motion.g
