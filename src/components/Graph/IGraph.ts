@@ -42,14 +42,6 @@ export interface IEdge {
 }
 
 /**
- * Node selection state for algorithm visualization.
- */
-export interface INodeSelection {
-  isStartNodeSelected: boolean;
-  isEndNodeSelected: boolean;
-}
-
-/**
  * Snapshot of graph state for undo/redo history.
  * Uses array format for edges to enable JSON serialization.
  */

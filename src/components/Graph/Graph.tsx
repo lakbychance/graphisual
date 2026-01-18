@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Node } from "../Graph/Node/Node";
 import { findToNodeForTouchBasedDevices } from "../../utility/calc";
-import { isModKey } from "../../utility/keyboard";
-import { ZOOM, DRAG_THRESHOLD, TIMING } from "../../utility/constants";
+import { DRAG_THRESHOLD, TIMING } from "../../utility/constants";
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../../utility/graphUtils";
 import { INode, IEdge, GraphSnapshot } from "./IGraph";
 import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
@@ -28,8 +27,7 @@ export const Graph = () => {
   const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
   const selectedEdgeForEdit = useGraphStore((state) => state.selectedEdgeForEdit);
   const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
-  const nodeSelection = useGraphStore((state) => state.nodeSelection);
-  const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
+  const algorithmSelection = useGraphStore((state) => state.algorithmSelection);
   const visualizationState = useGraphStore((state) => state.visualizationState);
   const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
 
@@ -40,30 +38,23 @@ export const Graph = () => {
   const stepMode = useGraphStore((state) => state.stepMode);
   const stepIndex = useGraphStore((state) => state.stepIndex);
   const stepHistory = useGraphStore((state) => state.stepHistory);
-  const canUndo = useGraphStore((state) => state.canUndo());
-  const canRedo = useGraphStore((state) => state.canRedo());
 
   const addNode = useGraphStore((state) => state.addNode);
   const moveNode = useGraphStore((state) => state.moveNode);
-  const deleteNode = useGraphStore((state) => state.deleteNode);
   const addEdge = useGraphStore((state) => state.addEdge);
   const selectNode = useGraphStore((state) => state.selectNode);
   const selectEdgeForEdit = useGraphStore((state) => state.selectEdgeForEdit);
   const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
-  const setPathFindingNode = useGraphStore((state) => state.setPathFindingNode);
+  const setAlgorithmSelection = useGraphStore((state) => state.setAlgorithmSelection);
   const setVisualizationState = useGraphStore((state) => state.setVisualizationState);
-  const setNodeSelection = useGraphStore((state) => state.setNodeSelection);
   const updateVisualizationState = useGraphStore((state) => state.updateVisualizationState);
   const resetAlgorithmState = useGraphStore((state) => state.resetAlgorithmState);
-  const undo = useGraphStore((state) => state.undo);
-  const redo = useGraphStore((state) => state.redo);
   const pushToPast = useGraphStore((state) => state.pushToPast);
   const updateEdgeTypeAction = useGraphStore((state) => state.updateEdgeType);
   const updateEdgeWeightAction = useGraphStore((state) => state.updateEdgeWeight);
   const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
   const deleteEdgeAction = useGraphStore((state) => state.deleteEdge);
   const setPan = useGraphStore((state) => state.setPan);
-  const setZoom = useGraphStore((state) => state.setZoom);
   const initStepThrough = useGraphStore((state) => state.initStepThrough);
 
   // Local UI state (not shared with other components)
@@ -206,49 +197,6 @@ export const Graph = () => {
     updateVisualizationState(updatedNodes, updatedEdges);
   }, [stepMode, stepIndex, stepHistory, updateVisualizationState]);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Undo
-      if (isModKey(e) && e.key === "z" && !e.shiftKey && !isVisualizing) {
-        e.preventDefault();
-        if (canUndo) undo();
-        return;
-      }
-      // Redo
-      if (isModKey(e) && ((e.key === "z" && e.shiftKey) || e.key === "y") && !isVisualizing) {
-        e.preventDefault();
-        if (canRedo) redo();
-        return;
-      }
-      // Delete selected node
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId !== null && !isVisualizing) {
-        e.preventDefault();
-        deleteNode(selectedNodeId);
-        return;
-      }
-      // Escape to deselect
-      if (e.key === "Escape") {
-        selectNode(null);
-      }
-      // Zoom in (Cmd/Ctrl + Plus or Cmd/Ctrl + Equals)
-      if (isModKey(e) && (e.key === "+" || e.key === "=")) {
-        e.preventDefault();
-        setZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
-        return;
-      }
-      // Zoom out (Cmd/Ctrl + Minus)
-      if (isModKey(e) && e.key === "-") {
-        e.preventDefault();
-        setZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
-        return;
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, isVisualizing, canUndo, canRedo, undo, redo, deleteNode, selectNode, setZoom, zoom]);
-
   // Visualization helper
   const visualizeSetState = useCallback((
     currentEdge: IEdge,
@@ -324,17 +272,12 @@ export const Graph = () => {
   }, [visualizationSpeed, visualizeSetState, setVisualizationState, resetAlgorithmState]);
 
   const visualizeGraph = useCallback((visitedEdges: IEdge[], shortestPath: IEdge[] = []) => {
-    setNodeSelection({
-      ...nodeSelection,
-      isStartNodeSelected: false,
-      isEndNodeSelected: false,
-    });
     setVisualizationState('running');
 
     for (let i = 0; i <= visitedEdges.length; i++) {
       if (i === visitedEdges.length) {
         setTimeout(() => {
-          setPathFindingNode(null);
+          setAlgorithmSelection(null);
           visualizeShortestPath(shortestPath);
         }, visualizationSpeed * i);
         return;
@@ -352,7 +295,7 @@ export const Graph = () => {
         }
       }, visualizationSpeed * i);
     }
-  }, [visualizationSpeed, nodeSelection, visualizeShortestPath, visualizeSetState, setNodeSelection, setVisualizationState, setPathFindingNode]);
+  }, [visualizationSpeed, visualizeShortestPath, visualizeSetState, setVisualizationState, setAlgorithmSelection]);
 
   // Convert edges to algorithm input format
   const convertToAlgorithmInput = useCallback((): Map<number, EdgeInfo[]> => {
@@ -388,7 +331,7 @@ export const Graph = () => {
     // Check for negative weights with incompatible algorithms
     if (selectedAlgo?.key && ALGORITHMS_NO_NEGATIVE_WEIGHTS.has(selectedAlgo.key) && hasNegativeWeights(edges)) {
       toast.warning(`${selectedAlgo.text} doesn't support negative edge weights. Use Bellman-Ford instead.`);
-      setPathFindingNode(null);
+      setAlgorithmSelection(null);
       resetAlgorithmState();
       return;
     }
@@ -408,7 +351,7 @@ export const Graph = () => {
       if (result.error) {
         const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
         toast.error(failureMessage);
-        setPathFindingNode(null);
+        setAlgorithmSelection(null);
         resetAlgorithmState();
         return;
       }
@@ -418,11 +361,6 @@ export const Graph = () => {
       const steps: AlgorithmStep[] = [...generator];
 
       // Initialize step-through mode
-      setNodeSelection({
-        ...nodeSelection,
-        isStartNodeSelected: false,
-        isEndNodeSelected: false,
-      });
       initStepThrough(steps);
       return;
     }
@@ -433,7 +371,7 @@ export const Graph = () => {
     if (result.error) {
       const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
       toast.error(failureMessage);
-      setPathFindingNode(null);
+      setAlgorithmSelection(null);
       resetAlgorithmState();
       return;
     }
@@ -441,7 +379,7 @@ export const Graph = () => {
     const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
     visualizeGraph(visitedEdges, resultEdges);
-  }, [currentAlgorithm, nodes, edges, selectedAlgo, stepMode, nodeSelection, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setPathFindingNode, resetAlgorithmState, setNodeSelection, initStepThrough]);
+  }, [currentAlgorithm, nodes, edges, selectedAlgo, stepMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeGraph, setAlgorithmSelection, resetAlgorithmState, initStepThrough]);
 
   // Store pan at drag start for relative panning
   const panAtDragStart = useRef({ x: 0, y: 0 });
@@ -489,11 +427,11 @@ export const Graph = () => {
       const algoType = currentAlgorithm.metadata.type;
 
       if (algoType === AlgorithmType.PATHFINDING) {
-        if (!pathFindingNode) {
-          setPathFindingNode({ startNodeId: nodeId, endNodeId: -1 });
+        if (!algorithmSelection) {
+          setAlgorithmSelection({ startNodeId: nodeId, endNodeId: -1 });
         } else {
-          setPathFindingNode({ ...pathFindingNode, endNodeId: nodeId });
-          runAlgorithm(pathFindingNode.startNodeId, nodeId);
+          setAlgorithmSelection({ ...algorithmSelection, endNodeId: nodeId });
+          runAlgorithm(algorithmSelection.startNodeId, nodeId);
         }
       } else {
         runAlgorithm(nodeId);
@@ -511,7 +449,7 @@ export const Graph = () => {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, pathFindingNode, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, runAlgorithm, setPathFindingNode, selectNode, addNode]);
+  }, [currentAlgorithm, isVisualizing, algorithmSelection, selectedNodeId, selectedEdgeForEdit, screenToSvgCoords, runAlgorithm, setAlgorithmSelection, selectNode, addNode]);
 
   // Handle edge click
   const handleEdge = useCallback((edge: IEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => {

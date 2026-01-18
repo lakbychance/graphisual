@@ -13,8 +13,7 @@ beforeEach(() => {
     selectedNodeId: null,
     selectedEdgeForEdit: null,
     selectedAlgo: { key: 'select', text: 'Select Algorithm' },
-    nodeSelection: { isStartNodeSelected: false, isEndNodeSelected: false },
-    pathFindingNode: null,
+    algorithmSelection: null,
     visualizationState: 'idle',
     visualizationSpeed: 400,
     zoom: 1,
@@ -217,13 +216,13 @@ describe('graphStore', () => {
       expect(useGraphStore.getState().selectedAlgo).toEqual({ key: 'bfs', text: 'BFS' })
     })
 
-    it('setAlgorithm resets pathFindingNode', () => {
-      useGraphStore.setState({ pathFindingNode: { startNodeId: 1, endNodeId: 2 } })
+    it('setAlgorithm resets algorithmSelection', () => {
+      useGraphStore.setState({ algorithmSelection: { startNodeId: 1, endNodeId: 2 } })
 
       const { setAlgorithm } = useGraphStore.getState()
       setAlgorithm({ key: 'dfs', text: 'DFS' })
 
-      expect(useGraphStore.getState().pathFindingNode).toBe(null)
+      expect(useGraphStore.getState().algorithmSelection).toBe(null)
     })
 
     it('setVisualizationState updates visualizationState', () => {
@@ -243,13 +242,13 @@ describe('graphStore', () => {
       const { setAlgorithm, resetAlgorithmState } = useGraphStore.getState()
 
       setAlgorithm({ key: 'bfs', text: 'BFS' })
-      useGraphStore.setState({ pathFindingNode: { startNodeId: 1, endNodeId: 2 } })
+      useGraphStore.setState({ algorithmSelection: { startNodeId: 1, endNodeId: 2 } })
 
       resetAlgorithmState()
 
       const state = useGraphStore.getState()
       expect(state.selectedAlgo).toEqual({ key: 'select', text: 'Select Algorithm' })
-      expect(state.pathFindingNode).toBe(null)
+      expect(state.algorithmSelection).toBe(null)
     })
   })
 

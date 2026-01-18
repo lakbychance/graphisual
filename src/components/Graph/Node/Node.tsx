@@ -27,7 +27,7 @@ export const Node = memo(function Node(props: NodeProps) {
     state.nodes.find((n) => n.id === nodeId)
   ));
 
-  const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
+  const algorithmSelection = useGraphStore((state) => state.algorithmSelection);
 
   // Subscribe to THIS node's edges only
   const nodeEdges = useGraphStore(useShallow((state) => state.edges.get(nodeId)));
@@ -112,8 +112,8 @@ export const Node = memo(function Node(props: NodeProps) {
 
   // Determine node fill - using gradient references for tactile button look
   const getNodeFill = () => {
-    if (pathFindingNode?.startNodeId === node.id) return "url(#nodeGradientStart)";
-    if (pathFindingNode?.endNodeId === node.id) return "url(#nodeGradientEnd)";
+    if (algorithmSelection?.startNodeId === node.id) return "url(#nodeGradientStart)";
+    if (algorithmSelection?.endNodeId === node.id) return "url(#nodeGradientEnd)";
     if (node.isInShortestPath) return "url(#nodeGradientPath)";
     if (node.isVisited) return "url(#nodeGradientVisited)";
     return "url(#nodeGradientDefault)";
@@ -122,8 +122,8 @@ export const Node = memo(function Node(props: NodeProps) {
   // Stroke color for edge definition and selected state
   const getNodeStroke = () => {
     if (isSelected) return "var(--color-accent-form)"; // Focus color for selected
-    if (pathFindingNode?.startNodeId === node.id) return "var(--color-tint-start)";
-    if (pathFindingNode?.endNodeId === node.id) return "var(--color-tint-end)";
+    if (algorithmSelection?.startNodeId === node.id) return "var(--color-tint-start)";
+    if (algorithmSelection?.endNodeId === node.id) return "var(--color-tint-end)";
     if (node.isInShortestPath) return "var(--color-tint-path)";
     if (node.isVisited) return "var(--color-tint-visited)";
     return "var(--color-node-stroke)";

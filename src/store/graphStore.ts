@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { INode, IEdge, GraphSnapshot, SelectedOption, INodeSelection } from "../components/Graph/IGraph";
+import { INode, IEdge, GraphSnapshot, SelectedOption } from "../components/Graph/IGraph";
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
 
@@ -35,8 +35,7 @@ interface GraphState {
 
   // === Algorithm State ===
   selectedAlgo: SelectedOption | undefined;
-  nodeSelection: INodeSelection;
-  pathFindingNode: { startNodeId: number; endNodeId: number } | null;
+  algorithmSelection: { startNodeId: number; endNodeId: number } | null;
   visualizationState: VisualizationState;
   visualizationSpeed: number;
 
@@ -77,8 +76,7 @@ interface GraphActions {
 
   // === Algorithm Actions ===
   setAlgorithm: (algo: SelectedOption | undefined) => void;
-  setNodeSelection: (selection: INodeSelection) => void;
-  setPathFindingNode: (node: { startNodeId: number; endNodeId: number } | null) => void;
+  setAlgorithmSelection: (selection: { startNodeId: number; endNodeId: number } | null) => void;
   setVisualizationState: (state: VisualizationState) => void;
   setVisualizationSpeed: (speed: number) => void;
   resetAlgorithmState: () => void;
@@ -153,8 +151,7 @@ const initialState: GraphState = {
 
   // Algorithm
   selectedAlgo: { key: "select", text: "Select Algorithm" },
-  nodeSelection: { isStartNodeSelected: false, isEndNodeSelected: false },
-  pathFindingNode: null,
+  algorithmSelection: null,
   visualizationState: 'idle',
   visualizationSpeed: TIMING.DEFAULT_VISUALIZATION_SPEED,
 
@@ -235,7 +232,7 @@ export const useGraphStore = create<GraphStore>()(
           nodeCounter: newNodeId,
           past: [...past, currentSnapshot],
           future: [],
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -349,7 +346,7 @@ export const useGraphStore = create<GraphStore>()(
           edges: newEdges,
           past: [...past, currentSnapshot],
           future: [],
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -365,7 +362,7 @@ export const useGraphStore = create<GraphStore>()(
           future: [],
           selectedNodeId: null,
           selectedEdgeForEdit: null,
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -660,7 +657,7 @@ export const useGraphStore = create<GraphStore>()(
           const { cleanedNodes, cleanedEdges } = get().getCleanedState();
           set({
             selectedAlgo: algo,
-            pathFindingNode: null,
+            algorithmSelection: null,
             nodes: cleanedNodes,
             edges: cleanedEdges,
             visualizationState: 'idle',
@@ -668,17 +665,13 @@ export const useGraphStore = create<GraphStore>()(
         } else {
           set({
             selectedAlgo: algo,
-            pathFindingNode: null,
+            algorithmSelection: null,
           });
         }
       },
 
-      setNodeSelection: (selection) => {
-        set({ nodeSelection: selection });
-      },
-
-      setPathFindingNode: (node) => {
-        set({ pathFindingNode: node });
+      setAlgorithmSelection: (selection) => {
+        set({ algorithmSelection: selection });
       },
 
       setVisualizationState: (state) => {
@@ -692,8 +685,7 @@ export const useGraphStore = create<GraphStore>()(
       resetAlgorithmState: () => {
         set({
           selectedAlgo: { key: "select", text: "Select Algorithm" },
-          nodeSelection: { isStartNodeSelected: false, isEndNodeSelected: false },
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -727,7 +719,7 @@ export const useGraphStore = create<GraphStore>()(
         set({
           nodes: cleanedNodes,
           edges: cleanedEdges,
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -769,7 +761,7 @@ export const useGraphStore = create<GraphStore>()(
           nodes: cleanedNodes,
           edges: cleanedEdges,
           visualizationState: 'idle',
-          pathFindingNode: null,
+          algorithmSelection: null,
         });
       },
 
@@ -861,8 +853,7 @@ export const selectIsVisualizationDone = (state: GraphStore) => state.visualizat
 export const selectVisualizationSpeed = (state: GraphStore) => state.visualizationSpeed;
 export const selectZoom = (state: GraphStore) => state.zoom;
 export const selectPan = (state: GraphStore) => state.pan;
-export const selectPathFindingNode = (state: GraphStore) => state.pathFindingNode;
-export const selectNodeSelection = (state: GraphStore) => state.nodeSelection;
+export const selectAlgorithmSelection = (state: GraphStore) => state.algorithmSelection;
 export const selectStepMode = (state: GraphStore) => state.stepMode;
 export const selectStepIndex = (state: GraphStore) => state.stepIndex;
 export const selectStepHistory = (state: GraphStore) => state.stepHistory;

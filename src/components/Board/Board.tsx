@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { motion, useReducedMotion } from "motion/react";
 import { Graph } from "../Graph/Graph";
 import { cn } from "@/lib/utils";
-import { algorithmRegistry, AlgorithmType } from "../../algorithms";
+import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
@@ -23,56 +23,49 @@ import {
 } from "../ui/dropdown-menu";
 import { useGraphStore } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
+import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { MOD_KEY } from "../../utility/keyboard";
 import { ZOOM, TIMING, SPEED_LEVELS } from "../../utility/constants";
 import { GrainTexture } from "../ui/grain-texture";
 import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
 
 export const Board = () => {
-  // Get state and actions from store
+  // Get state from store
   const selectedAlgo = useGraphStore((state) => state.selectedAlgo);
   const visualizationState = useGraphStore((state) => state.visualizationState);
-  const pathFindingNode = useGraphStore((state) => state.pathFindingNode);
-
-  // Derive boolean for simpler component logic
-  const isVisualizing = visualizationState === 'running';
+  const algorithmSelection = useGraphStore((state) => state.algorithmSelection);
   const hasNodes = useGraphStore((state) => state.nodes.length > 0);
   const visualizationSpeed = useGraphStore((state) => state.visualizationSpeed);
   const zoom = useGraphStore((state) => state.zoom);
-  const selectedNodeId = useGraphStore((state) => state.selectedNodeId);
-  const canUndo = useGraphStore((state) => state.canUndo());
-  const canRedo = useGraphStore((state) => state.canRedo());
-
-  // Step-through state
   const stepMode = useGraphStore((state) => state.stepMode);
   const stepIndex = useGraphStore((state) => state.stepIndex);
   const stepHistory = useGraphStore((state) => state.stepHistory);
   const isStepComplete = useGraphStore((state) => state.isStepComplete);
 
+  // Derive boolean for simpler component logic
+  const isVisualizing = visualizationState === 'running';
+
   // Theme state (from separate settings store - persists across graph resets)
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
 
-  // Actions
+  // Actions from store
   const setAlgorithm = useGraphStore((state) => state.setAlgorithm);
-  const setNodeSelection = useGraphStore((state) => state.setNodeSelection);
   const setVisualizationSpeed = useGraphStore((state) => state.setVisualizationSpeed);
-  const setZoom = useGraphStore((state) => state.setZoom);
-  const undo = useGraphStore((state) => state.undo);
-  const redo = useGraphStore((state) => state.redo);
   const resetGraph = useGraphStore((state) => state.resetGraph);
-  const deleteNode = useGraphStore((state) => state.deleteNode);
-
-  // Step-through actions
   const setStepMode = useGraphStore((state) => state.setStepMode);
-  const stepForward = useGraphStore((state) => state.stepForward);
-  const stepBackward = useGraphStore((state) => state.stepBackward);
-  const jumpToStep = useGraphStore((state) => state.jumpToStep);
-  const resetStepThrough = useGraphStore((state) => state.resetStepThrough);
 
   // Auto-play state for step mode
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
+
+  // Centralized actions from useGraphActions hook
+  const { actions, handleKeyDown } = useGraphActions({
+    playState: { isPlaying, setIsPlaying, playIntervalRef }
+  });
+
+  // Register keyboard shortcuts
+  useGraphKeyboardShortcuts(handleKeyDown);
 
   // Track if we're on desktop for responsive dropdown alignment
   const isDesktop = useIsDesktop();
@@ -111,121 +104,6 @@ export const Board = () => {
     }
   }, [isStepComplete, isPlaying]);
 
-  // Step control handlers
-  const handleStepForward = useCallback(() => {
-    stepForward();
-  }, [stepForward]);
-
-  const handleStepBackward = useCallback(() => {
-    stepBackward();
-  }, [stepBackward]);
-
-  const handleJumpToStart = useCallback(() => {
-    jumpToStep(0);
-  }, [jumpToStep]);
-
-  const handleJumpToEnd = useCallback(() => {
-    jumpToStep(stepHistory.length - 1);
-  }, [jumpToStep, stepHistory.length]);
-
-  const handleTogglePlay = useCallback(() => {
-    if (isPlaying) {
-      // Pause
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-    } else {
-      // Play
-      setIsPlaying(true);
-      playIntervalRef.current = window.setInterval(() => {
-        const { stepIndex: currentIndex, stepHistory: history, isStepComplete: complete } = useGraphStore.getState();
-        if (complete || currentIndex >= history.length - 1) {
-          if (playIntervalRef.current !== null) {
-            clearInterval(playIntervalRef.current);
-            playIntervalRef.current = null;
-          }
-          setIsPlaying(false);
-          return;
-        }
-        stepForward();
-      }, visualizationSpeed);
-    }
-  }, [isPlaying, visualizationSpeed, stepForward]);
-
-  const handleStopVisualization = useCallback(() => {
-    if (playIntervalRef.current !== null) {
-      clearInterval(playIntervalRef.current);
-      playIntervalRef.current = null;
-    }
-    setIsPlaying(false);
-    resetStepThrough();
-    // Reset algorithm selection and clear visualization flags
-    const { resetAlgorithmState, resetVisualizationFlags } = useGraphStore.getState();
-    resetAlgorithmState();
-    resetVisualizationFlags();
-  }, [resetStepThrough]);
-
-  // Keyboard shortcuts for step mode
-  useEffect(() => {
-    // Only enable shortcuts when in step mode during visualization
-    if (stepMode !== 'manual' || !isVisualizing || stepHistory.length === 0) {
-      return;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case 'ArrowRight':
-        case 'l':
-        case 'L':
-          e.preventDefault();
-          handleStepForward();
-          break;
-        case 'ArrowLeft':
-        case 'h':
-        case 'H':
-          e.preventDefault();
-          handleStepBackward();
-          break;
-        case ' ':
-          e.preventDefault();
-          handleTogglePlay();
-          break;
-        case 'Home':
-          e.preventDefault();
-          handleJumpToStart();
-          break;
-        case 'End':
-          e.preventDefault();
-          handleJumpToEnd();
-          break;
-        case 'Escape':
-          e.preventDefault();
-          handleStopVisualization();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    stepMode,
-    isVisualizing,
-    stepHistory.length,
-    handleStepForward,
-    handleStepBackward,
-    handleTogglePlay,
-    handleJumpToStart,
-    handleJumpToEnd,
-    handleStopVisualization,
-  ]);
-
   const handleAlgoChange = (algoId: string) => {
     const algo = algorithmRegistry.get(algoId);
     if (!algo) return;
@@ -237,48 +115,10 @@ export const Board = () => {
     };
 
     setAlgorithm(selectedOption);
-
-    if (algo.metadata.type === AlgorithmType.PATHFINDING) {
-      setNodeSelection({
-        isStartNodeSelected: true,
-        isEndNodeSelected: true,
-      });
-    } else {
-      setNodeSelection({
-        isStartNodeSelected: true,
-        isEndNodeSelected: false,
-      });
-    }
   };
 
   const handleReset = () => {
     resetGraph();
-  };
-
-  const handleUndo = () => {
-    if (canUndo) undo();
-  };
-
-  const handleRedo = () => {
-    if (canRedo) redo();
-  };
-
-  const handleDeleteSelectedNode = () => {
-    if (selectedNodeId !== null) {
-      deleteNode(selectedNodeId);
-    }
-  };
-
-  const handleZoomIn = () => {
-    setZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
-  };
-
-  const handleResetZoom = () => {
-    setZoom(1);
   };
 
   // Speed control handlers
@@ -320,7 +160,7 @@ export const Board = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      onClick={handleZoomOut}
+                      onClick={actions.zoomOut.execute}
                       disabled={zoom <= ZOOM.MIN}
                       variant="ghost"
                       size="icon-sm"
@@ -335,7 +175,7 @@ export const Board = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={handleResetZoom}
+                      onClick={actions.resetZoom.execute}
                       aria-label="Reset zoom"
                       className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
                     >
@@ -348,7 +188,7 @@ export const Board = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      onClick={handleZoomIn}
+                      onClick={actions.zoomIn.execute}
                       disabled={zoom >= ZOOM.MAX}
                       variant="ghost"
                       size="icon-sm"
@@ -365,32 +205,32 @@ export const Board = () => {
             </div>
             <div className="flex md:hidden items-center gap-0.5 px-1 py-1 rounded-md backdrop-blur-sm">
               <Button
-                onClick={handleUndo}
-                disabled={isVisualizing || !canUndo}
+                onClick={actions.undo.execute}
+                disabled={!actions.undo.enabled}
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Undo"
               >
-                <Undo2 size={16} className={cn(canUndo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                <Undo2 size={16} className={cn(actions.undo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
               <Button
-                onClick={handleRedo}
-                disabled={isVisualizing || !canRedo}
+                onClick={actions.redo.execute}
+                disabled={!actions.redo.enabled}
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Redo"
               >
-                <Redo2 size={16} className={cn(canRedo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                <Redo2 size={16} className={cn(actions.redo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
               <div className="w-px h-5 mx-0.5 bg-[var(--color-divider)]" />
               <Button
-                onClick={handleDeleteSelectedNode}
-                disabled={isVisualizing || selectedNodeId === null}
+                onClick={actions.deleteSelectedNode.execute}
+                disabled={!actions.deleteSelectedNode.enabled}
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Delete selected node"
               >
-                <Trash2 size={16} className={cn(selectedNodeId !== null && !isVisualizing ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
+                <Trash2 size={16} className={cn(actions.deleteSelectedNode.enabled ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
               </Button>
             </div>
           </div>
@@ -471,13 +311,13 @@ export const Board = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleJumpToStart}
-                        disabled={stepIndex <= 0}
+                        onClick={actions.jumpToStart.execute}
+                        disabled={!actions.stepBackward.enabled}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
                       >
-                        <SkipBack className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                        <SkipBack className={cn("h-4 w-4", actions.stepBackward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Jump to Start (Home)</TooltipContent>
@@ -487,13 +327,13 @@ export const Board = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleStepBackward}
-                        disabled={stepIndex <= 0}
+                        onClick={actions.stepBackward.execute}
+                        disabled={!actions.stepBackward.enabled}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
                       >
-                        <ChevronLeft className={cn("h-4 w-4", stepIndex > 0 ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                        <ChevronLeft className={cn("h-4 w-4", actions.stepBackward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Previous Step (←)</TooltipContent>
@@ -508,13 +348,13 @@ export const Board = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleStepForward}
-                        disabled={isStepComplete}
+                        onClick={actions.stepForward.execute}
+                        disabled={!actions.stepForward.enabled}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
                       >
-                        <ChevronRight className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                        <ChevronRight className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Next Step (→)</TooltipContent>
@@ -524,13 +364,13 @@ export const Board = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleJumpToEnd}
-                        disabled={isStepComplete}
+                        onClick={actions.jumpToEnd.execute}
+                        disabled={!actions.stepForward.enabled}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
                       >
-                        <SkipForward className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                        <SkipForward className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Jump to End (End)</TooltipContent>
@@ -540,8 +380,8 @@ export const Board = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleTogglePlay}
-                        disabled={isStepComplete && !isPlaying}
+                        onClick={actions.togglePlay.execute}
+                        disabled={!actions.togglePlay.enabled}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
@@ -549,7 +389,7 @@ export const Board = () => {
                         {isPlaying ? (
                           <Pause className="h-4 w-4 text-[var(--color-text)]" />
                         ) : (
-                          <Play className={cn("h-4 w-4", !isStepComplete ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                          <Play className={cn("h-4 w-4", actions.stepForward.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -562,7 +402,7 @@ export const Board = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      onClick={handleStopVisualization}
+                      onClick={actions.stopVisualization.execute}
                       variant="ghost"
                       className="h-9 px-3 z-10 !rounded-md font-['Outfit'] text-[13px] text-[var(--color-error)]"
                     >
@@ -667,7 +507,7 @@ export const Board = () => {
             <div className="relative px-4 py-2.5 rounded-md text-[13px] font-['Outfit'] text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
               <span className="relative z-10">
                 {/* Show different hint for pathfinding after first node is selected */}
-                {pathFindingNode && pathFindingNode.startNodeId !== -1 && pathFindingNode.endNodeId === -1
+                {algorithmSelection && algorithmSelection.startNodeId !== -1 && algorithmSelection.endNodeId === -1
                   ? "Now select the destination node"
                   : algorithmRegistry.get(selectedAlgo.key)?.metadata.description}
               </span>
@@ -683,7 +523,7 @@ export const Board = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={handleZoomOut}
+                  onClick={actions.zoomOut.execute}
                   disabled={zoom <= ZOOM.MIN}
                   variant="ghost"
                   size="icon-sm"
@@ -699,7 +539,7 @@ export const Board = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={handleResetZoom}
+                  onClick={actions.resetZoom.execute}
                   aria-label="Reset zoom"
                   className="px-2 py-1 font-['JetBrains_Mono'] text-[12px] tabular-nums rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
                 >
@@ -712,7 +552,7 @@ export const Board = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={handleZoomIn}
+                  onClick={actions.zoomIn.execute}
                   disabled={zoom >= ZOOM.MAX}
                   variant="ghost"
                   size="icon-sm"
@@ -732,14 +572,14 @@ export const Board = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={handleUndo}
-                  disabled={isVisualizing || !canUndo}
+                  onClick={actions.undo.execute}
+                  disabled={!actions.undo.enabled}
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
                   aria-label="Undo"
                 >
-                  <Undo2 size={16} className={cn(canUndo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                  <Undo2 size={16} className={cn(actions.undo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Undo ({MOD_KEY}+Z)</TooltipContent>
@@ -748,14 +588,14 @@ export const Board = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={handleRedo}
-                  disabled={isVisualizing || !canRedo}
+                  onClick={actions.redo.execute}
+                  disabled={!actions.redo.enabled}
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
                   aria-label="Redo"
                 >
-                  <Redo2 size={16} className={cn(canRedo && !isVisualizing ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                  <Redo2 size={16} className={cn(actions.redo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Redo ({MOD_KEY}+Shift+Z)</TooltipContent>
