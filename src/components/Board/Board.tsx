@@ -308,7 +308,7 @@ export const Board = () => {
                     </TooltipTrigger>
                     <TooltipContent>Export</TooltipContent>
                   </Tooltip>
-                  <DropdownMenuContent align="end" sideOffset={8}>
+                  <DropdownMenuContent align="center" sideOffset={8}>
                     <DropdownMenuItem onClick={handleExportSvg}>
                       <FileCode className="h-4 w-4 mr-2" />
                       Export as SVG
