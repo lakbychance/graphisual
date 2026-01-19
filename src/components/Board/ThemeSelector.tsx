@@ -1,4 +1,4 @@
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Ruler, Check } from "lucide-react";
 import { SunMoonIcon as ThemeIcon } from '../ui/icons/SunMoonIcon';
 import {
   DropdownMenu,
@@ -45,6 +45,14 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
           <Moon className="h-4 w-4" />
           <span className="flex-1">Dark</span>
           {theme === THEME.DARK && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setTheme(THEME.BLUEPRINT)}
+          className="cursor-pointer gap-2"
+        >
+          <Ruler className="h-4 w-4" />
+          <span className="flex-1">Blueprint</span>
+          {theme === THEME.BLUEPRINT && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme(THEME.SYSTEM)}

@@ -223,6 +223,113 @@
   --color-grid-line-major: rgba(255, 255, 255, 0.12);
 }
 
+/* === BLUEPRINT THEME === */
+[data-theme="blueprint"] {
+  /* Classic blueprint cobalt blue */
+  --color-paper: #1a5490;
+
+  /* Surface - deep cobalt, cohesive with paper */
+  --color-surface: #1f5c98;
+  --color-surface-hover: #2568a8;
+
+  /* Text - white chalk on blueprint */
+  --color-text: #ffffff;
+  --color-text-muted: #c8e0f0;
+
+  /* Accent - light cyan for visibility */
+  --color-accent: #90d8f0;
+  --color-accent-pressed: #70c0e0;
+  --color-error: #ff8070;
+
+  /* Node tints - marking colors */
+  --color-tint-visited: rgba(100, 220, 200, 0.4);
+  --color-tint-path: rgba(255, 200, 80, 0.4);
+  --color-tint-start: rgba(100, 220, 150, 0.4);
+  --color-tint-end: rgba(255, 120, 110, 0.4);
+
+  /* Shadows - balanced for steel blue surfaces */
+  --shadow-raised:
+    2px 2px 4px rgba(10, 40, 70, 0.4),
+    1px 1px 2px rgba(10, 40, 70, 0.25);
+
+  --shadow-raised-lg:
+    3px 3px 6px rgba(10, 40, 70, 0.45),
+    2px 2px 3px rgba(10, 40, 70, 0.3);
+
+  --highlight-edge:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18);
+
+  --shadow-pressed:
+    inset 2px 2px 4px rgba(10, 40, 70, 0.35),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.1);
+
+  --shadow-etched:
+    inset 1px 1px 2px rgba(10, 40, 70, 0.3),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.12);
+
+  --shadow-token:
+    3px 3px 6px rgba(10, 40, 70, 0.4),
+    2px 2px 3px rgba(10, 40, 70, 0.28),
+    1px 1px 1px rgba(10, 40, 70, 0.18);
+
+  /* Node gradients - blueprint palette */
+  /* Default: blueprint blue */
+  --gradient-default-start: #3878b0;
+  --gradient-default-mid: #2a6498;
+  --gradient-default-end: #1c5080;
+
+  /* Visited: distinct cyan/teal - clearly different hue */
+  --gradient-visited-start: #38a0a0;
+  --gradient-visited-mid: #288888;
+  --gradient-visited-end: #1c7070;
+
+  /* Path: warm amber highlight */
+  --gradient-path-start: #b89040;
+  --gradient-path-mid: #a07830;
+  --gradient-path-end: #886020;
+
+  /* Start: vivid green */
+  --gradient-start-start: #38a070;
+  --gradient-start-mid: #288858;
+  --gradient-start-end: #1c7048;
+
+  /* End: coral marker */
+  --gradient-end-start: #b85858;
+  --gradient-end-mid: #a04848;
+  --gradient-end-end: #883838;
+
+  /* Edge colors - white blueprint lines */
+  --color-edge-default: rgba(200, 225, 245, 0.5);
+  --color-edge-traversal: #60d8c8;
+  --color-edge-path: #f0c050;
+  --color-edge-hover: #ffd060;
+
+  /* Node shadow & stroke */
+  --node-shadow-color: rgba(10, 40, 70, 0.4);
+  --color-node-stroke: #5090c0;
+
+  /* Interactive states */
+  --color-interactive-hover: rgba(255, 255, 255, 0.15);
+  --color-slider-range: rgba(144, 216, 240, 0.35);
+
+  /* Divider */
+  --color-divider: rgba(200, 224, 240, 0.25);
+
+  /* Form accent - warm amber */
+  --color-accent-form: #f0b040;
+  --color-accent-form-glow: rgba(240, 176, 64, 0.45);
+
+  /* Focus ring */
+  --color-focus-ring-contrast: #90d8f0;
+
+  /* Grid - white blueprint lines */
+  --color-grid-line: rgba(200, 225, 245, 0.12);
+  --color-grid-line-major: rgba(200, 225, 245, 0.25);
+
+  /* Light grain */
+  --grain-opacity: 0.1;
+}
+
 @layer base {
   * {
     border-color: transparent;
