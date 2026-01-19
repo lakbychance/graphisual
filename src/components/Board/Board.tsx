@@ -201,7 +201,7 @@ export const Board = () => {
 
           {/* Main toolbar */}
           <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
-            <GrainTexture baseFrequency={3} opacity={30} className="rounded-md" />
+            <GrainTexture baseFrequency={3} className="rounded-md" />
 
             {/* Mode toggle - hidden during step visualization */}
             {!isInStepMode && (
@@ -293,7 +293,7 @@ export const Board = () => {
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
           {/* Zoom controls group */}
           <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
-            <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md" />
+            <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <ZoomControls
               zoom={zoom}
               onZoomIn={actions.zoomIn.execute}
@@ -304,7 +304,7 @@ export const Board = () => {
 
           {/* Undo/Redo controls group - with grainy texture */}
           <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
-            <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-md" />
+            <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

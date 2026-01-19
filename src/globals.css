@@ -12,16 +12,16 @@
   --color-paper: #e5e0d8;
 
   /* Molded surface material - slightly lighter than paper */
-  --color-surface: #efebe5;
-  --color-surface-hover: #f2eeea;
+  --color-surface: #ede9e3;
+  --color-surface-hover: #f2eee8;
 
   /* Text */
-  --color-text: #3d3832;
-  --color-text-muted: #7a746c;
+  --color-text: #2a2520;
+  --color-text-muted: #5a544c;
 
   /* Single accent - only one visible at a time */
-  --color-accent: #5cb85c;
-  --color-accent-pressed: #4a9d4a;
+  --color-accent: #4aaa4a;
+  --color-accent-pressed: #3a943a;
   --color-error: #d96850;
 
   /* Node state tints (applied as overlays, not flat fills) */
@@ -34,16 +34,16 @@
 
   /* Raised elements - soft, neutral shadows */
   --shadow-raised:
-    2px 2px 4px rgba(0, 0, 0, 0.18),
-    1px 1px 2px rgba(0, 0, 0, 0.1);
+    2px 2px 4px rgba(0, 0, 0, 0.22),
+    1px 1px 2px rgba(0, 0, 0, 0.14);
 
   --shadow-raised-lg:
-    3px 3px 6px rgba(0, 0, 0, 0.2),
-    2px 2px 3px rgba(0, 0, 0, 0.12);
+    3px 3px 6px rgba(0, 0, 0, 0.25),
+    2px 2px 3px rgba(0, 0, 0, 0.16);
 
   /* Inner highlight - subtle top-left edge catch */
   --highlight-edge:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+    inset 1px 1px 1px rgba(255, 255, 255, 0.5);
 
   /* Pressed/inset - light comes from top-left into the depression */
   --shadow-pressed:
@@ -62,31 +62,31 @@
     1px 1px 1px rgba(50, 45, 40, 0.1);
 
   /* Node gradient colors */
-  --gradient-default-start: #faf8f5;
-  --gradient-default-mid: #efebe5;
-  --gradient-default-end: #ddd8d0;
+  --gradient-default-start: #f5f2ed;
+  --gradient-default-mid: #e8e3db;
+  --gradient-default-end: #d0c9be;
 
-  --gradient-visited-start: #d4f0d4;
-  --gradient-visited-mid: #b8ddb8;
-  --gradient-visited-end: #8fc78f;
+  --gradient-visited-start: #c0ecc0;
+  --gradient-visited-mid: #a0d4a0;
+  --gradient-visited-end: #70b870;
 
-  --gradient-path-start: #faecd4;
-  --gradient-path-mid: #ecd4a8;
-  --gradient-path-end: #d4b87c;
+  --gradient-path-start: #f5e4c0;
+  --gradient-path-mid: #e4c890;
+  --gradient-path-end: #cca860;
 
-  --gradient-start-start: #d4f0fa;
-  --gradient-start-mid: #a8d4e6;
-  --gradient-start-end: #7cbdd4;
+  --gradient-start-start: #c0e8f8;
+  --gradient-start-mid: #90c8e0;
+  --gradient-start-end: #60b0cc;
 
-  --gradient-end-start: #fae0d4;
-  --gradient-end-mid: #e8b5a3;
-  --gradient-end-end: #d49878;
+  --gradient-end-start: #f8d4c0;
+  --gradient-end-mid: #e4a088;
+  --gradient-end-end: #d08058;
 
   /* Edge colors */
-  --color-edge-default: rgba(50, 45, 40, 0.3);
-  --color-edge-traversal: #6aab6a;
-  --color-edge-path: #c9a060;
-  --color-edge-hover: #e6a23c;
+  --color-edge-default: rgba(50, 45, 40, 0.45);
+  --color-edge-traversal: #4a9a4a;
+  --color-edge-path: #b89040;
+  --color-edge-hover: #d89020;
 
   /* Node drop shadow */
   --node-shadow-color: rgba(50, 45, 40, 0.28);
@@ -95,14 +95,14 @@
   --color-node-stroke: #a8a29a;
 
   /* Interactive states (for hover on items) */
-  --color-interactive-hover: rgba(50, 45, 40, 0.08);
-  --color-slider-range: rgba(50, 45, 40, 0.15);
+  --color-interactive-hover: rgba(50, 45, 40, 0.12);
+  --color-slider-range: rgba(50, 45, 40, 0.22);
 
   /* Divider */
-  --color-divider: rgba(50, 45, 40, 0.12);
+  --color-divider: rgba(50, 45, 40, 0.18);
 
   /* Form control accent (warm orange) */
-  --color-accent-form: #e07850;
+  --color-accent-form: #d86840;
   --color-accent-form-glow: rgba(224, 120, 80, 0.4);
 
   /* Focus ring for contrasting elements (orange controls) */
@@ -111,6 +111,9 @@
   /* Graph paper grid */
   --color-grid-line: rgba(50, 45, 40, 0.08);
   --color-grid-line-major: rgba(50, 45, 40, 0.15);
+
+  /* Grain texture opacity */
+  --grain-opacity: 0.35;
 }
 
 /* === DARK THEME === */
@@ -272,12 +275,7 @@
   background: var(--color-surface-hover);
 }
 
-/* Grain texture opacity */
-.grain-texture {
-  opacity: var(--grain-opacity);
-}
-
-[data-theme="dark"] .grain-texture {
-  opacity: 0.1;
+[data-theme="dark"] {
+  --grain-opacity: 0.1;
 }
 
