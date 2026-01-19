@@ -4,13 +4,11 @@ import { cn } from "../../lib/utils"
 
 interface SliderProps extends React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> {
     variant?: "default" | "accent"
+    ref?: React.Ref<React.ElementRef<typeof SliderPrimitive.Root>>
 }
 
 // Physical slider - etched groove with raised puck thumb
-const Slider = React.forwardRef<
-    React.ElementRef<typeof SliderPrimitive.Root>,
-    SliderProps
->(({ className, variant = "default", ...props }, ref) => {
+function Slider({ className, variant = "default", ref, ...props }: SliderProps) {
     const isAccent = variant === "accent"
 
     return (
@@ -49,7 +47,6 @@ const Slider = React.forwardRef<
             </SliderPrimitive.Thumb>
         </SliderPrimitive.Root>
     )
-})
-Slider.displayName = SliderPrimitive.Root.displayName
+}
 
 export { Slider }

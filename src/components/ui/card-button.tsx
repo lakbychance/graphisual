@@ -28,24 +28,22 @@ export interface CardButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
   VariantProps<typeof cardButtonVariants> {
   showGrain?: boolean
+  ref?: React.Ref<HTMLButtonElement>
 }
 
-const CardButton = React.forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ className, selected, rounded, showGrain = true, children, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={cn(cardButtonVariants({ selected, rounded, className }))}
-        {...props}
-      >
-        {showGrain && <GrainTexture baseFrequency={4.2} className="rounded-lg" />}
-        <div className="relative z-10 flex flex-col items-center gap-1">
-          {children}
-        </div>
-      </button>
-    )
-  }
-)
-CardButton.displayName = "CardButton"
+function CardButton({ className, selected, rounded, showGrain = true, children, ref, ...props }: CardButtonProps) {
+  return (
+    <button
+      ref={ref}
+      className={cn(cardButtonVariants({ selected, rounded, className }))}
+      {...props}
+    >
+      {showGrain && <GrainTexture baseFrequency={4.2} className="rounded-lg" />}
+      <div className="relative z-10 flex flex-col items-center gap-1">
+        {children}
+      </div>
+    </button>
+  )
+}
 
 export { CardButton, cardButtonVariants }

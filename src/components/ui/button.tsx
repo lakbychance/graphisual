@@ -49,20 +49,18 @@ export interface ButtonProps
     variant?: "default" | "primary" | "destructive" | "secondary" | "ghost" | "link";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
     asChild?: boolean;
+    ref?: React.Ref<HTMLButtonElement>;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
-        const Comp = asChild ? Slot : "button"
-        return (
-            <Comp
-                className={cn(buttonVariants({ variant, size, className }))}
-                ref={ref}
-                {...props}
-            />
-        )
-    }
-)
-Button.displayName = "Button"
+function Button({ className, variant = "default", size = "default", asChild = false, ref, ...props }: ButtonProps) {
+    const Comp = asChild ? Slot : "button"
+    return (
+        <Comp
+            className={cn(buttonVariants({ variant, size, className }))}
+            ref={ref}
+            {...props}
+        />
+    )
+}
 
 export { Button, buttonVariants }

@@ -1,19 +1,27 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
-import { Graph } from "../Graph/Graph";
+import { Graph, GraphHandle } from "../Graph/Graph";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2 } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { TIMING, SPEED_LEVELS } from "../../utility/constants";
 import { GrainTexture } from "../ui/grain-texture";
 import { VisualizationState, VisualizationMode } from "../../constants";
+import { exportSvg } from "../../utility/exportSvg";
+import { exportPng } from "../../utility/exportPng";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 // Extracted components
 import { ThemeSelector } from "./ThemeSelector";
@@ -52,6 +60,9 @@ export const Board = () => {
   // Auto-play state for step mode
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
+
+  // Ref to access Graph's SVG element for export
+  const graphRef = useRef<GraphHandle>(null);
 
   // Centralized actions from useGraphActions hook
   const { actions, handleKeyDown } = useGraphActions({
@@ -130,6 +141,22 @@ export const Board = () => {
     }
   };
 
+  // Export SVG handler
+  const handleExportSvg = useCallback(async () => {
+    const svgElement = graphRef.current?.getSvgElement();
+    if (svgElement) {
+      await exportSvg(svgElement, { includeGrid: true, filename: 'graph.svg' });
+    }
+  }, []);
+
+  // Export PNG handler
+  const handleExportPng = useCallback(async () => {
+    const svgElement = graphRef.current?.getSvgElement();
+    if (svgElement) {
+      await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+    }
+  }, []);
+
   // Determine if we should show step mode controls
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0;
 
@@ -149,7 +176,7 @@ export const Board = () => {
 
         {/* Full-screen Graph - no props needed, reads from store */}
         <div className="absolute inset-0 touch-action-manipulation">
-          <Graph />
+          <Graph ref={graphRef} />
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
@@ -263,6 +290,35 @@ export const Board = () => {
               <>
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
+
+                {/* Export dropdown */}
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          disabled={isVisualizing || !hasNodes}
+                          variant="ghost"
+                          size="icon-sm"
+                          className="z-10"
+                        >
+                          <Download className="h-4 w-4 text-[var(--color-text)]" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Export</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end" sideOffset={8}>
+                    <DropdownMenuItem onClick={handleExportSvg}>
+                      <FileCode className="h-4 w-4 mr-2" />
+                      Export as SVG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPng}>
+                      <Image className="h-4 w-4 mr-2" />
+                      Export as PNG
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {/* Reset button */}
                 <Tooltip>

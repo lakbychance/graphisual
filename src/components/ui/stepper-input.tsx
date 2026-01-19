@@ -51,28 +51,26 @@ interface StepperProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onCha
   max?: number
   step?: number
   onEnter?: () => void
+  ref?: React.Ref<HTMLDivElement>
 }
 
-const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(
-  ({ value, onChange, min = 0, max = 999, step = 1, onEnter, className, children, ...props }, ref) => {
-    return (
-      <StepperContext.Provider value={{ value, onChange, min, max, step, onEnter }}>
-        <div
-          ref={ref}
-          className={cn(
-            "flex items-center rounded-lg",
-            "bg-[var(--color-paper)] shadow-[var(--shadow-etched)]",
-            className
-          )}
-          {...props}
-        >
-          {children}
-        </div>
-      </StepperContext.Provider>
-    )
-  }
-)
-Stepper.displayName = "Stepper"
+function Stepper({ value, onChange, min = 0, max = 999, step = 1, onEnter, className, children, ref, ...props }: StepperProps) {
+  return (
+    <StepperContext.Provider value={{ value, onChange, min, max, step, onEnter }}>
+      <div
+        ref={ref}
+        className={cn(
+          "flex items-center rounded-lg",
+          "bg-[var(--color-paper)] shadow-[var(--shadow-etched)]",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </StepperContext.Provider>
+  )
+}
 
 // === StepperDecrement ===
 
@@ -80,32 +78,30 @@ interface StepperDecrementProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'>,
   VariantProps<typeof stepperButtonVariants> {
   children?: React.ReactNode
+  ref?: React.Ref<HTMLButtonElement>
 }
 
-const StepperDecrement = React.forwardRef<HTMLButtonElement, StepperDecrementProps>(
-  ({ className, rounded = "left", children, ...props }, ref) => {
-    const { value, onChange, min, step } = useStepper()
+function StepperDecrement({ className, rounded = "left", children, ref, ...props }: StepperDecrementProps) {
+  const { value, onChange, min, step } = useStepper()
 
-    const handleClick = () => {
-      const newValue = Math.max(value - step, min)
-      onChange(newValue)
-    }
-
-    return (
-      <button
-        ref={ref}
-        type="button"
-        aria-label="Decrease"
-        {...props}
-        onClick={handleClick}
-        className={cn(stepperButtonVariants({ rounded, className }))}
-      >
-        {children ?? "−"}
-      </button>
-    )
+  const handleClick = () => {
+    const newValue = Math.max(value - step, min)
+    onChange(newValue)
   }
-)
-StepperDecrement.displayName = "StepperDecrement"
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label="Decrease"
+      {...props}
+      onClick={handleClick}
+      className={cn(stepperButtonVariants({ rounded, className }))}
+    >
+      {children ?? "−"}
+    </button>
+  )
+}
 
 // === StepperIncrement ===
 
@@ -113,74 +109,71 @@ interface StepperIncrementProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'>,
   VariantProps<typeof stepperButtonVariants> {
   children?: React.ReactNode
+  ref?: React.Ref<HTMLButtonElement>
 }
 
-const StepperIncrement = React.forwardRef<HTMLButtonElement, StepperIncrementProps>(
-  ({ className, rounded = "right", children, ...props }, ref) => {
-    const { value, onChange, max, step } = useStepper()
+function StepperIncrement({ className, rounded = "right", children, ref, ...props }: StepperIncrementProps) {
+  const { value, onChange, max, step } = useStepper()
 
-    const handleClick = () => {
-      const newValue = Math.min(value + step, max)
-      onChange(newValue)
-    }
-
-    return (
-      <button
-        ref={ref}
-        type="button"
-        aria-label="Increase"
-        {...props}
-        onClick={handleClick}
-        className={cn(stepperButtonVariants({ rounded, className }))}
-      >
-        {children ?? "+"}
-      </button>
-    )
+  const handleClick = () => {
+    const newValue = Math.min(value + step, max)
+    onChange(newValue)
   }
-)
-StepperIncrement.displayName = "StepperIncrement"
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label="Increase"
+      {...props}
+      onClick={handleClick}
+      className={cn(stepperButtonVariants({ rounded, className }))}
+    >
+      {children ?? "+"}
+    </button>
+  )
+}
 
 // === StepperField ===
 
-interface StepperFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> { }
+interface StepperFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
+  ref?: React.Ref<HTMLInputElement>
+}
 
-const StepperField = React.forwardRef<HTMLInputElement, StepperFieldProps>(
-  ({ className, ...props }, ref) => {
-    const { value, onChange, min, max, onEnter } = useStepper()
+function StepperField({ className, ref, ...props }: StepperFieldProps) {
+  const { value, onChange, min, max, onEnter } = useStepper()
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = parseInt(e.target.value) || 0
-      onChange(Math.max(min, Math.min(newValue, max)))
-    }
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && onEnter) {
-        onEnter()
-      }
-    }
-
-    return (
-      <input
-        ref={ref}
-        type="number"
-        min={min}
-        max={max}
-        value={value}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        autoComplete="off"
-        className={cn(
-          "flex-1 h-8 text-center font-['JetBrains_Mono'] text-xs font-medium",
-          "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 bg-transparent text-[var(--color-text)]",
-          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-          className
-        )}
-        {...props}
-      />
-    )
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value) || 0
+    onChange(Math.max(min, Math.min(newValue, max)))
   }
-)
-StepperField.displayName = "StepperField"
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && onEnter) {
+      onEnter()
+    }
+  }
+
+  return (
+    <input
+      ref={ref}
+      type="number"
+      min={min}
+      max={max}
+      value={value}
+      onChange={handleInputChange}
+      onKeyDown={handleKeyDown}
+      autoComplete="off"
+      className={cn(
+        "flex-1 h-8 text-center font-['JetBrains_Mono'] text-xs font-medium",
+        "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 bg-transparent text-[var(--color-text)]",
+        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+        className
+      )}
+      {...props}
+    />
+  )
+}
 
 // === StepperInput (Backward Compatible Shorthand) ===
 
@@ -193,29 +186,27 @@ export interface StepperInputProps {
   onEnter?: () => void
   className?: string
   inputRef?: React.RefObject<HTMLInputElement | null>
+  ref?: React.Ref<HTMLDivElement>
 }
 
-const StepperInput = React.forwardRef<HTMLDivElement, StepperInputProps>(
-  ({ value, onChange, min = 0, max = 999, step = 1, onEnter, className, inputRef }, ref) => {
-    return (
-      <Stepper
-        ref={ref}
-        value={value}
-        onChange={onChange}
-        min={min}
-        max={max}
-        step={step}
-        onEnter={onEnter}
-        className={className}
-      >
-        <StepperDecrement />
-        <StepperField ref={inputRef} />
-        <StepperIncrement />
-      </Stepper>
-    )
-  }
-)
-StepperInput.displayName = "StepperInput"
+function StepperInput({ value, onChange, min = 0, max = 999, step = 1, onEnter, className, inputRef, ref }: StepperInputProps) {
+  return (
+    <Stepper
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      min={min}
+      max={max}
+      step={step}
+      onEnter={onEnter}
+      className={className}
+    >
+      <StepperDecrement />
+      <StepperField ref={inputRef} />
+      <StepperIncrement />
+    </Stepper>
+  )
+}
 
 export {
   Stepper,

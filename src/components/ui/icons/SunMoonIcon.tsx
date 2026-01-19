@@ -3,7 +3,7 @@
 import type { Variants } from "motion/react";
 import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export interface SunMoonIconHandle {
 
 interface SunMoonIconProps extends HTMLAttributes<HTMLDivElement> {
     size?: number;
+    ref?: Ref<SunMoonIconHandle>;
 }
 
 const SUN_VARIANTS: Variants = {
@@ -37,8 +38,7 @@ const MOON_VARIANTS: Variants = {
     }),
 };
 
-const SunMoonIcon = forwardRef<SunMoonIconHandle, SunMoonIconProps>(
-    ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+function SunMoonIcon({ onMouseEnter, onMouseLeave, className, size = 28, ref, ...props }: SunMoonIconProps) {
         const sunControls = useAnimation();
         const moonControls = useAnimation();
         const isControlledRef = useRef(false);
@@ -129,9 +129,6 @@ const SunMoonIcon = forwardRef<SunMoonIconHandle, SunMoonIconProps>(
                 </svg>
             </div>
         );
-    }
-);
-
-SunMoonIcon.displayName = "SunMoonIcon";
+}
 
 export { SunMoonIcon };

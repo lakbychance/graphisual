@@ -50,62 +50,63 @@ const toggleItemVariants = cva(
 
 export interface ToggleGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-  VariantProps<typeof toggleGroupVariants> { }
+  VariantProps<typeof toggleGroupVariants> {
+  ref?: React.Ref<HTMLDivElement>
+}
 
-const ToggleGroup = React.forwardRef<HTMLDivElement, ToggleGroupProps>(
-  ({ className, variant, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(toggleGroupVariants({ variant, className }))}
-        {...props}
-      />
-    )
-  }
-)
-ToggleGroup.displayName = "ToggleGroup"
+function ToggleGroup({ className, variant, ref, ...props }: ToggleGroupProps) {
+  return (
+    <div
+      ref={ref}
+      className={cn(toggleGroupVariants({ variant, className }))}
+      {...props}
+    />
+  )
+}
 
 export interface ToggleItemProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'>,
-  VariantProps<typeof toggleItemVariants> { }
+  VariantProps<typeof toggleItemVariants> {
+  ref?: React.Ref<HTMLButtonElement>
+}
 
-const ToggleItem = React.forwardRef<HTMLButtonElement, ToggleItemProps>(
-  ({ className, active, disabled, rounded, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        disabled={disabled === true}
-        className={cn(toggleItemVariants({ active, disabled, rounded, className }))}
-        {...props}
-      />
-    )
-  }
-)
-ToggleItem.displayName = "ToggleItem"
+function ToggleItem({ className, active, disabled, rounded, ref, ...props }: ToggleItemProps) {
+  return (
+    <button
+      ref={ref}
+      disabled={disabled === true}
+      className={cn(toggleItemVariants({ active, disabled, rounded, className }))}
+      {...props}
+    />
+  )
+}
 
 // === Radix Toggle Group (for proper single/multiple selection) ===
 
-const RadixToggleGroup = React.forwardRef<
-  React.ElementRef<typeof ToggleGroupPrimitive.Root>,
+type RadixToggleGroupProps =
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-  VariantProps<typeof toggleGroupVariants>
->(({ className, variant, children, ...props }, ref) => (
-  <ToggleGroupPrimitive.Root
-    ref={ref}
-    className={cn(toggleGroupVariants({ variant, className }))}
-    {...props}
-  >
-    {children}
-  </ToggleGroupPrimitive.Root>
-))
-RadixToggleGroup.displayName = "RadixToggleGroup"
-
-const RadixToggleGroupItem = React.forwardRef<
-  React.ElementRef<typeof ToggleGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> & {
-    rounded?: "sm" | "md" | "full"
+  VariantProps<typeof toggleGroupVariants> & {
+    ref?: React.Ref<React.ElementRef<typeof ToggleGroupPrimitive.Root>>
   }
->(({ className, rounded = "sm", children, ...props }, ref) => {
+
+function RadixToggleGroup({ className, variant, children, ref, ...props }: RadixToggleGroupProps) {
+  return (
+    <ToggleGroupPrimitive.Root
+      ref={ref}
+      className={cn(toggleGroupVariants({ variant, className }))}
+      {...props}
+    >
+      {children}
+    </ToggleGroupPrimitive.Root>
+  )
+}
+
+interface RadixToggleGroupItemProps extends React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> {
+  rounded?: "sm" | "md" | "full"
+  ref?: React.Ref<React.ElementRef<typeof ToggleGroupPrimitive.Item>>
+}
+
+function RadixToggleGroupItem({ className, rounded = "sm", children, ref, ...props }: RadixToggleGroupItemProps) {
   const roundedClass = rounded === "full" ? "rounded-full" : rounded === "md" ? "rounded-lg" : "rounded-md"
 
   return (
@@ -125,8 +126,7 @@ const RadixToggleGroupItem = React.forwardRef<
       {children}
     </ToggleGroupPrimitive.Item>
   )
-})
-RadixToggleGroupItem.displayName = "RadixToggleGroupItem"
+}
 
 export {
   ToggleGroup,

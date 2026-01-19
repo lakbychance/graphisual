@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
 import { Node } from "../Graph/Node/Node";
 import { ZOOM } from "../../utility/constants";
 import { IEdge } from "./IGraph";
@@ -21,7 +21,11 @@ import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
 
-export const Graph = () => {
+export interface GraphHandle {
+  getSvgElement: () => SVGSVGElement | null;
+}
+
+export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // Subscribe to node IDs only for rendering - prevents re-renders when node positions change
   const nodeIds = useGraphStore(
     useShallow((state) => state.data.nodes.map((n) => n.id))
@@ -52,6 +56,11 @@ export const Graph = () => {
 
   // Refs
   const graph = useRef<SVGSVGElement | null>(null);
+
+  // Expose SVG element via imperative handle for export functionality
+  useImperativeHandle(ref, () => ({
+    getSvgElement: () => graph.current,
+  }), []);
 
   // Track SVG dimensions for viewBox calculation
   const svgDimensions = useElementDimensions(graph);
@@ -220,4 +229,4 @@ export const Graph = () => {
       })()}
     </div>
   );
-};
+}
