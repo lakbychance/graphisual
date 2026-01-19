@@ -5,7 +5,7 @@
 // Zoom configuration
 export const ZOOM = {
   MIN: 0.5,
-  MAX: 1.5,
+  MAX: 2,
   STEP: 0.25,
 } as const;
 

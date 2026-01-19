@@ -21,9 +21,9 @@ export interface NodeProps {
   ) => void;
   isVisualizing: boolean;
   isAlgorithmSelected: boolean;
-  svgRef: React.RefObject<SVGSVGElement | null>;
   onNodeSelect: (nodeId: number | null) => void;
   screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
+  isGestureActive: () => boolean;
 }
 
 
@@ -35,9 +35,9 @@ export const Node = memo(function Node(props: NodeProps) {
     onConnectorDragStart,
     isVisualizing,
     isAlgorithmSelected,
-    svgRef,
     onNodeSelect,
     screenToSvgCoords,
+    isGestureActive,
   } = props;
 
   // Subscribe to THIS node's data only
@@ -82,6 +82,8 @@ export const Node = memo(function Node(props: NodeProps) {
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<SVGCircleElement>) => {
+      // Don't allow interactions during pinch gestures
+      if (isGestureActive()) return;
       // Don't allow dragging/deletion when visualizing or algorithm is selected
       if (isVisualizing || isAlgorithmSelected) return;
 
@@ -94,7 +96,8 @@ export const Node = memo(function Node(props: NodeProps) {
       isDragging.current = false;
 
       const handlePointerMove = (e: PointerEvent) => {
-        if (!svgRef.current) return;
+        // Stop node drag if pinch gesture starts
+        if (isGestureActive()) return;
 
         const deltaX = Math.abs(e.clientX - startX);
         const deltaY = Math.abs(e.clientY - startY);
@@ -112,8 +115,8 @@ export const Node = memo(function Node(props: NodeProps) {
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerUp);
 
-        // If not dragging, toggle node selection (single click)
-        if (!isDragging.current) {
+        // If not dragging and not pinching, toggle node selection (single click)
+        if (!isDragging.current && !isGestureActive()) {
           onNodeSelect(isSelected ? null : node.id);
         }
         isDragging.current = false;
@@ -122,7 +125,7 @@ export const Node = memo(function Node(props: NodeProps) {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [node.id, onNodeMove, onNodeSelect, isVisualizing, isAlgorithmSelected, svgRef, screenToSvgCoords, isSelected]
+    [node.id, onNodeMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive]
   );
 
   // Hide connectors when visualizing or algorithm is selected (only show on hover)

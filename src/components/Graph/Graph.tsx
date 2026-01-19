@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Node } from "../Graph/Node/Node";
 import { findToNodeForTouchBasedDevices } from "../../utility/calc";
-import { DRAG_THRESHOLD, TIMING } from "../../utility/constants";
+import { DRAG_THRESHOLD, TIMING, ZOOM } from "../../utility/constants";
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../../utility/graphUtils";
 import { INode, IEdge } from "./IGraph";
 import { algorithmRegistry, AlgorithmType, EdgeInfo, AlgorithmStep } from "../../algorithms";
@@ -9,6 +9,8 @@ import { EdgePopup } from "./EdgePopup";
 import { toast } from "sonner";
 import { useGraphStore } from "../../store/graphStore";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
+import { useGestureZoom } from "../../hooks/useGestureZoom";
+import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useShallow } from "zustand/shallow";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
@@ -35,9 +37,12 @@ export const Graph = () => {
 
   // Derive boolean for simpler component logic and Node prop
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
-  const zoom = useGraphStore((state) => state.viewport.zoom);
-  const pan = useGraphStore((state) => state.viewport.pan);
+  const zoomTarget = useGraphStore((state) => state.viewport.zoom);
+  const panTarget = useGraphStore((state) => state.viewport.pan);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
+
+  // Animated viewport values (spring-smoothed)
+  const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
 
   const addNode = useGraphStore((state) => state.addNode);
   const moveNode = useGraphStore((state) => state.moveNode);
@@ -53,6 +58,7 @@ export const Graph = () => {
   const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
   const deleteEdgeAction = useGraphStore((state) => state.deleteEdge);
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
+  const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const initStepThrough = useGraphStore((state) => state.initStepThrough);
 
   // Local UI state (not shared with other components)
@@ -134,6 +140,18 @@ export const Graph = () => {
 
   // Apply step-through visualization when stepIndex changes
   useStepThroughVisualization();
+
+  // Enable pinch-to-zoom and trackpad zoom (disabled during visualization)
+  const { isGestureActive } = useGestureZoom({
+    svgRef: graph,
+    zoom: zoomTarget,
+    setZoom: setViewportZoom,
+    pan: panTarget,
+    setPan: setViewportPan,
+    minZoom: ZOOM.MIN,
+    maxZoom: ZOOM.MAX,
+    enabled: !isVisualizing,
+  });
 
   // Marks an edge and its target node for visualization
   const markEdgeAndNode = useCallback((currentEdge: IEdge, stepType: StepType) => {
@@ -306,6 +324,9 @@ export const Graph = () => {
     isDraggingCanvas.current = false;
 
     const handlePointerMove = (e: PointerEvent) => {
+      // Skip panning when gesture (pinch/trackpad zoom) is active
+      if (isGestureActive()) return;
+
       const deltaX = e.clientX - startX;
       const deltaY = e.clientY - startY;
 
@@ -497,9 +518,9 @@ export const Graph = () => {
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
             isAlgorithmSelected={!!currentAlgorithm}
-            svgRef={graph}
             onNodeSelect={selectNode}
             screenToSvgCoords={screenToSvgCoords}
+            isGestureActive={isGestureActive}
           />
         ))}
 
