@@ -39,7 +39,7 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
           : "shadow-[var(--shadow-raised),var(--highlight-edge)] hover:ring-2 hover:ring-[var(--color-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
       )}
     >
-      <GrainTexture baseFrequency={4.2} opacity={40} className="rounded-lg" />
+      <GrainTexture baseFrequency={4.2} className="rounded-lg" />
       <div className="relative z-10 flex flex-col items-center gap-1.5">
         <Icon className="w-6 h-6 text-[var(--color-text-muted)]" />
         <span className="font-semibold text-sm text-[var(--color-text)]">
