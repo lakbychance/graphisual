@@ -528,3 +528,100 @@ export function generateGrid(rows: number, cols: number): GeneratedGraph {
 
   return { nodes, edges, nodeCounter: nodes.length };
 }
+
+/**
+ * Generate a weighted graph for pathfinding demonstrations (e.g., Dijkstra's algorithm)
+ * Creates a network-style layout with varied edge weights
+ */
+export function generateWeighted(): GeneratedGraph {
+  const nodes: INode[] = [];
+  const edges = new Map<number, IEdge[]>();
+
+  // Hand-crafted network-style positions (scattered, not geometric)
+  const positions: { x: number; y: number }[] = [
+    { x: 120, y: 100 },   // 1: top-left start area
+    { x: 280, y: 80 },    // 2: top-center
+    { x: 450, y: 120 },   // 3: top-right
+    { x: 650, y: 90 },    // 4: far top-right
+    { x: 100, y: 280 },   // 5: left side
+    { x: 300, y: 250 },   // 6: center
+    { x: 480, y: 300 },   // 7: center-right
+    { x: 680, y: 260 },   // 8: right side
+    { x: 150, y: 450 },   // 9: bottom-left
+    { x: 350, y: 420 },   // 10: bottom-center
+    { x: 520, y: 480 },   // 11: bottom-right
+    { x: 700, y: 440 },   // 12: far bottom-right (destination)
+  ];
+
+  // Create nodes
+  for (let i = 0; i < positions.length; i++) {
+    const id = i + 1;
+    nodes.push({
+      id,
+      x: positions[i].x,
+      y: positions[i].y,
+      r: NODE.RADIUS,
+    });
+    edges.set(id, []);
+  }
+
+  // Define edges with carefully chosen weights
+  // Structure: [fromIdx, toIdx, weight]
+  // Designed so greedy path (low local weights) != shortest path (low total weight)
+  const edgeDefinitions: [number, number, number][] = [
+    // From node 1 (start area)
+    [0, 1, 4],    // 1->2: short direct
+    [0, 4, 2],    // 1->5: low weight (tempting greedy choice)
+
+    // From node 2
+    [1, 2, 3],    // 2->3: continue right
+    [1, 5, 5],    // 2->6: down to center
+
+    // From node 3
+    [2, 3, 8],    // 3->4: expensive rightward
+    [2, 6, 4],    // 3->7: down
+
+    // From node 4
+    [3, 7, 3],    // 4->8: down-right
+
+    // From node 5 (left path - appears cheap but costly overall)
+    [4, 5, 7],    // 5->6: expensive connection
+    [4, 8, 15],   // 5->9: very expensive (trap path)
+
+    // From node 6 (center hub)
+    [5, 6, 2],    // 6->7: cheap center route
+    [5, 9, 6],    // 6->10: down
+
+    // From node 7
+    [6, 7, 3],    // 7->8: right
+    [6, 10, 4],   // 7->11: down-right
+
+    // From node 8 (right side)
+    [7, 11, 5],   // 8->12: to destination
+
+    // From node 9 (bottom left - dead end-ish)
+    [8, 9, 12],   // 9->10: expensive
+
+    // From node 10
+    [9, 10, 3],   // 10->11: right
+
+    // From node 11
+    [10, 11, 2],  // 11->12: final stretch
+
+    // Additional edges for more paths and connectivity
+    [0, 5, 6],    // 1->6: diagonal shortcut
+    [1, 6, 9],    // 2->7: expensive diagonal
+    [2, 5, 3],    // 3->6: back connection
+    [4, 9, 8],    // 5->10: down
+    [6, 9, 5],    // 7->10: down
+    [7, 10, 6],   // 8->11: diagonal
+    [3, 11, 12],  // 4->12: long expensive skip
+  ];
+
+  // Create edges
+  for (const [fromIdx, toIdx, weight] of edgeDefinitions) {
+    addEdgeToMap(edges, nodes[fromIdx], nodes[toIdx], EDGE_TYPE.DIRECTED, weight);
+  }
+
+  return { nodes, edges, nodeCounter: nodes.length };
+}

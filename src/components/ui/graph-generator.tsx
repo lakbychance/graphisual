@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Shuffle, GitBranch, Circle, Star, Grid3X3, ArrowDownRight } from "lucide-react";
+import { Sparkles, Shuffle, GitBranch, Circle, Star, Grid3X3, ArrowDownRight, Scale } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { Button } from "./button";
@@ -19,6 +19,7 @@ import {
   generateBinaryTree,
   generateGrid,
   generateDAG,
+  generateWeighted,
   type RandomGeneratorOptions,
   type LayoutType,
 } from "../../utility/graphGenerator";
@@ -164,6 +165,17 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
       icon: Grid3X3,
       generate: () => {
         const { nodes, edges, nodeCounter } = generateGrid(3, 4);
+        setGraph(nodes, edges, nodeCounter);
+        setOpen(false);
+      },
+    },
+    {
+      id: "weighted",
+      name: "Weighted",
+      description: "For pathfinding",
+      icon: Scale,
+      generate: () => {
+        const { nodes, edges, nodeCounter } = generateWeighted();
         setGraph(nodes, edges, nodeCounter);
         setOpen(false);
       },
