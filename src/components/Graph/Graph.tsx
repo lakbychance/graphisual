@@ -87,17 +87,21 @@ export const Graph = () => {
     };
   }, []);
 
-  // Update SVG dimensions on mount and resize
+  // Update SVG dimensions using ResizeObserver (handles initial layout timing)
   useEffect(() => {
-    const updateDimensions = () => {
-      if (graph.current) {
-        const rect = graph.current.getBoundingClientRect();
-        setSvgDimensions({ width: rect.width, height: rect.height });
+    const svgElement = graph.current;
+    if (!svgElement) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        const { width, height } = entry.contentRect;
+        setSvgDimensions({ width, height });
       }
-    };
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    });
+
+    resizeObserver.observe(svgElement);
+    return () => resizeObserver.disconnect();
   }, []);
 
   // Calculate viewBox based on zoom and pan
