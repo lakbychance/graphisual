@@ -12,6 +12,8 @@ import { useCanvasPan } from "../../hooks/useCanvasPan";
 import { useEdgeDragging } from "../../hooks/useEdgeDragging";
 import { useEdgeSelection } from "../../hooks/useEdgeSelection";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
+import { useNodeActions } from "../../hooks/useNodeActions";
+import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useShallow } from "zustand/shallow";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
@@ -32,9 +34,7 @@ export const Graph = () => {
   // Animated viewport values (spring-smoothed)
   const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
 
-  const addNode = useGraphStore((state) => state.addNode);
-  const moveNode = useGraphStore((state) => state.moveNode);
-  const selectNode = useGraphStore((state) => state.selectNode);
+  const { addNode, moveNode, selectNode } = useNodeActions();
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
 
@@ -49,27 +49,12 @@ export const Graph = () => {
 
   // Local UI state (not shared with other components)
   const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
-  const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
 
   // Refs
   const graph = useRef<SVGSVGElement | null>(null);
 
-  // Update SVG dimensions using ResizeObserver (handles initial layout timing)
-  useEffect(() => {
-    const svgElement = graph.current;
-    if (!svgElement) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        const { width, height } = entry.contentRect;
-        setSvgDimensions({ width, height });
-      }
-    });
-
-    resizeObserver.observe(svgElement);
-    return () => resizeObserver.disconnect();
-  }, []);
+  // Track SVG dimensions for viewBox calculation
+  const svgDimensions = useElementDimensions(graph);
 
   // Calculate viewBox based on zoom and pan
   const viewBox = useMemo(() => {
@@ -147,7 +132,7 @@ export const Graph = () => {
   } = useEdgeSelection({ isVisualizing });
 
   // Handle click on canvas/node
-  const handleSelect = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
+  const handleCanvasClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     const target = event.target as SVGSVGElement;
     const isNode = target.tagName === "circle";
 
@@ -181,18 +166,13 @@ export const Graph = () => {
     }
   }, [currentAlgorithm, isVisualizing, visualizationInput, selectedNodeId, selectedEdge, screenToSvgCoords, runAlgorithm, setVisualizationInput, selectNode, addNode, isDraggingEdge, justClosedPopup, isDraggingCanvas]);
 
-  // Handle node movement - history is now managed by batchedAutoHistory in the store
-  const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
-    moveNode(nodeId, x, y);
-  }, [moveNode]);
-
   return (
     <div className="relative flex-1 w-full h-full flex flex-col">
       <svg
         ref={graph}
         className="flex-1 w-full h-full cursor-crosshair"
         onPointerDown={handleCanvasPointerDown}
-        onClick={handleSelect}
+        onClick={handleCanvasClick}
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid slice"
       >
@@ -208,7 +188,7 @@ export const Graph = () => {
           <Node
             key={nodeId}
             nodeId={nodeId}
-            onNodeMove={handleNodeMove}
+            onNodeMove={moveNode}
             onEdgeClick={handleEdge}
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
