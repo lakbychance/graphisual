@@ -159,27 +159,26 @@ export const Graph = () => {
     const fromId = parseInt(currentEdge.from);
     const toId = parseInt(currentEdge.to);
 
-    // Type-safe node flags
+    // Mark node
     if (stepType === StepType.VISIT) {
       setTraceNode(toId, { isVisited: true });
     } else {
       setTraceNode(toId, { isInShortestPath: true });
     }
 
-    // Type-safe edge flags
-    const edgeList = edgesRef.current.get(fromId);
-    if (edgeList) {
-      const edge = edgeList.find((e) => parseInt(e.to) === toId);
-      if (edge) {
-        const edgeFlags = stepType === StepType.VISIT
-          ? { isUsedInTraversal: true }
-          : { isUsedInShortestPath: true };
+    // Always mark the edge (skip root edge from -1 or NaN)
+    if (fromId !== -1 && !isNaN(fromId)) {
+      const edgeFlags = stepType === StepType.VISIT
+        ? { isUsedInTraversal: true }
+        : { isUsedInShortestPath: true };
 
-        setTraceEdge(fromId, toId, edgeFlags);
-        // For undirected edges, also mark the reverse direction
-        if (edge.type === EDGE_TYPE.UNDIRECTED) {
-          setTraceEdge(toId, fromId, edgeFlags);
-        }
+      setTraceEdge(fromId, toId, edgeFlags);
+
+      // For undirected edges, also mark the reverse direction
+      const edgeList = edgesRef.current.get(fromId);
+      const edge = edgeList?.find((e) => parseInt(e.to) === toId);
+      if (edge?.type === EDGE_TYPE.UNDIRECTED) {
+        setTraceEdge(toId, fromId, edgeFlags);
       }
     }
   }, []);
@@ -190,11 +189,8 @@ export const Graph = () => {
       items: resultEdges,
       delayMs: visualizationSpeed,
       onStep: (edge) => {
-        const toId = parseInt(edge.to);
-        const { visualization } = useGraphStore.getState();
-        if (!visualization.trace.nodes.get(toId)?.isInShortestPath) {
-          markEdgeAndNode(edge, StepType.RESULT);
-        }
+        // Always mark edge and node - setTraceNode/setTraceEdge are idempotent
+        markEdgeAndNode(edge, StepType.RESULT);
       },
       onComplete: () => {
         setVisualizationState(VisualizationState.DONE);
@@ -212,11 +208,8 @@ export const Graph = () => {
       items: visitedEdges,
       delayMs: visualizationSpeed,
       onStep: (edge) => {
-        const toId = parseInt(edge.to);
-        const { visualization } = useGraphStore.getState();
-        if (!visualization.trace.nodes.get(toId)?.isVisited) {
-          markEdgeAndNode(edge, StepType.VISIT);
-        }
+        // Always mark edge and node - setTraceNode/setTraceEdge are idempotent
+        markEdgeAndNode(edge, StepType.VISIT);
       },
       onComplete: () => {
         setVisualizationInput(null);
