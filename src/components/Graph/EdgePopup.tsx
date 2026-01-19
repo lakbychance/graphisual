@@ -8,6 +8,7 @@ import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { EDGE_TYPE, type EdgeType } from "../../constants";
+import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 
 interface EdgePopupProps {
   edge: IEdge;
@@ -32,6 +33,14 @@ export const EdgePopup = memo(function EdgePopup({
   const [type, setType] = useState<EdgeType>(edge.type as EdgeType);
   const [isOpen, setIsOpen] = useState(true);
   const weightInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if a reverse edge exists (only matters for directed edges)
+  const fromNodeId = parseInt(edge.from);
+  const toNodeId = parseInt(edge.to);
+  const hasReverseEdge = useGraphStore(selectHasReverseEdge(fromNodeId, toNodeId));
+
+  // Can only switch to undirected if: already undirected OR no reverse edge exists
+  const canSwitchToUndirected = type === EDGE_TYPE.UNDIRECTED || !hasReverseEdge;
 
   // Focus weight input on mount
   useEffect(() => {
@@ -113,15 +122,17 @@ export const EdgePopup = memo(function EdgePopup({
                 <TooltipTrigger asChild>
                   <span className="flex-1">
                     <RadixToggleGroupItem
-
                       value={EDGE_TYPE.UNDIRECTED}
+                      disabled={!canSwitchToUndirected}
                       className="w-8 h-8 flex-none px-1.5"
                     >
                       <Minus className="w-4 h-4" />
                     </RadixToggleGroupItem>
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Undirected</TooltipContent>
+                <TooltipContent side="bottom">
+                  {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
+                </TooltipContent>
               </Tooltip>
             </RadixToggleGroup>
 

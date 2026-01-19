@@ -879,3 +879,9 @@ export const selectStepHistory = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.history : EMPTY_STEP_HISTORY;
 export const selectIsStepComplete = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isComplete : false;
+
+// Helper selector to check if a reverse edge exists (curried for use with useGraphStore)
+export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (state: GraphStore): boolean => {
+  const targetEdges = state.data.edges.get(toNodeId) || [];
+  return targetEdges.some((e) => parseInt(e.to) === fromNodeId);
+};
