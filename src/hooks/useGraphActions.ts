@@ -55,6 +55,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const deleteNode = useGraphStore((state) => state.deleteNode);
   const selectNode = useGraphStore((state) => state.selectNode);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
+  const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const stepForward = useGraphStore((state) => state.stepForward);
   const stepBackward = useGraphStore((state) => state.stepBackward);
   const jumpToStep = useGraphStore((state) => state.jumpToStep);
@@ -93,7 +94,8 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
 
   const executeResetZoom = useCallback(() => {
     setViewportZoom(1);
-  }, [setViewportZoom]);
+    setViewportPan(0, 0);
+  }, [setViewportZoom, setViewportPan]);
 
   const executeDeselect = useCallback(() => {
     if (!isInStepMode) {

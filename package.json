@@ -21,6 +21,8 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
@@ -30,6 +32,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.182.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
@@ -39,6 +42,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.20",

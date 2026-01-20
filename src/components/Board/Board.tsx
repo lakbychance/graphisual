@@ -1,13 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { Graph, GraphHandle } from "../Graph/Graph";
+import type { Graph3DHandle } from "../Graph3D";
+// Lazy load Graph3D (and Three.js) - only downloaded when user toggles 3D mode on desktop
+const Graph3D = lazy(() =>
+  import("../Graph3D").then((mod) => ({ default: mod.Graph3D }))
+);
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
@@ -16,6 +22,7 @@ import { GrainTexture } from "../ui/grain-texture";
 import { VisualizationState, VisualizationMode } from "../../constants";
 import { exportSvg } from "../../utility/exportSvg";
 import { exportPng } from "../../utility/exportPng";
+import { export3DPng } from "../../utility/export3DPng";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +58,10 @@ export const Board = () => {
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
 
+  // 3D mode state
+  const is3DMode = useSettingsStore((state) => state.is3DMode);
+  const setIs3DMode = useSettingsStore((state) => state.setIs3DMode);
+
   // Actions from store
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
   const setVisualizationSpeed = useGraphStore((state) => state.setVisualizationSpeed);
@@ -61,8 +72,9 @@ export const Board = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
 
-  // Ref to access Graph's SVG element for export
+  // Refs to access Graph elements for export
   const graphRef = useRef<GraphHandle>(null);
+  const graph3DRef = useRef<Graph3DHandle>(null);
 
   // Centralized actions from useGraphActions hook
   const { actions, handleKeyDown } = useGraphActions({
@@ -141,7 +153,7 @@ export const Board = () => {
     }
   };
 
-  // Export SVG handler
+  // Export SVG handler (2D only)
   const handleExportSvg = useCallback(async () => {
     const svgElement = graphRef.current?.getSvgElement();
     if (svgElement) {
@@ -149,11 +161,19 @@ export const Board = () => {
     }
   }, []);
 
-  // Export PNG handler
-  const handleExportPng = useCallback(async () => {
+  // Export PNG handler (2D only)
+  const handleExport2DPng = useCallback(async () => {
     const svgElement = graphRef.current?.getSvgElement();
     if (svgElement) {
       await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+    }
+  }, []);
+
+  // Export PNG handler (3D only)
+  const handleExport3DPng = useCallback(async () => {
+    const canvas = graph3DRef.current?.getCanvas();
+    if (canvas) {
+      await export3DPng(canvas, { filename: 'graph-3d.png' });
     }
   }, []);
 
@@ -174,9 +194,41 @@ export const Board = () => {
         {/* Background color */}
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
 
-        {/* Full-screen Graph - no props needed, reads from store */}
+        {/* Full-screen Graph with crossfade transition */}
         <div className="absolute inset-0 touch-action-manipulation">
-          <Graph ref={graphRef} />
+          <AnimatePresence mode="wait">
+            {is3DMode ? (
+              <motion.div
+                key="3d"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+                      Loading 3D…
+                    </div>
+                  }
+                >
+                  <Graph3D ref={graph3DRef} />
+                </Suspense>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="2d"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Graph ref={graphRef} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
@@ -291,34 +343,75 @@ export const Board = () => {
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
-                {/* Export dropdown */}
-                <DropdownMenu>
+                {/* 3D Toggle Button - Desktop only */}
+                <div className="hidden md:block">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          disabled={isVisualizing || !hasNodes}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <Download className="h-4 w-4 text-[var(--color-text)]" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                      <Button
+                        onClick={() => setIs3DMode(!is3DMode)}
+                        variant="ghost"
+                        size="icon-sm"
+                        className={cn(
+                          "z-10",
+                          is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
+                        )}
+                        disabled={isVisualizing}
+                        aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
+                      >
+                        <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
+                      </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Export</TooltipContent>
+                    <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
                   </Tooltip>
-                  <DropdownMenuContent align="center" sideOffset={8}>
-                    <DropdownMenuItem onClick={handleExportSvg}>
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Export as SVG
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportPng}>
-                      <Image className="h-4 w-4 mr-2" />
-                      Export as PNG
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                </div>
+
+                {/* Export - direct button in 3D mode, dropdown in 2D mode */}
+                {is3DMode ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleExport3DPng}
+                        disabled={isVisualizing || !hasNodes}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                        aria-label="Export PNG"
+                      >
+                        <Download className="h-4 w-4 text-[var(--color-text)]" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Export PNG</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            disabled={isVisualizing || !hasNodes}
+                            variant="ghost"
+                            size="icon-sm"
+                            className="z-10"
+                            aria-label="Export"
+                          >
+                            <Download className="h-4 w-4 text-[var(--color-text)]" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Export</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="center" sideOffset={8}>
+                      <DropdownMenuItem onClick={handleExportSvg}>
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Export as SVG
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExport2DPng}>
+                        <Image className="h-4 w-4 mr-2" />
+                        Export as PNG
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
                 {/* Reset button */}
                 <Tooltip>
@@ -329,6 +422,7 @@ export const Board = () => {
                       variant="ghost"
                       size="icon-sm"
                       className="z-10"
+                      aria-label="Reset Graph"
                     >
                       <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
                     </Button>
@@ -395,7 +489,7 @@ export const Board = () => {
           </div>
         </div>
 
-        {/* Settings button - Top left on mobile, bottom right on desktop */}
+        {/* Theme selector - Top left on mobile, bottom right on desktop */}
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
           <ThemeSelector
             theme={theme}
