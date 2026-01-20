@@ -1,4 +1,5 @@
-import { useMemo, useRef, useEffect, useCallback, useState } from "react";
+import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle } from "react";
+import type { Ref } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid } from "@react-three/drei";
 import { useGraphStore } from "../../store/graphStore";
@@ -45,6 +46,20 @@ function getGridColors(theme: ResolvedTheme): { minor: string; major: string } {
         major: '#b0aca6',
       };
   }
+}
+
+// Handle interface for external access to the 3D canvas
+export interface Graph3DHandle {
+  getCanvas: () => HTMLCanvasElement | null;
+}
+
+// Helper component inside Canvas to capture gl context and expose via ref
+function CanvasCapture({ onReady }: { onReady: (canvas: HTMLCanvasElement) => void }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    onReady(gl.domElement);
+  }, [gl, onReady]);
+  return null;
 }
 
 // Intro animation settings
@@ -230,10 +245,23 @@ function CameraController({
   );
 }
 
-export function Graph3D() {
+export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   const nodes = useGraphStore(useShallow((state) => state.data.nodes));
   const edges = useGraphStore((state) => state.data.edges);
   const { theme } = useResolvedTheme();
+
+  // Store canvas reference for export
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Expose getCanvas method via ref
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => canvasRef.current,
+  }), []);
+
+  // Callback to capture canvas from CanvasCapture
+  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
+    canvasRef.current = canvas;
+  }, []);
 
   // Track container dimensions for responsive camera distance
   const containerRef = useRef<HTMLDivElement>(null);
@@ -334,9 +362,10 @@ export function Graph3D() {
     >
       {isReady && (
         <Canvas
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
           shadows
         >
+        <CanvasCapture onReady={handleCanvasReady} />
         <PerspectiveCamera
           makeDefault
           position={[0, 0, baseCameraDistance]}

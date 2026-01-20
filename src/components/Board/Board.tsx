@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
 import { AnimatePresence, motion } from "motion/react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { Graph, GraphHandle } from "../Graph/Graph";
+import type { Graph3DHandle } from "../Graph3D";
 // Lazy load Graph3D (and Three.js) - only downloaded when user toggles 3D mode on desktop
 const Graph3D = lazy(() =>
   import("../Graph3D").then((mod) => ({ default: mod.Graph3D }))
@@ -21,6 +22,7 @@ import { GrainTexture } from "../ui/grain-texture";
 import { VisualizationState, VisualizationMode } from "../../constants";
 import { exportSvg } from "../../utility/exportSvg";
 import { exportPng } from "../../utility/exportPng";
+import { export3DPng } from "../../utility/export3DPng";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,8 +72,9 @@ export const Board = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
 
-  // Ref to access Graph's SVG element for export
+  // Refs to access Graph elements for export
   const graphRef = useRef<GraphHandle>(null);
+  const graph3DRef = useRef<Graph3DHandle>(null);
 
   // Centralized actions from useGraphActions hook
   const { actions, handleKeyDown } = useGraphActions({
@@ -150,7 +153,7 @@ export const Board = () => {
     }
   };
 
-  // Export SVG handler
+  // Export SVG handler (2D only)
   const handleExportSvg = useCallback(async () => {
     const svgElement = graphRef.current?.getSvgElement();
     if (svgElement) {
@@ -158,11 +161,19 @@ export const Board = () => {
     }
   }, []);
 
-  // Export PNG handler
-  const handleExportPng = useCallback(async () => {
+  // Export PNG handler (2D only)
+  const handleExport2DPng = useCallback(async () => {
     const svgElement = graphRef.current?.getSvgElement();
     if (svgElement) {
       await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+    }
+  }, []);
+
+  // Export PNG handler (3D only)
+  const handleExport3DPng = useCallback(async () => {
+    const canvas = graph3DRef.current?.getCanvas();
+    if (canvas) {
+      await export3DPng(canvas, { filename: 'graph-3d.png' });
     }
   }, []);
 
@@ -202,7 +213,7 @@ export const Board = () => {
                     </div>
                   }
                 >
-                  <Graph3D />
+                  <Graph3D ref={graph3DRef} />
                 </Suspense>
               </motion.div>
             ) : (
@@ -353,34 +364,51 @@ export const Board = () => {
                   </Tooltip>
                 </div>
 
-                {/* Export dropdown */}
-                <DropdownMenu>
+                {/* Export - direct button in 3D mode, dropdown in 2D mode */}
+                {is3DMode ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          disabled={isVisualizing || !hasNodes}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                        >
-                          <Download className="h-4 w-4 text-[var(--color-text)]" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                      <Button
+                        onClick={handleExport3DPng}
+                        disabled={isVisualizing || !hasNodes}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                      >
+                        <Download className="h-4 w-4 text-[var(--color-text)]" />
+                      </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Export</TooltipContent>
+                    <TooltipContent>Export PNG</TooltipContent>
                   </Tooltip>
-                  <DropdownMenuContent align="center" sideOffset={8}>
-                    <DropdownMenuItem onClick={handleExportSvg}>
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Export as SVG
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportPng}>
-                      <Image className="h-4 w-4 mr-2" />
-                      Export as PNG
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                ) : (
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            disabled={isVisualizing || !hasNodes}
+                            variant="ghost"
+                            size="icon-sm"
+                            className="z-10"
+                          >
+                            <Download className="h-4 w-4 text-[var(--color-text)]" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Export</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="center" sideOffset={8}>
+                      <DropdownMenuItem onClick={handleExportSvg}>
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Export as SVG
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExport2DPng}>
+                        <Image className="h-4 w-4 mr-2" />
+                        Export as PNG
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
                 {/* Reset button */}
                 <Tooltip>
