@@ -101,7 +101,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // Apply step-through visualization when stepIndex changes
   useStepThroughVisualization();
 
-  // Enable pinch-to-zoom and trackpad zoom (disabled during visualization)
+  // Enable pinch-to-zoom, trackpad zoom, and mouse wheel zoom
   const { isGestureActive } = useGestureZoom({
     svgRef: graph,
     zoom: zoomTarget,
@@ -110,14 +110,12 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     setPan: setViewportPan,
     minZoom: ZOOM.MIN,
     maxZoom: ZOOM.MAX,
-    enabled: !isVisualizing,
   });
 
   // Canvas panning hook
   const { handleCanvasPointerDown, isDraggingCanvas } = useCanvasPan({
     pan,
     zoom,
-    isVisualizing,
     isGestureActive,
     setViewportPan,
   });

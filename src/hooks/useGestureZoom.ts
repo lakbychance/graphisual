@@ -9,7 +9,6 @@ interface UseGestureZoomOptions {
   setPan: (x: number, y: number) => void;
   minZoom?: number;
   maxZoom?: number;
-  enabled?: boolean;
 }
 
 interface UseGestureZoomReturn {
@@ -28,7 +27,6 @@ export function useGestureZoom({
   setPan,
   minZoom = ZOOM.MIN,
   maxZoom = ZOOM.MAX,
-  enabled = true,
 }: UseGestureZoomOptions): UseGestureZoomReturn {
   // Keep current values in refs so handlers always have latest values
   const zoomRef = useRef(zoom);
@@ -45,7 +43,7 @@ export function useGestureZoom({
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || !enabled) return;
+    if (!svg) return;
 
     // Core focal zoom logic (shared by touch + wheel)
     const zoomAtPoint = (newZoom: number, focalX: number, focalY: number) => {
@@ -116,9 +114,6 @@ export function useGestureZoom({
     // === Wheel handler (trackpad pinch) ===
 
     const handleWheel = (e: WheelEvent) => {
-      // Trackpad pinch fires wheel events with ctrlKey
-      if (!e.ctrlKey) return;
-
       e.preventDefault();
 
       // Calculate zoom change (deltaY is negative when zooming in)
@@ -149,7 +144,7 @@ export function useGestureZoom({
       svg.removeEventListener("touchend", handleTouchEnd);
       svg.removeEventListener("wheel", handleWheel);
     };
-  }, [svgRef, setZoom, setPan, minZoom, maxZoom, enabled]);
+  }, [svgRef, setZoom, setPan, minZoom, maxZoom]);
 
   // Stable function reference - reads from ref so always returns current value
   const isGestureActive = useCallback(() => gestureActiveRef.current, []);

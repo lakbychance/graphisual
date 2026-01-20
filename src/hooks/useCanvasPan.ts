@@ -4,7 +4,6 @@ import { DRAG_THRESHOLD, TIMING } from "../utility/constants";
 interface UseCanvasPanProps {
   pan: { x: number; y: number };
   zoom: number;
-  isVisualizing: boolean;
   isGestureActive: () => boolean;
   setViewportPan: (x: number, y: number) => void;
 }
@@ -12,7 +11,6 @@ interface UseCanvasPanProps {
 export function useCanvasPan({
   pan,
   zoom,
-  isVisualizing,
   isGestureActive,
   setViewportPan,
 }: UseCanvasPanProps) {
@@ -23,7 +21,6 @@ export function useCanvasPan({
     (event: React.PointerEvent<SVGSVGElement>) => {
       const target = event.target as SVGElement;
       if (target.tagName !== "svg") return;
-      if (isVisualizing) return;
 
       const startX = event.clientX;
       const startY = event.clientY;
@@ -53,7 +50,7 @@ export function useCanvasPan({
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [pan, zoom, isVisualizing, isGestureActive, setViewportPan]
+    [pan, zoom, isGestureActive, setViewportPan]
   );
 
   return { handleCanvasPointerDown, isDraggingCanvas };
