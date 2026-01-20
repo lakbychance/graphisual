@@ -209,7 +209,7 @@ export const Board = () => {
                 <Suspense
                   fallback={
                     <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
-                      Loading 3D...
+                      Loading 3D…
                     </div>
                   }
                 >
@@ -356,6 +356,7 @@ export const Board = () => {
                           is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
                         )}
                         disabled={isVisualizing}
+                        aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
                       >
                         <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
                       </Button>
@@ -374,6 +375,7 @@ export const Board = () => {
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
+                        aria-label="Export PNG"
                       >
                         <Download className="h-4 w-4 text-[var(--color-text)]" />
                       </Button>
@@ -390,6 +392,7 @@ export const Board = () => {
                             variant="ghost"
                             size="icon-sm"
                             className="z-10"
+                            aria-label="Export"
                           >
                             <Download className="h-4 w-4 text-[var(--color-text)]" />
                           </Button>
@@ -419,6 +422,7 @@ export const Board = () => {
                       variant="ghost"
                       size="icon-sm"
                       className="z-10"
+                      aria-label="Reset Graph"
                     >
                       <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
                     </Button>
