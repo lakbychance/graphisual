@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { Graph, GraphHandle } from "../Graph/Graph";
+import { Graph3D } from "../Graph3D";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
@@ -50,6 +51,10 @@ export const Board = () => {
   // Theme state (from separate settings store - persists across graph resets)
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
+
+  // 3D mode state
+  const is3DMode = useSettingsStore((state) => state.is3DMode);
+  const setIs3DMode = useSettingsStore((state) => state.setIs3DMode);
 
   // Actions from store
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
@@ -176,7 +181,7 @@ export const Board = () => {
 
         {/* Full-screen Graph - no props needed, reads from store */}
         <div className="absolute inset-0 touch-action-manipulation">
-          <Graph ref={graphRef} />
+          {is3DMode ? <Graph3D /> : <Graph ref={graphRef} />}
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
@@ -396,7 +401,26 @@ export const Board = () => {
         </div>
 
         {/* Settings button - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
+          {/* 3D Toggle Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setIs3DMode(!is3DMode)}
+                variant="ghost"
+                size="icon-sm"
+                className={cn(
+                  "relative overflow-hidden rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
+                  is3DMode && "bg-[var(--color-surface)] shadow-[var(--shadow-pressed)]"
+                )}
+                disabled={isVisualizing}
+              >
+                <Box size={16} className={cn(is3DMode ? "text-[var(--color-primary)]" : "text-[var(--color-text)]")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
+          </Tooltip>
+
           <ThemeSelector
             theme={theme}
             setTheme={setTheme}
