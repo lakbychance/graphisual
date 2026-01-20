@@ -1,20 +1,26 @@
-import { useRef, useMemo } from "react";
-import { Sphere, Html } from "@react-three/drei";
-import { useGraphStore } from "../../store/graphStore";
-import { useSettingsStore } from "../../store/settingsStore";
+import { useMemo, useState, useCallback } from "react";
+import { Sphere, Text } from "@react-three/drei";
+import { useGraphStore, selectNodeVisState } from "../../store/graphStore";
+import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
 import { NODE } from "../../utility/constants";
+import { getNodeGradientColors, getNodeStrokeColor, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
+import { ThreeEvent } from "@react-three/fiber";
+
+// Default node stroke colors by theme (distinct from edge colors)
+const DEFAULT_STROKE_COLORS: Record<ResolvedTheme, string> = {
+  light: '#a8a29a',
+  dark: '#787878',
+  blueprint: '#60a0e8',
+};
 
 interface Node3DProps {
   nodeId: number;
   position: [number, number, number];
   startNodeId: number | null;
   endNodeId: number | null;
-}
-
-// Read CSS variable value
-function getCSSVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  onClick?: (nodeId: number) => void;
+  isClickable?: boolean;
 }
 
 // Create seamless diagonal lines texture (matching 2D pattern) using canvas
@@ -56,89 +62,148 @@ function createDiagonalTexture(size: number = 64, lineColor: string = '#000000',
   return texture;
 }
 
-export function Node3D({ nodeId, position, startNodeId, endNodeId }: Node3DProps) {
-  const groupRef = useRef<THREE.Group>(null);
+export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false }: Node3DProps) {
+  // Get visualization state using derived selector
+  const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
 
-  const nodeFlags = useGraphStore(
-    (state) => state.visualization.trace.nodes.get(nodeId)
-  );
-
-  // Subscribe to theme to trigger re-render when it changes
-  const theme = useSettingsStore((state) => state.theme);
+  // Get resolved theme with convenience booleans
+  const { theme, isDark: isDarkTheme, isLight: isLightTheme, isBlueprint: isBlueprintTheme } = useResolvedTheme();
 
   // Get theme-aware colors from CSS variables - recalculate when theme changes
   const colors = useMemo(() => {
-    const getGradientColors = () => {
-      if (nodeId === startNodeId) {
-        return {
-          start: getCSSVar('--gradient-start-start'),
-          mid: getCSSVar('--gradient-start-mid'),
-          end: getCSSVar('--gradient-start-end'),
-        };
-      }
-      if (nodeId === endNodeId) {
-        return {
-          start: getCSSVar('--gradient-end-start'),
-          mid: getCSSVar('--gradient-end-mid'),
-          end: getCSSVar('--gradient-end-end'),
-        };
-      }
-      if (nodeFlags?.isInShortestPath) {
-        return {
-          start: getCSSVar('--gradient-path-start'),
-          mid: getCSSVar('--gradient-path-mid'),
-          end: getCSSVar('--gradient-path-end'),
-        };
-      }
-      if (nodeFlags?.isVisited) {
-        return {
-          start: getCSSVar('--gradient-visited-start'),
-          mid: getCSSVar('--gradient-visited-mid'),
-          end: getCSSVar('--gradient-visited-end'),
-        };
-      }
-      return {
-        start: getCSSVar('--gradient-default-start'),
-        mid: getCSSVar('--gradient-default-mid'),
-        end: getCSSVar('--gradient-default-end'),
-      };
-    };
-
+    const gradientColors = getNodeGradientColors(visState);
+    const uiColors = getUIColors();
+    const strokeColor = getNodeStrokeColor(visState);
     return {
-      ...getGradientColors(),
-      text: getCSSVar('--color-text'),
-      nodeStroke: getCSSVar('--color-node-stroke'),
-      paper: getCSSVar('--color-paper'),
+      ...gradientColors,
+      ...uiColors,
+      stroke: strokeColor,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, startNodeId, endNodeId, nodeFlags?.isInShortestPath, nodeFlags?.isVisited, theme]);
+  }, [visState, theme]);
 
   // Create diagonal texture - recreate when text color changes (theme change)
   const diagonalTexture = useMemo(() => {
     return createDiagonalTexture(64, colors.text, 0.25);
   }, [colors.text]);
 
+  // Hover state for visual feedback
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Click handler
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (isClickable && onClick) {
+      onClick(nodeId);
+    }
+  }, [isClickable, onClick, nodeId]);
+
+  // Pointer handlers for hover effect
+  const handlePointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    if (isClickable) {
+      setIsHovered(true);
+      document.body.style.cursor = 'pointer';
+    }
+  }, [isClickable]);
+
+  const handlePointerOut = useCallback(() => {
+    setIsHovered(false);
+    document.body.style.cursor = 'auto';
+  }, []);
+
+  // Enhanced glow when hovered and clickable
+  const hoverScale = isHovered && isClickable ? 1.1 : 1;
+  const hoverEmissiveBoost = isHovered && isClickable ? 0.3 : 0;
+
   return (
-    <group position={position} ref={groupRef}>
-      {/* Outer ring / stroke */}
+    <group
+      position={position}
+      scale={hoverScale}
+      onClick={handleClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
+    >
+      {/* ===== DARK THEME: Subtle glow layers (at node edge) ===== */}
+      {isDarkTheme && (
+        <>
+          <Sphere args={[NODE.RADIUS * 1.08, 32, 32]}>
+            <meshBasicMaterial
+              color={colors.mid}
+              transparent
+              opacity={0.12 + hoverEmissiveBoost}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </Sphere>
+          <Sphere args={[NODE.RADIUS * 1.02, 32, 32]}>
+            <meshBasicMaterial
+              color={colors.start}
+              transparent
+              opacity={0.2 + hoverEmissiveBoost}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </Sphere>
+        </>
+      )}
+
+      {/* ===== BLUEPRINT THEME: Subtle glow layers (at node edge) ===== */}
+      {isBlueprintTheme && (
+        <>
+          <Sphere args={[NODE.RADIUS * 1.08, 32, 32]}>
+            <meshBasicMaterial
+              color={colors.mid}
+              transparent
+              opacity={0.12 + hoverEmissiveBoost}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </Sphere>
+          <Sphere args={[NODE.RADIUS * 1.02, 32, 32]}>
+            <meshBasicMaterial
+              color={colors.start}
+              transparent
+              opacity={0.2 + hoverEmissiveBoost}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </Sphere>
+        </>
+      )}
+
+      {/* Outer ring / stroke - uses state-aware color like 2D */}
       <mesh>
         <torusGeometry args={[NODE.RADIUS + 1.5, 2, 16, 48]} />
-        <meshStandardMaterial
-          color={colors.nodeStroke}
-          roughness={0.5}
-          metalness={0.2}
+        <meshBasicMaterial
+          color={visState === 'default' ? DEFAULT_STROKE_COLORS[theme] : colors.stroke}
         />
       </mesh>
 
-      {/* Main sphere with base color - using start color for brightness matching 2D */}
+      {/* Main sphere - theme-specific settings */}
       <Sphere args={[NODE.RADIUS, 64, 64]}>
-        <meshStandardMaterial
-          color={colors.start}
-          emissive={colors.mid}
-          emissiveIntensity={0.3}
-          roughness={0.5}
-          metalness={0}
-        />
+        {isDarkTheme && (
+          <meshStandardMaterial
+            color={colors.start}
+            emissive={colors.mid}
+            emissiveIntensity={0.2 + hoverEmissiveBoost}
+            roughness={0.4}
+            metalness={0.3}
+          />
+        )}
+        {isBlueprintTheme && (
+          <meshStandardMaterial
+            color={colors.start}
+            emissive={colors.mid}
+            emissiveIntensity={0.2 + hoverEmissiveBoost}
+            roughness={0.4}
+            metalness={0.3}
+          />
+        )}
+        {/* LIGHT THEME: Warm cream for default, mid color for colored states */}
+        {isLightTheme && (
+          <meshBasicMaterial color={visState === 'default' ? '#ffefcc' : colors.mid} />
+        )}
       </Sphere>
 
       {/* Diagonal lines overlay sphere - slightly larger to prevent z-fighting */}
@@ -151,21 +216,19 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId }: Node3DProps
         />
       </Sphere>
 
-      {/* Node label using Html for guaranteed visibility */}
-      <Html
-        center
-        style={{
-          color: colors.text,
-          fontSize: '14px',
-          fontWeight: 'bold',
-          fontFamily: "'JetBrains Mono', monospace",
-          textShadow: `0 0 4px ${colors.paper}, 0 0 8px ${colors.paper}`,
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}
+      {/* Node label using Text for 3D scaling */}
+      <Text
+        position={[0, 0, NODE.RADIUS + 1]}
+        fontSize={14}
+        color={colors.text}
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+        outlineWidth={2}
+        outlineColor={colors.paper}
       >
-        {nodeId}
-      </Html>
+        {String(nodeId)}
+      </Text>
     </group>
   );
 }

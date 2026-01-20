@@ -21,10 +21,11 @@ export interface RandomGeneratorOptions {
   layout?: LayoutType;
 }
 
-// Canvas dimensions for layout (will be centered)
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 600;
-const PADDING = 100;
+// Layout dimensions (graphs are centered at origin)
+const LAYOUT_WIDTH = 600;
+const LAYOUT_HEIGHT = 400;
+const HALF_WIDTH = LAYOUT_WIDTH / 2;
+const HALF_HEIGHT = LAYOUT_HEIGHT / 2;
 
 /**
  * Create an edge between two nodes
@@ -103,9 +104,9 @@ function circularLayout(count: number, centerX: number, centerY: number, radius:
 }
 
 /**
- * Layout nodes randomly scattered
+ * Layout nodes randomly scattered (centered at origin)
  */
-function randomLayout(count: number, width: number, height: number, padding: number): { x: number; y: number }[] {
+function randomLayout(count: number, halfWidth: number, halfHeight: number): { x: number; y: number }[] {
   const positions: { x: number; y: number }[] = [];
   const minDistance = 60; // Minimum distance between nodes to avoid overlap
 
@@ -114,8 +115,8 @@ function randomLayout(count: number, width: number, height: number, padding: num
     let x: number, y: number;
 
     do {
-      x = padding + Math.random() * (width - 2 * padding);
-      y = padding + Math.random() * (height - 2 * padding);
+      x = -halfWidth + Math.random() * (2 * halfWidth);
+      y = -halfHeight + Math.random() * (2 * halfHeight);
       attempts++;
     } while (
       attempts < 100 &&
@@ -128,13 +129,13 @@ function randomLayout(count: number, width: number, height: number, padding: num
 }
 
 /**
- * Layout nodes in a grid pattern
+ * Layout nodes in a grid pattern (centered at origin)
  */
-function gridLayout(count: number, width: number, height: number, padding: number): { x: number; y: number }[] {
+function gridLayout(count: number, halfWidth: number, halfHeight: number): { x: number; y: number }[] {
   const positions: { x: number; y: number }[] = [];
 
   // Calculate optimal grid dimensions
-  const aspectRatio = (width - 2 * padding) / (height - 2 * padding);
+  const aspectRatio = halfWidth / halfHeight;
   let cols = Math.ceil(Math.sqrt(count * aspectRatio));
   let rows = Math.ceil(count / cols);
 
@@ -143,15 +144,17 @@ function gridLayout(count: number, width: number, height: number, padding: numbe
     cols++;
   }
 
-  const cellWidth = (width - 2 * padding) / (cols - 1 || 1);
-  const cellHeight = (height - 2 * padding) / (rows - 1 || 1);
+  const totalWidth = 2 * halfWidth;
+  const totalHeight = 2 * halfHeight;
+  const cellWidth = totalWidth / (cols - 1 || 1);
+  const cellHeight = totalHeight / (rows - 1 || 1);
 
   let nodeIdx = 0;
   for (let row = 0; row < rows && nodeIdx < count; row++) {
     for (let col = 0; col < cols && nodeIdx < count; col++) {
       positions.push({
-        x: padding + col * cellWidth,
-        y: padding + row * cellHeight,
+        x: -halfWidth + col * cellWidth,
+        y: -halfHeight + row * cellHeight,
       });
       nodeIdx++;
     }
@@ -161,7 +164,7 @@ function gridLayout(count: number, width: number, height: number, padding: numbe
 }
 
 /**
- * Generate a random graph
+ * Generate a random graph (centered at origin)
  */
 export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedGraph {
   const { nodeCount, edgeDensity, directed, weighted, minWeight = 1, maxWeight = 10, layout = "circular" } = options;
@@ -169,22 +172,20 @@ export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedG
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  // Get positions based on layout type
-  const centerX = CANVAS_WIDTH / 2;
-  const centerY = CANVAS_HEIGHT / 2;
-  const radius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) / 2 - PADDING;
+  // Get positions based on layout type (all centered at origin)
+  const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
 
   let positions: { x: number; y: number }[];
   switch (layout) {
     case "random":
-      positions = randomLayout(nodeCount, CANVAS_WIDTH, CANVAS_HEIGHT, PADDING);
+      positions = randomLayout(nodeCount, HALF_WIDTH, HALF_HEIGHT);
       break;
     case "grid":
-      positions = gridLayout(nodeCount, CANVAS_WIDTH, CANVAS_HEIGHT, PADDING);
+      positions = gridLayout(nodeCount, HALF_WIDTH, HALF_HEIGHT);
       break;
     case "circular":
     default:
-      positions = circularLayout(nodeCount, centerX, centerY, radius);
+      positions = circularLayout(nodeCount, 0, 0, radius);
       break;
   }
 
@@ -232,23 +233,21 @@ export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedG
 }
 
 /**
- * Generate a path graph (linear chain)
+ * Generate a path graph (linear chain, centered at origin)
  */
 export function generatePath(nodeCount: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const startX = PADDING;
-  const endX = CANVAS_WIDTH - PADDING;
-  const y = CANVAS_HEIGHT / 2;
-  const spacing = (endX - startX) / (nodeCount - 1 || 1);
+  const totalWidth = LAYOUT_WIDTH;
+  const spacing = totalWidth / (nodeCount - 1 || 1);
 
-  // Create nodes
+  // Create nodes (centered at origin)
   for (let i = 0; i < nodeCount; i++) {
     nodes.push({
       id: i + 1,
-      x: startX + i * spacing,
-      y,
+      x: -HALF_WIDTH + i * spacing,
+      y: 0,
       r: NODE.RADIUS,
     });
     edges.set(i + 1, []);
@@ -263,16 +262,14 @@ export function generatePath(nodeCount: number): GeneratedGraph {
 }
 
 /**
- * Generate a cycle graph
+ * Generate a cycle graph (centered at origin)
  */
 export function generateCycle(nodeCount: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const centerX = CANVAS_WIDTH / 2;
-  const centerY = CANVAS_HEIGHT / 2;
-  const radius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) / 2 - PADDING;
-  const positions = circularLayout(nodeCount, centerX, centerY, radius);
+  const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
+  const positions = circularLayout(nodeCount, 0, 0, radius);
 
   // Create nodes
   for (let i = 0; i < nodeCount; i++) {
@@ -295,16 +292,14 @@ export function generateCycle(nodeCount: number): GeneratedGraph {
 }
 
 /**
- * Generate a complete graph (K_n)
+ * Generate a complete graph (K_n, centered at origin)
  */
 export function generateComplete(nodeCount: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const centerX = CANVAS_WIDTH / 2;
-  const centerY = CANVAS_HEIGHT / 2;
-  const radius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) / 2 - PADDING;
-  const positions = circularLayout(nodeCount, centerX, centerY, radius);
+  const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
+  const positions = circularLayout(nodeCount, 0, 0, radius);
 
   // Create nodes
   for (let i = 0; i < nodeCount; i++) {
@@ -328,28 +323,25 @@ export function generateComplete(nodeCount: number): GeneratedGraph {
 }
 
 /**
- * Generate a star graph
+ * Generate a star graph (centered at origin)
  */
 export function generateStar(nodeCount: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const centerX = CANVAS_WIDTH / 2;
-  const centerY = CANVAS_HEIGHT / 2;
-
-  // Center node
+  // Center node at origin
   nodes.push({
     id: 1,
-    x: centerX,
-    y: centerY,
+    x: 0,
+    y: 0,
     r: NODE.RADIUS,
   });
   edges.set(1, []);
 
   // Outer nodes
-  const radius = Math.min(CANVAS_WIDTH, CANVAS_HEIGHT) / 2 - PADDING;
+  const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
   const outerCount = nodeCount - 1;
-  const positions = circularLayout(outerCount, centerX, centerY, radius);
+  const positions = circularLayout(outerCount, 0, 0, radius);
 
   for (let i = 0; i < outerCount; i++) {
     nodes.push({
@@ -368,30 +360,29 @@ export function generateStar(nodeCount: number): GeneratedGraph {
 }
 
 /**
- * Generate a binary tree
+ * Generate a binary tree (centered at origin)
  */
 export function generateBinaryTree(depth: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
   const nodeCount = Math.pow(2, depth) - 1;
-  const levelHeight = (CANVAS_HEIGHT - 2 * PADDING) / (depth - 1 || 1);
+  const levelHeight = LAYOUT_HEIGHT / (depth - 1 || 1);
 
   let nodeId = 1;
 
-  // Create nodes level by level
+  // Create nodes level by level (centered at origin)
   for (let level = 0; level < depth; level++) {
     const nodesInLevel = Math.pow(2, level);
-    const levelWidth = CANVAS_WIDTH - 2 * PADDING;
-    const spacing = levelWidth / (nodesInLevel + 1);
+    const spacing = LAYOUT_WIDTH / (nodesInLevel + 1);
 
     for (let i = 0; i < nodesInLevel; i++) {
       if (nodeId > nodeCount) break;
 
       nodes.push({
         id: nodeId,
-        x: PADDING + spacing * (i + 1),
-        y: PADDING + level * levelHeight,
+        x: -HALF_WIDTH + spacing * (i + 1),
+        y: -HALF_HEIGHT + level * levelHeight,
         r: NODE.RADIUS,
       });
       edges.set(nodeId, []);
@@ -416,29 +407,28 @@ export function generateBinaryTree(depth: number): GeneratedGraph {
 }
 
 /**
- * Generate a DAG (Directed Acyclic Graph)
+ * Generate a DAG (Directed Acyclic Graph, centered at origin)
  * Creates a layered structure where edges only go from earlier to later layers
  */
 export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const layerHeight = (CANVAS_HEIGHT - 2 * PADDING) / (layers - 1 || 1);
+  const layerHeight = LAYOUT_HEIGHT / (layers - 1 || 1);
 
-  // Create nodes layer by layer
+  // Create nodes layer by layer (centered at origin)
   let nodeId = 1;
   const layerNodes: INode[][] = [];
 
   for (let layer = 0; layer < layers; layer++) {
-    const layerWidth = CANVAS_WIDTH - 2 * PADDING;
-    const spacing = layerWidth / (nodesPerLayer + 1);
+    const spacing = LAYOUT_WIDTH / (nodesPerLayer + 1);
     const currentLayerNodes: INode[] = [];
 
     for (let i = 0; i < nodesPerLayer; i++) {
       const node: INode = {
         id: nodeId,
-        x: PADDING + spacing * (i + 1),
-        y: PADDING + layer * layerHeight,
+        x: -HALF_WIDTH + spacing * (i + 1),
+        y: -HALF_HEIGHT + layer * layerHeight,
         r: NODE.RADIUS,
       };
       nodes.push(node);
@@ -485,23 +475,23 @@ export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGra
 }
 
 /**
- * Generate a grid graph
+ * Generate a grid graph (centered at origin)
  */
 export function generateGrid(rows: number, cols: number): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
-  const cellWidth = (CANVAS_WIDTH - 2 * PADDING) / (cols - 1 || 1);
-  const cellHeight = (CANVAS_HEIGHT - 2 * PADDING) / (rows - 1 || 1);
+  const cellWidth = LAYOUT_WIDTH / (cols - 1 || 1);
+  const cellHeight = LAYOUT_HEIGHT / (rows - 1 || 1);
 
-  // Create nodes
+  // Create nodes (centered at origin)
   let nodeId = 1;
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       nodes.push({
         id: nodeId,
-        x: PADDING + col * cellWidth,
-        y: PADDING + row * cellHeight,
+        x: -HALF_WIDTH + col * cellWidth,
+        y: -HALF_HEIGHT + row * cellHeight,
         r: NODE.RADIUS,
       });
       edges.set(nodeId, []);
@@ -531,26 +521,27 @@ export function generateGrid(rows: number, cols: number): GeneratedGraph {
 
 /**
  * Generate a weighted graph for pathfinding demonstrations (e.g., Dijkstra's algorithm)
- * Creates a network-style layout with varied edge weights
+ * Creates a network-style layout with varied edge weights (centered at origin)
  */
 export function generateWeighted(): GeneratedGraph {
   const nodes: INode[] = [];
   const edges = new Map<number, IEdge[]>();
 
   // Hand-crafted network-style positions (scattered, not geometric)
+  // Centered at origin - positions range from roughly -300 to 300
   const positions: { x: number; y: number }[] = [
-    { x: 120, y: 100 },   // 1: top-left start area
-    { x: 280, y: 80 },    // 2: top-center
-    { x: 450, y: 120 },   // 3: top-right
-    { x: 650, y: 90 },    // 4: far top-right
-    { x: 100, y: 280 },   // 5: left side
-    { x: 300, y: 250 },   // 6: center
-    { x: 480, y: 300 },   // 7: center-right
-    { x: 680, y: 260 },   // 8: right side
-    { x: 150, y: 450 },   // 9: bottom-left
-    { x: 350, y: 420 },   // 10: bottom-center
-    { x: 520, y: 480 },   // 11: bottom-right
-    { x: 700, y: 440 },   // 12: far bottom-right (destination)
+    { x: -280, y: -190 },   // 1: top-left start area
+    { x: -120, y: -210 },   // 2: top-center
+    { x: 50, y: -170 },     // 3: top-right
+    { x: 250, y: -200 },    // 4: far top-right
+    { x: -300, y: -10 },    // 5: left side
+    { x: -100, y: -40 },    // 6: center
+    { x: 80, y: 10 },       // 7: center-right
+    { x: 280, y: -30 },     // 8: right side
+    { x: -250, y: 160 },    // 9: bottom-left
+    { x: -50, y: 130 },     // 10: bottom-center
+    { x: 120, y: 190 },     // 11: bottom-right
+    { x: 300, y: 150 },     // 12: far bottom-right (destination)
   ];
 
   // Create nodes

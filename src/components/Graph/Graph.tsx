@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle,
 import { Node } from "../Graph/Node/Node";
 import { ZOOM } from "../../utility/constants";
 import { IEdge } from "./IGraph";
-import { AlgorithmType } from "../../algorithms";
 import { EdgePopup } from "./EdgePopup";
 import { useGraphStore } from "../../store/graphStore";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
@@ -11,6 +10,7 @@ import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useCanvasPan } from "../../hooks/useCanvasPan";
 import { useEdgeDragging } from "../../hooks/useEdgeDragging";
 import { useEdgeSelection } from "../../hooks/useEdgeSelection";
+import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
@@ -42,14 +42,11 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
 
-  // Visualization execution hook
-  const {
-    runAlgorithm,
-    currentAlgorithm,
-    isVisualizing,
-    visualizationInput,
-    setVisualizationInput,
-  } = useVisualizationExecution();
+  // Shared algorithm node click handler
+  const { handleNodeClick } = useAlgorithmNodeClick();
+
+  // Visualization execution hook - only need currentAlgorithm and isVisualizing for checks
+  const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
 
   // Local UI state (not shared with other components)
   const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
@@ -66,13 +63,14 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const svgDimensions = useElementDimensions(graph);
 
   // Calculate viewBox based on zoom and pan
+  // ViewBox is centered at origin (0,0) so graphs generated around origin appear centered
   const viewBox = useMemo(() => {
     if (svgDimensions.width === 0 || svgDimensions.height === 0) return undefined;
     const viewBoxWidth = svgDimensions.width / zoom;
     const viewBoxHeight = svgDimensions.height / zoom;
-    // Center the view and apply pan offset (subtract pan to move view opposite to drag direction)
-    const viewBoxMinX = (svgDimensions.width - viewBoxWidth) / 2 - pan.x;
-    const viewBoxMinY = (svgDimensions.height - viewBoxHeight) / 2 - pan.y;
+    // Center the view at origin and apply pan offset
+    const viewBoxMinX = -viewBoxWidth / 2 - pan.x;
+    const viewBoxMinY = -viewBoxHeight / 2 - pan.y;
     return `${viewBoxMinX} ${viewBoxMinY} ${viewBoxWidth} ${viewBoxHeight}`;
   }, [svgDimensions, zoom, pan]);
 
@@ -143,21 +141,10 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     const target = event.target as SVGSVGElement;
     const isNode = target.tagName === "circle";
 
-    // Algorithm mode
+    // Algorithm mode - delegate to shared hook
     if (currentAlgorithm && isNode && !isVisualizing) {
       const nodeId = parseInt(target.id);
-      const algoType = currentAlgorithm.metadata.type;
-
-      if (algoType === AlgorithmType.PATHFINDING) {
-        if (!visualizationInput) {
-          setVisualizationInput({ startNodeId: nodeId, endNodeId: -1 });
-        } else {
-          setVisualizationInput({ ...visualizationInput, endNodeId: nodeId });
-          runAlgorithm(visualizationInput.startNodeId, nodeId);
-        }
-      } else {
-        runAlgorithm(nodeId);
-      }
+      handleNodeClick(nodeId);
       return;
     }
 
@@ -171,13 +158,17 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, visualizationInput, selectedNodeId, selectedEdge, screenToSvgCoords, runAlgorithm, setVisualizationInput, selectNode, addNode, isDraggingEdge, justClosedPopup, isDraggingCanvas]);
+  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, selectedEdge, screenToSvgCoords, selectNode, addNode, isDraggingEdge, justClosedPopup, isDraggingCanvas]);
+
+  // Hide content until viewBox is ready to prevent flicker on mount
+  const isReady = viewBox !== undefined;
 
   return (
     <div className="relative flex-1 w-full h-full flex flex-col">
       <svg
         ref={graph}
         className="flex-1 w-full h-full cursor-crosshair"
+        style={{ visibility: isReady ? 'visible' : 'hidden' }}
         onPointerDown={handleCanvasPointerDown}
         onClick={handleCanvasClick}
         viewBox={viewBox}

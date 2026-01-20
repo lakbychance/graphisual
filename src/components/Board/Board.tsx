@@ -1,7 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { Graph, GraphHandle } from "../Graph/Graph";
-import { Graph3D } from "../Graph3D";
+// Lazy load Graph3D (and Three.js) - only downloaded when user toggles 3D mode on desktop
+const Graph3D = lazy(() =>
+  import("../Graph3D").then((mod) => ({ default: mod.Graph3D }))
+);
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
@@ -179,9 +183,41 @@ export const Board = () => {
         {/* Background color */}
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
 
-        {/* Full-screen Graph - no props needed, reads from store */}
+        {/* Full-screen Graph with crossfade transition */}
         <div className="absolute inset-0 touch-action-manipulation">
-          {is3DMode ? <Graph3D /> : <Graph ref={graphRef} />}
+          <AnimatePresence mode="wait">
+            {is3DMode ? (
+              <motion.div
+                key="3d"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+                      Loading 3D...
+                    </div>
+                  }
+                >
+                  <Graph3D />
+                </Suspense>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="2d"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Graph ref={graphRef} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
@@ -296,6 +332,27 @@ export const Board = () => {
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
+                {/* 3D Toggle Button - Desktop only */}
+                <div className="hidden md:block">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => setIs3DMode(!is3DMode)}
+                        variant="ghost"
+                        size="icon-sm"
+                        className={cn(
+                          "z-10",
+                          is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
+                        )}
+                        disabled={isVisualizing}
+                      >
+                        <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
+                  </Tooltip>
+                </div>
+
                 {/* Export dropdown */}
                 <DropdownMenu>
                   <Tooltip>
@@ -400,27 +457,8 @@ export const Board = () => {
           </div>
         </div>
 
-        {/* Settings button - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
-          {/* 3D Toggle Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={() => setIs3DMode(!is3DMode)}
-                variant="ghost"
-                size="icon-sm"
-                className={cn(
-                  "relative overflow-hidden rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
-                  is3DMode && "bg-[var(--color-surface)] shadow-[var(--shadow-pressed)]"
-                )}
-                disabled={isVisualizing}
-              >
-                <Box size={16} className={cn(is3DMode ? "text-[var(--color-primary)]" : "text-[var(--color-text)]")} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-          </Tooltip>
-
+        {/* Theme selector - Top left on mobile, bottom right on desktop */}
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
           <ThemeSelector
             theme={theme}
             setTheme={setTheme}

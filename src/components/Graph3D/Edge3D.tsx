@@ -1,9 +1,17 @@
 import { useMemo } from "react";
-import { Line, Cone, Html, QuadraticBezierLine } from "@react-three/drei";
-import { useGraphStore } from "../../store/graphStore";
-import { useSettingsStore } from "../../store/settingsStore";
+import { Line, Cone, Text, QuadraticBezierLine } from "@react-three/drei";
+import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
+import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion } from "three";
 import { NODE } from "../../utility/constants";
+import { getEdgeColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
+
+// Default edge colors by theme (distinct from node stroke colors)
+const DEFAULT_EDGE_COLORS: Record<ResolvedTheme, string> = {
+  light: '#706860',
+  dark: '#686868',
+  blueprint: '#a0d0f8',
+};
 
 interface Edge3DProps {
   fromId: number;
@@ -14,11 +22,6 @@ interface Edge3DProps {
   weight?: number;
 }
 
-// Read CSS variable value
-function getCSSVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
 export function Edge3D({
   fromId,
   toId,
@@ -27,45 +30,40 @@ export function Edge3D({
   isDirected,
   weight,
 }: Edge3DProps) {
-  const edgeFlags = useGraphStore(
-    (state) => state.visualization.trace.edges.get(`${fromId}-${toId}`)
-  );
+  // Get visualization state using derived selector
+  const visState = useGraphStore(selectEdgeVisState(fromId, toId));
 
-  // Subscribe to theme to trigger re-render when it changes
-  const theme = useSettingsStore((state) => state.theme);
+  // Get resolved theme with convenience booleans
+  const { theme, isDark: isDarkTheme, isLight: isLightTheme, isBlueprint: isBlueprintTheme } = useResolvedTheme();
 
-  // Get theme-aware edge colors - recalculate when theme changes
-  // Note: Using node-stroke for default edges since edge-default uses rgba which doesn't work well in 3D
+  // Get theme-aware edge colors - recalculate when theme or visState changes
   const colors = useMemo(() => {
-    if (edgeFlags?.isUsedInShortestPath) {
-      return {
-        edge: getCSSVar('--color-edge-path'),
-        lineWidth: 3.5,
-      };
-    }
-    if (edgeFlags?.isUsedInTraversal) {
-      return {
-        edge: getCSSVar('--color-edge-traversal'),
-        lineWidth: 3,
-      };
-    }
-    // Use node-stroke color for default edges - it's a solid color that matches the theme
+    const edgeColor = visState === 'default'
+      ? DEFAULT_EDGE_COLORS[theme]
+      : getEdgeColor(visState);
     return {
-      edge: getCSSVar('--color-node-stroke'),
-      lineWidth: 2.5,
+      edge: edgeColor,
+      lineWidth: getEdgeLineWidth(visState),
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edgeFlags?.isUsedInShortestPath, edgeFlags?.isUsedInTraversal, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visState, theme]);
 
   // Get text and background colors for weight label - theme reactive
-  const labelColors = useMemo(() => ({
-    text: getCSSVar('--color-text'),
-    bg: getCSSVar('--color-paper'),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [theme]);
+  const labelColors = useMemo(() => {
+    const uiColors = getUIColors();
+    return {
+      text: uiColors.text,
+      bg: uiColors.paper,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
 
-  // Calculate midpoint with curve offset for directed edges
-  const { midPoint, arrowData, lineEndPosition } = useMemo(() => {
+  // Theme-specific line width multiplier
+  const lineWidthMultiplier = isDarkTheme ? 1.0 : isLightTheme ? 1.0 : 1.0; // Can adjust per theme
+  const effectiveLineWidth = colors.lineWidth * lineWidthMultiplier;
+
+  // Calculate curve control point and label position for edges
+  const { controlPoint, labelPosition, arrowData, lineEndPosition } = useMemo(() => {
     const start = new Vector3(...startPosition);
     const end = new Vector3(...endPosition);
     const direction = new Vector3().subVectors(end, start);
@@ -76,11 +74,21 @@ export function Edge3D({
     const curveOffset = isDirected ? length * 0.15 : 0;
     const perpendicular = new Vector3(-direction.y, direction.x, 0).normalize();
 
-    // Midpoint with curve - this is the actual 3D position on the curve
-    const mid = new Vector3()
-      .addVectors(start, end)
-      .multiplyScalar(0.5)
-      .add(perpendicular.clone().multiplyScalar(curveOffset));
+    // Straight midpoint between start and end
+    const straightMid = new Vector3().addVectors(start, end).multiplyScalar(0.5);
+
+    // Control point for Bezier curve (offset perpendicular to edge)
+    const control = straightMid.clone().add(perpendicular.clone().multiplyScalar(curveOffset));
+
+    // For Bezier curve, actual point at t=0.5 is:
+    // B(0.5) = 0.25*start + 0.5*control + 0.25*end
+    // This gives us the true visual center of the curved line
+    const labelPos = isDirected
+      ? new Vector3()
+        .addScaledVector(start, 0.25)
+        .addScaledVector(control, 0.5)
+        .addScaledVector(end, 0.25)
+      : straightMid;
 
     // Arrow data for directed edges
     let arrow = null;
@@ -106,7 +114,8 @@ export function Edge3D({
     }
 
     return {
-      midPoint: mid.toArray() as [number, number, number],
+      controlPoint: control.toArray() as [number, number, number],
+      labelPosition: labelPos.toArray() as [number, number, number],
       arrowData: arrow,
       lineEndPosition: lineEnd,
     };
@@ -114,55 +123,108 @@ export function Edge3D({
 
   return (
     <group>
-      {/* Edge - curved for directed, straight for undirected */}
-      {isDirected ? (
-        <QuadraticBezierLine
-          start={startPosition}
-          end={lineEndPosition}
-          mid={midPoint}
-          color={colors.edge}
-          lineWidth={colors.lineWidth}
-        />
-      ) : (
-        <Line
-          points={[startPosition, endPosition]}
-          color={colors.edge}
-          lineWidth={colors.lineWidth}
-        />
+      {/* ===== DARK THEME EDGE ===== */}
+      {isDarkTheme && (
+        <>
+          {isDirected ? (
+            <QuadraticBezierLine
+              start={startPosition}
+              end={lineEndPosition}
+              mid={controlPoint}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          ) : (
+            <Line
+              points={[startPosition, endPosition]}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          )}
+        </>
       )}
 
-      {/* Arrowhead for directed edges - using meshBasicMaterial for consistent brightness */}
+      {/* ===== BLUEPRINT THEME EDGE ===== */}
+      {isBlueprintTheme && (
+        <>
+          {isDirected ? (
+            <QuadraticBezierLine
+              start={startPosition}
+              end={lineEndPosition}
+              mid={controlPoint}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          ) : (
+            <Line
+              points={[startPosition, endPosition]}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          )}
+        </>
+      )}
+
+      {/* ===== LIGHT THEME EDGE ===== */}
+      {isLightTheme && (
+        <>
+          {isDirected ? (
+            <QuadraticBezierLine
+              start={startPosition}
+              end={lineEndPosition}
+              mid={controlPoint}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          ) : (
+            <Line
+              points={[startPosition, endPosition]}
+              color={colors.edge}
+              lineWidth={effectiveLineWidth}
+            />
+          )}
+        </>
+      )}
+
+      {/* Arrowhead for directed edges - theme specific */}
       {isDirected && arrowData && (
         <group position={arrowData.position}>
-          <Cone
-            args={[5, 12, 8]}
-            rotation={arrowData.rotation}
-          >
-            <meshBasicMaterial color={colors.edge} />
-          </Cone>
+          {isDarkTheme && (
+            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
+              <meshBasicMaterial color={colors.edge} />
+            </Cone>
+          )}
+          {isBlueprintTheme && (
+            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
+              <meshBasicMaterial color={colors.edge} />
+            </Cone>
+          )}
+          {isLightTheme && (
+            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
+              <meshBasicMaterial color={colors.edge} />
+            </Cone>
+          )}
         </group>
       )}
 
-      {/* Weight label - positioned at 3D midpoint of the edge */}
+      {/* Weight label - positioned at visual center of the edge */}
       {weight !== undefined && weight !== 0 && (
-        <group position={midPoint}>
-          <Html
-            center
-            style={{
-              backgroundColor: labelColors.bg,
-              color: labelColors.text,
-              fontSize: '12px',
-              fontWeight: 'bold',
-              fontFamily: "'JetBrains Mono', monospace",
-              padding: '2px 6px',
-              borderRadius: '4px',
-              pointerEvents: 'none',
-              userSelect: 'none',
-              whiteSpace: 'nowrap',
-            }}
+        <group position={labelPosition}>
+          {/* Background plane - slightly behind text, toneMapped=false to match CSS colors */}
+          <mesh position={[0, 0, 4]}>
+            <planeGeometry args={[String(weight).length * 8 + 8, 16]} />
+            <meshBasicMaterial color={labelColors.bg} toneMapped={false} />
+          </mesh>
+          <Text
+            position={[0, 0, 5]}
+            fontSize={12}
+            color={labelColors.text}
+            anchorX="center"
+            anchorY="middle"
+            fontWeight="bold"
           >
-            {weight}
-          </Html>
+            {String(weight)}
+          </Text>
         </group>
       )}
     </group>

@@ -9,6 +9,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { THEME, STORE_NAME, type Theme } from "../constants";
+import { invalidateCSSVarCache } from "../utility/cssVariables";
 
 interface SettingsState {
   theme: Theme;
@@ -31,6 +32,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Actions
       setTheme: (theme) => {
+        invalidateCSSVarCache();
         set({ theme });
       },
       setIs3DMode: (is3DMode) => {

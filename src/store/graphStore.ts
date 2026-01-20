@@ -346,6 +346,7 @@ export const useGraphStore = create<GraphStore>()(
             data: { nodes, edges, nodeCounter },
             selection: { nodeId: null, edge: null },
             visualization: { ...visualization, input: null },
+            viewport: { zoom: 1, pan: { x: 0, y: 0 } }, // Reset viewport to center on new graph
           });
         }),
 
@@ -885,3 +886,43 @@ export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (s
   const targetEdges = state.data.edges.get(toNodeId) || [];
   return targetEdges.some((e) => parseInt(e.to) === fromNodeId);
 };
+
+// ============================================================================
+// Derived Visualization State Selectors
+// ============================================================================
+
+// Node visualization state (discriminated union matching NodeColorState in cssVariables.ts)
+export type NodeVisState = 'start' | 'end' | 'path' | 'visited' | 'default';
+
+/**
+ * Selector factory for getting a node's visualization state.
+ * Returns a function that can be passed to useGraphStore for optimal re-renders.
+ *
+ * Usage: const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
+ */
+export const selectNodeVisState = (nodeId: number, startNodeId: number | null, endNodeId: number | null) =>
+  (state: GraphStore): NodeVisState => {
+    if (startNodeId === nodeId) return 'start';
+    if (endNodeId === nodeId) return 'end';
+    const flags = state.visualization.trace.nodes.get(nodeId);
+    if (flags?.isInShortestPath) return 'path';
+    if (flags?.isVisited) return 'visited';
+    return 'default';
+  };
+
+// Edge visualization state (discriminated union matching EdgeColorState in cssVariables.ts)
+export type EdgeVisState = 'path' | 'traversal' | 'default';
+
+/**
+ * Selector factory for getting an edge's visualization state.
+ * Returns a function that can be passed to useGraphStore for optimal re-renders.
+ *
+ * Usage: const visState = useGraphStore(selectEdgeVisState(fromId, toId));
+ */
+export const selectEdgeVisState = (fromId: number, toId: number) =>
+  (state: GraphStore): EdgeVisState => {
+    const flags = state.visualization.trace.edges.get(`${fromId}-${toId}`);
+    if (flags?.isUsedInShortestPath) return 'path';
+    if (flags?.isUsedInTraversal) return 'traversal';
+    return 'default';
+  };
