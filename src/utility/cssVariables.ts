@@ -6,7 +6,7 @@
  */
 
 // Cached CSS variable reader
-let cache: Map<string, string> = new Map();
+const cache: Map<string, string> = new Map();
 
 /**
  * Get a CSS variable value with caching.

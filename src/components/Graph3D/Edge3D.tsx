@@ -45,7 +45,7 @@ export function Edge3D({
       edge: edgeColor,
       lineWidth: getEdgeLineWidth(visState),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [visState, theme]);
 
   // Get text and background colors for weight label - theme reactive

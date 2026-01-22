@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, MutableRefObject } from "react";
+import { useCallback, useEffect, useRef, RefObject } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
 import { isModKey } from "../utility/keyboard";
 import { ZOOM } from "../utility/constants";
@@ -20,7 +20,7 @@ interface GraphAction {
 interface PlayState {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
-  playIntervalRef: MutableRefObject<number | null>;
+  playIntervalRef: RefObject<number | null>;
 }
 
 interface UseGraphActionsOptions {
@@ -176,7 +176,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   }, [resetStepThrough]);
 
   // Define all actions with their shortcuts
-  const actions: Record<string, GraphAction> = {
+  const actions: Record<string, GraphAction> = ({
     undo: {
       execute: executeUndo,
       enabled: canUndo && !isVisualizing,
@@ -241,10 +241,10 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       enabled: isInStepMode,
       shortcut: { key: "Escape", preventDefault: true },
     },
-  };
+  });
 
   // Keyboard handler
-  const handleKeyDown = useCallback(
+  const handleKeyDown =
     (e: KeyboardEvent) => {
       // Ignore if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -315,10 +315,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
           return;
         }
       }
-    },
-    [actions, isInStepMode]
-  );
-
+    }
   return { actions, handleKeyDown };
 }
 

@@ -60,8 +60,6 @@ export const Node = memo(function Node(props: NodeProps) {
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
 
-  if (!node) return null;
-
   // Track hover state for connectors and algorithm mode zoom effect
   const handleMouseEnter = useCallback(() => {
     if (!isVisualizing) {
@@ -106,7 +104,7 @@ export const Node = memo(function Node(props: NodeProps) {
         if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
           isDragging.current = true;
           const { x: nodeX, y: nodeY } = screenToSvgCoords(e.clientX, e.clientY);
-          onNodeMove(node.id, nodeX, nodeY);
+          onNodeMove(nodeId, nodeX, nodeY);
         }
       };
 
@@ -117,7 +115,7 @@ export const Node = memo(function Node(props: NodeProps) {
 
         // If not dragging and not pinching, toggle node selection (single click)
         if (!isDragging.current && !isGestureActive()) {
-          onNodeSelect(isSelected ? null : node.id);
+          onNodeSelect(isSelected ? null : nodeId);
         }
         isDragging.current = false;
       };
@@ -125,8 +123,11 @@ export const Node = memo(function Node(props: NodeProps) {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [node.id, onNodeMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive]
+    [nodeId, onNodeMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive]
   );
+
+  // Early return if node not found - after all hooks
+  if (!node) return null;
 
   // Hide connectors when visualizing or algorithm is selected (only show on hover)
   const connectorsVisible = !isVisualizing && !isAlgorithmSelected && isHovered;

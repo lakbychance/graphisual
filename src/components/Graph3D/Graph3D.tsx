@@ -2,6 +2,7 @@ import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle 
 import type { Ref } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid } from "@react-three/drei";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useGraphStore } from "../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { Node3D } from "./Node3D";
@@ -82,7 +83,7 @@ function CameraController({
   onPanChange: (x: number, y: number) => void;
 }) {
   const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   // Track when we last updated the store from 3D to avoid sync-back within a window
   const lastStoreUpdateTime = useRef(0);
@@ -96,7 +97,7 @@ function CameraController({
   const isIntroPlaying = useRef(true);
 
   // Callback ref to detect when OrbitControls is mounted
-  const setControlsRef = useCallback((controls: any) => {
+  const setControlsRef = useCallback((controls: OrbitControlsImpl | null) => {
     controlsRef.current = controls;
     if (controls) {
       setControlsReady(true);

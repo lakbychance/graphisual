@@ -137,7 +137,7 @@ function gridLayout(count: number, halfWidth: number, halfHeight: number): { x: 
   // Calculate optimal grid dimensions
   const aspectRatio = halfWidth / halfHeight;
   let cols = Math.ceil(Math.sqrt(count * aspectRatio));
-  let rows = Math.ceil(count / cols);
+  const rows = Math.ceil(count / cols);
 
   // Adjust if we have too many cells
   while (cols * rows < count) {
