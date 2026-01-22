@@ -95,12 +95,16 @@ export function Edge3D({
     let lineEnd = endPosition;
 
     if (isDirected) {
-      // Position arrow near the end node
-      const arrowPos = end.clone().sub(direction.clone().multiplyScalar(NODE.RADIUS + 6));
+      // For a quadratic Bezier curve, the tangent at t=1 is proportional to (end - control)
+      // This gives us the actual direction the curve is traveling at the endpoint
+      const tangentDirection = new Vector3().subVectors(end, control).normalize();
 
-      // Calculate rotation for arrow cone
+      // Position arrow near the end node, along the tangent direction
+      const arrowPos = end.clone().sub(tangentDirection.clone().multiplyScalar(NODE.RADIUS + 6));
+
+      // Calculate rotation for arrow cone using the tangent direction
       const up = new Vector3(0, 1, 0);
-      const quaternion = new Quaternion().setFromUnitVectors(up, direction);
+      const quaternion = new Quaternion().setFromUnitVectors(up, tangentDirection);
       const euler = new Euler().setFromQuaternion(quaternion);
 
       arrow = {
@@ -108,8 +112,8 @@ export function Edge3D({
         rotation: [euler.x, euler.y, euler.z] as [number, number, number],
       };
 
-      // Stop line before arrow
-      const lineEndVec = end.clone().sub(direction.clone().multiplyScalar(NODE.RADIUS + 12));
+      // Stop line before arrow, along the tangent direction
+      const lineEndVec = end.clone().sub(tangentDirection.clone().multiplyScalar(NODE.RADIUS + 12));
       lineEnd = lineEndVec.toArray() as [number, number, number];
     }
 
