@@ -1,12 +1,6 @@
-import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
-import { Graph, GraphHandle } from "../Graph/Graph";
-import type { Graph3DHandle } from "../Graph3D";
-// Lazy load Graph3D (and Three.js) - only downloaded when user toggles 3D mode on desktop
-const Graph3D = lazy(() =>
-  import("../Graph3D").then((mod) => ({ default: mod.Graph3D }))
-);
+import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
@@ -72,9 +66,8 @@ export const Board = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const playIntervalRef = useRef<number | null>(null);
 
-  // Refs to access Graph elements for export
-  const graphRef = useRef<GraphHandle>(null);
-  const graph3DRef = useRef<Graph3DHandle>(null);
+  // Ref to access GraphRenderer for export
+  const graphRendererRef = useRef<GraphRendererHandle>(null);
 
   // Centralized actions from useGraphActions hook
   const { actions, handleKeyDown } = useGraphActions({
@@ -155,7 +148,7 @@ export const Board = () => {
 
   // Export SVG handler (2D only)
   const handleExportSvg = useCallback(async () => {
-    const svgElement = graphRef.current?.getSvgElement();
+    const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
     if (svgElement) {
       await exportSvg(svgElement, { includeGrid: true, filename: 'graph.svg' });
     }
@@ -163,7 +156,7 @@ export const Board = () => {
 
   // Export PNG handler (2D only)
   const handleExport2DPng = useCallback(async () => {
-    const svgElement = graphRef.current?.getSvgElement();
+    const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
     if (svgElement) {
       await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
     }
@@ -171,7 +164,7 @@ export const Board = () => {
 
   // Export PNG handler (3D only)
   const handleExport3DPng = useCallback(async () => {
-    const canvas = graph3DRef.current?.getCanvas();
+    const canvas = graphRendererRef.current?.getGraph3DRef()?.getCanvas();
     if (canvas) {
       await export3DPng(canvas, { filename: 'graph-3d.png' });
     }
@@ -196,39 +189,7 @@ export const Board = () => {
 
         {/* Full-screen Graph with crossfade transition */}
         <div className="absolute inset-0 touch-action-manipulation">
-          <AnimatePresence mode="wait">
-            {is3DMode ? (
-              <motion.div
-                key="3d"
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Suspense
-                  fallback={
-                    <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
-                      Loading 3D…
-                    </div>
-                  }
-                >
-                  <Graph3D ref={graph3DRef} />
-                </Suspense>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="2d"
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Graph ref={graphRef} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <GraphRenderer ref={graphRendererRef} />
         </div>
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}

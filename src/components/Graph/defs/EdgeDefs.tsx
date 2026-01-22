@@ -1,9 +1,7 @@
-import { memo } from "react";
-
 /**
  * Edge-related SVG definitions (mock arrow marker for drag preview)
  */
-export const EdgeDefs = memo(() => (
+export const EdgeDefs = () => (
   <>
     {/* Arrow marker for drag preview edge */}
     <marker
@@ -18,4 +16,4 @@ export const EdgeDefs = memo(() => (
       <polygon points="0 0, 10 3.5, 0 7" />
     </marker>
   </>
-));
+);

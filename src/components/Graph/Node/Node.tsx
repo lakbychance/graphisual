@@ -56,11 +56,11 @@ export const Node = memo(function Node(props: NodeProps) {
   // Derived selector: only re-renders when THIS node's selection state changes
   const isSelected = useGraphStore((state) => state.selection.nodeId === nodeId);
 
-  if (!node) return null;
-
   const [isHovered, setIsHovered] = useState(false);
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
+
+  if (!node) return null;
 
   // Track hover state for connectors and algorithm mode zoom effect
   const handleMouseEnter = useCallback(() => {

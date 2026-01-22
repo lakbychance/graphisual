@@ -1,9 +1,7 @@
-import { memo } from "react";
-
 /**
  * Canvas-related SVG definitions (grid patterns)
  */
-export const CanvasDefs = memo(() => (
+export const CanvasDefs = () => (
   <>
     {/* Grid pattern - minor lines (24px spacing) */}
     <pattern id="gridMinor" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -15,4 +13,4 @@ export const CanvasDefs = memo(() => (
       <path d="M 120 0 L 0 0 0 120" fill="none" stroke="var(--color-grid-line-major)" strokeWidth="1" />
     </pattern>
   </>
-));
+);
