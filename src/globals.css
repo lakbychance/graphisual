@@ -96,6 +96,10 @@
   --color-edge-path: #b89040;
   --color-edge-hover: #d89020;
 
+  /* Arrow colors (darker than edges for differentiation) */
+  --color-arrow-traversal: #3a7a3a;
+  --color-arrow-path: #987030;
+
   /* Node drop shadow */
   --node-shadow-color: rgba(50, 45, 40, 0.28);
 
@@ -206,6 +210,10 @@
   --color-edge-path: #d4b070;
   --color-edge-hover: #f0b050;
 
+  /* Arrow colors (darker than edges for differentiation) */
+  --color-arrow-traversal: #5aa95a;
+  --color-arrow-path: #b49050;
+
   /* Node drop shadow */
   --node-shadow-color: rgba(0, 0, 0, 0.5);
 
@@ -311,6 +319,10 @@
   --color-edge-traversal: #60d8c8;
   --color-edge-path: #f0c050;
   --color-edge-hover: #ffd060;
+
+  /* Arrow colors (darker than edges for differentiation) */
+  --color-arrow-traversal: #40b8a8;
+  --color-arrow-path: #d0a030;
 
   /* Node shadow & stroke */
   --node-shadow-color: rgba(10, 40, 70, 0.4);

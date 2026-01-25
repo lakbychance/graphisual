@@ -95,6 +95,23 @@ export function getEdgeColor(state: EdgeColorState): string {
 }
 
 /**
+ * Get the arrow color based on visualization state.
+ * Returns darker colors for traversal/path (to differentiate from edge),
+ * and node-stroke for default state (lighter than edge).
+ */
+export function getEdgeArrowColor(state: EdgeColorState): string {
+  switch (state) {
+    case 'path':
+      return getCSSVar('--color-arrow-path');
+    case 'traversal':
+      return getCSSVar('--color-arrow-traversal');
+    case 'default':
+    default:
+      return getCSSVar('--color-node-stroke');
+  }
+}
+
+/**
  * Get the edge line width based on visualization state.
  */
 export function getEdgeLineWidth(state: EdgeColorState): number {

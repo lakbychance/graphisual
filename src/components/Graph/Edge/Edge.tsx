@@ -34,8 +34,8 @@ export const Edge = memo(function Edge({
   };
 
   const getEdgeArrowColor = () => {
-    if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
-    if (visFlags?.isUsedInTraversal) return "var(--color-edge-traversal)";
+    if (visFlags?.isUsedInShortestPath) return "var(--color-arrow-path)";
+    if (visFlags?.isUsedInTraversal) return "var(--color-arrow-traversal)";
     return "var(--color-node-stroke)";
   };
 

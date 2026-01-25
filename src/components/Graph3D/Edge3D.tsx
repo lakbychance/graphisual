@@ -4,7 +4,7 @@ import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
 import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion } from "three";
 import { NODE, FONT_URL } from "../../utility/constants";
-import { getEdgeColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
+import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
 
 // Default edge colors by theme (distinct from node stroke colors)
 const DEFAULT_EDGE_COLORS: Record<ResolvedTheme, string> = {
@@ -41,11 +41,14 @@ export function Edge3D({
     const edgeColor = visState === 'default'
       ? DEFAULT_EDGE_COLORS[theme]
       : getEdgeColor(visState);
+    // Arrow color: lighter for default, darker for visualization states (to differentiate from edge)
+    const arrowColor = getEdgeArrowColor(visState);
     return {
       edge: edgeColor,
+      arrow: arrowColor,
       lineWidth: getEdgeLineWidth(visState),
     };
-     
+
   }, [visState, theme]);
 
   // Get text and background colors for weight label - theme reactive
@@ -190,24 +193,12 @@ export function Edge3D({
         </>
       )}
 
-      {/* Arrowhead for directed edges - theme specific */}
+      {/* Arrowhead for directed edges - lighter than edge color (matching 2D behavior) */}
       {isDirected && arrowData && (
         <group position={arrowData.position}>
-          {isDarkTheme && (
-            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
-              <meshBasicMaterial color={colors.edge} />
-            </Cone>
-          )}
-          {isBlueprintTheme && (
-            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
-              <meshBasicMaterial color={colors.edge} />
-            </Cone>
-          )}
-          {isLightTheme && (
-            <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
-              <meshBasicMaterial color={colors.edge} />
-            </Cone>
-          )}
+          <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
+            <meshBasicMaterial color={colors.arrow} />
+          </Cone>
         </group>
       )}
 
