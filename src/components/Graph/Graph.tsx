@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
+import { useState, useRef, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
 import { Node } from "../Graph/Node/Node";
 import { ZOOM } from "../../utility/constants";
 import { GraphEdge } from "./types";
