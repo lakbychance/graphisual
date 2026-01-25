@@ -35,6 +35,7 @@ export const SpeedControl = ({
               variant="ghost"
               size="icon-xs"
               className="z-10"
+              aria-label="Decrease speed"
             >
               <Minus className={cn("h-3.5 w-3.5", canDecrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
@@ -59,6 +60,7 @@ export const SpeedControl = ({
               variant="ghost"
               size="icon-xs"
               className="z-10"
+              aria-label="Increase speed"
             >
               <Plus className={cn("h-3.5 w-3.5", canIncrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>

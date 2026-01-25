@@ -172,9 +172,9 @@ export const EdgePopup = ({
                   <TooltipTrigger asChild>
                     <Button
                       onClick={handleReverse}
-
                       variant="default"
                       size="icon-sm"
+                      aria-label="Reverse direction"
                     >
                       <ArrowLeftRight className="w-4 h-4" />
                     </Button>
@@ -189,6 +189,7 @@ export const EdgePopup = ({
                     variant="default"
                     size="icon-sm"
                     className="text-[var(--color-error)]"
+                    aria-label="Delete edge"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

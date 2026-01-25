@@ -47,6 +47,7 @@ export const StepControls = ({
               variant="ghost"
               size="icon-sm"
               className="z-10"
+              aria-label="Jump to start"
             >
               <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
@@ -63,6 +64,7 @@ export const StepControls = ({
               variant="ghost"
               size="icon-sm"
               className="z-10"
+              aria-label="Previous step"
             >
               <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
@@ -84,6 +86,7 @@ export const StepControls = ({
               variant="ghost"
               size="icon-sm"
               className="z-10"
+              aria-label="Next step"
             >
               <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
@@ -100,6 +103,7 @@ export const StepControls = ({
               variant="ghost"
               size="icon-sm"
               className="z-10"
+              aria-label="Jump to end"
             >
               <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
@@ -116,6 +120,7 @@ export const StepControls = ({
               variant="ghost"
               size="icon-sm"
               className="z-10"
+              aria-label={isPlaying ? "Pause" : "Play"}
             >
               {isPlaying ? (
                 <Pause className="h-4 w-4 text-[var(--color-text)]" />

@@ -70,6 +70,7 @@ export const AlgorithmPicker = ({
       <PopoverTrigger asChild>
         <Button
           disabled={disabled}
+          aria-label="Select algorithm"
           className={cn(
             "w-auto transition-none h-9 !rounded-full gap-1.5",
             "justify-center"

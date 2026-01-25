@@ -187,6 +187,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
       <PopoverTrigger asChild>
         <Button
           disabled={disabled}
+          aria-label="Generate graph"
           className={cn(
             "w-auto md:w-[110px] transition-none h-9 !rounded-full gap-1.5",
             "justify-center"
