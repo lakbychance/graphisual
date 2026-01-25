@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Sphere, Text } from "@react-three/drei";
 import { useGraphStore, selectNodeVisState } from "../../store/graphStore";
 import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
-import { NODE } from "../../utility/constants";
+import { NODE, FONT_URL } from "../../utility/constants";
 import { getNodeGradientColors, getNodeStrokeColor, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
@@ -219,13 +219,11 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
       {/* Node label using Text for 3D scaling */}
       <Text
         position={[0, 0, NODE.RADIUS + 1]}
+        font={FONT_URL}
         fontSize={14}
         color={colors.text}
         anchorX="center"
         anchorY="middle"
-        fontWeight="bold"
-        outlineWidth={2}
-        outlineColor={colors.paper}
       >
         {String(nodeId)}
       </Text>

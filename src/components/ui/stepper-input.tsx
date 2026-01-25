@@ -165,7 +165,7 @@ function StepperField({ className, ref, ...props }: StepperFieldProps) {
       onKeyDown={handleKeyDown}
       autoComplete="off"
       className={cn(
-        "flex-1 h-8 text-center font-['JetBrains_Mono'] text-xs font-medium",
+        "flex-1 h-8 text-center text-xs font-medium",
         "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 bg-transparent text-[var(--color-text)]",
         "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
         className

@@ -28,7 +28,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
           <ThemeIcon size={24} className="text-[var(--color-text-muted)]" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={alignDropdown} sideOffset={8} className="w-40 font-['Outfit']">
+      <DropdownMenuContent align={alignDropdown} sideOffset={8} className="w-40">
         <DropdownMenuLabel className="text-xs font-medium">Theme</DropdownMenuLabel>
         <DropdownMenuItem
           onClick={() => setTheme(THEME.LIGHT)}

@@ -44,7 +44,7 @@ export const SpeedControl = ({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="font-['JetBrains_Mono'] text-[12px] min-w-[32px] text-center tabular-nums cursor-help text-[var(--color-text)]">
+            <span className="text-[12px] min-w-[32px] text-center cursor-help text-[var(--color-text)]">
               {speedMultiplier}
             </span>
           </TooltipTrigger>

@@ -23,7 +23,7 @@ export const ModeToggle = ({ mode, onModeChange, disabled }: ModeToggleProps) =>
             <span className="flex-1">
               <RadixToggleGroupItem
                 value={VisualizationMode.AUTO}
-                className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
+                className="px-2.5 py-1 text-[12px] w-full"
               >
                 Auto
               </RadixToggleGroupItem>
@@ -36,7 +36,7 @@ export const ModeToggle = ({ mode, onModeChange, disabled }: ModeToggleProps) =>
             <span className="flex-1">
               <RadixToggleGroupItem
                 value={VisualizationMode.MANUAL}
-                className="px-2.5 py-1 text-[12px] font-['Outfit'] w-full"
+                className="px-2.5 py-1 text-[12px] w-full"
               >
                 Step
               </RadixToggleGroupItem>

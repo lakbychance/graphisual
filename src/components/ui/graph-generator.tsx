@@ -229,7 +229,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
               <div className="space-y-4">
                 {/* Layout selector */}
                 <div className="space-y-2">
-                  <span className="text-[12px] font-['Outfit'] text-[var(--color-text-muted)]">Layout</span>
+                  <span className="text-[12px] text-[var(--color-text-muted)]">Layout</span>
                   <RadixToggleGroup
                     type="single"
                     value={layout}
@@ -237,13 +237,13 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                     variant="etched"
                     className="w-full"
                   >
-                    <RadixToggleGroupItem value="circular" className="text-[11px] font-['Outfit']">
+                    <RadixToggleGroupItem value="circular" className="text-[11px]">
                       Circular
                     </RadixToggleGroupItem>
-                    <RadixToggleGroupItem value="random" className="text-[11px] font-['Outfit']">
+                    <RadixToggleGroupItem value="random" className="text-[11px]">
                       Random
                     </RadixToggleGroupItem>
-                    <RadixToggleGroupItem value="grid" className="text-[11px] font-['Outfit']">
+                    <RadixToggleGroupItem value="grid" className="text-[11px]">
                       Grid
                     </RadixToggleGroupItem>
                   </RadixToggleGroup>
@@ -251,9 +251,9 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
 
                 {/* Node count */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-[12px] font-['Outfit']">
+                  <div className="flex justify-between text-[12px]">
                     <span className="text-[var(--color-text-muted)]">Nodes</span>
-                    <span className="font-['JetBrains_Mono'] text-[var(--color-text)]">{nodeCount}</span>
+                    <span className="text-[var(--color-text)]">{nodeCount}</span>
                   </div>
                   <Slider
                     variant="accent"
@@ -267,9 +267,9 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
 
                 {/* Edge density */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-[12px] font-['Outfit']">
+                  <div className="flex justify-between text-[12px]">
                     <span className="text-[var(--color-text-muted)]">Edge Density</span>
-                    <span className="font-['JetBrains_Mono'] text-[var(--color-text)]">{Math.round(edgeDensity * 100)}%</span>
+                    <span className="text-[var(--color-text)]">{Math.round(edgeDensity * 100)}%</span>
                   </div>
                   <Slider
                     variant="accent"
@@ -288,7 +288,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                       checked={isDirected}
                       onCheckedChange={(checked) => setIsDirected(checked === true)}
                     />
-                    <span className="text-[12px] font-['Outfit'] text-[var(--color-text)]">
+                    <span className="text-[12px] text-[var(--color-text)]">
                       Directed
                     </span>
                   </label>
@@ -297,7 +297,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                       checked={isWeighted}
                       onCheckedChange={(checked) => setIsWeighted(checked === true)}
                     />
-                    <span className="text-[12px] font-['Outfit'] text-[var(--color-text)]">
+                    <span className="text-[12px] text-[var(--color-text)]">
                       Weighted
                     </span>
                   </label>
@@ -307,7 +307,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                 {isWeighted && (
                   <div className="flex gap-3">
                     <div className="flex-1 space-y-1">
-                      <label className="text-[11px] font-['Outfit'] text-[var(--color-text-muted)]">
+                      <label className="text-[11px] text-[var(--color-text-muted)]">
                         Min Weight
                       </label>
                       <StepperInput
@@ -318,7 +318,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                       />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[11px] font-['Outfit'] text-[var(--color-text-muted)]">
+                      <label className="text-[11px] text-[var(--color-text-muted)]">
                         Max Weight
                       </label>
                       <StepperInput

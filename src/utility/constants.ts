@@ -41,3 +41,6 @@ export const SPEED_LEVELS = [
   { multiplier: '2x', ms: 200 },
   { multiplier: '4x', ms: 100 },
 ] as const;
+
+// Self-hosted font URL (TTF for Three.js compatibility)
+export const FONT_URL = '/fonts/outfit.ttf';

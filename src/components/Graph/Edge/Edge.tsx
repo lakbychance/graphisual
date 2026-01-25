@@ -80,7 +80,7 @@ export const Edge = memo(function Edge({
           rx={4}
         />
         <text
-          className="pointer-events-none select-none font-['JetBrains_Mono'] font-semibold text-[13px] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-[11px]"
+          className="pointer-events-none select-none font-semibold text-[13px] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-[11px]"
           style={{ fill: 'var(--color-text)' }}
           x={centerX}
           y={centerY}

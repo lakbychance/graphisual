@@ -71,7 +71,7 @@ export const StepControls = ({
         </Tooltip>
 
         {/* Step counter */}
-        <span className="font-['JetBrains_Mono'] text-[12px] md:text-[13px] tabular-nums px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
+        <span className="text-[12px] md:text-[13px] px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
           {stepIndex + 1} / {totalSteps}
         </span>
 
@@ -135,7 +135,7 @@ export const StepControls = ({
           <Button
             onClick={onStop}
             variant="ghost"
-            className="h-9 px-3 z-10 !rounded-md font-['Outfit'] text-[13px] text-[var(--color-error)]"
+            className="h-9 px-3 z-10 !rounded-md text-[13px] text-[var(--color-error)]"
           >
             Done
           </Button>

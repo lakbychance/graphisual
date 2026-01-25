@@ -1,10 +1,18 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* Self-hosted Outfit font */
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/outfit-latin.woff2") format("woff2");
+}
+
 :root {
   /* Fonts */
   --font-sans: "Outfit", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* === PHYSICAL SURFACE PALETTE === */
 
@@ -353,12 +361,6 @@
   }
 }
 
-@layer utilities {
-  /* Monospace font */
-  .font-mono {
-    font-family: var(--font-mono);
-  }
-}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {

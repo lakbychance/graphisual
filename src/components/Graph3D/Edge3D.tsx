@@ -3,7 +3,7 @@ import { Line, Cone, Text, QuadraticBezierLine } from "@react-three/drei";
 import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
 import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion } from "three";
-import { NODE } from "../../utility/constants";
+import { NODE, FONT_URL } from "../../utility/constants";
 import { getEdgeColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
 
 // Default edge colors by theme (distinct from node stroke colors)
@@ -221,11 +221,11 @@ export function Edge3D({
           </mesh>
           <Text
             position={[0, 0, 5]}
+            font={FONT_URL}
             fontSize={12}
             color={labelColors.text}
             anchorX="center"
             anchorY="middle"
-            fontWeight="bold"
           >
             {String(weight)}
           </Text>

@@ -91,7 +91,7 @@ export const EdgePopup = ({
         <PopoverContent
           side="top"
           sideOffset={8}
-          className="p-1.5 font-['Outfit']"
+          className="p-1.5"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <GrainTexture className="rounded-lg" />

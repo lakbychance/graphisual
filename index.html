@@ -3,10 +3,6 @@
   <head>
     <!-- Google tag (gtag.js) -->
     <script
-      crossorigin="anonymous"
-      src="//unpkg.com/react-scan/dist/auto.global.js"
-    />
-    <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-WG1RN51DBH"
     ></script>
@@ -24,7 +20,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1"
+      content="width=device-width, initial-scale=1"
     />
     <meta name="theme-color" content="#0a0a0f" />
 
@@ -60,6 +56,8 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lakbychance" />
+    <meta name="twitter:creator" content="@lakbychance" />
     <meta name="twitter:title" content="Graphisual | Interactive Graph Algorithm Visualizer" />
     <meta
       name="twitter:description"
@@ -71,11 +69,12 @@
     />
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/outfit-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
 
     <!-- JSON-LD Structured Data for AEO -->
@@ -89,26 +88,25 @@
         "applicationCategory": "EducationalApplication",
         "operatingSystem": "Any",
         "browserRequirements": "Requires JavaScript",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
         "featureList": [
           "Interactive graph drawing",
+          "2D and 3D visualization",
           "BFS visualization",
           "DFS visualization",
-          "Dijkstra's algorithm visualization",
+          "Dijkstra's algorithm",
           "Bellman-Ford algorithm",
-          "Custom node and edge creation",
+          "Prim's algorithm (MST)",
+          "Cycle detection",
           "Weighted and unweighted graphs",
           "Directed and undirected graphs"
         ],
         "screenshot": "https://ik.imagekit.io/lapstjup/graphisual/og-image.png",
         "author": {
           "@type": "Person",
-          "name": "Lakshya Thakur"
-        }
+          "name": "Lakshya Thakur",
+          "url": "https://x.com/lakbychance"
+        },
+        "softwareVersion": "__APP_VERSION__"
       }
     </script>
   </head>

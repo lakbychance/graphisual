@@ -168,13 +168,8 @@ function resolveTailwindClasses(svg: SVGSVGElement): void {
     const existingStyle = textEl.getAttribute('style') || '';
     const styleUpdates: string[] = [];
 
-    // Extract font-family from Tailwind class like font-['JetBrains_Mono']
-    const fontFamilyMatch = className.match(/font-\['([^']+)'\]/);
-    if (fontFamilyMatch) {
-      // Convert underscore to space for font names
-      const fontFamily = fontFamilyMatch[1].replace(/_/g, ' ');
-      styleUpdates.push(`font-family: '${fontFamily}', monospace`);
-    }
+    // Use Outfit font for all text elements
+    styleUpdates.push(`font-family: 'Outfit', system-ui, sans-serif`);
 
     // Extract font-weight from Tailwind classes
     // Note: Using slightly lighter weights as embedded fonts can render bolder
@@ -348,35 +343,6 @@ async function fetchFontAsBase64(url: string): Promise<string> {
 }
 
 /**
- * Parse Google Fonts CSS to extract WOFF2 URLs
- */
-function parseGoogleFontsCss(css: string): Map<string, string> {
-  const fontUrls = new Map<string, string>();
-
-  // Match @font-face blocks
-  const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g;
-  let match;
-
-  while ((match = fontFaceRegex.exec(css)) !== null) {
-    const block = match[1];
-
-    // Extract font-family
-    const familyMatch = block.match(/font-family:\s*['"]([^'"]+)['"]/);
-    // Extract font-weight
-    const weightMatch = block.match(/font-weight:\s*(\d+)/);
-    // Extract woff2 URL
-    const urlMatch = block.match(/url\(([^)]+\.woff2)\)/);
-
-    if (familyMatch && weightMatch && urlMatch) {
-      const key = `${familyMatch[1]}-${weightMatch[1]}`;
-      fontUrls.set(key, urlMatch[1]);
-    }
-  }
-
-  return fontUrls;
-}
-
-/**
  * Fetch and cache font face rules (called once, cached for subsequent exports)
  */
 async function fetchFontFaceRules(): Promise<string> {
@@ -390,44 +356,27 @@ async function fetchFontFaceRules(): Promise<string> {
     return fontFetchPromise;
   }
 
-  // Start fetching fonts
-  const googleFontsUrl = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap';
+  // Fetch self-hosted font
+  const fontUrl = '/fonts/outfit-latin.woff2';
 
   fontFetchPromise = (async () => {
     let fontFaceRules = '';
 
     try {
-      // Fetch the CSS from Google Fonts
-      const response = await fetch(googleFontsUrl);
+      const base64 = await fetchFontAsBase64(fontUrl);
 
-      if (response.ok) {
-        const css = await response.text();
-        const fontUrls = parseGoogleFontsCss(css);
-
-        // Fetch each font and convert to base64
-        for (const [key, url] of fontUrls) {
-          const [family, weight] = key.split('-');
-          const base64 = await fetchFontAsBase64(url);
-
-          if (base64) {
-            fontFaceRules += `
-              @font-face {
-                font-family: '${family}';
-                font-weight: ${weight};
-                font-style: normal;
-                src: url(${base64}) format('woff2');
-              }
-            `;
+      if (base64) {
+        fontFaceRules = `
+          @font-face {
+            font-family: 'Outfit';
+            font-weight: 400 700;
+            font-style: normal;
+            src: url(${base64}) format('woff2');
           }
-        }
+        `;
       }
     } catch (error) {
-      console.warn('Failed to fetch fonts from Google Fonts:', error);
-    }
-
-    // Fallback: if we couldn't fetch fonts, use import as backup
-    if (!fontFaceRules) {
-      fontFaceRules = `@import url('${googleFontsUrl}');`;
+      console.warn('Failed to fetch font:', error);
     }
 
     // Cache the result
