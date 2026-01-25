@@ -96,9 +96,9 @@
   --color-edge-path: #b89040;
   --color-edge-hover: #d89020;
 
-  /* Arrow colors (darker than edges for differentiation) */
-  --color-arrow-traversal: #3a7a3a;
-  --color-arrow-path: #987030;
+  /* Arrow colors (slightly darker than edges for differentiation) */
+  --color-arrow-traversal: #429242;
+  --color-arrow-path: #a88038;
 
   /* Node drop shadow */
   --node-shadow-color: rgba(50, 45, 40, 0.28);
