@@ -21,7 +21,7 @@ export const AlgorithmHint = ({ text }: AlgorithmHintProps) => {
         "md:top-auto md:bottom-5",
       )}
     >
-      <div className="relative px-4 py-2.5 rounded-md text-[13px] text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
+      <div className="relative px-4 py-2.5 rounded-md text-sm text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
         <span className="relative z-10">{text}</span>
       </div>
     </motion.div>

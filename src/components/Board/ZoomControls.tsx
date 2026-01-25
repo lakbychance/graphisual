@@ -36,7 +36,7 @@ export const ZoomControls = ({ zoom, onZoomIn, onZoomOut, onZoomReset }: ZoomCon
           <button
             onClick={onZoomReset}
             aria-label="Reset zoom"
-            className="px-2 py-1 text-[12px] rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
+            className="px-2 py-1 text-xs rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text)]"
           >
             {Math.round(zoom * 100)}%
           </button>

@@ -260,7 +260,7 @@ export const Node = memo(function Node(props: NodeProps) {
 
         {/* Node label */}
         <text
-          className="pointer-events-none select-none font-bold text-[14px] [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-[12px]"
+          className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
           style={{ fill: 'var(--color-text)' }}
           x={node.x}
           y={node.y}

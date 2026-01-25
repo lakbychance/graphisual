@@ -181,22 +181,34 @@ function resolveTailwindClasses(svg: SVGSVGElement): void {
       styleUpdates.push('font-weight: 400');
     }
 
-    // Extract font-size from Tailwind classes like text-[14px] or lg:text-[12px]
+    // Extract font-size from Tailwind text size classes
+    // Map Tailwind classes to pixel values
+    const tailwindSizeMap: Record<string, string> = {
+      'text-xs': '12px',
+      'text-sm': '14px',
+      'text-base': '16px',
+      'text-lg': '18px',
+      'text-xl': '20px',
+    };
+
     // Check if we're on a large screen (lg breakpoint = 1024px)
     const isLargeScreen = window.matchMedia('(min-width: 1024px)').matches;
 
-    // Try to get lg: size first if on large screen
-    const lgFontSizeMatch = className.match(/lg:text-\[(\d+)px\]/);
-    // Get base font size (not prefixed with responsive modifier)
-    // Split by space and find the text-[Xpx] that doesn't have a colon prefix
+    // Split classes and find text size classes
     const classes = className.split(' ');
-    const baseFontSizeClass = classes.find(c => c.match(/^text-\[\d+px\]$/));
-    const baseFontSizeMatch = baseFontSizeClass?.match(/text-\[(\d+)px\]/);
 
-    if (isLargeScreen && lgFontSizeMatch) {
-      styleUpdates.push(`font-size: ${lgFontSizeMatch[1]}px`);
-    } else if (baseFontSizeMatch) {
-      styleUpdates.push(`font-size: ${baseFontSizeMatch[1]}px`);
+    // Try to get lg: size first if on large screen
+    const lgSizeClass = classes.find(c => c.match(/^lg:text-(xs|sm|base|lg|xl)$/));
+    const lgSize = lgSizeClass ? tailwindSizeMap[lgSizeClass.replace('lg:', '')] : null;
+
+    // Get base font size (not prefixed with responsive modifier)
+    const baseSizeClass = classes.find(c => c.match(/^text-(xs|sm|base|lg|xl)$/));
+    const baseSize = baseSizeClass ? tailwindSizeMap[baseSizeClass] : null;
+
+    if (isLargeScreen && lgSize) {
+      styleUpdates.push(`font-size: ${lgSize}`);
+    } else if (baseSize) {
+      styleUpdates.push(`font-size: ${baseSize}`);
     }
 
     // Extract text-anchor from Tailwind arbitrary property [text-anchor:middle]

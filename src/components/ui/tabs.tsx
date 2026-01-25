@@ -32,7 +32,7 @@ function TabsTrigger({ className, ref, ...props }: TabsTriggerProps) {
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex-1 px-3 py-1.5 text-[13px] rounded-full",
+        "flex-1 px-3 py-1.5 text-sm rounded-full",
         " duration-150",
         "text-[var(--color-text-muted)]",
         "hover:text-[var(--color-text)]",
