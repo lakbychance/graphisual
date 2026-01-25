@@ -27,7 +27,7 @@ const icons: IconConfig[] = [
   { name: "icon-512.png", size: 512, dir: iconsDir },
   { name: "icon-maskable-512.png", size: 512, dir: iconsDir, maskable: true },
   { name: "apple-touch-icon.png", size: 180, dir: publicDir },
-  { name: "favicon.png", size: 32, dir: publicDir, rounded: true },
+  { name: "favicon.png", size: 48, dir: publicDir, rounded: true },
 ];
 
 function createRoundedMask(size: number, radius: number): Buffer {
