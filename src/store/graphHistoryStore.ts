@@ -1,5 +1,5 @@
 import { createHistoryStore, withAutoHistory, withBatchedAutoHistory } from "./historyStore";
-import { GraphSnapshot, INode, IEdge } from "../components/Graph/IGraph";
+import { GraphSnapshot, GraphNode, GraphEdge } from "../components/Graph/types";
 import { GraphData } from "./graphStore";
 import { STORE_NAME } from "../constants";
 
@@ -21,8 +21,8 @@ export const useGraphHistoryStore = createHistoryStore<GraphSnapshot>({
 // ============================================================================
 
 export const createGraphSnapshot = (
-  nodes: INode[],
-  edges: Map<number, IEdge[]>,
+  nodes: GraphNode[],
+  edges: Map<number, GraphEdge[]>,
   nodeCounter: number
 ): GraphSnapshot => ({
   nodes,

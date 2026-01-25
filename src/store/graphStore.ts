@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { INode, IEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/IGraph";
+import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
 import { calculateAccurateCoords } from "../utility/calc";
 import { NODE, TIMING } from "../utility/constants";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
@@ -63,15 +63,15 @@ interface Viewport {
 
 // Graph data structure (exported for use in graphHistoryStore)
 export interface GraphData {
-  nodes: INode[];
-  edges: Map<number, IEdge[]>;
+  nodes: GraphNode[];
+  edges: Map<number, GraphEdge[]>;
   nodeCounter: number;
 }
 
 // Selection state
 interface Selection {
   nodeId: number | null;
-  edge: { edge: IEdge; sourceNode: INode; clickPosition: { x: number; y: number } } | null;
+  edge: { edge: GraphEdge; sourceNode: GraphNode; clickPosition: { x: number; y: number } } | null;
 }
 
 interface GraphState {
@@ -86,8 +86,8 @@ interface GraphActions {
   addNode: (x: number, y: number) => void;
   moveNode: (nodeId: number, x: number, y: number) => void;
   deleteNode: (nodeId: number) => void;
-  addEdge: (fromNode: INode, toNode: INode) => void;
-  setGraph: (nodes: INode[], edges: Map<number, IEdge[]>, nodeCounter: number) => void;
+  addEdge: (fromNode: GraphNode, toNode: GraphNode) => void;
+  setGraph: (nodes: GraphNode[], edges: Map<number, GraphEdge[]>, nodeCounter: number) => void;
   updateEdgeType: (fromNodeId: number, toNodeId: number, newType: EdgeType) => void;
   updateEdgeWeight: (fromNodeId: number, toNodeId: number, newWeight: number) => void;
   reverseEdge: (fromNodeId: number, toNodeId: number) => void;
@@ -100,7 +100,7 @@ interface GraphActions {
 
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
-  selectEdge: (edge: IEdge, sourceNode: INode, clickPosition: { x: number; y: number }) => void;
+  selectEdge: (edge: GraphEdge, sourceNode: GraphNode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
 
   // === Visualization Actions ===
@@ -140,7 +140,7 @@ type GraphStore = GraphState & GraphActions;
 
 const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
   nodes: snapshot.nodes,
-  edges: new Map<number, IEdge[]>(snapshot.edges),
+  edges: new Map<number, GraphEdge[]>(snapshot.edges),
   nodeCounter: snapshot.nodeCounter,
 });
 
@@ -218,7 +218,7 @@ export const useGraphStore = create<GraphStore>()(
           const { data, visualization } = get();
           const { nodes, edges, nodeCounter } = data;
           const newNodeId = nodeCounter + 1;
-          const newNode: INode = { id: newNodeId, x, y, r: NODE.RADIUS };
+          const newNode: GraphNode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
           // Keep existing node references, just add the new one
           const newNodes = [...nodes, newNode];
@@ -302,7 +302,7 @@ export const useGraphStore = create<GraphStore>()(
           });
         }),
 
-        addEdge: autoHistory((fromNode: INode, toNode: INode) => {
+        addEdge: autoHistory((fromNode: GraphNode, toNode: GraphNode) => {
           get().clearVisualization();
           const { data, visualization } = get();
           const { nodes, edges, nodeCounter } = data;
@@ -314,7 +314,7 @@ export const useGraphStore = create<GraphStore>()(
             toNode.y
           );
 
-          const newEdge: IEdge = {
+          const newEdge: GraphEdge = {
             x1: fromNode.x,
             y1: fromNode.y,
             x2: tempX,
@@ -338,7 +338,7 @@ export const useGraphStore = create<GraphStore>()(
           });
         }),
 
-        setGraph: autoHistory((nodes: INode[], edges: Map<number, IEdge[]>, nodeCounter: number) => {
+        setGraph: autoHistory((nodes: GraphNode[], edges: Map<number, GraphEdge[]>, nodeCounter: number) => {
           get().clearVisualization();
           const { visualization } = get();
 
@@ -386,7 +386,7 @@ export const useGraphStore = create<GraphStore>()(
                 sourceNode.x,
                 sourceNode.y
               );
-              const reverseEdge: IEdge = {
+              const reverseEdge: GraphEdge = {
                 x1: targetNode.x,
                 y1: targetNode.y,
                 x2: tempX,
@@ -498,7 +498,7 @@ export const useGraphStore = create<GraphStore>()(
             sourceNode.x,
             sourceNode.y
           );
-          const reversedEdge: IEdge = {
+          const reversedEdge: GraphEdge = {
             x1: targetNode.x,
             y1: targetNode.y,
             x2: tempX,

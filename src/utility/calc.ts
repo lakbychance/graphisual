@@ -1,4 +1,4 @@
-import { INode } from "../components/Graph/IGraph";
+import { GraphNode } from "../components/Graph/types";
 import { NODE } from "./constants";
 
 export const calculateCurve = (
@@ -62,9 +62,9 @@ export const calculateAccurateCoords = (
 export const findToNodeForTouchBasedDevices = (
   x: number,
   y: number,
-  nodes: INode[]
+  nodes: GraphNode[]
 ) => {
-  return nodes.find((node: INode) =>
+  return nodes.find((node: GraphNode) =>
     doesPointLieOnCircle(x, y, NODE.RADIUS, node.x, node.y)
   );
 };

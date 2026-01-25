@@ -29,7 +29,7 @@ export interface EdgeVisualizationFlags {
 /**
  * Node in the graph (core structural/positional data only).
  */
-export interface INode {
+export interface GraphNode {
   x: number;
   y: number;
   r: number;
@@ -39,7 +39,7 @@ export interface INode {
 /**
  * Edge in the graph (core structural data only).
  */
-export interface IEdge {
+export interface GraphEdge {
   x1: number;
   y1: number;
   x2: number;
@@ -57,7 +57,7 @@ export interface IEdge {
  * Uses array format for edges to enable JSON serialization.
  */
 export interface GraphSnapshot {
-  nodes: INode[];
-  edges: [number, IEdge[]][];
+  nodes: GraphNode[];
+  edges: [number, GraphEdge[]][];
   nodeCounter: number;
 }

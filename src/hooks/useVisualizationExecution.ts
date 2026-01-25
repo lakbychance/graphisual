@@ -5,7 +5,7 @@ import { algorithmRegistry, EdgeInfo, AlgorithmStep, AlgorithmAdapter } from "..
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utility/graphUtils";
 import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, type EdgeType } from "../constants";
 import { animateSequence, AnimationController } from "../utility/animateSequence";
-import { IEdge } from "../components/Graph/IGraph";
+import { GraphEdge } from "../components/Graph/types";
 
 /**
  * Return type for the useVisualizationExecution hook.
@@ -70,7 +70,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     : undefined;
 
   // Marks an edge and its target node for visualization
-  const markEdgeAndNode = useCallback((currentEdge: IEdge, stepType: StepType) => {
+  const markEdgeAndNode = useCallback((currentEdge: GraphEdge, stepType: StepType) => {
     const { setTraceNode, setTraceEdge } = useGraphStore.getState();
     const fromId = parseInt(currentEdge.from);
     const toId = parseInt(currentEdge.to);
@@ -100,7 +100,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   }, []);
 
   // Animates the result/shortest path
-  const visualizeResultPath = useCallback((resultEdges: IEdge[]) => {
+  const visualizeResultPath = useCallback((resultEdges: GraphEdge[]) => {
     animationRef.current = animateSequence({
       items: resultEdges,
       delayMs: visualizationSpeed,
@@ -116,7 +116,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   }, [visualizationSpeed, markEdgeAndNode, setVisualizationState, resetVisualization]);
 
   // Animates traversal, then chains to result path visualization
-  const visualizeTraversedEdges = useCallback((visitedEdges: IEdge[], resultEdges: IEdge[] = []) => {
+  const visualizeTraversedEdges = useCallback((visitedEdges: GraphEdge[], resultEdges: GraphEdge[] = []) => {
     animationRef.current?.cancel();
     setVisualizationState(VisualizationState.RUNNING);
 
@@ -150,7 +150,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   }, [edges]);
 
   // Convert algorithm result to visualization format
-  const convertToVisualizationEdges = useCallback((edgeRefs: Array<{ from: number; to: number }>): IEdge[] => {
+  const convertToVisualizationEdges = useCallback((edgeRefs: Array<{ from: number; to: number }>): GraphEdge[] => {
     return edgeRefs.map((ref) => ({
       x1: NaN, x2: NaN, y1: NaN, y2: NaN, nodeX2: NaN, nodeY2: NaN,
       from: ref.from === -1 ? "Infinity" : ref.from.toString(),

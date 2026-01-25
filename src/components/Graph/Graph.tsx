@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
 import { Node } from "../Graph/Node/Node";
 import { ZOOM } from "../../utility/constants";
-import { IEdge } from "./IGraph";
+import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
 import { useGraphStore } from "../../store/graphStore";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
@@ -49,7 +49,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
 
   // Local UI state (not shared with other components)
-  const [mockEdge, setMockEdge] = useState<IEdge | null>(null);
+  const [mockEdge, setMockEdge] = useState<GraphEdge | null>(null);
 
   // Refs
   const graph = useRef<SVGSVGElement | null>(null);

@@ -1,14 +1,14 @@
 import { memo } from "react";
 import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
-import { IEdge } from "../IGraph";
+import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "../../../store/graphStore";
 
 export interface EdgeProps {
-  edge: IEdge;
+  edge: GraphEdge;
   sourceNodeId: number;
   isVisualizing: boolean;
-  onEdgeClick: (edge: IEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => void;
+  onEdgeClick: (edge: GraphEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => void;
 }
 
 export const Edge = memo(function Edge({

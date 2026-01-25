@@ -1,11 +1,11 @@
-import { INode, IEdge } from "../components/Graph/IGraph";
+import { GraphNode, GraphEdge } from "../components/Graph/types";
 import { NODE } from "./constants";
 import { calculateAccurateCoords } from "./calc";
 import { EDGE_TYPE, type EdgeType } from "../constants";
 
 export interface GeneratedGraph {
-  nodes: INode[];
-  edges: Map<number, IEdge[]>;
+  nodes: GraphNode[];
+  edges: Map<number, GraphEdge[]>;
   nodeCounter: number;
 }
 
@@ -31,11 +31,11 @@ const HALF_HEIGHT = LAYOUT_HEIGHT / 2;
  * Create an edge between two nodes
  */
 function createEdge(
-  fromNode: INode,
-  toNode: INode,
+  fromNode: GraphNode,
+  toNode: GraphNode,
   type: EdgeType,
   weight: number = 0
-): IEdge {
+): GraphEdge {
   const { tempX, tempY } = calculateAccurateCoords(
     fromNode.x,
     fromNode.y,
@@ -61,9 +61,9 @@ function createEdge(
  * Add edge to edges map (handles both directions for undirected)
  */
 function addEdgeToMap(
-  edges: Map<number, IEdge[]>,
-  fromNode: INode,
-  toNode: INode,
+  edges: Map<number, GraphEdge[]>,
+  fromNode: GraphNode,
+  toNode: GraphNode,
   type: EdgeType,
   weight: number = 0
 ): void {
@@ -169,8 +169,8 @@ function gridLayout(count: number, halfWidth: number, halfHeight: number): { x: 
 export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedGraph {
   const { nodeCount, edgeDensity, directed, weighted, minWeight = 1, maxWeight = 10, layout = "circular" } = options;
 
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   // Get positions based on layout type (all centered at origin)
   const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
@@ -236,8 +236,8 @@ export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedG
  * Generate a path graph (linear chain, centered at origin)
  */
 export function generatePath(nodeCount: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const totalWidth = LAYOUT_WIDTH;
   const spacing = totalWidth / (nodeCount - 1 || 1);
@@ -265,8 +265,8 @@ export function generatePath(nodeCount: number): GeneratedGraph {
  * Generate a cycle graph (centered at origin)
  */
 export function generateCycle(nodeCount: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
   const positions = circularLayout(nodeCount, 0, 0, radius);
@@ -295,8 +295,8 @@ export function generateCycle(nodeCount: number): GeneratedGraph {
  * Generate a complete graph (K_n, centered at origin)
  */
 export function generateComplete(nodeCount: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const radius = Math.min(HALF_WIDTH, HALF_HEIGHT);
   const positions = circularLayout(nodeCount, 0, 0, radius);
@@ -326,8 +326,8 @@ export function generateComplete(nodeCount: number): GeneratedGraph {
  * Generate a star graph (centered at origin)
  */
 export function generateStar(nodeCount: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   // Center node at origin
   nodes.push({
@@ -363,8 +363,8 @@ export function generateStar(nodeCount: number): GeneratedGraph {
  * Generate a binary tree (centered at origin)
  */
 export function generateBinaryTree(depth: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const nodeCount = Math.pow(2, depth) - 1;
   const levelHeight = LAYOUT_HEIGHT / (depth - 1 || 1);
@@ -411,21 +411,21 @@ export function generateBinaryTree(depth: number): GeneratedGraph {
  * Creates a layered structure where edges only go from earlier to later layers
  */
 export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const layerHeight = LAYOUT_HEIGHT / (layers - 1 || 1);
 
   // Create nodes layer by layer (centered at origin)
   let nodeId = 1;
-  const layerNodes: INode[][] = [];
+  const layerNodes: GraphNode[][] = [];
 
   for (let layer = 0; layer < layers; layer++) {
     const spacing = LAYOUT_WIDTH / (nodesPerLayer + 1);
-    const currentLayerNodes: INode[] = [];
+    const currentLayerNodes: GraphNode[] = [];
 
     for (let i = 0; i < nodesPerLayer; i++) {
-      const node: INode = {
+      const node: GraphNode = {
         id: nodeId,
         x: -HALF_WIDTH + spacing * (i + 1),
         y: -HALF_HEIGHT + layer * layerHeight,
@@ -478,8 +478,8 @@ export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGra
  * Generate a grid graph (centered at origin)
  */
 export function generateGrid(rows: number, cols: number): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   const cellWidth = LAYOUT_WIDTH / (cols - 1 || 1);
   const cellHeight = LAYOUT_HEIGHT / (rows - 1 || 1);
@@ -524,8 +524,8 @@ export function generateGrid(rows: number, cols: number): GeneratedGraph {
  * Creates a network-style layout with varied edge weights (centered at origin)
  */
 export function generateWeighted(): GeneratedGraph {
-  const nodes: INode[] = [];
-  const edges = new Map<number, IEdge[]>();
+  const nodes: GraphNode[] = [];
+  const edges = new Map<number, GraphEdge[]>();
 
   // Hand-crafted network-style positions (scattered, not geometric)
   // Centered at origin - positions range from roughly -300 to 300

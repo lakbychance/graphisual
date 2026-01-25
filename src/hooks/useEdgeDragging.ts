@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { INode, IEdge } from "../components/Graph/IGraph";
+import { GraphNode, GraphEdge } from "../components/Graph/types";
 import { findToNodeForTouchBasedDevices } from "../utility/calc";
 import { TIMING } from "../utility/constants";
 import { EDGE_TYPE } from "../constants";
@@ -8,7 +8,7 @@ import { useGraphStore } from "../store/graphStore";
 interface UseEdgeDraggingProps {
   graphRef: React.RefObject<SVGSVGElement | null>;
   screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
-  setMockEdge: (edge: IEdge | null) => void;
+  setMockEdge: (edge: GraphEdge | null) => void;
 }
 
 export function useEdgeDragging({
@@ -45,7 +45,7 @@ export function useEdgeDragging({
         if (!sourceNode) { setMockEdge(null); return; }
 
         const target = e.target as SVGElement;
-        let targetNode: INode | undefined;
+        let targetNode: GraphNode | undefined;
 
         if (target.tagName === "circle" && target.id) {
           const targetNodeId = parseInt(target.id);

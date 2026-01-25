@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, memo } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { IEdge } from "../IGraph";
+import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
 import { Edge } from "../Edge/Edge";
@@ -12,7 +12,7 @@ import { NODE_GRADIENT, gradientUrl } from "../../../constants";
 export interface NodeProps {
   nodeId: number;
   onNodeMove: (nodeId: number, x: number, y: number) => void;
-  onEdgeClick: (edge: IEdge, nodeId: number, clickPosition: { x: number; y: number }) => void;
+  onEdgeClick: (edge: GraphEdge, nodeId: number, clickPosition: { x: number; y: number }) => void;
   onConnectorDragStart: (
     sourceNodeId: number,
     position: string,
@@ -166,7 +166,7 @@ export const Node = memo(function Node(props: NodeProps) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Edges rendered first so they appear behind nodes */}
-      {nodeEdges?.map((edge: IEdge) => (
+      {nodeEdges?.map((edge: GraphEdge) => (
         <Edge
           key={`${nodeId}-${edge.to}`}
           edge={edge}

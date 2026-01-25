@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { IEdge } from "./IGraph";
+import { GraphEdge } from "./types";
 import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
 import { GrainTexture } from "../ui/grain-texture";
 import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
@@ -11,7 +11,7 @@ import { EDGE_TYPE, type EdgeType } from "../../constants";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 
 interface EdgePopupProps {
-  edge: IEdge;
+  edge: GraphEdge;
   anchorPosition: { x: number; y: number };
   onClose: () => void;
   onUpdateType: (type: EdgeType) => void;

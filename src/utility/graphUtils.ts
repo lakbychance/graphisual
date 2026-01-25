@@ -1,9 +1,9 @@
-import { IEdge } from "../components/Graph/IGraph";
+import { GraphEdge } from "../components/Graph/types";
 
 /**
  * Check if the graph contains any edges with negative weights.
  */
-export function hasNegativeWeights(edges: Map<number, IEdge[]>): boolean {
+export function hasNegativeWeights(edges: Map<number, GraphEdge[]>): boolean {
   for (const edgeList of edges.values()) {
     if (edgeList?.some((edge) => edge.weight < 0)) {
       return true;

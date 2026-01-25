@@ -6,7 +6,7 @@ import {
   findToNodeForTouchBasedDevices,
   doesPointLieOnCircle,
 } from './calc'
-import { INode } from '../components/Graph/IGraph'
+import { GraphNode } from '../components/Graph/types'
 
 describe('Utility Functions', () => {
   describe('calculateCurve', () => {
@@ -106,7 +106,7 @@ describe('Utility Functions', () => {
   })
 
   describe('findToNodeForTouchBasedDevices', () => {
-    const nodes: INode[] = [
+    const nodes: GraphNode[] = [
       { id: 1, x: 50, y: 50, r: 30 },
       { id: 2, x: 150, y: 50, r: 30 },
       { id: 3, x: 100, y: 150, r: 30 },
@@ -131,7 +131,7 @@ describe('Utility Functions', () => {
 
     it('returns first matching node if overlapping', () => {
       // If nodes overlap, returns first one found
-      const overlappingNodes: INode[] = [
+      const overlappingNodes: GraphNode[] = [
         { id: 1, x: 50, y: 50, r: 30 },
         { id: 2, x: 60, y: 50, r: 30 }, // Overlaps with 1
       ]

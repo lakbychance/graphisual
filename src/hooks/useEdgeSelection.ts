@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { IEdge } from "../components/Graph/IGraph";
+import { GraphEdge } from "../components/Graph/types";
 import { TIMING } from "../utility/constants";
 import { EdgeType } from "../constants";
 import { useGraphStore } from "../store/graphStore";
@@ -23,7 +23,7 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
   const selectedEdge = useGraphStore((state) => state.selection.edge);
 
   const handleEdge = useCallback(
-    (edge: IEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => {
+    (edge: GraphEdge, fromNodeId: number, clickPosition: { x: number; y: number }) => {
       if (isVisualizing) return;
       const { data } = useGraphStore.getState();
       const fromNode = data.nodes.find(n => n.id === fromNodeId);
