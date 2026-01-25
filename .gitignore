@@ -109,3 +109,7 @@ dist
 
 # Claude
 .claude
+.mcp.json
+
+# Agents
+.agents
