@@ -86,16 +86,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     return { x: svgPoint.x, y: svgPoint.y };
   }, []);
 
-  // Prevent touch scroll on SVG
-  useEffect(() => {
-    const graphEl = graph.current;
-    if (graphEl) {
-      const preventTouch = (e: TouchEvent) => e.preventDefault();
-      graphEl.addEventListener("touchmove", preventTouch);
-      return () => graphEl.removeEventListener("touchmove", preventTouch);
-    }
-  }, []);
-
   // Apply step-through visualization when stepIndex changes
   useStepThroughVisualization();
 

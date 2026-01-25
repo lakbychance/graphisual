@@ -84,6 +84,7 @@ export function useGestureZoom({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent page scroll on touch
       if (e.touches.length === 2 && prevDistance.current !== null) {
         const currentDistance = getDistance(e.touches[0], e.touches[1]);
         const currentCenter = getMidpoint(e.touches[0], e.touches[1]);
@@ -134,7 +135,7 @@ export function useGestureZoom({
 
     // Attach all event listeners
     svg.addEventListener("touchstart", handleTouchStart, { passive: true });
-    svg.addEventListener("touchmove", handleTouchMove, { passive: true });
+    svg.addEventListener("touchmove", handleTouchMove, { passive: false });
     svg.addEventListener("touchend", handleTouchEnd, { passive: true });
     svg.addEventListener("wheel", handleWheel, { passive: false });
 
