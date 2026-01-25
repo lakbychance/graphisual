@@ -27,9 +27,9 @@ export interface GraphHandle {
 }
 
 export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
-  // Subscribe to node IDs only for rendering - prevents re-renders when node positions change
-  const nodeIds = useGraphStore(
-    useShallow((state) => state.data.nodes.map((n) => n.id))
+  // Subscribe to stacking order for rendering - determines z-order of nodes
+  const orderedNodeIds = useGraphStore(
+    useShallow((state) => [...state.data.stackingOrder])
   );
   const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
   const selectedEdge = useGraphStore((state) => state.selection.edge);
@@ -172,8 +172,8 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
 
         <GridBackground />
 
-        {/* Edges layer - rendered first for proper z-ordering */}
-        {nodeIds.map((nodeId) => (
+        {/* Edges layer - rendered first so all edges are behind all nodes */}
+        {orderedNodeIds.map((nodeId) => (
           <NodeEdges
             key={`edges-${nodeId}`}
             nodeId={nodeId}
@@ -182,8 +182,8 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
           />
         ))}
 
-        {/* Nodes layer */}
-        {nodeIds.map((nodeId) => (
+        {/* Nodes layer - orderedNodeIds determines z-order (last = top) */}
+        {orderedNodeIds.map((nodeId) => (
           <Node
             key={nodeId}
             nodeId={nodeId}

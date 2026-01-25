@@ -23,11 +23,13 @@ export const useGraphHistoryStore = createHistoryStore<GraphSnapshot>({
 export const createGraphSnapshot = (
   nodes: GraphNode[],
   edges: Map<number, GraphEdge[]>,
-  nodeCounter: number
+  nodeCounter: number,
+  stackingOrder: Set<number>
 ): GraphSnapshot => ({
   nodes,
   edges: Array.from(edges.entries()).map(([k, v]) => [k, v || []]),
   nodeCounter,
+  stackingOrder: [...stackingOrder],  // Convert Set to array for serialization
 });
 
 // ============================================================================
@@ -47,8 +49,8 @@ export function withGraphAutoHistory<TArgs extends unknown[], TReturn>(
   return withAutoHistory(
     useGraphHistoryStore,
     () => {
-      const { nodes, edges, nodeCounter } = getState().data;
-      return createGraphSnapshot(nodes, edges, nodeCounter);
+      const { nodes, edges, nodeCounter, stackingOrder } = getState().data;
+      return createGraphSnapshot(nodes, edges, nodeCounter, stackingOrder);
     },
     mutation
   );
@@ -66,8 +68,8 @@ export function withGraphBatchedAutoHistory<TArgs extends unknown[], TReturn>(
   return withBatchedAutoHistory(
     useGraphHistoryStore,
     () => {
-      const { nodes, edges, nodeCounter } = getState().data;
-      return createGraphSnapshot(nodes, edges, nodeCounter);
+      const { nodes, edges, nodeCounter, stackingOrder } = getState().data;
+      return createGraphSnapshot(nodes, edges, nodeCounter, stackingOrder);
     },
     mutation,
     debounceMs

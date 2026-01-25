@@ -60,4 +60,5 @@ export interface GraphSnapshot {
   nodes: GraphNode[];
   edges: [number, GraphEdge[]][];
   nodeCounter: number;
+  stackingOrder: number[];  // Node IDs in render order (last = top)
 }

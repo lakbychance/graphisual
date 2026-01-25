@@ -14,6 +14,7 @@ beforeEach(() => {
       nodes: [],
       edges: new Map(),
       nodeCounter: 0,
+      stackingOrder: new Set(),
     },
     visualization: {
       algorithm: { key: 'select', text: 'Select Algorithm' },

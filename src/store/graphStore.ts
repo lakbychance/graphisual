@@ -66,6 +66,7 @@ export interface GraphData {
   nodes: GraphNode[];
   edges: Map<number, GraphEdge[]>;
   nodeCounter: number;
+  stackingOrder: Set<number>;  // Insertion order = render order (last = top)
 }
 
 // Selection state
@@ -86,6 +87,7 @@ interface GraphActions {
   addNode: (x: number, y: number) => void;
   moveNode: (nodeId: number, x: number, y: number) => void;
   deleteNode: (nodeId: number) => void;
+  bringNodeToFront: (nodeId: number) => void;
   addEdge: (fromNode: GraphNode, toNode: GraphNode) => void;
   setGraph: (nodes: GraphNode[], edges: Map<number, GraphEdge[]>, nodeCounter: number) => void;
   updateEdgeType: (fromNodeId: number, toNodeId: number, newType: EdgeType) => void;
@@ -142,6 +144,7 @@ const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
   nodes: snapshot.nodes,
   edges: new Map<number, GraphEdge[]>(snapshot.edges),
   nodeCounter: snapshot.nodeCounter,
+  stackingOrder: new Set<number>(snapshot.stackingOrder),
 });
 
 // ============================================================================
@@ -169,6 +172,7 @@ const initialData: GraphData = {
   nodes: [],
   edges: new Map(),
   nodeCounter: 0,
+  stackingOrder: new Set(),
 };
 
 const initialSelection: Selection = {
@@ -216,7 +220,7 @@ export const useGraphStore = create<GraphStore>()(
         addNode: autoHistory((x: number, y: number) => {
           get().clearVisualization();
           const { data, visualization } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
           const newNodeId = nodeCounter + 1;
           const newNode: GraphNode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
@@ -225,8 +229,12 @@ export const useGraphStore = create<GraphStore>()(
           const newEdges = new Map(edges);
           newEdges.set(newNodeId, []);
 
+          // Add new node to stacking order (renders on top)
+          const newStackingOrder = new Set(stackingOrder);
+          newStackingOrder.add(newNodeId);
+
           set({
-            data: { nodes: newNodes, edges: newEdges, nodeCounter: newNodeId },
+            data: { nodes: newNodes, edges: newEdges, nodeCounter: newNodeId, stackingOrder: newStackingOrder },
             visualization: { ...visualization, input: null },
           });
         }),
@@ -279,7 +287,7 @@ export const useGraphStore = create<GraphStore>()(
         deleteNode: autoHistory((nodeId: number) => {
           get().clearVisualization();
           const { data } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
 
           const newNodes = nodes.filter((n) => n.id !== nodeId);
           const newEdges = new Map(edges);
@@ -296,16 +304,28 @@ export const useGraphStore = create<GraphStore>()(
             }
           });
 
+          // Remove from stacking order
+          const newStackingOrder = new Set(stackingOrder);
+          newStackingOrder.delete(nodeId);
+
           set({
-            data: { nodes: newNodes, edges: newEdges, nodeCounter },
+            data: { nodes: newNodes, edges: newEdges, nodeCounter, stackingOrder: newStackingOrder },
             selection: { nodeId: null, edge: null },
           });
         }),
 
+        bringNodeToFront: (nodeId: number) => {
+          const { data } = get();
+          const newStackingOrder = new Set(data.stackingOrder);
+          newStackingOrder.delete(nodeId);
+          newStackingOrder.add(nodeId);  // Moves to end (top of z-order)
+          set({ data: { ...data, stackingOrder: newStackingOrder } });
+        },
+
         addEdge: autoHistory((fromNode: GraphNode, toNode: GraphNode) => {
           get().clearVisualization();
           const { data, visualization } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
 
           const { tempX, tempY } = calculateAccurateCoords(
             fromNode.x,
@@ -333,7 +353,7 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(fromNode.id, [...sourceEdges, newEdge]);
 
           set({
-            data: { nodes, edges: newEdges, nodeCounter },
+            data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             visualization: { ...visualization, input: null },
           });
         }),
@@ -342,8 +362,11 @@ export const useGraphStore = create<GraphStore>()(
           get().clearVisualization();
           const { visualization } = get();
 
+          // Initialize stacking order from nodes (in creation order)
+          const stackingOrder = new Set(nodes.map((n) => n.id));
+
           set({
-            data: { nodes, edges, nodeCounter },
+            data: { nodes, edges, nodeCounter, stackingOrder },
             selection: { nodeId: null, edge: null },
             visualization: { ...visualization, input: null },
             viewport: { zoom: 1, pan: { x: 0, y: 0 } }, // Reset viewport to center on new graph
@@ -353,7 +376,7 @@ export const useGraphStore = create<GraphStore>()(
         updateEdgeType: autoHistory((fromNodeId: number, toNodeId: number, newType: EdgeType) => {
           get().clearVisualization();
           const { data, selection } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
           const selectedEdge = selection.edge;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
@@ -417,7 +440,7 @@ export const useGraphStore = create<GraphStore>()(
           const updatedEdge = { ...currentEdge, type: newType };
 
           set({
-            data: { nodes, edges: newEdges, nodeCounter },
+            data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             selection: {
               ...selection,
               edge: selectedEdge
@@ -430,7 +453,7 @@ export const useGraphStore = create<GraphStore>()(
         updateEdgeWeight: autoHistory((fromNodeId: number, toNodeId: number, newWeight: number) => {
           get().clearVisualization();
           const { data, selection } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
           const selectedEdge = selection.edge;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
@@ -460,7 +483,7 @@ export const useGraphStore = create<GraphStore>()(
           const updatedEdge = { ...currentEdge, weight: newWeight };
 
           set({
-            data: { nodes, edges: newEdges, nodeCounter },
+            data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             selection: {
               ...selection,
               edge: selectedEdge
@@ -473,7 +496,7 @@ export const useGraphStore = create<GraphStore>()(
         reverseEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
           get().clearVisualization();
           const { data, selection } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
 
           const sourceNode = nodes.find((n) => n.id === fromNodeId);
           const targetNode = nodes.find((n) => n.id === toNodeId);
@@ -514,7 +537,7 @@ export const useGraphStore = create<GraphStore>()(
           newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
 
           set({
-            data: { nodes, edges: newEdges, nodeCounter },
+            data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             selection: { ...selection, edge: null },
           });
         }),
@@ -522,7 +545,7 @@ export const useGraphStore = create<GraphStore>()(
         deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
           get().clearVisualization();
           const { data, selection } = get();
-          const { nodes, edges, nodeCounter } = data;
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
 
           // Get the edge to check if undirected
           const sourceEdges = edges.get(fromNodeId) || [];
@@ -543,7 +566,7 @@ export const useGraphStore = create<GraphStore>()(
           }
 
           set({
-            data: { nodes, edges: newEdges, nodeCounter },
+            data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             selection: { ...selection, edge: null },
           });
         }),
@@ -557,7 +580,7 @@ export const useGraphStore = create<GraphStore>()(
           const historyStore = useGraphHistoryStore.getState();
           const { data } = get();
           historyStore.undo(
-            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter),
+            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
               selection: { nodeId: null, edge: null },
@@ -570,7 +593,7 @@ export const useGraphStore = create<GraphStore>()(
           const historyStore = useGraphHistoryStore.getState();
           const { data } = get();
           historyStore.redo(
-            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter),
+            () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
               selection: { nodeId: null, edge: null },
