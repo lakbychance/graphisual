@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
 import { Node } from "../Graph/Node/Node";
+import { NodeEdges } from "./NodeEdges";
 import { ZOOM } from "../../utility/constants";
 import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
@@ -171,12 +172,22 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
 
         <GridBackground />
 
+        {/* Edges layer - rendered first for proper z-ordering */}
+        {nodeIds.map((nodeId) => (
+          <NodeEdges
+            key={`edges-${nodeId}`}
+            nodeId={nodeId}
+            isVisualizing={isVisualizing}
+            onEdgeClick={handleEdge}
+          />
+        ))}
+
+        {/* Nodes layer */}
         {nodeIds.map((nodeId) => (
           <Node
             key={nodeId}
             nodeId={nodeId}
             onNodeMove={moveNode}
-            onEdgeClick={handleEdge}
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
             isAlgorithmSelected={!!currentAlgorithm}

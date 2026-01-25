@@ -1,10 +1,8 @@
 import React, { useRef, useCallback, useState, memo } from "react";
 import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
-import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
-import { Edge } from "../Edge/Edge";
 import { DRAG_THRESHOLD, NODE } from "../../../utility/constants";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
@@ -13,7 +11,6 @@ import { NODE_GRADIENT, gradientUrl } from "../../../constants";
 export interface NodeProps {
   nodeId: number;
   onNodeMove: (nodeId: number, x: number, y: number) => void;
-  onEdgeClick: (edge: GraphEdge, nodeId: number, clickPosition: { x: number; y: number }) => void;
   onConnectorDragStart: (
     sourceNodeId: number,
     position: string,
@@ -32,7 +29,6 @@ export const Node = memo(function Node(props: NodeProps) {
   const {
     nodeId,
     onNodeMove,
-    onEdgeClick,
     onConnectorDragStart,
     isVisualizing,
     isAlgorithmSelected,
@@ -50,9 +46,6 @@ export const Node = memo(function Node(props: NodeProps) {
   const visFlags = useGraphStore((state) => state.visualization.trace.nodes.get(nodeId));
 
   const visualizationInput = useGraphStore((state) => state.visualization.input);
-
-  // Subscribe to THIS node's edges only
-  const nodeEdges = useGraphStore(useShallow((state) => state.data.edges.get(nodeId)));
 
   // Derived selector: only re-renders when THIS node's selection state changes
   const isSelected = useGraphStore((state) => state.selection.nodeId === nodeId);
@@ -160,115 +153,100 @@ export const Node = memo(function Node(props: NodeProps) {
     return isSelected ? 2.5 : 1.5;
   };
 
-
   return (
-    <g
+    <m.g
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={prefersReducedMotion ? { duration: 0 } : {
+        type: 'spring',
+        stiffness: 600,
+        damping: 28,
+      }}
+      style={{ transformOrigin: `${node.x}px ${node.y}px` }}
     >
-      {/* Edges rendered first so they appear behind nodes */}
-      {nodeEdges?.map((edge: GraphEdge) => (
-        <Edge
-          key={`${nodeId}-${edge.to}`}
-          edge={edge}
-          sourceNodeId={nodeId}
-          isVisualizing={isVisualizing}
-          onEdgeClick={onEdgeClick}
-        />
-      ))}
-
-      {/* Node visual elements with spring animation on mount */}
-      <m.g
-        initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={prefersReducedMotion ? { duration: 0 } : {
-          type: 'spring',
-          stiffness: 600,
-          damping: 28,
+      {/* Invisible hit area to keep hover state when moving to connectors */}
+      <circle
+        cx={node.x}
+        cy={node.y}
+        r={hitAreaRadius}
+        className="fill-transparent pointer-events-auto"
+      />
+      {/* Main node token - tangible, pickable button */}
+      <circle
+        onPointerDown={handlePointerDown}
+        style={{
+          fill: getNodeFill(),
+          stroke: getNodeStroke(),
+          strokeWidth: getNodeStrokeWidth(),
+          filter: 'drop-shadow(1.5px 1.5px 3px var(--node-shadow-color))',
         }}
-        style={{ transformOrigin: `${node.x}px ${node.y}px` }}
+        className={cn(
+          // Only transition visual properties, not position (cx/cy)
+          "[transition:fill_150ms,r_150ms,stroke_150ms,stroke-width_150ms]",
+          // Cursor: pointer when algorithm selected, grab otherwise
+          isAlgorithmSelected ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+        )}
+        cx={node.x}
+        cy={node.y}
+        r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
+        id={node.id.toString()}
+      />
+      {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
+      <circle
+        cx={node.x}
+        cy={node.y}
+        r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
+        fill="url(#crosshatch)"
+        mask="url(#sphereMask)"
+        className="pointer-events-none [transition:r_150ms]"
+      />
+
+      {/* Edge Connectors - shown on hover */}
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="top"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="right"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="bottom"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="left"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+
+      {/* Node label */}
+      <text
+        className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
+        style={{ fill: 'var(--color-text)' }}
+        x={node.x}
+        y={node.y}
       >
-        {/* Invisible hit area to keep hover state when moving to connectors */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={hitAreaRadius}
-          className="fill-transparent pointer-events-auto"
-        />
-        {/* Main node token - tangible, pickable button */}
-        <circle
-          onPointerDown={handlePointerDown}
-          style={{
-            fill: getNodeFill(),
-            stroke: getNodeStroke(),
-            strokeWidth: getNodeStrokeWidth(),
-            filter: 'drop-shadow(1.5px 1.5px 3px var(--node-shadow-color))',
-          }}
-          className={cn(
-            // Only transition visual properties, not position (cx/cy)
-            "[transition:fill_150ms,r_150ms,stroke_150ms,stroke-width_150ms]",
-            // Cursor: pointer when algorithm selected, grab otherwise
-            isAlgorithmSelected ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-          )}
-          cx={node.x}
-          cy={node.y}
-          r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
-          id={node.id.toString()}
-        />
-        {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
-          fill="url(#crosshatch)"
-          mask="url(#sphereMask)"
-          className="pointer-events-none [transition:r_150ms]"
-        />
+        {node.id}
+      </text>
+    </m.g>
 
-        {/* Edge Connectors - shown on hover */}
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="top"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="right"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="bottom"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="left"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-
-        {/* Node label */}
-        <text
-          className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
-          style={{ fill: 'var(--color-text)' }}
-          x={node.x}
-          y={node.y}
-        >
-          {node.id}
-        </text>
-      </m.g>
-    </g>
   );
 });
