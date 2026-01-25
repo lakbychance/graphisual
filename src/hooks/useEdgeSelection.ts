@@ -1,6 +1,5 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { GraphEdge } from "../components/Graph/types";
-import { TIMING } from "../utility/constants";
 import { EdgeType } from "../constants";
 import { useGraphStore } from "../store/graphStore";
 
@@ -9,8 +8,6 @@ interface UseEdgeSelectionProps {
 }
 
 export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
-  const justClosedPopup = useRef(false);
-
   // Subscribe to store actions
   const selectEdgeAction = useGraphStore((state) => state.selectEdge);
   const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
@@ -34,9 +31,7 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
   );
 
   const closeEdgePopup = useCallback(() => {
-    justClosedPopup.current = true;
     clearEdgeSelection();
-    setTimeout(() => { justClosedPopup.current = false; }, TIMING.POPUP_DELAY);
   }, [clearEdgeSelection]);
 
   const updateEdgeType = useCallback((newType: EdgeType) => {
@@ -66,6 +61,5 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
     updateEdgeWeight,
     reverseEdge,
     deleteEdge,
-    justClosedPopup,
   };
 }

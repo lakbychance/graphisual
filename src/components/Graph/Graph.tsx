@@ -123,7 +123,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     updateEdgeWeight,
     reverseEdge,
     deleteEdge,
-    justClosedPopup,
   } = useEdgeSelection({ isVisualizing });
 
   // Handle click on canvas/node
@@ -144,11 +143,11 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     }
 
     // Create node on empty canvas (not during visualization or algorithm selection)
-    if (!isNode && selectedNodeId === null && !selectedEdge && !isDraggingEdge.current && !justClosedPopup.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
+    if (!isNode && selectedNodeId === null && !isDraggingEdge.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, selectedEdge, screenToSvgCoords, selectNode, addNode, isDraggingEdge, justClosedPopup, isDraggingCanvas]);
+  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas]);
 
   // Hide content until viewBox is ready to prevent flicker on mount
   const isReady = viewBox !== undefined;
