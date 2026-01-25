@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 
 interface AlgorithmHintProps {
@@ -9,7 +10,7 @@ export const AlgorithmHint = ({ text }: AlgorithmHintProps) => {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={prefersReducedMotion ? { duration: 0 } : undefined}
@@ -24,6 +25,6 @@ export const AlgorithmHint = ({ text }: AlgorithmHintProps) => {
       <div className="relative px-4 py-2.5 rounded-md text-sm text-center overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] text-[var(--color-text-muted)]">
         <span className="relative z-10">{text}</span>
       </div>
-    </motion.div>
+    </m.div>
   );
 };

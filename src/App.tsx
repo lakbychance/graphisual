@@ -1,3 +1,4 @@
+import { LazyMotion, domAnimation } from "motion/react";
 import { Board } from "./components/Board/Board";
 import { Toaster } from "sonner";
 import { useTheme } from "./hooks/useTheme";
@@ -7,7 +8,7 @@ function App() {
   useTheme();
 
   return (
-    <>
+    <LazyMotion features={domAnimation} strict>
       <Board />
       <Toaster
         position="bottom-right"
@@ -22,7 +23,7 @@ function App() {
           },
         }}
       />
-    </>
+    </LazyMotion>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, memo } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
@@ -177,7 +178,7 @@ export const Node = memo(function Node(props: NodeProps) {
       ))}
 
       {/* Node visual elements with spring animation on mount */}
-      <motion.g
+      <m.g
         initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0 } : {
@@ -267,7 +268,7 @@ export const Node = memo(function Node(props: NodeProps) {
         >
           {node.id}
         </text>
-      </motion.g>
+      </m.g>
     </g>
   );
 });

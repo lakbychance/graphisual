@@ -1,5 +1,6 @@
 import { Suspense, useRef, useImperativeHandle, lazy, type Ref } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { ErrorBoundary } from "react-error-boundary";
 import { AlertTriangle } from "lucide-react";
 import { Graph, type GraphHandle } from "../Graph/Graph";
@@ -57,7 +58,7 @@ export const GraphRenderer = ({
   return (
     <AnimatePresence mode="wait">
       {is3DMode ? (
-        <motion.div
+        <m.div
           key="3d"
           className="absolute inset-0"
           initial={{ opacity: 0 }}
@@ -76,9 +77,9 @@ export const GraphRenderer = ({
               <Graph3D ref={graph3DRef} />
             </Suspense>
           </ErrorBoundary>
-        </motion.div>
+        </m.div>
       ) : (
-        <motion.div
+        <m.div
           key="2d"
           className="absolute inset-0"
           initial={{ opacity: 0 }}
@@ -87,7 +88,7 @@ export const GraphRenderer = ({
           transition={{ duration: 0.15 }}
         >
           <Graph ref={graphRef} />
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

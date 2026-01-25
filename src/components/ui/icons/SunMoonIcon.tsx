@@ -1,7 +1,8 @@
 "use client";
 
 import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
+import { useAnimation } from "motion/react";
+import * as m from "motion/react-m";
 import type { HTMLAttributes } from "react";
 import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 
@@ -100,13 +101,13 @@ function SunMoonIcon({ onMouseEnter, onMouseLeave, className, size = 28, ref, ..
                     width={size}
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    <motion.g
+                    <m.g
                         animate={sunControls}
                         initial="normal"
                         variants={SUN_VARIANTS}
                     >
                         <path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4" />
-                    </motion.g>
+                    </m.g>
                     {[
                         "M12 2v2",
                         "M12 20v2",
@@ -117,7 +118,7 @@ function SunMoonIcon({ onMouseEnter, onMouseLeave, className, size = 28, ref, ..
                         "m6.3 17.7-1.4 1.4",
                         "m19.1 4.9-1.4 1.4",
                     ].map((d, index) => (
-                        <motion.path
+                        <m.path
                             animate={moonControls}
                             custom={index + 1}
                             d={d}

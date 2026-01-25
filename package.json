@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
+    "build:analyze": "ANALYZE=true pnpm build",
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest",
@@ -55,6 +56,7 @@
     "globals": "^15.14.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
+    "rollup-plugin-visualizer": "^6.0.5",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.7.2",

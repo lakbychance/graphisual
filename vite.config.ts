@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
-import { reactScanPlugin, jsonldPlugin, sitemapPlugin, pwaPlugin } from "./plugins/vite-plugins";
+import { reactScanPlugin, jsonldPlugin, sitemapPlugin, pwaPlugin, bundleAnalyzerPlugin } from "./plugins/vite-plugins";
 
 export default defineConfig({
   plugins: [
@@ -19,7 +20,8 @@ export default defineConfig({
       routes: [{ path: "/", changefreq: "weekly", priority: 1.0 }],
     }),
     pwaPlugin(),
-  ],
+    bundleAnalyzerPlugin(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
