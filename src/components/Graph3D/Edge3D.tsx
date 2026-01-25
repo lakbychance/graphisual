@@ -83,19 +83,10 @@ export function Edge3D({
     // Control point for Bezier curve (offset perpendicular to edge)
     const control = straightMid.clone().add(perpendicular.clone().multiplyScalar(curveOffset));
 
-    // For Bezier curve, actual point at t=0.5 is:
-    // B(0.5) = 0.25*start + 0.5*control + 0.25*end
-    // This gives us the true visual center of the curved line
-    const labelPos = isDirected
-      ? new Vector3()
-        .addScaledVector(start, 0.25)
-        .addScaledVector(control, 0.5)
-        .addScaledVector(end, 0.25)
-      : straightMid;
-
-    // Arrow data for directed edges
+    // Arrow data and line end for directed edges
     let arrow = null;
     let lineEnd = endPosition;
+    let lineEndVec = end;
 
     if (isDirected) {
       // For a quadratic Bezier curve, the tangent at t=1 is proportional to (end - control)
@@ -116,9 +107,19 @@ export function Edge3D({
       };
 
       // Stop line before arrow, along the tangent direction
-      const lineEndVec = end.clone().sub(tangentDirection.clone().multiplyScalar(NODE.RADIUS + 12));
+      lineEndVec = end.clone().sub(tangentDirection.clone().multiplyScalar(NODE.RADIUS + 12));
       lineEnd = lineEndVec.toArray() as [number, number, number];
     }
+
+    // Calculate label position based on the VISIBLE curve
+    // For Bezier curve at t=0.5: B(0.5) = 0.25*P0 + 0.5*P1 + 0.25*P2
+    // For directed edges, use the shortened endpoint (lineEndVec) with the original control point
+    const labelPos = isDirected
+      ? new Vector3()
+        .addScaledVector(start, 0.25)
+        .addScaledVector(control, 0.5)
+        .addScaledVector(lineEndVec, 0.25)
+      : straightMid;
 
     return {
       controlPoint: control.toArray() as [number, number, number],
