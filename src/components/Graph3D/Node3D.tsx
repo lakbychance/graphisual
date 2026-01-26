@@ -3,7 +3,7 @@ import { Text } from "@react-three/drei";
 import { useGraphStore, selectNodeVisState } from "../../store/graphStore";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { NODE, FONT_URL } from "../../utility/constants";
-import { getNodeGradientColors, getNodeStrokeColor, getUIColors } from "../../utility/cssVariables";
+import { getNodeGradientColors, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { NODE_STROKE_COLORS, NODE_LIGHT_THEME } from "./theme3D";
@@ -99,11 +99,9 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
   const colors = useMemo(() => {
     const gradientColors = getNodeGradientColors(visState);
     const uiColors = getUIColors();
-    const strokeColor = getNodeStrokeColor(visState);
     return {
       ...gradientColors,
       ...uiColors,
-      stroke: strokeColor,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visState, theme]);
@@ -146,6 +144,10 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
   // Get shared geometries (created once, reused across all nodes)
   const geometries = getSharedGeometries();
 
+  // Torus color - use gradient mid color for visualization states (solid hex, no alpha)
+  // The --color-tint-* variables have rgba with alpha which Three.js doesn't handle well
+  const torusColor = visState === 'default' ? NODE_STROKE_COLORS[theme] : colors.mid;
+
   return (
     <group
       position={position}
@@ -181,7 +183,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
       {/* Outer ring / stroke - polished metallic look */}
       <mesh geometry={geometries.torusRing}>
         <meshPhysicalMaterial
-          color={visState === 'default' ? NODE_STROKE_COLORS[theme] : colors.stroke}
+          color={torusColor}
           roughness={0.3}
           metalness={0.6}
           clearcoat={0.5}
