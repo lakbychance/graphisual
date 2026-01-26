@@ -61,8 +61,6 @@ export const Edge = memo(function Edge({
   };
 
   const getStrokeWidth = () => {
-    if (visFlags?.isUsedInShortestPath) return 3.5;
-    if (visFlags?.isUsedInTraversal) return 3;
     return edge.type === "directed" ? 2 : 2.5;
   };
 
