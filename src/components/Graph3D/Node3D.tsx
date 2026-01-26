@@ -7,6 +7,7 @@ import { getNodeGradientColors, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { NODE_STROKE_COLORS, NODE_LIGHT_THEME } from "./theme3D";
+import { useIntroAnimation } from "./introAnimation";
 
 // Shared geometries - created once and reused across all nodes
 // Using consistent 32 segments for all spheres (good balance of quality vs performance)
@@ -89,6 +90,9 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
 }
 
 export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false }: Node3DProps) {
+  // Intro animation - z-position for clipping reveal, opacity for ring fade, clipping planes
+  const { animationRef, opacity: ringOpacity, clippingPlanes } = useIntroAnimation();
+
   // Get visualization state using derived selector
   const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
 
@@ -149,109 +153,120 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
   const torusColor = visState === 'default' ? NODE_STROKE_COLORS[theme] : colors.mid;
 
   return (
-    <group
-      position={position}
-      scale={hoverScale}
-      onClick={handleClick}
-      onPointerOver={handlePointerOver}
-      onPointerOut={handlePointerOut}
-    >
-      {/* Glow layers for dark theme */}
-      {isDarkTheme && (
-        <>
-          <mesh geometry={geometries.glowOuter}>
-            <meshBasicMaterial
-              color={colors.mid}
-              transparent
-              opacity={0.08 + hoverEmissiveBoost * 0.5}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-          <mesh geometry={geometries.glowInner}>
-            <meshBasicMaterial
-              color={colors.start}
-              transparent
-              opacity={0.15 + hoverEmissiveBoost * 0.5}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        </>
-      )}
-
-      {/* Outer ring / stroke - polished metallic look */}
-      <mesh geometry={geometries.torusRing}>
-        <meshPhysicalMaterial
-          color={torusColor}
-          roughness={0.3}
-          metalness={0.6}
-          clearcoat={0.5}
-          clearcoatRoughness={0.3}
-        />
-      </mesh>
-
-      {/* Main sphere - polished physical material */}
-      <mesh geometry={geometries.mainSphere}>
+    <group ref={animationRef}>
+        <group
+          position={position}
+          scale={hoverScale}
+          onClick={handleClick}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
+        {/* Glow layers for dark theme */}
         {isDarkTheme && (
-          <meshPhysicalMaterial
-            color={colors.start}
-            emissive={colors.mid}
-            emissiveIntensity={0.3 + hoverEmissiveBoost}
-            roughness={0.15}
-            metalness={0.1}
-            clearcoat={0.8}
-            clearcoatRoughness={0.2}
-            envMapIntensity={0.5}
-          />
+          <>
+            <mesh geometry={geometries.glowOuter}>
+              <meshBasicMaterial
+                color={colors.mid}
+                transparent
+                opacity={0.08 + hoverEmissiveBoost * 0.5}
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+                clippingPlanes={clippingPlanes}
+              />
+            </mesh>
+            <mesh geometry={geometries.glowInner}>
+              <meshBasicMaterial
+                color={colors.start}
+                transparent
+                opacity={0.15 + hoverEmissiveBoost * 0.5}
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+                clippingPlanes={clippingPlanes}
+              />
+            </mesh>
+          </>
         )}
-        {isBlueprintTheme && (
+
+        {/* Outer ring / stroke - polished metallic look */}
+        <mesh geometry={geometries.torusRing}>
           <meshPhysicalMaterial
-            color={colors.start}
-            emissive={colors.mid}
-            emissiveIntensity={0.15 + hoverEmissiveBoost}
+            color={torusColor}
             roughness={0.3}
-            metalness={0.05}
-            clearcoat={0.6}
+            metalness={0.6}
+            clearcoat={0.5}
             clearcoatRoughness={0.3}
-            envMapIntensity={0.3}
+            transparent
+            opacity={ringOpacity}
           />
-        )}
-        {isLightTheme && (
-          <meshPhysicalMaterial
-            color={visState === 'default' ? NODE_LIGHT_THEME.defaultColor : colors.mid}
-            emissive={visState === 'default' ? NODE_LIGHT_THEME.defaultEmissive : colors.start}
-            emissiveIntensity={visState === 'default' ? 0.05 : 0.18 + hoverEmissiveBoost}
-            roughness={0.2}
-            metalness={0.05}
-            clearcoat={1.0}
-            clearcoatRoughness={0.1}
-            envMapIntensity={0.4}
+        </mesh>
+
+        {/* Main sphere - polished physical material */}
+        <mesh geometry={geometries.mainSphere}>
+          {isDarkTheme && (
+            <meshPhysicalMaterial
+              color={colors.start}
+              emissive={colors.mid}
+              emissiveIntensity={0.3 + hoverEmissiveBoost}
+              roughness={0.15}
+              metalness={0.1}
+              clearcoat={0.8}
+              clearcoatRoughness={0.2}
+              envMapIntensity={0.5}
+              clippingPlanes={clippingPlanes}
+            />
+          )}
+          {isBlueprintTheme && (
+            <meshPhysicalMaterial
+              color={colors.start}
+              emissive={colors.mid}
+              emissiveIntensity={0.15 + hoverEmissiveBoost}
+              roughness={0.3}
+              metalness={0.05}
+              clearcoat={0.6}
+              clearcoatRoughness={0.3}
+              envMapIntensity={0.3}
+              clippingPlanes={clippingPlanes}
+            />
+          )}
+          {isLightTheme && (
+            <meshPhysicalMaterial
+              color={visState === 'default' ? NODE_LIGHT_THEME.defaultColor : colors.mid}
+              emissive={visState === 'default' ? NODE_LIGHT_THEME.defaultEmissive : colors.start}
+              emissiveIntensity={visState === 'default' ? 0.05 : 0.18 + hoverEmissiveBoost}
+              roughness={0.2}
+              metalness={0.05}
+              clearcoat={1.0}
+              clearcoatRoughness={0.1}
+              envMapIntensity={0.4}
+              clippingPlanes={clippingPlanes}
+            />
+          )}
+        </mesh>
+
+        {/* Diagonal lines overlay sphere - slightly larger to prevent z-fighting */}
+        <mesh geometry={geometries.overlaySphere}>
+          <meshBasicMaterial
+            map={diagonalTexture}
+            transparent
+            opacity={1}
+            depthWrite={false}
+            clippingPlanes={clippingPlanes}
           />
-        )}
-      </mesh>
+        </mesh>
 
-      {/* Diagonal lines overlay sphere - slightly larger to prevent z-fighting */}
-      <mesh geometry={geometries.overlaySphere}>
-        <meshBasicMaterial
-          map={diagonalTexture}
-          transparent
-          opacity={1}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Node label using Text for 3D scaling */}
-      <Text
-        position={[0, 0, NODE.RADIUS + 1]}
-        font={FONT_URL}
-        fontSize={14}
-        color={colors.text}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {String(nodeId)}
-      </Text>
+        {/* Node label using Text for 3D scaling */}
+        <Text
+          position={[0, 0, NODE.RADIUS + 1]}
+          font={FONT_URL}
+          fontSize={14}
+          color={colors.text}
+          anchorX="center"
+          anchorY="middle"
+          fillOpacity={ringOpacity}
+        >
+          {String(nodeId)}
+        </Text>
+      </group>
     </group>
   );
 }

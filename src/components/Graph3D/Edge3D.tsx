@@ -6,6 +6,7 @@ import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCu
 import { NODE, FONT_URL } from "../../utility/constants";
 import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
 import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
+import { useIntroAnimation } from "./introAnimation";
 
 interface Edge3DProps {
   fromId: number;
@@ -24,6 +25,9 @@ export function Edge3D({
   isDirected,
   weight,
 }: Edge3DProps) {
+  // Intro animation - only using opacity for fade effect
+  const { opacity: introOpacity } = useIntroAnimation();
+
   // Get visualization state using derived selector
   const visState = useGraphStore(selectEdgeVisState(fromId, toId));
 
@@ -149,6 +153,8 @@ export function Edge3D({
           metalness={theme === 'blueprint' ? 0.1 : 0.2}
           clearcoat={theme === 'blueprint' ? 0.3 : 0.4}
           clearcoatRoughness={theme === 'blueprint' ? 0.5 : 0.4}
+          transparent
+          opacity={introOpacity}
         />
       </mesh>
 
@@ -162,6 +168,8 @@ export function Edge3D({
               metalness={0.4}
               clearcoat={0.6}
               clearcoatRoughness={0.3}
+              transparent
+              opacity={introOpacity}
             />
           </Cone>
         </group>
@@ -173,7 +181,7 @@ export function Edge3D({
           {/* Background plane - slightly behind text, toneMapped=false to match CSS colors */}
           <mesh position={[0, 0, 4]}>
             <planeGeometry args={[String(weight).length * 8 + 8, 16]} />
-            <meshBasicMaterial color={labelColors.bg} toneMapped={false} />
+            <meshBasicMaterial color={labelColors.bg} toneMapped={false} transparent opacity={introOpacity} />
           </mesh>
           <Text
             position={[0, 0, 5]}
@@ -182,6 +190,7 @@ export function Edge3D({
             color={labelColors.text}
             anchorX="center"
             anchorY="middle"
+            fillOpacity={introOpacity}
           >
             {String(weight)}
           </Text>

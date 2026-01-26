@@ -15,6 +15,16 @@ import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualiza
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { GRID_COLORS, LIGHT_COLORS } from "./theme3D";
+import { useIntroAnimation } from "./introAnimation";
+
+// Component to enable local clipping on the renderer
+function ClippingSetup() {
+  const { gl } = useThree();
+  useEffect(() => {
+    gl.localClippingEnabled = true;
+  }, [gl]);
+  return null;
+}
 
 // Camera FOV in degrees
 const CAMERA_FOV = 45;
@@ -48,7 +58,7 @@ function CanvasCapture({ onReady }: { onReady: (canvas: HTMLCanvasElement) => vo
 }
 
 // Intro animation settings
-const INTRO_DURATION = 0.5; // seconds
+const INTRO_DURATION = 0.75; // seconds
 const INTRO_TARGET_AZIMUTH = 0; // No horizontal rotation
 const INTRO_TARGET_POLAR = Math.PI - Math.PI / 2.5; // Tilt from below (graph rotates toward user)
 
@@ -76,7 +86,8 @@ function CameraController({
   // Track if controls are ready (set via callback ref)
   const [controlsReady, setControlsReady] = useState(false);
 
-  // Intro animation state
+  // Intro animation - resets on mount, setProgress drives the animation
+  const { setProgress: setIntroProgress } = useIntroAnimation();
   const introProgress = useRef(0);
   const isIntroPlaying = useRef(true);
 
@@ -140,6 +151,9 @@ function CameraController({
 
     introProgress.current += delta;
     const t = Math.min(introProgress.current / INTRO_DURATION, 1);
+
+    // Update shared intro animation state for Node3D and Edge3D
+    setIntroProgress(t);
 
     // Ease out cubic for smooth deceleration
     const eased = 1 - Math.pow(1 - t, 3);
@@ -352,88 +366,89 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
           gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
           dpr={[1, 2]}
         >
-        <CanvasCapture onReady={handleCanvasReady} />
-        <PerspectiveCamera
-          makeDefault
-          position={[0, 0, baseCameraDistance]}
-          fov={CAMERA_FOV}
-          near={1}
-          far={baseCameraDistance * 10}
-        />
-        <CameraController
-          zoom={zoom}
-          pan={pan}
-          baseCameraDistance={baseCameraDistance}
-          onZoomChange={handleZoomChange}
-          onPanChange={handlePanChange}
-        />
-
-        {/* Lighting setup for polished look */}
-        <ambientLight intensity={0.7} />
-        {/* Key light - main illumination from top-right-front */}
-        <directionalLight
-          position={[100, 200, 150]}
-          intensity={1.2}
-          color={LIGHT_COLORS.key}
-        />
-        {/* Fill light - softer from left side */}
-        <directionalLight
-          position={[-150, 50, 100]}
-          intensity={0.4}
-          color={LIGHT_COLORS.fill}
-        />
-        {/* Rim light - from behind for edge definition */}
-        <directionalLight
-          position={[0, -100, -200]}
-          intensity={0.6}
-          color={LIGHT_COLORS.rim}
-        />
-
-        {/* Environment map for subtle reflections */}
-        <Environment preset="city" environmentIntensity={0.3} />
-
-        {/* Grid - fixed at origin (large enough to cover any view) */}
-        <Grid
-          key={`grid-${theme}`}
-          position={[0, 0, -5]}
-          rotation={[Math.PI / 2, 0, 0]}
-          args={[gridSize, gridSize]}
-          cellSize={24}
-          cellThickness={0.8}
-          cellColor={gridColors.minor}
-          sectionSize={120}
-          sectionThickness={1}
-          sectionColor={gridColors.major}
-          fadeDistance={gridSize * 0.4}
-          fadeStrength={2}
-          fadeFrom={1}
-        />
-
-        {/* Render edges first (behind nodes) */}
-        {edgeList.map((edge) => (
-          <Edge3D
-            key={`${edge.fromId}-${edge.toId}`}
-            fromId={edge.fromId}
-            toId={edge.toId}
-            startPosition={edge.startPosition}
-            endPosition={edge.endPosition}
-            isDirected={edge.isDirected}
-            weight={edge.weight}
+          <ClippingSetup />
+          <CanvasCapture onReady={handleCanvasReady} />
+          <PerspectiveCamera
+            makeDefault
+            position={[0, 0, baseCameraDistance]}
+            fov={CAMERA_FOV}
+            near={1}
+            far={baseCameraDistance * 10}
           />
-        ))}
-
-        {/* Render nodes */}
-        {nodes.map((node) => (
-          <Node3D
-            key={node.id}
-            nodeId={node.id}
-            position={[node.x, -node.y, 0]}
-            startNodeId={startNodeId}
-            endNodeId={endNodeId}
-            onClick={handleNodeClick}
-            isClickable={!!currentAlgorithm && !isVisualizing}
+          <CameraController
+            zoom={zoom}
+            pan={pan}
+            baseCameraDistance={baseCameraDistance}
+            onZoomChange={handleZoomChange}
+            onPanChange={handlePanChange}
           />
-        ))}
+
+          {/* Lighting setup for polished look */}
+          <ambientLight intensity={0.7} />
+          {/* Key light - main illumination from top-right-front */}
+          <directionalLight
+            position={[100, 200, 150]}
+            intensity={1.2}
+            color={LIGHT_COLORS.key}
+          />
+          {/* Fill light - softer from left side */}
+          <directionalLight
+            position={[-150, 50, 100]}
+            intensity={0.4}
+            color={LIGHT_COLORS.fill}
+          />
+          {/* Rim light - from behind for edge definition */}
+          <directionalLight
+            position={[0, -100, -200]}
+            intensity={0.6}
+            color={LIGHT_COLORS.rim}
+          />
+
+          {/* Environment map for subtle reflections */}
+          <Environment preset="city" environmentIntensity={0.3} />
+
+          {/* Grid - fixed at origin (large enough to cover any view) */}
+          <Grid
+            key={`grid-${theme}`}
+            position={[0, 0, -5]}
+            rotation={[Math.PI / 2, 0, 0]}
+            args={[gridSize, gridSize]}
+            cellSize={24}
+            cellThickness={0.8}
+            cellColor={gridColors.minor}
+            sectionSize={120}
+            sectionThickness={1}
+            sectionColor={gridColors.major}
+            fadeDistance={gridSize * 0.4}
+            fadeStrength={2}
+            fadeFrom={1}
+          />
+
+          {/* Render edges first (behind nodes) */}
+          {edgeList.map((edge) => (
+            <Edge3D
+              key={`${edge.fromId}-${edge.toId}`}
+              fromId={edge.fromId}
+              toId={edge.toId}
+              startPosition={edge.startPosition}
+              endPosition={edge.endPosition}
+              isDirected={edge.isDirected}
+              weight={edge.weight}
+            />
+          ))}
+
+          {/* Render nodes */}
+          {nodes.map((node) => (
+            <Node3D
+              key={node.id}
+              nodeId={node.id}
+              position={[node.x, -node.y, 0]}
+              startNodeId={startNodeId}
+              endNodeId={endNodeId}
+              onClick={handleNodeClick}
+              isClickable={!!currentAlgorithm && !isVisualizing}
+            />
+          ))}
         </Canvas>
       )}
     </div>
