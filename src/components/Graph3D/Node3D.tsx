@@ -6,12 +6,10 @@ import { NODE, FONT_URL } from "../../utility/constants";
 import { getNodeGradientColors, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
-import { NODE_STROKE_COLORS, NODE_LIGHT_THEME } from "./theme3D";
+import { NODE_STROKE_COLORS, NODE_LIGHT_THEME, NODE_GEOMETRY } from "./theme3D";
 import { introClippingPlanes } from "./introAnimation";
 
 // Shared geometries - created once and reused across all nodes
-// Using consistent 32 segments for all spheres (good balance of quality vs performance)
-const SPHERE_SEGMENTS = 32;
 let sharedGeometries: {
   mainSphere: THREE.SphereGeometry;
   glowOuter: THREE.SphereGeometry;
@@ -22,12 +20,13 @@ let sharedGeometries: {
 
 function getSharedGeometries() {
   if (!sharedGeometries) {
+    const { sphereSegments, glowOuterScale, glowInnerScale, overlayOffset, torusRadiusOffset, torusTubeRadius, torusRadialSegments, torusTubularSegments } = NODE_GEOMETRY;
     sharedGeometries = {
-      mainSphere: new THREE.SphereGeometry(NODE.RADIUS, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
-      glowOuter: new THREE.SphereGeometry(NODE.RADIUS * 1.12, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
-      glowInner: new THREE.SphereGeometry(NODE.RADIUS * 1.04, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
-      overlaySphere: new THREE.SphereGeometry(NODE.RADIUS + 0.5, SPHERE_SEGMENTS, SPHERE_SEGMENTS),
-      torusRing: new THREE.TorusGeometry(NODE.RADIUS + 1.5, 2, 16, 48),
+      mainSphere: new THREE.SphereGeometry(NODE.RADIUS, sphereSegments, sphereSegments),
+      glowOuter: new THREE.SphereGeometry(NODE.RADIUS * glowOuterScale, sphereSegments, sphereSegments),
+      glowInner: new THREE.SphereGeometry(NODE.RADIUS * glowInnerScale, sphereSegments, sphereSegments),
+      overlaySphere: new THREE.SphereGeometry(NODE.RADIUS + overlayOffset, sphereSegments, sphereSegments),
+      torusRing: new THREE.TorusGeometry(NODE.RADIUS + torusRadiusOffset, torusTubeRadius, torusRadialSegments, torusTubularSegments),
     };
   }
   return sharedGeometries;

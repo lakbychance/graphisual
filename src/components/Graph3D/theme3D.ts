@@ -62,3 +62,22 @@ export const LIGHT_COLORS = {
   fill: '#e0e8ff',     // Soft blue - fill light
   rim: '#fff5e6',      // Warm white - rim light
 } as const;
+
+// =============================================================================
+// Node Geometry Sizes (relative to NODE.RADIUS)
+// =============================================================================
+
+export const NODE_GEOMETRY = {
+  // Glow layer multipliers (dark theme)
+  glowOuterScale: 1.12,
+  glowInnerScale: 1.04,
+  // Overlay sphere offset (for diagonal lines, prevents z-fighting)
+  overlayOffset: 0.5,
+  // Torus ring dimensions
+  torusRadiusOffset: 1.5,
+  torusTubeRadius: 2,
+  // Sphere quality (segments)
+  sphereSegments: 32,
+  torusRadialSegments: 16,
+  torusTubularSegments: 48,
+} as const;
