@@ -1,17 +1,11 @@
-import { useMemo } from "react";
-import { Line, Cone, Text, QuadraticBezierLine } from "@react-three/drei";
+import { useMemo, useEffect } from "react";
+import { Cone, Text } from "@react-three/drei";
 import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
-import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
-import { Vector3, Euler, Quaternion } from "three";
+import { useResolvedTheme } from "../../hooks/useResolvedTheme";
+import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCurve3 } from "three";
 import { NODE, FONT_URL } from "../../utility/constants";
 import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
-
-// Default edge colors by theme (distinct from node stroke colors)
-const DEFAULT_EDGE_COLORS: Record<ResolvedTheme, string> = {
-  light: '#706860',
-  dark: '#686868',
-  blueprint: '#a0d0f8',
-};
+import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
 
 interface Edge3DProps {
   fromId: number;
@@ -33,13 +27,13 @@ export function Edge3D({
   // Get visualization state using derived selector
   const visState = useGraphStore(selectEdgeVisState(fromId, toId));
 
-  // Get resolved theme with convenience booleans
-  const { theme, isDark: isDarkTheme, isLight: isLightTheme, isBlueprint: isBlueprintTheme } = useResolvedTheme();
+  // Get resolved theme
+  const { theme } = useResolvedTheme();
 
   // Get theme-aware edge colors - recalculate when theme or visState changes
   const colors = useMemo(() => {
     const edgeColor = visState === 'default'
-      ? DEFAULT_EDGE_COLORS[theme]
+      ? EDGE_COLORS[theme]
       : getEdgeColor(visState);
     // Arrow color: lighter for default, darker for visualization states (to differentiate from edge)
     const arrowColor = getEdgeArrowColor(visState);
@@ -61,12 +55,10 @@ export function Edge3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
 
-  // Theme-specific line width multiplier
-  const lineWidthMultiplier = isDarkTheme ? 1.0 : isLightTheme ? 1.0 : 1.0; // Can adjust per theme
-  const effectiveLineWidth = colors.lineWidth * lineWidthMultiplier;
+  const effectiveLineWidth = colors.lineWidth;
 
   // Calculate curve control point and label position for edges
-  const { controlPoint, labelPosition, arrowData, lineEndPosition } = useMemo(() => {
+  const { labelPosition, arrowData, curve } = useMemo(() => {
     const start = new Vector3(...startPosition);
     const end = new Vector3(...endPosition);
     const direction = new Vector3().subVectors(end, start);
@@ -85,7 +77,6 @@ export function Edge3D({
 
     // Arrow data and line end for directed edges
     let arrow = null;
-    let lineEnd = endPosition;
     let lineEndVec = end;
 
     if (isDirected) {
@@ -106,9 +97,8 @@ export function Edge3D({
         rotation: [euler.x, euler.y, euler.z] as [number, number, number],
       };
 
-      // Stop line before arrow, along the tangent direction
+      // Stop tube before arrow, along the tangent direction
       lineEndVec = end.clone().sub(tangentDirection.clone().multiplyScalar(NODE.RADIUS + 12));
-      lineEnd = lineEndVec.toArray() as [number, number, number];
     }
 
     // Calculate label position based on the VISIBLE curve
@@ -121,84 +111,58 @@ export function Edge3D({
         .addScaledVector(lineEndVec, 0.25)
       : straightMid;
 
+    // Create curve for tube geometry
+    const curve = isDirected
+      ? new QuadraticBezierCurve3(start, control, lineEndVec)
+      : new LineCurve3(start, end);
+
     return {
-      controlPoint: control.toArray() as [number, number, number],
       labelPosition: labelPos.toArray() as [number, number, number],
       arrowData: arrow,
-      lineEndPosition: lineEnd,
+      curve,
     };
   }, [startPosition, endPosition, isDirected]);
 
+  // Create tube geometry from curve
+  const tubeRadius = effectiveLineWidth * 0.4;
+  const tubeGeometry = useMemo(() => {
+    const segments = isDirected ? 32 : 16;
+    return new TubeGeometry(curve, segments, tubeRadius, 8, false);
+  }, [curve, tubeRadius, isDirected]);
+
+  // Dispose geometry on unmount
+  useEffect(() => {
+    return () => {
+      tubeGeometry.dispose();
+    };
+  }, [tubeGeometry]);
+
   return (
     <group>
-      {/* ===== DARK THEME EDGE ===== */}
-      {isDarkTheme && (
-        <>
-          {isDirected ? (
-            <QuadraticBezierLine
-              start={startPosition}
-              end={lineEndPosition}
-              mid={controlPoint}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          ) : (
-            <Line
-              points={[startPosition, endPosition]}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          )}
-        </>
-      )}
+      {/* Edge tube - 3D cylindrical edge */}
+      <mesh geometry={tubeGeometry}>
+        <meshPhysicalMaterial
+          color={colors.edge}
+          emissive={theme === 'light' && visState !== 'default' ? colors.edge : EDGE_EMISSIVE_OFF}
+          emissiveIntensity={theme === 'light' && visState !== 'default' ? 0.25 : 0}
+          roughness={theme === 'blueprint' ? 0.5 : 0.35}
+          metalness={theme === 'blueprint' ? 0.1 : 0.2}
+          clearcoat={theme === 'blueprint' ? 0.3 : 0.4}
+          clearcoatRoughness={theme === 'blueprint' ? 0.5 : 0.4}
+        />
+      </mesh>
 
-      {/* ===== BLUEPRINT THEME EDGE ===== */}
-      {isBlueprintTheme && (
-        <>
-          {isDirected ? (
-            <QuadraticBezierLine
-              start={startPosition}
-              end={lineEndPosition}
-              mid={controlPoint}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          ) : (
-            <Line
-              points={[startPosition, endPosition]}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          )}
-        </>
-      )}
-
-      {/* ===== LIGHT THEME EDGE ===== */}
-      {isLightTheme && (
-        <>
-          {isDirected ? (
-            <QuadraticBezierLine
-              start={startPosition}
-              end={lineEndPosition}
-              mid={controlPoint}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          ) : (
-            <Line
-              points={[startPosition, endPosition]}
-              color={colors.edge}
-              lineWidth={effectiveLineWidth}
-            />
-          )}
-        </>
-      )}
-
-      {/* Arrowhead for directed edges - lighter than edge color (matching 2D behavior) */}
+      {/* Arrowhead for directed edges - polished material */}
       {isDirected && arrowData && (
         <group position={arrowData.position}>
-          <Cone args={[5, 12, 8]} rotation={arrowData.rotation}>
-            <meshBasicMaterial color={colors.arrow} />
+          <Cone args={[5, 12, 12]} rotation={arrowData.rotation}>
+            <meshPhysicalMaterial
+              color={colors.arrow}
+              roughness={0.25}
+              metalness={0.4}
+              clearcoat={0.6}
+              clearcoatRoughness={0.3}
+            />
           </Cone>
         </group>
       )}

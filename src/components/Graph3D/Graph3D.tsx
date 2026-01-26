@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle, type ComponentRef } from "react";
 import type { Ref } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Grid } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera, Grid, Environment } from "@react-three/drei";
 
 type OrbitControlsRef = ComponentRef<typeof OrbitControls>;
 import { useGraphStore } from "../../store/graphStore";
@@ -13,7 +13,8 @@ import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
-import { useResolvedTheme, type ResolvedTheme } from "../../hooks/useResolvedTheme";
+import { useResolvedTheme } from "../../hooks/useResolvedTheme";
+import { GRID_COLORS, LIGHT_COLORS } from "./theme3D";
 
 // Camera FOV in degrees
 const CAMERA_FOV = 45;
@@ -28,26 +29,8 @@ function calculateBaseCameraDistance(viewportHeight: number): number {
 }
 
 // Get grid colors based on resolved theme
-// Colors are muted (blended toward background) to appear semi-transparent
-function getGridColors(theme: ResolvedTheme): { minor: string; major: string } {
-  switch (theme) {
-    case 'dark':
-      return {
-        minor: '#3a3a3a',  // Very muted gray on dark background
-        major: '#454545',
-      };
-    case 'blueprint':
-      return {
-        minor: '#4a7a9e',  // Very muted blue lines
-        major: '#5588aa',
-      };
-    case 'light':
-    default:
-      return {
-        minor: '#c4c0ba',  // Very muted brown/gray on light background
-        major: '#b0aca6',
-      };
-  }
+function getGridColors(theme: keyof typeof GRID_COLORS): { minor: string; major: string } {
+  return GRID_COLORS[theme] ?? GRID_COLORS.light;
 }
 
 // Handle interface for external access to the 3D canvas
@@ -321,15 +304,17 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
       weight: number;
     }> = [];
 
+    // Create node lookup map for O(1) access instead of O(n) find()
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     const seenUndirected = new Set<string>();
 
     edges.forEach((nodeEdges, fromNodeId) => {
-      const fromNode = nodes.find((n) => n.id === fromNodeId);
+      const fromNode = nodeMap.get(fromNodeId);
       if (!fromNode) return;
 
       nodeEdges.forEach((edge) => {
         const toNodeId = parseInt(edge.to);
-        const toNode = nodes.find((n) => n.id === toNodeId);
+        const toNode = nodeMap.get(toNodeId);
         if (!toNode) return;
 
         const isDirected = edge.type === "directed";
@@ -365,7 +350,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
       {isReady && (
         <Canvas
           gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
-          shadows
+          dpr={[1, 2]}
         >
         <CanvasCapture onReady={handleCanvasReady} />
         <PerspectiveCamera
@@ -383,9 +368,29 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
           onPanChange={handlePanChange}
         />
 
-        {/* Bright ambient light for overall illumination */}
-        <ambientLight intensity={0.8} />
+        {/* Lighting setup for polished look */}
+        <ambientLight intensity={0.7} />
+        {/* Key light - main illumination from top-right-front */}
+        <directionalLight
+          position={[100, 200, 150]}
+          intensity={1.2}
+          color={LIGHT_COLORS.key}
+        />
+        {/* Fill light - softer from left side */}
+        <directionalLight
+          position={[-150, 50, 100]}
+          intensity={0.4}
+          color={LIGHT_COLORS.fill}
+        />
+        {/* Rim light - from behind for edge definition */}
+        <directionalLight
+          position={[0, -100, -200]}
+          intensity={0.6}
+          color={LIGHT_COLORS.rim}
+        />
 
+        {/* Environment map for subtle reflections */}
+        <Environment preset="city" environmentIntensity={0.3} />
 
         {/* Grid - fixed at origin (large enough to cover any view) */}
         <Grid
