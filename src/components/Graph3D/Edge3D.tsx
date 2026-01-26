@@ -15,6 +15,7 @@ interface Edge3DProps {
   isDirected: boolean;
   weight?: number;
   introOpacity: number;
+  introZOffset: number;
 }
 
 export function Edge3D({
@@ -25,6 +26,7 @@ export function Edge3D({
   isDirected,
   weight,
   introOpacity,
+  introZOffset,
 }: Edge3DProps) {
 
   // Get visualization state using derived selector
@@ -141,7 +143,7 @@ export function Edge3D({
   }, [tubeGeometry]);
 
   return (
-    <group>
+    <group position={[0, 0, introZOffset]}>
       {/* Edge tube - 3D cylindrical edge */}
       <mesh geometry={tubeGeometry}>
         <meshPhysicalMaterial

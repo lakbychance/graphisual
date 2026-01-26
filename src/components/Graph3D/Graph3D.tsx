@@ -439,6 +439,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
               isDirected={edge.isDirected}
               weight={edge.weight}
               introOpacity={introAnimation.opacity}
+              introZOffset={introAnimation.zOffset}
             />
           ))}
 
