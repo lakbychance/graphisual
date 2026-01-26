@@ -61,9 +61,9 @@ export const GraphRenderer = ({
         <m.div
           key="3d"
           className="absolute inset-0"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(8px)' }}
           transition={{ duration: 0.15 }}
         >
           <ErrorBoundary FallbackComponent={Graph3DErrorFallback}>
@@ -82,9 +82,9 @@ export const GraphRenderer = ({
         <m.div
           key="2d"
           className="absolute inset-0"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(8px)' }}
           transition={{ duration: 0.15 }}
         >
           <Graph ref={graphRef} />
