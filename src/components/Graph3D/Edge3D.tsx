@@ -6,7 +6,6 @@ import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCu
 import { NODE, FONT_URL } from "../../utility/constants";
 import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
 import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
-import { useIntroAnimation } from "./introAnimation";
 
 interface Edge3DProps {
   fromId: number;
@@ -15,6 +14,7 @@ interface Edge3DProps {
   endPosition: [number, number, number];
   isDirected: boolean;
   weight?: number;
+  introOpacity: number;
 }
 
 export function Edge3D({
@@ -24,9 +24,8 @@ export function Edge3D({
   endPosition,
   isDirected,
   weight,
+  introOpacity,
 }: Edge3DProps) {
-  // Intro animation - only using opacity for fade effect
-  const { opacity: introOpacity } = useIntroAnimation();
 
   // Get visualization state using derived selector
   const visState = useGraphStore(selectEdgeVisState(fromId, toId));

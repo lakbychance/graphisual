@@ -15,7 +15,7 @@ import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualiza
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { GRID_COLORS, LIGHT_COLORS } from "./theme3D";
-import { useIntroAnimation } from "./introAnimation";
+import { useIntroAnimation, easeOutCubic } from "./introAnimation";
 
 // Component to enable local clipping on the renderer
 function ClippingSetup() {
@@ -69,12 +69,14 @@ function CameraController({
   baseCameraDistance,
   onZoomChange,
   onPanChange,
+  onIntroProgress,
 }: {
   zoom: number;
   pan: { x: number; y: number };
   baseCameraDistance: number;
   onZoomChange: (zoom: number) => void;
   onPanChange: (x: number, y: number) => void;
+  onIntroProgress: (progress: number) => void;
 }) {
   const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsRef | null>(null);
@@ -86,8 +88,7 @@ function CameraController({
   // Track if controls are ready (set via callback ref)
   const [controlsReady, setControlsReady] = useState(false);
 
-  // Intro animation - resets on mount, setProgress drives the animation
-  const { setProgress: setIntroProgress } = useIntroAnimation();
+  // Intro animation state
   const introProgress = useRef(0);
   const isIntroPlaying = useRef(true);
 
@@ -152,11 +153,10 @@ function CameraController({
     introProgress.current += delta;
     const t = Math.min(introProgress.current / INTRO_DURATION, 1);
 
-    // Update shared intro animation state for Node3D and Edge3D
-    setIntroProgress(t);
+    // Update intro animation state
+    onIntroProgress(t);
 
-    // Ease out cubic for smooth deceleration
-    const eased = 1 - Math.pow(1 - t, 3);
+    const eased = easeOutCubic(t);
 
     // Interpolate from front view (polar=PI/2, azimuth=0) to target angles
     const currentAzimuth = INTRO_TARGET_AZIMUTH * eased;
@@ -248,6 +248,9 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   const nodes = useGraphStore(useShallow((state) => state.data.nodes));
   const edges = useGraphStore((state) => state.data.edges);
   const { theme } = useResolvedTheme();
+
+  // Intro animation - owned by Graph3D, values passed to children
+  const { values: introAnimation, setProgress: setIntroProgress } = useIntroAnimation();
 
   // Store canvas reference for export
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -381,6 +384,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
             baseCameraDistance={baseCameraDistance}
             onZoomChange={handleZoomChange}
             onPanChange={handlePanChange}
+            onIntroProgress={setIntroProgress}
           />
 
           {/* Lighting setup for polished look */}
@@ -434,6 +438,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
               endPosition={edge.endPosition}
               isDirected={edge.isDirected}
               weight={edge.weight}
+              introOpacity={introAnimation.opacity}
             />
           ))}
 
@@ -447,6 +452,8 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
               endNodeId={endNodeId}
               onClick={handleNodeClick}
               isClickable={!!currentAlgorithm && !isVisualizing}
+              introOpacity={introAnimation.opacity}
+              introZOffset={introAnimation.zOffset}
             />
           ))}
         </Canvas>

@@ -7,7 +7,7 @@ import { getNodeGradientColors, getUIColors } from "../../utility/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { NODE_STROKE_COLORS, NODE_LIGHT_THEME } from "./theme3D";
-import { useIntroAnimation } from "./introAnimation";
+import { introClippingPlanes } from "./introAnimation";
 
 // Shared geometries - created once and reused across all nodes
 // Using consistent 32 segments for all spheres (good balance of quality vs performance)
@@ -40,6 +40,8 @@ interface Node3DProps {
   endNodeId: number | null;
   onClick?: (nodeId: number) => void;
   isClickable?: boolean;
+  introOpacity: number;
+  introZOffset: number;
 }
 
 // Shared diagonal texture cache - keyed by color to support theme changes
@@ -89,9 +91,7 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
   return texture;
 }
 
-export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false }: Node3DProps) {
-  // Intro animation - z-position for clipping reveal, opacity for ring fade, clipping planes
-  const { animationRef, opacity: ringOpacity, clippingPlanes } = useIntroAnimation();
+export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false, introOpacity, introZOffset }: Node3DProps) {
 
   // Get visualization state using derived selector
   const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
@@ -153,8 +153,8 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
   const torusColor = visState === 'default' ? NODE_STROKE_COLORS[theme] : colors.mid;
 
   return (
-    <group ref={animationRef}>
-        <group
+    <group position={[0, 0, introZOffset]}>
+      <group
           position={position}
           scale={hoverScale}
           onClick={handleClick}
@@ -171,7 +171,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
                 opacity={0.08 + hoverEmissiveBoost * 0.5}
                 depthWrite={false}
                 blending={THREE.AdditiveBlending}
-                clippingPlanes={clippingPlanes}
+                clippingPlanes={introClippingPlanes}
               />
             </mesh>
             <mesh geometry={geometries.glowInner}>
@@ -181,7 +181,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
                 opacity={0.15 + hoverEmissiveBoost * 0.5}
                 depthWrite={false}
                 blending={THREE.AdditiveBlending}
-                clippingPlanes={clippingPlanes}
+                clippingPlanes={introClippingPlanes}
               />
             </mesh>
           </>
@@ -196,7 +196,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
             clearcoat={0.5}
             clearcoatRoughness={0.3}
             transparent
-            opacity={ringOpacity}
+            opacity={introOpacity}
           />
         </mesh>
 
@@ -212,7 +212,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
               clearcoat={0.8}
               clearcoatRoughness={0.2}
               envMapIntensity={0.5}
-              clippingPlanes={clippingPlanes}
+              clippingPlanes={introClippingPlanes}
             />
           )}
           {isBlueprintTheme && (
@@ -225,7 +225,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
               clearcoat={0.6}
               clearcoatRoughness={0.3}
               envMapIntensity={0.3}
-              clippingPlanes={clippingPlanes}
+              clippingPlanes={introClippingPlanes}
             />
           )}
           {isLightTheme && (
@@ -238,7 +238,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
               clearcoat={1.0}
               clearcoatRoughness={0.1}
               envMapIntensity={0.4}
-              clippingPlanes={clippingPlanes}
+              clippingPlanes={introClippingPlanes}
             />
           )}
         </mesh>
@@ -250,7 +250,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
             transparent
             opacity={1}
             depthWrite={false}
-            clippingPlanes={clippingPlanes}
+            clippingPlanes={introClippingPlanes}
           />
         </mesh>
 
@@ -262,7 +262,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
           color={colors.text}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={ringOpacity}
+          fillOpacity={introOpacity}
         >
           {String(nodeId)}
         </Text>
