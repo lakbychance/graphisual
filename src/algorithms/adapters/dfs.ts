@@ -5,7 +5,7 @@
  * before backtracking.
  */
 
-import { GitBranch } from "lucide-react";
+import { DfsIcon } from "../icons";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -77,7 +77,7 @@ const dfsAdapter: AlgorithmAdapter = {
     type: AlgorithmType.TRAVERSAL,
     description: "Click on any node to begin the traversal.",
     tagline: "Dive deep, then backtrack",
-    icon: GitBranch,
+    icon: DfsIcon,
   },
 
   /**

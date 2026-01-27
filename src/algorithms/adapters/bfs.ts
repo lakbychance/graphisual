@@ -5,7 +5,7 @@
  * of a node before moving to the next level.
  */
 
-import { Layers } from "lucide-react";
+import { BfsIcon } from "../icons";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -75,7 +75,7 @@ const bfsAdapter: AlgorithmAdapter = {
     type: AlgorithmType.TRAVERSAL,
     description: "Click on any node to begin the traversal.",
     tagline: "Explore level by level",
-    icon: Layers,
+    icon: BfsIcon,
   },
 
   /**

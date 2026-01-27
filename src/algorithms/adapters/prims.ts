@@ -6,7 +6,7 @@
  * that connects the tree to a new vertex.
  */
 
-import { Network } from "lucide-react";
+import { PrimsIcon } from "../icons";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -102,7 +102,7 @@ const primsAdapter: AlgorithmAdapter = {
     description:
       "Click on any node to see the minimum spanning tree.",
     tagline: "Build minimum spanning tree",
-    icon: Network,
+    icon: PrimsIcon,
     failureMessage: "Graph violates the requirements of the algorithm.",
     requirements: {
       undirectedOnly: true,

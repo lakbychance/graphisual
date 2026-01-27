@@ -6,7 +6,7 @@
  * Also detects negative weight cycles.
  */
 
-import { Scale } from "lucide-react";
+import { BellmanFordIcon } from "../icons";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -151,7 +151,7 @@ const bellmanFordAdapter: AlgorithmAdapter = {
     description:
       "Select a starting node and ending node to visualize the shortest path.",
     tagline: "Handle negative weights",
-    icon: Scale,
+    icon: BellmanFordIcon,
     failureMessage: "Path is not possible or negative cycle detected.",
     requirements: {
       weighted: true,
