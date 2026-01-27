@@ -33,14 +33,14 @@ export const Edge = memo(function Edge({
     return "var(--color-edge-default)";
   };
 
-  const getEdgeArrowColor = () => {
-    if (visFlags?.isUsedInShortestPath) return "var(--color-arrow-path)";
-    if (visFlags?.isUsedInTraversal) return "var(--color-arrow-traversal)";
-    return "var(--color-node-stroke)";
+  const getArrowMarkerId = () => {
+    if (visFlags?.isUsedInShortestPath) return "arrowhead-path";
+    if (visFlags?.isUsedInTraversal) return "arrowhead-traversal";
+    return "arrowhead-default";
   };
 
   const edgeColor = getEdgeColor();
-  const edgeArrowColor = getEdgeArrowColor();
+  const arrowMarkerId = getArrowMarkerId();
   const hoverColor = "var(--color-accent-form)";
 
   const handleClick = (e: React.MouseEvent) => {
@@ -99,17 +99,6 @@ export const Edge = memo(function Edge({
 
     return (
       <g key={edgeKey}>
-        <marker
-          style={{ fill: edgeArrowColor }}
-          id={`arrowhead${sourceNodeId}${edge.to}`}
-          markerWidth="9"
-          markerHeight="7"
-          refX="8.7"
-          refY="3.5"
-          orient="auto"
-        >
-          <polygon points="0 0, 10 3.5, 0 7" />
-        </marker>
         <path
           id={`${sourceNodeId}${edge.to}`}
           onClick={handleClick}
@@ -124,7 +113,7 @@ export const Edge = memo(function Edge({
             "fill-transparent cursor-pointer",
             isVisualizing && "pointer-events-none"
           )}
-          markerEnd={`url(#arrowhead${sourceNodeId}${edge.to})`}
+          markerEnd={`url(#${arrowMarkerId})`}
         />
         {renderWeightLabel(centerX, centerY)}
       </g>
