@@ -6,5 +6,5 @@
 export const STORE_NAME = {
   GRAPH: 'GraphStore',
   GRAPH_HISTORY: 'GraphHistoryStore',
-  SETTINGS: 'graphisual-settings',
+  SETTINGS: 'SettingsStore',
 } as const;

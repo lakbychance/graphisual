@@ -873,28 +873,6 @@ export const useGraphStore = create<GraphStore>()(
 // Selectors (for optimized re-renders)
 // ============================================================================
 
-export const selectNodes = (state: GraphStore) => state.data.nodes;
-export const selectEdges = (state: GraphStore) => state.data.edges;
-export const selectSelectedNodeId = (state: GraphStore) => state.selection.nodeId;
-export const selectSelectedEdge = (state: GraphStore) => state.selection.edge;
-export const selectViewportZoom = (state: GraphStore) => state.viewport.zoom;
-export const selectViewportPan = (state: GraphStore) => state.viewport.pan;
-
-// Visualization selectors
-export const selectVisualization = (state: GraphStore) => state.visualization;
-export const selectVisualizationAlgorithm = (state: GraphStore) => state.visualization.algorithm;
-export const selectVisualizationInput = (state: GraphStore) => state.visualization.input;
-export const selectVisualizationState = (state: GraphStore) => state.visualization.state;
-export const selectVisualizationSpeed = (state: GraphStore) => state.visualization.speed;
-export const selectVisualizationMode = (state: GraphStore) => state.visualization.mode;
-export const selectVisualizationTrace = (state: GraphStore) => state.visualization.trace;
-export const selectTraceNodes = (state: GraphStore) => state.visualization.trace.nodes;
-export const selectTraceEdges = (state: GraphStore) => state.visualization.trace.edges;
-
-// Derived visualization selectors
-export const selectIsVisualizing = (state: GraphStore) => state.visualization.state === VisualizationState.RUNNING;
-export const selectIsVisualizationDone = (state: GraphStore) => state.visualization.state === VisualizationState.DONE;
-
 // Stable empty array for selectors (prevents infinite re-renders)
 const EMPTY_STEP_HISTORY: Array<{ type: StepType; edge: { from: number; to: number } }> = [];
 
