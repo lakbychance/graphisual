@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useSettingsStore } from "../store/settingsStore";
-import { THEME, type Theme, type ResolvedTheme } from "../constants/theme";
+import { THEME, type ResolvedTheme } from "../constants/theme";
 
 /**
  * Hook to manage theme state and system preference detection.
@@ -36,16 +36,4 @@ export const useTheme = () => {
   }, [theme]);
 
   return { theme, setTheme };
-};
-
-/**
- * Get the resolved theme (light or dark), accounting for system preference.
- */
-export const getResolvedTheme = (theme: Theme): ResolvedTheme => {
-  if (theme === THEME.SYSTEM) {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? THEME.DARK
-      : THEME.LIGHT;
-  }
-  return theme;
 };
