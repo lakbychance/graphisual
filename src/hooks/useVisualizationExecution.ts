@@ -5,6 +5,7 @@ import { algorithmRegistry, EdgeInfo, AlgorithmStep, AlgorithmAdapter } from "..
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utility/graphUtils";
 import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, type EdgeType } from "../constants";
 import { animateSequence, AnimationController } from "../utility/animateSequence";
+import { applyVisualizationStep } from "../utility/applyVisualizationStep";
 import { GraphEdge } from "../components/Graph/types";
 
 /**
@@ -69,34 +70,9 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     ? algorithmRegistry.get(visualizationAlgorithm.key)
     : undefined;
 
-  // Marks an edge and its target node for visualization
+  // Marks an edge and its target node for visualization (using shared utility)
   const markEdgeAndNode = useCallback((currentEdge: GraphEdge, stepType: StepType) => {
-    const { setTraceNode, setTraceEdge } = useGraphStore.getState();
-    const fromId = currentEdge.from;
-    const toId = currentEdge.to;
-
-    // Mark node
-    if (stepType === StepType.VISIT) {
-      setTraceNode(toId, { isVisited: true });
-    } else {
-      setTraceNode(toId, { isInShortestPath: true });
-    }
-
-    // Always mark the edge (skip root edge from -1)
-    if (fromId !== -1) {
-      const edgeFlags = stepType === StepType.VISIT
-        ? { isUsedInTraversal: true }
-        : { isUsedInShortestPath: true };
-
-      setTraceEdge(fromId, toId, edgeFlags);
-
-      // For undirected edges, also mark the reverse direction
-      const edgeList = edgesRef.current.get(fromId);
-      const edge = edgeList?.find((e) => e.to === toId);
-      if (edge?.type === EDGE_TYPE.UNDIRECTED) {
-        setTraceEdge(toId, fromId, edgeFlags);
-      }
-    }
+    applyVisualizationStep(currentEdge, stepType, edgesRef.current);
   }, []);
 
   // Animates the result/shortest path
