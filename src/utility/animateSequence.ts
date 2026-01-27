@@ -11,24 +11,36 @@ export interface AnimationController {
 
 /**
  * Animates through a sequence of items with configurable delay.
+ * Uses chained setTimeout - only one active timeout at a time.
  * Returns a controller to cancel the animation.
  */
 export function animateSequence<T>(options: AnimationSequenceOptions<T>): AnimationController {
   const { items, delayMs, onStep, onComplete } = options;
-  const timeoutIds: ReturnType<typeof setTimeout>[] = [];
 
-  for (let i = 0; i <= items.length; i++) {
-    const timeoutId = setTimeout(() => {
-      if (i === items.length) {
-        onComplete();
-      } else {
-        onStep(items[i], i);
-      }
-    }, delayMs * i);
-    timeoutIds.push(timeoutId);
-  }
+  let cancelled = false;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const step = (index: number) => {
+    if (cancelled) return;
+
+    if (index >= items.length) {
+      onComplete();
+      return;
+    }
+
+    onStep(items[index], index);
+    timeoutId = setTimeout(() => step(index + 1), delayMs);
+  };
+
+  // Start immediately
+  step(0);
 
   return {
-    cancel: () => timeoutIds.forEach(clearTimeout),
+    cancel: () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    },
   };
 }
