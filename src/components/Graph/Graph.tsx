@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
 import { Node } from "../Graph/Node/Node";
 import { NodeEdges } from "./NodeEdges";
-import { ZOOM } from "../../utility/constants";
+import { ZOOM } from "../../constants/ui";
 import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
 import { useGraphStore } from "../../store/graphStore";

@@ -8,7 +8,7 @@ import { useGraphStore } from "../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { Node3D } from "./Node3D";
 import { Edge3D } from "./Edge3D";
-import { ZOOM } from "../../utility/constants";
+import { ZOOM } from "../../constants/ui";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
@@ -330,7 +330,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
       if (!fromNode) return;
 
       nodeEdges.forEach((edge) => {
-        const toNodeId = parseInt(edge.to);
+        const toNodeId = edge.to;
         const toNode = nodeMap.get(toNodeId);
         if (!toNode) return;
 

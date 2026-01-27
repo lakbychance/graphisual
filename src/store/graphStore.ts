@@ -10,10 +10,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
-import { calculateAccurateCoords } from "../utility/calc";
-import { NODE, TIMING } from "../utility/constants";
+import { calculateAccurateCoords } from "../utils/geometry/calc";
+import { TIMING } from "../constants/ui";
+import { NODE, EDGE_TYPE, type EdgeType } from "../constants/graph";
+import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";
+import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
-import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, STORE_NAME, type EdgeType } from "../constants";
 
 // ============================================================================
 // Types
@@ -265,7 +267,7 @@ export const useGraphStore = create<GraphStore>()(
             if (list && fromNodeId !== nodeId) {
               let hasChanges = false;
               const updatedList = list.map((edge) => {
-                if (parseInt(edge.to) === nodeId) {
+                if (edge.to === nodeId) {
                   hasChanges = true;
                   const { tempX, tempY } = calculateAccurateCoords(edge.x1, edge.y1, x, y);
                   return { ...edge, x2: tempX, y2: tempY, nodeX2: x, nodeY2: y };
@@ -296,9 +298,9 @@ export const useGraphStore = create<GraphStore>()(
           // Only update edge arrays that actually have edges to the deleted node
           edges.forEach((edgeList, nId) => {
             if (edgeList && nId !== nodeId) {
-              const hasEdgeToDeleted = edgeList.some((edge) => edge.to === String(nodeId));
+              const hasEdgeToDeleted = edgeList.some((edge) => edge.to === nodeId);
               if (hasEdgeToDeleted) {
-                const filtered = edgeList.filter((edge) => edge.to !== String(nodeId));
+                const filtered = edgeList.filter((edge) => edge.to !== nodeId);
                 newEdges.set(nId, filtered);
               }
             }
@@ -341,8 +343,8 @@ export const useGraphStore = create<GraphStore>()(
             y2: tempY,
             nodeX2: toNode.x,
             nodeY2: toNode.y,
-            from: fromNode.id.toString(),
-            to: toNode.id.toString(),
+            from: fromNode.id,
+            to: toNode.id,
             weight: 0,
             type: EDGE_TYPE.DIRECTED,
           };
@@ -386,7 +388,7 @@ export const useGraphStore = create<GraphStore>()(
 
           // Get the current edge
           const sourceEdges = edges.get(fromNodeId) || [];
-          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          const currentEdge = sourceEdges.find((e) => e.to === toNodeId);
           if (!currentEdge) return;
 
           // Only update affected edge arrays
@@ -395,13 +397,13 @@ export const useGraphStore = create<GraphStore>()(
           if (newType === EDGE_TYPE.UNDIRECTED && currentEdge.type === EDGE_TYPE.DIRECTED) {
             // Update original edge
             const updatedSourceEdges = sourceEdges.map((e) =>
-              parseInt(e.to) === toNodeId ? { ...e, type: EDGE_TYPE.UNDIRECTED } : e
+              e.to === toNodeId ? { ...e, type: EDGE_TYPE.UNDIRECTED } : e
             );
             newEdges.set(fromNodeId, updatedSourceEdges);
 
             // Add reverse edge
             const targetEdges = edges.get(toNodeId) || [];
-            const reverseExists = targetEdges.some((e) => parseInt(e.to) === fromNodeId);
+            const reverseExists = targetEdges.some((e) => e.to === fromNodeId);
             if (!reverseExists) {
               const { tempX, tempY } = calculateAccurateCoords(
                 targetNode.x,
@@ -416,8 +418,8 @@ export const useGraphStore = create<GraphStore>()(
                 y2: tempY,
                 nodeX2: sourceNode.x,
                 nodeY2: sourceNode.y,
-                from: toNodeId.toString(),
-                to: fromNodeId.toString(),
+                from: toNodeId,
+                to: fromNodeId,
                 weight: currentEdge.weight,
                 type: EDGE_TYPE.UNDIRECTED,
               };
@@ -426,13 +428,13 @@ export const useGraphStore = create<GraphStore>()(
           } else if (newType === EDGE_TYPE.DIRECTED && currentEdge.type === EDGE_TYPE.UNDIRECTED) {
             // Update original edge
             const updatedSourceEdges = sourceEdges.map((e) =>
-              parseInt(e.to) === toNodeId ? { ...e, type: EDGE_TYPE.DIRECTED } : e
+              e.to === toNodeId ? { ...e, type: EDGE_TYPE.DIRECTED } : e
             );
             newEdges.set(fromNodeId, updatedSourceEdges);
 
             // Remove reverse edge
             const targetEdges = edges.get(toNodeId) || [];
-            const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
+            const filteredTargetEdges = targetEdges.filter((e) => e.to !== fromNodeId);
             newEdges.set(toNodeId, filteredTargetEdges);
           }
 
@@ -460,14 +462,14 @@ export const useGraphStore = create<GraphStore>()(
 
           // Update edge weight
           const sourceEdges = edges.get(fromNodeId) || [];
-          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          const currentEdge = sourceEdges.find((e) => e.to === toNodeId);
           if (!currentEdge || !sourceNode) return;
 
           // Only update affected edge arrays
           const newEdges = new Map(edges);
 
           const updatedSourceEdges = sourceEdges.map((e) =>
-            parseInt(e.to) === toNodeId ? { ...e, weight: newWeight } : e
+            e.to === toNodeId ? { ...e, weight: newWeight } : e
           );
           newEdges.set(fromNodeId, updatedSourceEdges);
 
@@ -475,7 +477,7 @@ export const useGraphStore = create<GraphStore>()(
           if (currentEdge.type === EDGE_TYPE.UNDIRECTED) {
             const targetEdges = edges.get(toNodeId) || [];
             const updatedTargetEdges = targetEdges.map((e) =>
-              parseInt(e.to) === fromNodeId ? { ...e, weight: newWeight } : e
+              e.to === fromNodeId ? { ...e, weight: newWeight } : e
             );
             newEdges.set(toNodeId, updatedTargetEdges);
           }
@@ -504,14 +506,14 @@ export const useGraphStore = create<GraphStore>()(
 
           // Get the current edge
           const sourceEdges = edges.get(fromNodeId) || [];
-          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          const currentEdge = sourceEdges.find((e) => e.to === toNodeId);
           if (!currentEdge) return;
 
           // Only update affected edge arrays
           const newEdges = new Map(edges);
 
           // Remove original edge
-          const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
+          const filteredSourceEdges = sourceEdges.filter((e) => e.to !== toNodeId);
           newEdges.set(fromNodeId, filteredSourceEdges);
 
           // Add reversed edge
@@ -528,8 +530,8 @@ export const useGraphStore = create<GraphStore>()(
             y2: tempY,
             nodeX2: sourceNode.x,
             nodeY2: sourceNode.y,
-            from: toNodeId.toString(),
-            to: fromNodeId.toString(),
+            from: toNodeId,
+            to: fromNodeId,
             weight: currentEdge.weight,
             type: EDGE_TYPE.DIRECTED,
           };
@@ -549,19 +551,19 @@ export const useGraphStore = create<GraphStore>()(
 
           // Get the edge to check if undirected
           const sourceEdges = edges.get(fromNodeId) || [];
-          const currentEdge = sourceEdges.find((e) => parseInt(e.to) === toNodeId);
+          const currentEdge = sourceEdges.find((e) => e.to === toNodeId);
 
           // Only update affected edge arrays
           const newEdges = new Map(edges);
 
           // Remove the edge
-          const filteredSourceEdges = sourceEdges.filter((e) => parseInt(e.to) !== toNodeId);
+          const filteredSourceEdges = sourceEdges.filter((e) => e.to !== toNodeId);
           newEdges.set(fromNodeId, filteredSourceEdges);
 
           // If undirected, also remove reverse edge
           if (currentEdge?.type === EDGE_TYPE.UNDIRECTED) {
             const targetEdges = edges.get(toNodeId) || [];
-            const filteredTargetEdges = targetEdges.filter((e) => parseInt(e.to) !== fromNodeId);
+            const filteredTargetEdges = targetEdges.filter((e) => e.to !== fromNodeId);
             newEdges.set(toNodeId, filteredTargetEdges);
           }
 
@@ -907,7 +909,7 @@ export const selectIsStepComplete = (state: GraphStore) =>
 // Helper selector to check if a reverse edge exists (curried for use with useGraphStore)
 export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (state: GraphStore): boolean => {
   const targetEdges = state.data.edges.get(toNodeId) || [];
-  return targetEdges.some((e) => parseInt(e.to) === fromNodeId);
+  return targetEdges.some((e) => e.to === fromNodeId);
 };
 
 // ============================================================================

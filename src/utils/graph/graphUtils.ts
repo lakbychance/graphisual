@@ -1,4 +1,4 @@
-import { GraphEdge } from "../components/Graph/types";
+import { GraphEdge } from "../../components/Graph/types";
 
 /**
  * Check if the graph contains any edges with negative weights.

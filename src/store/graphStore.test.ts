@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
 import { useGraphHistoryStore } from './graphHistoryStore'
-import { VisualizationState, VisualizationMode } from '../constants'
+import { VisualizationState, VisualizationMode } from '../constants/visualization'
 
 // Reset store before each test
 beforeEach(() => {
@@ -114,8 +114,8 @@ describe('graphStore', () => {
       const edges = useGraphStore.getState().data.edges
       const node1Edges = edges.get(1)
       expect(node1Edges).toHaveLength(1)
-      expect(node1Edges![0].from).toBe('1')
-      expect(node1Edges![0].to).toBe('2')
+      expect(node1Edges![0].from).toBe(1)
+      expect(node1Edges![0].to).toBe(2)
     })
 
     it('updateEdgeType toggles directed to undirected', () => {
@@ -136,8 +136,8 @@ describe('graphStore', () => {
       // Should have reverse edge
       const reverseEdges = state.data.edges.get(2)
       expect(reverseEdges).toHaveLength(1)
-      expect(reverseEdges![0].from).toBe('2')
-      expect(reverseEdges![0].to).toBe('1')
+      expect(reverseEdges![0].from).toBe(2)
+      expect(reverseEdges![0].to).toBe(1)
     })
 
     it('deleteEdge removes edge', () => {

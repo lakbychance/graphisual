@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory } from "../store/graphStore";
-import { VisualizationState, VisualizationMode, StepType } from "../constants";
+import { VisualizationState, VisualizationMode } from "../constants/visualization";
+import { applyVisualizationStep } from "../utils/visualization/applyVisualizationStep";
 
 /**
  * Hook that synchronizes step-through visualization state.
@@ -24,7 +25,7 @@ export function useStepThroughVisualization(): void {
       return;
     }
 
-    const { clearVisualization, setTraceNode, setTraceEdge } = useGraphStore.getState();
+    const { clearVisualization, data } = useGraphStore.getState();
 
     // Clear previous visualization (but preserve running state)
     clearVisualization();
@@ -38,27 +39,11 @@ export function useStepThroughVisualization(): void {
     // No steps applied yet (index = -1)
     if (stepIndex < 0) return;
 
-    // Apply all steps up to current index
+    // Apply all steps up to current index using shared utility
+    // Pass edges map to properly handle undirected edges
     for (let i = 0; i <= stepIndex; i++) {
       const step = stepHistory[i];
-      const targetId = step.edge.to;
-      const fromId = step.edge.from;
-
-      // Mark the node based on step type
-      if (step.type === StepType.VISIT) {
-        setTraceNode(targetId, { isVisited: true });
-      } else {
-        setTraceNode(targetId, { isInShortestPath: true });
-      }
-
-      // Mark the edge (if not from root, indicated by -1)
-      if (fromId !== -1) {
-        if (step.type === StepType.VISIT) {
-          setTraceEdge(fromId, targetId, { isUsedInTraversal: true });
-        } else {
-          setTraceEdge(fromId, targetId, { isUsedInShortestPath: true });
-        }
-      }
+      applyVisualizationStep(step.edge, step.type, data.edges);
     }
   }, [visualizationMode, stepIndex, stepHistory]);
 }

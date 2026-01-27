@@ -6,7 +6,8 @@
  */
 
 import type React from "react";
-import { StepType, type EdgeType } from "../constants";
+import { StepType } from "../constants/visualization";
+import { type EdgeType } from "../constants/graph";
 
 // Re-export StepType for convenience
 export { StepType };

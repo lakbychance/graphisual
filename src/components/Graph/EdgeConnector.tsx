@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CONNECTOR } from "../../utility/constants";
+import { CONNECTOR } from "../../constants/graph";
 
 interface EdgeConnectorProps {
   nodeX: number;

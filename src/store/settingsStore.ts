@@ -8,8 +8,9 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { THEME, STORE_NAME, type Theme } from "../constants";
-import { invalidateCSSVarCache } from "../utility/cssVariables";
+import { THEME, type Theme } from "../constants/theme";
+import { STORE_NAME } from "../constants/store";
+import { invalidateCSSVarCache } from "../utils/cssVariables";
 
 interface SettingsState {
   theme: Theme;

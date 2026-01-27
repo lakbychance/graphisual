@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { GraphEdge } from "../components/Graph/types";
-import { EdgeType } from "../constants";
+import { type EdgeType } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
 
 interface UseEdgeSelectionProps {
@@ -36,22 +36,22 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
 
   const updateEdgeType = useCallback((newType: EdgeType) => {
     if (!selectedEdge) return;
-    updateEdgeTypeAction(selectedEdge.sourceNode.id, parseInt(selectedEdge.edge.to), newType);
+    updateEdgeTypeAction(selectedEdge.sourceNode.id, selectedEdge.edge.to, newType);
   }, [selectedEdge, updateEdgeTypeAction]);
 
   const updateEdgeWeight = useCallback((newWeight: number) => {
     if (!selectedEdge) return;
-    updateEdgeWeightAction(selectedEdge.sourceNode.id, parseInt(selectedEdge.edge.to), newWeight);
+    updateEdgeWeightAction(selectedEdge.sourceNode.id, selectedEdge.edge.to, newWeight);
   }, [selectedEdge, updateEdgeWeightAction]);
 
   const reverseEdge = useCallback(() => {
     if (!selectedEdge) return;
-    reverseEdgeAction(selectedEdge.sourceNode.id, parseInt(selectedEdge.edge.to));
+    reverseEdgeAction(selectedEdge.sourceNode.id, selectedEdge.edge.to);
   }, [selectedEdge, reverseEdgeAction]);
 
   const deleteEdge = useCallback(() => {
     if (!selectedEdge) return;
-    deleteEdgeAction(selectedEdge.sourceNode.id, parseInt(selectedEdge.edge.to));
+    deleteEdgeAction(selectedEdge.sourceNode.id, selectedEdge.edge.to);
   }, [selectedEdge, deleteEdgeAction]);
 
   return {

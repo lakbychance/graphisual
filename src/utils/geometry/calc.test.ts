@@ -6,7 +6,7 @@ import {
   findToNodeForTouchBasedDevices,
   doesPointLieOnCircle,
 } from './calc'
-import { GraphNode } from '../components/Graph/types'
+import { GraphNode } from '../../components/Graph/types'
 
 describe('Utility Functions', () => {
   describe('calculateCurve', () => {

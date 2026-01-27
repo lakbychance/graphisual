@@ -7,7 +7,7 @@ import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { EDGE_TYPE, type EdgeType } from "../../constants";
+import { EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 
 interface EdgePopupProps {
@@ -35,8 +35,8 @@ export const EdgePopup = ({
   const weightInputRef = useRef<HTMLInputElement>(null);
 
   // Check if a reverse edge exists (only matters for directed edges)
-  const fromNodeId = parseInt(edge.from);
-  const toNodeId = parseInt(edge.to);
+  const fromNodeId = edge.from;
+  const toNodeId = edge.to;
   const hasReverseEdge = useGraphStore(selectHasReverseEdge(fromNodeId, toNodeId));
 
   // Can only switch to undirected if: already undirected OR no reverse edge exists

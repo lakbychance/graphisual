@@ -1,7 +1,7 @@
 import { createHistoryStore, withAutoHistory, withBatchedAutoHistory } from "./historyStore";
 import { GraphSnapshot, GraphNode, GraphEdge } from "../components/Graph/types";
 import { GraphData } from "./graphStore";
-import { STORE_NAME } from "../constants";
+import { STORE_NAME } from "../constants/store";
 
 // ============================================================================
 // Graph History Store

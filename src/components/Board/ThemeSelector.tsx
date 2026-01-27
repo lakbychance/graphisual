@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { GrainTexture } from "../ui/grain-texture";
-import { THEME, type Theme } from "../../constants";
+import { THEME, type Theme } from "../../constants/theme";
 
 interface ThemeSelectorProps {
   theme: Theme;
