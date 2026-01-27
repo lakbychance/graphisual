@@ -50,8 +50,8 @@ function createEdge(
     y2: tempY,
     nodeX2: toNode.x,
     nodeY2: toNode.y,
-    from: fromNode.id.toString(),
-    to: toNode.id.toString(),
+    from: fromNode.id,
+    to: toNode.id,
     weight,
     type,
   };
@@ -460,7 +460,7 @@ export function generateDAG(layers: number, nodesPerLayer: number): GeneratedGra
     for (const nextNode of nextLayer) {
       const hasIncoming = currentLayer.some((fromNode) => {
         const fromEdges = edges.get(fromNode.id) || [];
-        return fromEdges.some((e) => e.to === nextNode.id.toString());
+        return fromEdges.some((e) => e.to === nextNode.id);
       });
 
       if (!hasIncoming) {

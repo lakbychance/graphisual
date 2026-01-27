@@ -35,8 +35,8 @@ export const EdgePopup = ({
   const weightInputRef = useRef<HTMLInputElement>(null);
 
   // Check if a reverse edge exists (only matters for directed edges)
-  const fromNodeId = parseInt(edge.from);
-  const toNodeId = parseInt(edge.to);
+  const fromNodeId = edge.from;
+  const toNodeId = edge.to;
   const hasReverseEdge = useGraphStore(selectHasReverseEdge(fromNodeId, toNodeId));
 
   // Can only switch to undirected if: already undirected OR no reverse edge exists

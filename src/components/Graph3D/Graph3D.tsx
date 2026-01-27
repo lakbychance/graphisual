@@ -330,7 +330,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
       if (!fromNode) return;
 
       nodeEdges.forEach((edge) => {
-        const toNodeId = parseInt(edge.to);
+        const toNodeId = edge.to;
         const toNode = nodeMap.get(toNodeId);
         if (!toNode) return;
 

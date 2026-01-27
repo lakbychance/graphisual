@@ -29,7 +29,7 @@ export function useEdgeDragging({
         setMockEdge({
           x1: startX, y1: startY, x2: endX, y2: endY,
           nodeX2: 0, nodeY2: 0,
-          from: sourceNodeId.toString(), to: "",
+          from: sourceNodeId, to: -1,
           weight: 0, type: EDGE_TYPE.DIRECTED,
         });
       };
@@ -61,7 +61,7 @@ export function useEdgeDragging({
 
         if (targetNode && targetNode.id !== sourceNodeId) {
           const existingEdges = edges.get(sourceNodeId) || [];
-          const edgeExists = existingEdges.some((edge) => parseInt(edge.to) === targetNode!.id);
+          const edgeExists = existingEdges.some((edge) => edge.to === targetNode!.id);
           if (!edgeExists) {
             addEdge(sourceNode, targetNode);
           }

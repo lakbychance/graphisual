@@ -72,8 +72,8 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   // Marks an edge and its target node for visualization
   const markEdgeAndNode = useCallback((currentEdge: GraphEdge, stepType: StepType) => {
     const { setTraceNode, setTraceEdge } = useGraphStore.getState();
-    const fromId = parseInt(currentEdge.from);
-    const toId = parseInt(currentEdge.to);
+    const fromId = currentEdge.from;
+    const toId = currentEdge.to;
 
     // Mark node
     if (stepType === StepType.VISIT) {
@@ -82,8 +82,8 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       setTraceNode(toId, { isInShortestPath: true });
     }
 
-    // Always mark the edge (skip root edge from -1 or NaN)
-    if (fromId !== -1 && !isNaN(fromId)) {
+    // Always mark the edge (skip root edge from -1)
+    if (fromId !== -1) {
       const edgeFlags = stepType === StepType.VISIT
         ? { isUsedInTraversal: true }
         : { isUsedInShortestPath: true };
@@ -92,7 +92,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
 
       // For undirected edges, also mark the reverse direction
       const edgeList = edgesRef.current.get(fromId);
-      const edge = edgeList?.find((e) => parseInt(e.to) === toId);
+      const edge = edgeList?.find((e) => e.to === toId);
       if (edge?.type === EDGE_TYPE.UNDIRECTED) {
         setTraceEdge(toId, fromId, edgeFlags);
       }
@@ -139,8 +139,8 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     const result = new Map<number, EdgeInfo[]>();
     edges.forEach((edgeList, nodeId) => {
       const converted: EdgeInfo[] = (edgeList || []).map((e) => ({
-        from: parseInt(e.from),
-        to: parseInt(e.to),
+        from: e.from,
+        to: e.to,
         weight: e.weight,
         type: e.type as EdgeType,
       }));
@@ -153,11 +153,10 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   const convertToVisualizationEdges = useCallback((edgeRefs: Array<{ from: number; to: number }>): GraphEdge[] => {
     return edgeRefs.map((ref) => ({
       x1: NaN, x2: NaN, y1: NaN, y2: NaN, nodeX2: NaN, nodeY2: NaN,
-      from: ref.from === -1 ? "Infinity" : ref.from.toString(),
-      to: ref.to.toString(),
+      from: ref.from,
+      to: ref.to,
       type: EDGE_TYPE.DIRECTED,
       weight: NaN,
-      isUsedInTraversal: false,
     }));
   }, []);
 

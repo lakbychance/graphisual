@@ -46,8 +46,8 @@ export interface GraphEdge {
   y2: number;
   nodeX2: number;
   nodeY2: number;
-  from: string;
-  to: string;
+  from: number;
+  to: number;
   weight: number;
   type: string;
 }
