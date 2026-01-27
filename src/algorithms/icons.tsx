@@ -9,7 +9,7 @@ interface IconProps {
 
 /** BFS: Nodes explored level by level (concentric waves) */
 export const BfsIcon = ({ className }: IconProps) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     {/* Center node */}
     <circle cx="12" cy="12" r="2.5" fill="currentColor" />
     {/* Level 1 - inner ring */}
@@ -103,17 +103,17 @@ export const PrimsIcon = ({ className }: IconProps) => (
 /** Cycle Detection: Circular loop */
 export const CycleDetectionIcon = ({ className }: IconProps) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    {/* Nodes forming a cycle */}
-    <circle cx="12" cy="4" r="2" fill="currentColor" />
-    <circle cx="19" cy="10" r="2" />
+    {/* Nodes forming a cycle - regular pentagon */}
+    <circle cx="12" cy="3" r="2" fill="currentColor" />
+    <circle cx="20" cy="9" r="2" />
     <circle cx="17" cy="19" r="2" />
     <circle cx="7" cy="19" r="2" />
-    <circle cx="5" cy="10" r="2" />
+    <circle cx="4" cy="9" r="2" />
     {/* Cycle edges */}
-    <path d="M14 5 L17 8" />
-    <path d="M20 12 L18 17" />
+    <path d="M14 4 L18 8" />
+    <path d="M21 11 L18 17" />
     <path d="M15 20 L9 20" />
-    <path d="M6 17 L4 12" />
-    <path d="M6 8 L10 5" />
+    <path d="M6 17 L3 11" />
+    <path d="M6 8 L10 4" />
   </svg>
 );
