@@ -14,12 +14,12 @@ function App() {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "var(--color-surface)",
+            background: "var(--color-text)",
             border: "none",
             borderRadius: "8px",
-            boxShadow: "var(--shadow-raised-lg), var(--highlight-edge)",
+            boxShadow: "var(--shadow-raised-lg)",
             fontFamily: "var(--font-sans)",
-            color: "var(--color-text)",
+            color: "var(--color-surface)",
           },
         }}
       />

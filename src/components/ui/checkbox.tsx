@@ -13,7 +13,7 @@ function Checkbox({ className, ref, ...props }: CheckboxProps) {
       ref={ref}
       className={cn(
         "peer h-[18px] w-[18px] shrink-0 rounded-md cursor-pointer",
-        " duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring-contrast)]",
+        " duration-150 focus-ring-animated",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "bg-[var(--color-paper)] shadow-[var(--shadow-etched)]",
         className

@@ -5,7 +5,7 @@
  * Uses a greedy approach, always exploring the closest unvisited node.
  */
 
-import { Route } from "lucide-react";
+import { DijkstraIcon } from "../icons";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -144,10 +144,9 @@ const dijkstraAdapter: AlgorithmAdapter = {
     id: "dijkstra",
     name: "Dijkstra's",
     type: AlgorithmType.PATHFINDING,
-    description:
-      "Select a starting node and ending node to visualize the shortest path.",
     tagline: "Find the shortest path",
-    icon: Route,
+    icon: DijkstraIcon,
+    inputStepHints: ["Select the source node", "Now select the destination node"],
     failureMessage: "Path is not possible for the given vertices.",
     requirements: {
       weighted: true,

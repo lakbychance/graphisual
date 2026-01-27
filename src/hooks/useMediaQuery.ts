@@ -26,3 +26,10 @@ export const useMediaQuery = (query: string): boolean => {
 export const useIsDesktop = (): boolean => {
   return useMediaQuery("(min-width: 768px)");
 };
+
+/**
+ * Hook to check if device has hover capability (not touch-only)
+ */
+export const useHasHover = (): boolean => {
+  return useMediaQuery("(hover: hover)");
+};

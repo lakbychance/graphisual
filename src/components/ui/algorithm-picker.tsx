@@ -31,12 +31,12 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
     <button
       onClick={onClick}
       className={cn(
-        "relative flex flex-col items-center gap-1.5 p-3 rounded-lg  duration-100 overflow-hidden",
+        "relative flex flex-col items-center gap-1.5 p-3 rounded-lg duration-100 overflow-hidden",
         "bg-[var(--color-surface)]",
-        "focus:outline-none",
+        "focus:outline-none focus-ring-animated",
         selected
-          ? "shadow-[var(--shadow-pressed)] ring-2 ring-[var(--color-accent)]"
-          : "shadow-[var(--shadow-raised),var(--highlight-edge)] hover:ring-2 hover:ring-[var(--color-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
+          ? "shadow-[var(--shadow-pressed)] ring-2 ring-[var(--color-text)]"
+          : "shadow-[var(--shadow-raised),var(--highlight-edge)] hover:ring-2 hover:ring-[var(--color-text-muted)]"
       )}
     >
       <GrainTexture baseFrequency={4.2} className="rounded-lg" />
@@ -72,7 +72,7 @@ export const AlgorithmPicker = ({
           disabled={disabled}
           aria-label="Select algorithm"
           className={cn(
-            "w-auto transition-none h-9 !rounded-full gap-1.5",
+            "w-auto transition-none h-9 !rounded-lg gap-1.5",
             "justify-center"
           )}
         >
@@ -87,7 +87,7 @@ export const AlgorithmPicker = ({
         align="center"
         sideOffset={8}
       >
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {algorithms.map((algo) => (
             <AlgorithmCard
               key={algo.metadata.id}

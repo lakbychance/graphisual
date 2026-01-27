@@ -26,7 +26,7 @@ export const SpeedControl = ({
       <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
       {/* Speed stepper */}
-      <div className="flex items-center gap-0.5 px-1">
+      <div className="flex items-center gap-2 px-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

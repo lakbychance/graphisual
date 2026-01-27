@@ -37,7 +37,7 @@ export const StepControls = ({
       {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
       <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-2">
         {/* Jump to start */}
         <Tooltip>
           <TooltipTrigger asChild>
