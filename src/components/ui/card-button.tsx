@@ -4,7 +4,7 @@ import { cn } from "../../lib/utils"
 import { GrainTexture } from "./grain-texture"
 
 const cardButtonVariants = cva(
-  "relative flex flex-col items-center gap-1 p-2.5  duration-100 overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+  "relative flex flex-col items-center gap-1 p-2.5  duration-100 overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated",
   {
     variants: {
       selected: {

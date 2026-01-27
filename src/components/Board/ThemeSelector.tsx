@@ -22,7 +22,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Theme settings"
-          className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50"
+          className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated"
         >
           <GrainTexture baseFrequency={4.2} className="rounded-md overflow-hidden" />
           <ThemeIcon size={24} className="text-[var(--color-text-muted)]" />

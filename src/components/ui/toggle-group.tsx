@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils"
 // === Variants ===
 
 const toggleGroupVariants = cva(
-  "flex p-0.5 gap-1",
+  "flex p-0.5 gap-2",
   {
     variants: {
       variant: {
@@ -21,7 +21,7 @@ const toggleGroupVariants = cva(
 )
 
 const toggleItemVariants = cva(
-  "flex-1 py-1.5 flex items-center justify-center  duration-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+  "flex-1 py-1.5 flex items-center justify-center  duration-100 cursor-pointer focus-ring-animated",
   {
     variants: {
       active: {
@@ -115,7 +115,7 @@ function RadixToggleGroupItem({ className, rounded = "sm", children, ref, ...pro
       {...props}
       className={cn(
         "flex-1 py-1.5 flex items-center justify-center cursor-pointer",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+        "focus-ring-animated",
         "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
         "data-[state=on]:bg-[var(--color-surface)] data-[state=on]:text-[var(--color-text)] data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
         "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none",

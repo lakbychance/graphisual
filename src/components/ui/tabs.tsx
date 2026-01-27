@@ -13,7 +13,7 @@ function TabsList({ className, ref, ...props }: TabsListProps) {
     <TabsPrimitive.List
       ref={ref}
       className={cn(
-        "flex items-center gap-1 p-1 rounded-full",
+        "flex items-center gap-2 p-1 rounded-lg",
         "bg-[var(--color-paper)]",
         "shadow-[var(--shadow-pressed)]",
         className
@@ -32,11 +32,11 @@ function TabsTrigger({ className, ref, ...props }: TabsTriggerProps) {
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex-1 px-3 py-1.5 text-sm rounded-full",
+        "flex-1 px-3 py-1.5 text-sm rounded-md",
         " duration-150",
         "text-[var(--color-text-muted)]",
         "hover:text-[var(--color-text)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50",
+        "focus-ring-animated",
         "disabled:pointer-events-none disabled:opacity-50",
         "data-[state=active]:bg-[var(--color-surface)]",
         "data-[state=active]:text-[var(--color-text)]",

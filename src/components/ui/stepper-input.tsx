@@ -26,7 +26,7 @@ const useStepper = () => {
 // === Variants ===
 
 const stepperButtonVariants = cva(
-  "w-8 h-8 flex items-center justify-center text-base  duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 text-[var(--color-text-muted)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
+  "w-8 h-8 flex items-center justify-center text-base  duration-100 focus-ring-animated text-[var(--color-text-muted)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
   {
     variants: {
       rounded: {
@@ -166,7 +166,7 @@ function StepperField({ className, ref, ...props }: StepperFieldProps) {
       autoComplete="off"
       className={cn(
         "flex-1 h-8 text-center text-xs font-medium",
-        "focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[var(--color-accent-form)]/50 bg-transparent text-[var(--color-text)]",
+        "focus-ring-animated-inset bg-transparent text-[var(--color-text)]",
         "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
         className
       )}

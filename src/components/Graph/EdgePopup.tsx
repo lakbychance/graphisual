@@ -91,12 +91,12 @@ export const EdgePopup = ({
         <PopoverContent
           side="top"
           sideOffset={8}
-          className="p-1.5"
+          className="p-2"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <GrainTexture className="rounded-lg" />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Type toggle section */}
             <RadixToggleGroup
               type="single"
@@ -166,7 +166,7 @@ export const EdgePopup = ({
             <div className="w-px h-6 bg-[var(--color-divider)]" />
 
             {/* Actions section */}
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               {type === EDGE_TYPE.DIRECTED && (
                 <Tooltip>
                   <TooltipTrigger asChild>

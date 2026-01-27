@@ -297,7 +297,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
           disabled={disabled}
           aria-label="Generate graph"
           className={cn(
-            "w-auto md:w-[110px] transition-none h-9 !rounded-full gap-1.5",
+            "w-auto md:w-[110px] transition-none h-9 !rounded-lg gap-1.5",
             "justify-center"
           )}
         >
@@ -322,7 +322,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
           {/* Content */}
           <div className="p-3">
             <TabsContent value="templates">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {templates.map((template) => (
                   <CardButton key={template.id} onClick={template.generate}>
                     <template.icon className="w-10 h-10 text-[var(--color-text-muted)]" />
@@ -443,7 +443,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                 {/* Generate button */}
                 <Button
                   onClick={handleGenerateCustom}
-                  className="w-full !rounded-full gap-2"
+                  className="w-full !rounded-lg gap-2"
                 >
                   <Shuffle className="w-4 h-4" />
                   Generate Graph

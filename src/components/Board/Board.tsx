@@ -198,7 +198,7 @@ export const Board = () => {
           <div className="flex justify-between">
             <div className="z-40 gap-2">
               {/* Zoom controls group - Mobile only */}
-              <div className="md:hidden relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden backdrop-blur-sm">
+              <div className="md:hidden relative flex items-center gap-2 p-2 rounded-md backdrop-blur-sm">
                 <ZoomControls
                   zoom={zoom}
                   onZoomIn={actions.zoomIn.execute}
@@ -207,7 +207,7 @@ export const Board = () => {
                 />
               </div>
             </div>
-            <div className="flex md:hidden items-center gap-0.5 px-1 py-1 rounded-md backdrop-blur-sm">
+            <div className="flex md:hidden items-center gap-2 p-2 rounded-md backdrop-blur-sm">
               <Button
                 onClick={actions.undo.execute}
                 disabled={!actions.undo.enabled}
@@ -240,7 +240,7 @@ export const Board = () => {
           </div>
 
           {/* Main toolbar */}
-          <div className="flex items-center relative px-1.5 py-1.5 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
+          <div className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
             <GrainTexture baseFrequency={3} className="rounded-md" />
 
             {/* Mode toggle - hidden during step visualization */}
@@ -304,92 +304,94 @@ export const Board = () => {
                 {/* Divider */}
                 <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
 
-                {/* 3D Toggle Button - Desktop only */}
-                <div className="hidden md:block">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => setIs3DMode(!is3DMode)}
-                        variant="ghost"
-                        size="icon-sm"
-                        className={cn(
-                          "z-10",
-                          is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
-                        )}
-                        disabled={isVisualizing}
-                        aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
-                      >
-                        <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-                  </Tooltip>
-                </div>
+                <div className="flex items-center gap-2">
+                  {/* 3D Toggle Button - Desktop only */}
+                  <div className="hidden md:block">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setIs3DMode(!is3DMode)}
+                          variant="ghost"
+                          size="icon-sm"
+                          className={cn(
+                            "z-10",
+                            is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
+                          )}
+                          disabled={isVisualizing}
+                          aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
+                        >
+                          <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
+                    </Tooltip>
+                  </div>
 
-                {/* Export - direct button in 3D mode, dropdown in 2D mode */}
-                {is3DMode ? (
+                  {/* Export - direct button in 3D mode, dropdown in 2D mode */}
+                  {is3DMode ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleExport3DPng}
+                          disabled={isVisualizing || !hasNodes}
+                          variant="ghost"
+                          size="icon-sm"
+                          className="z-10"
+                          aria-label="Export PNG"
+                        >
+                          <Download className="h-4 w-4 text-[var(--color-text)]" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Export PNG</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <DropdownMenu>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              disabled={isVisualizing || !hasNodes}
+                              variant="ghost"
+                              size="icon-sm"
+                              className="z-10"
+                              aria-label="Export"
+                            >
+                              <Download className="h-4 w-4 text-[var(--color-text)]" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>Export</TooltipContent>
+                      </Tooltip>
+                      <DropdownMenuContent align="center" sideOffset={8}>
+                        <DropdownMenuItem onClick={handleExportSvg}>
+                          <FileCode className="h-4 w-4 mr-2" />
+                          Export as SVG
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleExport2DPng}>
+                          <Image className="h-4 w-4 mr-2" />
+                          Export as PNG
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
+                  {/* Reset button */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        onClick={handleExport3DPng}
-                        disabled={isVisualizing || !hasNodes}
+                        onClick={handleReset}
+                        disabled={isVisualizing}
                         variant="ghost"
                         size="icon-sm"
                         className="z-10"
-                        aria-label="Export PNG"
+                        aria-label="Reset Graph"
                       >
-                        <Download className="h-4 w-4 text-[var(--color-text)]" />
+                        <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Export PNG</TooltipContent>
+                    <TooltipContent>Reset Graph</TooltipContent>
                   </Tooltip>
-                ) : (
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            disabled={isVisualizing || !hasNodes}
-                            variant="ghost"
-                            size="icon-sm"
-                            className="z-10"
-                            aria-label="Export"
-                          >
-                            <Download className="h-4 w-4 text-[var(--color-text)]" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>Export</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="center" sideOffset={8}>
-                      <DropdownMenuItem onClick={handleExportSvg}>
-                        <FileCode className="h-4 w-4 mr-2" />
-                        Export as SVG
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleExport2DPng}>
-                        <Image className="h-4 w-4 mr-2" />
-                        Export as PNG
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                {/* Reset button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleReset}
-                      disabled={isVisualizing}
-                      variant="ghost"
-                      size="icon-sm"
-                      className="z-10"
-                      aria-label="Reset Graph"
-                    >
-                      <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Reset Graph</TooltipContent>
-                </Tooltip>
+                </div>
               </>
             )}
           </div>
@@ -403,7 +405,7 @@ export const Board = () => {
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
           {/* Zoom controls group */}
-          <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
+          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <ZoomControls
               zoom={zoom}
@@ -414,7 +416,7 @@ export const Board = () => {
           </div>
 
           {/* Undo/Redo controls group - with grainy texture */}
-          <div className="relative flex items-center gap-0.5 px-1 py-1 rounded-md overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
+          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <Tooltip>
               <TooltipTrigger asChild>
