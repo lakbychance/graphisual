@@ -8,7 +8,7 @@ import { useGraphStore } from "../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { Node3D } from "./Node3D";
 import { Edge3D } from "./Edge3D";
-import { ZOOM } from "../../utility/constants";
+import { ZOOM } from "../../constants/ui";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";

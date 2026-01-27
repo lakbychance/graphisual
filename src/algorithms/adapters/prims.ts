@@ -15,7 +15,7 @@ import {
   AlgorithmGenerator,
   StepType,
 } from "../types";
-import { EDGE_TYPE } from "../../constants";
+import { EDGE_TYPE } from "../../constants/graph";
 
 /**
  * Generator function for step-through Prim's execution.

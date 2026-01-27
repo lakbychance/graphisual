@@ -1,5 +1,5 @@
 import { GraphNode } from "../components/Graph/types";
-import { NODE } from "./constants";
+import { NODE } from "../constants/graph";
 
 export const calculateCurve = (
   x1: number,

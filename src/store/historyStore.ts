@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { debounce } from "../utility/debounce";
-import { TIMING } from "../utility/constants";
+import { TIMING } from "../constants/ui";
 
 interface HistoryState<T> {
   past: T[];

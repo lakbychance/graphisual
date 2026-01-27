@@ -7,7 +7,7 @@ import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { EDGE_TYPE, type EdgeType } from "../../constants";
+import { EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 
 interface EdgePopupProps {

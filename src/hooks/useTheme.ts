@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useSettingsStore } from "../store/settingsStore";
-import { THEME, type Theme, type ResolvedTheme } from "../constants";
+import { THEME, type Theme, type ResolvedTheme } from "../constants/theme";
 
 /**
  * Hook to manage theme state and system preference detection.

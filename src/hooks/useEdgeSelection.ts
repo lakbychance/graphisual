@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { GraphEdge } from "../components/Graph/types";
-import { EdgeType } from "../constants";
+import { type EdgeType } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
 
 interface UseEdgeSelectionProps {

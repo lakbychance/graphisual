@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory } from "../store/graphStore";
-import { VisualizationState, VisualizationMode } from "../constants";
+import { VisualizationState, VisualizationMode } from "../constants/visualization";
 import { applyVisualizationStep } from "../utility/applyVisualizationStep";
 
 /**

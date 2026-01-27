@@ -17,7 +17,7 @@ import {
   EdgeRef,
   StepType,
 } from "../types";
-import { EDGE_TYPE } from "../../constants";
+import { EDGE_TYPE } from "../../constants/graph";
 
 // Node colors for DFS
 const WHITE = 0; // Unvisited

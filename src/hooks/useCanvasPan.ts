@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { DRAG_THRESHOLD, TIMING } from "../utility/constants";
+import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
 
 interface UseCanvasPanProps {
   pan: { x: number; y: number };

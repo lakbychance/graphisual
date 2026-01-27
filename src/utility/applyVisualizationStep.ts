@@ -1,5 +1,6 @@
 import { useGraphStore } from "../store/graphStore";
-import { StepType, EDGE_TYPE } from "../constants";
+import { StepType } from "../constants/visualization";
+import { EDGE_TYPE } from "../constants/graph";
 import type { GraphEdge } from "../components/Graph/types";
 
 /**

@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
 import { GraphNode, GraphEdge } from "../components/Graph/types";
 import { findToNodeForTouchBasedDevices } from "../utility/calc";
-import { TIMING } from "../utility/constants";
-import { EDGE_TYPE } from "../constants";
+import { TIMING } from "../constants/ui";
+import { EDGE_TYPE } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
 
 interface UseEdgeDraggingProps {

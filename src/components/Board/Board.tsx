@@ -11,9 +11,9 @@ import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box } from 
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
-import { TIMING, SPEED_LEVELS } from "../../utility/constants";
+import { TIMING } from "../../constants/ui";
+import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
 import { GrainTexture } from "../ui/grain-texture";
-import { VisualizationState, VisualizationMode } from "../../constants";
 import { exportSvg } from "../../utility/exportSvg";
 import { exportPng } from "../../utility/exportPng";
 import { export3DPng } from "../../utility/export3DPng";

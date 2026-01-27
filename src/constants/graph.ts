@@ -10,6 +10,20 @@ export const EDGE_TYPE = {
 
 export type EdgeType = typeof EDGE_TYPE[keyof typeof EDGE_TYPE];
 
+// Node geometry
+export const NODE = {
+  RADIUS: 30,
+  HIT_AREA_PADDING: 16,
+  HOVER_SCALE: 1.15,
+} as const;
+
+// Connector geometry (edge connection points)
+export const CONNECTOR = {
+  OFFSET: 8,
+  RADIUS: 5,
+  TOUCH_HIT_AREA: 18,
+} as const;
+
 export const NODE_GRADIENT = {
   DEFAULT: 'nodeGradientDefault',
   VISITED: 'nodeGradientVisited',

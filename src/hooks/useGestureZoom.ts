@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { ZOOM } from "../utility/constants";
+import { ZOOM } from "../constants/ui";
 
 interface UseGestureZoomOptions {
   svgRef: React.RefObject<SVGSVGElement | null>;

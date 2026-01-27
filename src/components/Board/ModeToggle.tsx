@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
-import { VisualizationMode } from "../../constants";
+import { VisualizationMode } from "../../constants/visualization";
 
 interface ModeToggleProps {
   mode: VisualizationMode;

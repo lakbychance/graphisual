@@ -1,4 +1,4 @@
-import { NODE_GRADIENT } from "../../../constants";
+import { NODE_GRADIENT } from "../../../constants/graph";
 
 /**
  * Node-related SVG definitions (crosshatch pattern, sphere mask, gradients)

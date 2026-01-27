@@ -11,9 +11,11 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
 import { calculateAccurateCoords } from "../utility/calc";
-import { NODE, TIMING } from "../utility/constants";
+import { TIMING } from "../constants/ui";
+import { NODE, EDGE_TYPE, type EdgeType } from "../constants/graph";
+import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";
+import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
-import { VisualizationState, VisualizationMode, StepType, EDGE_TYPE, STORE_NAME, type EdgeType } from "../constants";
 
 // ============================================================================
 // Types

@@ -3,10 +3,10 @@ import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
-import { DRAG_THRESHOLD, NODE } from "../../../utility/constants";
+import { DRAG_THRESHOLD } from "../../../constants/ui";
+import { NODE, NODE_GRADIENT, gradientUrl } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
-import { NODE_GRADIENT, gradientUrl } from "../../../constants";
 
 export interface NodeProps {
   nodeId: number;

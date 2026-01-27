@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
 import { useGraphHistoryStore } from './graphHistoryStore'
-import { VisualizationState, VisualizationMode } from '../constants'
+import { VisualizationState, VisualizationMode } from '../constants/visualization'
 
 // Reset store before each test
 beforeEach(() => {

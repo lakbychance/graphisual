@@ -3,7 +3,8 @@ import { Cone, Text } from "@react-three/drei";
 import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCurve3 } from "three";
-import { NODE, FONT_URL } from "../../utility/constants";
+import { NODE } from "../../constants/graph";
+import { FONT_URL } from "../../constants/ui";
 import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
 import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
 

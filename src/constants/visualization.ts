@@ -18,3 +18,11 @@ export enum StepType {
   VISIT = 'visit',
   RESULT = 'result',
 }
+
+// Speed levels for visualization (multiplier display with actual ms delay)
+export const SPEED_LEVELS = [
+  { multiplier: '0.5x', ms: 800 },
+  { multiplier: '1x', ms: 400 },
+  { multiplier: '2x', ms: 200 },
+  { multiplier: '4x', ms: 100 },
+] as const;
