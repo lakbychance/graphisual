@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
+import { useHasHover } from "../../hooks/useMediaQuery";
 
 interface EdgePopupProps {
   edge: GraphEdge;
@@ -42,6 +43,9 @@ export const EdgePopup = ({
   // Can only switch to undirected if: already undirected OR no reverse edge exists
   const canSwitchToUndirected = type === EDGE_TYPE.UNDIRECTED || !hasReverseEdge;
 
+  // Only show tooltips on hover-capable devices
+  const hasHover = useHasHover();
+
   // Focus weight input on mount
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,6 +74,29 @@ export const EdgePopup = ({
     onReverse();
     handleClose();
   };
+
+  const DirectedItem = (
+    <span className="flex-1">
+      <RadixToggleGroupItem
+        value={EDGE_TYPE.DIRECTED}
+        className="w-8 h-8 flex-none px-1.5"
+      >
+        <MoveRight className="w-4 h-4" />
+      </RadixToggleGroupItem>
+    </span>
+  );
+
+  const UndirectedItem = (
+    <span className="flex-1">
+      <RadixToggleGroupItem
+        value={EDGE_TYPE.UNDIRECTED}
+        disabled={!canSwitchToUndirected}
+        className="w-8 h-8 flex-none px-1.5"
+      >
+        <Minus className="w-4 h-4" />
+      </RadixToggleGroupItem>
+    </span>
+  );
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -104,36 +131,24 @@ export const EdgePopup = ({
               onValueChange={(value) => value && handleTypeChange(value as EdgeType)}
               variant="etched"
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <RadixToggleGroupItem
-
-                      value={EDGE_TYPE.DIRECTED}
-                      className="w-8 h-8 flex-none px-1.5"
-                    >
-                      <MoveRight className="w-4 h-4" />
-                    </RadixToggleGroupItem>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Directed</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <RadixToggleGroupItem
-                      value={EDGE_TYPE.UNDIRECTED}
-                      disabled={!canSwitchToUndirected}
-                      className="w-8 h-8 flex-none px-1.5"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </RadixToggleGroupItem>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
-                </TooltipContent>
-              </Tooltip>
+              {hasHover ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>{DirectedItem}</TooltipTrigger>
+                  <TooltipContent side="bottom">Directed</TooltipContent>
+                </Tooltip>
+              ) : (
+                DirectedItem
+              )}
+              {hasHover ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>{UndirectedItem}</TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                UndirectedItem
+              )}
             </RadixToggleGroup>
 
             {/* Divider */}

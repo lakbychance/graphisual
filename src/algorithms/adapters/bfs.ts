@@ -73,9 +73,9 @@ const bfsAdapter: AlgorithmAdapter = {
     id: "bfs",
     name: "BFS",
     type: AlgorithmType.TRAVERSAL,
-    description: "Click on any node to begin the traversal.",
     tagline: "Explore level by level",
     icon: BfsIcon,
+    inputStepHints: ["Select a node"],
   },
 
   /**

@@ -175,10 +175,11 @@ export const Board = () => {
 
   // Get algorithm hint text
   const getAlgorithmHintText = () => {
+    const hints = algorithmRegistry.get(visualizationAlgorithm?.key || '')?.metadata.inputStepHints || [];
     if (visualizationInput && visualizationInput.startNodeId !== -1 && visualizationInput.endNodeId === -1) {
-      return "Now select the destination node";
+      return hints[1] || '';
     }
-    return algorithmRegistry.get(visualizationAlgorithm?.key || '')?.metadata.description || '';
+    return hints[0] || '';
   };
 
   return (

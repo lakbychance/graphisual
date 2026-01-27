@@ -152,9 +152,9 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
     id: "cycle-detection",
     name: "Cycle Detection",
     type: AlgorithmType.TRAVERSAL,
-    description: "Click on any node to check for cycles.",
     tagline: "Find loops in graph",
     icon: CycleDetectionIcon,
+    inputStepHints: ["Select a node"],
     failureMessage: "No cycle found in the graph.",
   },
 

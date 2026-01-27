@@ -99,10 +99,9 @@ const primsAdapter: AlgorithmAdapter = {
     id: "prims",
     name: "Prim's MST",
     type: AlgorithmType.TREE,
-    description:
-      "Click on any node to see the minimum spanning tree.",
     tagline: "Build minimum spanning tree",
     icon: PrimsIcon,
+    inputStepHints: ["Select a node"],
     failureMessage: "Graph violates the requirements of the algorithm.",
     requirements: {
       undirectedOnly: true,

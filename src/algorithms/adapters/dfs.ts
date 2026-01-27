@@ -75,9 +75,9 @@ const dfsAdapter: AlgorithmAdapter = {
     id: "dfs",
     name: "DFS",
     type: AlgorithmType.TRAVERSAL,
-    description: "Click on any node to begin the traversal.",
     tagline: "Dive deep, then backtrack",
     icon: DfsIcon,
+    inputStepHints: ["Select a node"],
   },
 
   /**
