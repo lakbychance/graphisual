@@ -2,7 +2,7 @@ import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MOD_KEY } from "../../utility/keyboard";
+import { MOD_KEY } from "../../utils/keyboard";
 import { ZOOM } from "../../constants/ui";
 
 interface ZoomControlsProps {

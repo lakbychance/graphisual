@@ -1,6 +1,6 @@
-import { GraphNode, GraphEdge } from "../components/Graph/types";
-import { NODE, EDGE_TYPE, type EdgeType } from "../constants/graph";
-import { calculateAccurateCoords } from "./calc";
+import { GraphNode, GraphEdge } from "../../components/Graph/types";
+import { NODE, EDGE_TYPE, type EdgeType } from "../../constants/graph";
+import { calculateAccurateCoords } from "../geometry/calc";
 
 export interface GeneratedGraph {
   nodes: GraphNode[];

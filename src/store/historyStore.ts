@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { debounce } from "../utility/debounce";
+import { debounce } from "../utils/debounce";
 import { TIMING } from "../constants/ui";
 
 interface HistoryState<T> {

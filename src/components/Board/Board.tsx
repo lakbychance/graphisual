@@ -14,9 +14,9 @@ import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraph
 import { TIMING } from "../../constants/ui";
 import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
 import { GrainTexture } from "../ui/grain-texture";
-import { exportSvg } from "../../utility/exportSvg";
-import { exportPng } from "../../utility/exportPng";
-import { export3DPng } from "../../utility/export3DPng";
+import { exportSvg } from "../../utils/export/exportSvg";
+import { exportPng } from "../../utils/export/exportPng";
+import { export3DPng } from "../../utils/export/export3DPng";
 import {
   DropdownMenu,
   DropdownMenuContent,

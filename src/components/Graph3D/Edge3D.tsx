@@ -5,7 +5,7 @@ import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCurve3 } from "three";
 import { NODE } from "../../constants/graph";
 import { FONT_URL } from "../../constants/ui";
-import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utility/cssVariables";
+import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utils/cssVariables";
 import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
 
 interface Edge3DProps {

@@ -4,7 +4,7 @@ import { useGraphStore, selectNodeVisState } from "../../store/graphStore";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { NODE } from "../../constants/graph";
 import { FONT_URL } from "../../constants/ui";
-import { getNodeGradientColors, getUIColors } from "../../utility/cssVariables";
+import { getNodeGradientColors, getUIColors } from "../../utils/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { NODE_STROKE_COLORS, NODE_LIGHT_THEME, NODE_GEOMETRY } from "./theme3D";

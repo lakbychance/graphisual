@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, RefObject } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
-import { isModKey } from "../utility/keyboard";
+import { isModKey } from "../utils/keyboard";
 import { ZOOM } from "../constants/ui";
 import { VisualizationState, VisualizationMode } from "../constants/visualization";
 

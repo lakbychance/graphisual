@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { calculateCurve, calculateTextLoc } from "../../../utility/calc";
+import { calculateCurve, calculateTextLoc } from "../../../utils/geometry/calc";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "../../../store/graphStore";

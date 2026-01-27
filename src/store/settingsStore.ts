@@ -10,7 +10,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { THEME, type Theme } from "../constants/theme";
 import { STORE_NAME } from "../constants/store";
-import { invalidateCSSVarCache } from "../utility/cssVariables";
+import { invalidateCSSVarCache } from "../utils/cssVariables";
 
 interface SettingsState {
   theme: Theme;

@@ -10,7 +10,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
-import { calculateAccurateCoords } from "../utility/calc";
+import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE_TYPE, type EdgeType } from "../constants/graph";
 import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";

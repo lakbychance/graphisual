@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { GraphNode, GraphEdge } from "../components/Graph/types";
-import { findToNodeForTouchBasedDevices } from "../utility/calc";
+import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { TIMING } from "../constants/ui";
 import { EDGE_TYPE } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";

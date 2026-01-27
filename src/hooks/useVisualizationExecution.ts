@@ -2,11 +2,11 @@ import { useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry, EdgeInfo, AlgorithmStep, AlgorithmAdapter } from "../algorithms";
-import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utility/graphUtils";
+import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utils/graph/graphUtils";
 import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";
 import { EDGE_TYPE, type EdgeType } from "../constants/graph";
-import { animateSequence, AnimationController } from "../utility/animateSequence";
-import { applyVisualizationStep } from "../utility/applyVisualizationStep";
+import { animateSequence, AnimationController } from "../utils/animation/animateSequence";
+import { applyVisualizationStep } from "../utils/visualization/applyVisualizationStep";
 import { GraphEdge } from "../components/Graph/types";
 
 /**

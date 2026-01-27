@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory } from "../store/graphStore";
 import { VisualizationState, VisualizationMode } from "../constants/visualization";
-import { applyVisualizationStep } from "../utility/applyVisualizationStep";
+import { applyVisualizationStep } from "../utils/visualization/applyVisualizationStep";
 
 /**
  * Hook that synchronizes step-through visualization state.

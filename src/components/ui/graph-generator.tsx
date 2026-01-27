@@ -22,7 +22,7 @@ import {
   generateWeighted,
   type RandomGeneratorOptions,
   type LayoutType,
-} from "../../utility/graphGenerator";
+} from "../../utils/graph/graphGenerator";
 
 interface GraphGeneratorProps {
   disabled?: boolean;

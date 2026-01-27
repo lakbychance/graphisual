@@ -1,7 +1,7 @@
-import { useGraphStore } from "../store/graphStore";
-import { StepType } from "../constants/visualization";
-import { EDGE_TYPE } from "../constants/graph";
-import type { GraphEdge } from "../components/Graph/types";
+import { useGraphStore } from "../../store/graphStore";
+import { StepType } from "../../constants/visualization";
+import { EDGE_TYPE } from "../../constants/graph";
+import type { GraphEdge } from "../../components/Graph/types";
 
 /**
  * Edge reference for visualization - minimal interface with from/to IDs.
