@@ -308,7 +308,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
       <PopoverContent
         className="w-[300px] p-0"
         align="center"
-        sideOffset={8}
+        sideOffset={12}
       >
         <Tabs defaultValue="templates">
           {/* Tab switcher */}

@@ -19,9 +19,9 @@
   /* Paper background - warm, textured feel */
   --color-paper: #e5e0d8;
 
-  /* Molded surface material - slightly lighter than paper */
-  --color-surface: #ede9e3;
-  --color-surface-hover: #f2eee8;
+  /* Surface - light like nodes */
+  --color-surface: #f1eee9;
+  --color-surface-hover: #f8f6f2;
 
   /* Text */
   --color-text: #2a2520;
@@ -38,36 +38,26 @@
   --color-tint-start: rgba(93, 173, 226, 0.3);
   --color-tint-end: rgba(224, 123, 90, 0.3);
 
-  /* === SHADOW SYSTEM (Top-Left Light Source) === */
+  /* === SHADOW SYSTEM (Flat Paper Aesthetic) === */
 
-  /* Raised elements - soft, neutral shadows */
   --shadow-raised:
-    2px 2px 4px rgba(0, 0, 0, 0.22),
-    1px 1px 2px rgba(0, 0, 0, 0.14);
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
 
   --shadow-raised-lg:
-    3px 3px 6px rgba(0, 0, 0, 0.25),
-    2px 2px 3px rgba(0, 0, 0, 0.16);
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2),
+    0px 3px 2px rgba(50, 45, 40, 0.03);
 
-  /* Inner highlight - subtle top-left edge catch */
   --highlight-edge:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.5);
+    inset 0px 1px 0px rgba(255, 255, 255, 0.5);
 
-  /* Pressed/inset - light comes from top-left into the depression */
   --shadow-pressed:
-    inset 2px 2px 4px rgba(50, 45, 40, 0.15),
-    inset -1px -1px 2px rgba(255, 252, 245, 0.4);
+    inset 0px 2px 4px rgba(50, 45, 40, 0.15);
 
-  /* Etched groove - carved into surface */
   --shadow-etched:
-    inset 1px 1px 2px rgba(50, 45, 40, 0.12),
-    inset -1px -1px 1px rgba(255, 252, 245, 0.5);
+    inset 0px 1px 3px rgba(50, 45, 40, 0.12);
 
-  /* Soft token shadow - for nodes (thick, pickable) */
-  --shadow-token:
-    4px 4px 8px rgba(50, 45, 40, 0.2),
-    2px 2px 3px rgba(50, 45, 40, 0.15),
-    1px 1px 1px rgba(50, 45, 40, 0.1);
+  --shadow-premium:
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
 
   /* Node gradient colors */
   --gradient-default-start: #f5f2ed;
@@ -100,8 +90,8 @@
   --color-arrow-traversal: #429242;
   --color-arrow-path: #a88038;
 
-  /* Node drop shadow */
-  --node-shadow-color: rgba(50, 45, 40, 0.28);
+  /* Node drop shadow - none for flat design */
+  --node-shadow-color: transparent;
 
   /* Node stroke - lighter than text-muted for subtle definition */
   --color-node-stroke: #a8a29a;
@@ -125,7 +115,7 @@
   --color-grid-line-major: rgba(50, 45, 40, 0.15);
 
   /* Grain texture opacity */
-  --grain-opacity: 0.35;
+  --grain-opacity: 0.15;
 
   /* Focus ring animation */
   --focus-ring-width: 3px;
@@ -182,11 +172,15 @@
     inset 1px 1px 2px rgba(0, 0, 0, 0.25),
     inset -1px -1px 1px rgba(255, 255, 255, 0.04);
 
-  /* Soft token shadow - for nodes */
-  --shadow-token:
-    4px 4px 10px rgba(0, 0, 0, 0.45),
-    2px 2px 4px rgba(0, 0, 0, 0.35),
-    1px 1px 2px rgba(0, 0, 0, 0.25);
+  /* Premium shadow - layered depth with subtle shine */
+  --shadow-premium:
+    inset 0px 2px 4px 0px rgba(255, 255, 255, 0.08),
+    0px 0.75px 0.75px -0.75px rgba(0, 0, 0, 0.5),
+    0px 2px 2px -1.5px rgba(0, 0, 0, 0.48),
+    0px 4.4px 4.4px -2.25px rgba(0, 0, 0, 0.45),
+    0px 9.8px 9.8px -3px rgba(0, 0, 0, 0.4),
+    0px 25px 25px -3.75px rgba(0, 0, 0, 0.2),
+    0px 0px 0px 1px rgba(255, 255, 255, 0.1);
 
   /* Node gradient colors (darker versions) */
   --gradient-default-start: #3a3a3e;
@@ -288,10 +282,12 @@
     inset 1px 1px 2px rgba(10, 40, 70, 0.3),
     inset -1px -1px 1px rgba(255, 255, 255, 0.12);
 
-  --shadow-token:
-    3px 3px 6px rgba(10, 40, 70, 0.4),
-    2px 2px 3px rgba(10, 40, 70, 0.28),
-    1px 1px 1px rgba(10, 40, 70, 0.18);
+  /* Premium shadow - balanced depth */
+  --shadow-premium:
+    inset 0px 1px 2px 0px rgba(255, 255, 255, 0.3),
+    3px 3px 4px rgba(10, 40, 70, 0.22),
+    8px 8px 6px rgba(10, 40, 70, 0.16),
+    0px 0px 10px rgba(10, 40, 70, 0.25);
 
   /* Node gradients - blueprint palette */
   /* Default: blueprint blue */
@@ -451,3 +447,31 @@
   }
 }
 
+/* Control shadow - for small interactive elements */
+.shadow-control {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .shadow-control {
+  box-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.2),
+    1px 1px 2px rgba(0, 0, 0, 0.12),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="blueprint"] .shadow-control {
+  box-shadow:
+    2px 2px 4px rgba(10, 40, 70, 0.2),
+    1px 1px 2px rgba(10, 40, 70, 0.12),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+/* Accent control background - flat for light, gradient for dark */
+.bg-accent-control {
+  background: var(--color-accent-form);
+}
+
+[data-theme="dark"] .bg-accent-control,
+[data-theme="blueprint"] .bg-accent-control {
+  background: linear-gradient(135deg, var(--color-accent-form) 0%, color-mix(in srgb, var(--color-accent-form) 80%, #000) 100%);
+}

@@ -241,7 +241,7 @@ export const Board = () => {
           </div>
 
           {/* Main toolbar */}
-          <div className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised-lg),var(--highlight-edge)]">
+          <div className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={3} className="rounded-md" />
 
             {/* Mode toggle - hidden during step visualization */}
@@ -406,7 +406,7 @@ export const Board = () => {
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
           {/* Zoom controls group */}
-          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
+          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <ZoomControls
               zoom={zoom}
@@ -417,7 +417,7 @@ export const Board = () => {
           </div>
 
           {/* Undo/Redo controls group - with grainy texture */}
-          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)]">
+          <div className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <Tooltip>
               <TooltipTrigger asChild>

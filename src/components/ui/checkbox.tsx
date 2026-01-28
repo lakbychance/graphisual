@@ -22,8 +22,8 @@ function Checkbox({ className, ref, ...props }: CheckboxProps) {
     >
       <CheckboxPrimitive.Indicator
         className={cn(
-          "flex items-center justify-center h-full w-full rounded-md",
-          "bg-[var(--color-accent-form)] shadow-[2px_2px_4px_rgba(0,0,0,0.2),1px_1px_2px_rgba(0,0,0,0.12),inset_1px_1px_1px_rgba(255,255,255,0.35)]"
+          "flex items-center justify-center h-full w-full rounded-md shadow-control",
+          "bg-[var(--color-accent-form)]"
         )}
       >
         <Check className="h-3 w-3 text-white" strokeWidth={3} />

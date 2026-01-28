@@ -85,7 +85,7 @@ export const AlgorithmPicker = ({
       <PopoverContent
         className="w-[320px] p-3"
         align="center"
-        sideOffset={8}
+        sideOffset={12}
       >
         <div className="grid grid-cols-2 gap-3">
           {algorithms.map((algo) => (
