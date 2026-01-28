@@ -25,7 +25,12 @@ export const Edge = memo(function Edge({
   const directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
   const undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
   const textCoordDirected = calculateTextLoc(edge.x1, edge.y1, edge.x2, edge.y2);
-  const edgeKey = `${sourceNodeId}-${edge.to}`;
+
+  // Generate edge key - includes type and marker to force Safari to repaint SVG markers
+  const getEdgeKey = (markerId?: string) => {
+    const base = `${sourceNodeId}-${edge.to}-${edge.type}`;
+    return markerId ? `${base}-${markerId}` : base;
+  };
 
   const getEdgeColor = () => {
     if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
@@ -98,7 +103,7 @@ export const Edge = memo(function Edge({
     const centerY = (edge.y1 + 2 * textCoordDirected.c1y + edge.y2) / 4;
 
     return (
-      <g key={edgeKey}>
+      <g key={getEdgeKey(arrowMarkerId)}>
         <path
           id={`${sourceNodeId}${edge.to}`}
           onClick={handleClick}
@@ -125,7 +130,7 @@ export const Edge = memo(function Edge({
   const centerY = (edge.y1 + edge.nodeY2) / 2;
 
   return (
-    <g key={edgeKey}>
+    <g key={getEdgeKey()}>
       <path
         d={undirectedPath}
         id={`${sourceNodeId}${edge.to}`}
