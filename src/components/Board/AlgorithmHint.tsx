@@ -1,13 +1,16 @@
-import { useReducedMotion, AnimatePresence } from "motion/react";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
+import useMeasure from "react-use-measure";
 import { cn } from "@/lib/utils";
 
 interface AlgorithmHintProps {
   text: string;
+  algorithmName: string,
 }
 
-export const AlgorithmHint = ({ text }: AlgorithmHintProps) => {
+export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
   const prefersReducedMotion = useReducedMotion();
+  const [ref, { width }] = useMeasure();
 
   return (
     <div
@@ -15,22 +18,59 @@ export const AlgorithmHint = ({ text }: AlgorithmHintProps) => {
         "fixed z-40 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]",
         // Mobile: center top
         "top-4",
-        // Desktop: center bottom
-        "md:top-auto md:bottom-5",
+        // Desktop: below toolbar
+        "md:top-[5.5rem]",
       )}
     >
-      <AnimatePresence mode="wait">
+      <m.div
+        initial={prefersReducedMotion ? false : { opacity: 0, filter: 'blur(2px)' }}
+        animate={{ opacity: 1, filter: 'blur(0px)' }}
+        exit={prefersReducedMotion ? undefined : { opacity: 0, filter: 'blur(2px)' }}
+        className="relative">
+        {/* Content layer - persists for width animation */}
         <m.div
-          key={text}
-          initial={prefersReducedMotion ? false : { scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={prefersReducedMotion ? undefined : { scale: 0.95, opacity: 0 }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }}
-          className="relative px-4 py-2.5 rounded-md text-sm text-center overflow-hidden whitespace-nowrap bg-[var(--color-text)] shadow-[var(--shadow-raised)] text-[var(--color-surface)]"
+          animate={{ width: width || "auto" }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.6, type: 'spring', bounce: 0.4 }}
+          className="relative rounded-md text-sm text-center bg-[var(--color-surface)] text-[var(--color-text)] overflow-hidden flex justify-center"
         >
-          <span className="relative font-medium z-10">{text}</span>
+          <AnimatePresence mode='popLayout' initial={false}>
+            <m.span
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95, filter: 'blur(1px)', x: '100%' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', x: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.95, filter: 'blur(1px)', x: '-100%' }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.6, type: 'spring', bounce: 0.2 }}
+              key={text}
+              ref={ref}
+              className="font-medium z-10 px-4 py-2.5 w-fit whitespace-nowrap"
+            >
+              {text}
+            </m.span>
+          </AnimatePresence>
         </m.div>
-      </AnimatePresence>
+
+        {/* Border layer - remounts on algorithm change for pulse */}
+        <AnimatePresence>
+          <m.div
+            key={algorithmName}
+            initial={{ boxShadow: "inset 0 0 0 2px var(--color-accent-form)" }}
+            animate={{
+              boxShadow: prefersReducedMotion
+                ? "inset 0 0 0 2px var(--color-accent-form)"
+                : ["inset 0 0 0 2px var(--color-accent-form)", "inset 0 0 0 11px var(--color-accent-form)", "inset 0 0 0 2px var(--color-accent-form)"],
+            }}
+            transition={{
+              boxShadow: {
+                duration: prefersReducedMotion ? 0 : 0.6,
+                repeat: 1,
+                repeatType: 'mirror',
+                type: "spring",
+                bounce: 0.2,
+              },
+            }}
+            className="absolute inset-0 rounded-md pointer-events-none"
+          />
+        </AnimatePresence>
+      </m.div>
     </div>
   );
 };

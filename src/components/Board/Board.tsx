@@ -31,6 +31,7 @@ import { StepControls } from "./StepControls";
 import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
 import { ZoomControls } from "./ZoomControls";
+import { AnimatePresence } from "motion/react";
 
 export const Board = () => {
   // Get state from store
@@ -399,9 +400,11 @@ export const Board = () => {
         </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
-        {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && (
-          <AlgorithmHint text={getAlgorithmHintText()} />
-        )}
+        <AnimatePresence>
+          {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && (
+            <AlgorithmHint text={getAlgorithmHintText()} algorithmName={visualizationAlgorithm.key} />
+          )}
+        </AnimatePresence>
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">

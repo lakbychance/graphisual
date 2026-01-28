@@ -73,7 +73,8 @@ export const AlgorithmPicker = ({
           aria-label="Select algorithm"
           className={cn(
             "w-auto transition-none h-9 !rounded-lg gap-1.5",
-            "justify-center"
+            "justify-center",
+            "md:min-w-[11rem]"
           )}
         >
           <TriggerIcon className="w-4 h-4 shrink-0" />
