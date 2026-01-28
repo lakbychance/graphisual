@@ -48,6 +48,7 @@ interface Node3DProps {
 const diagonalTextureCache = new Map<string, THREE.CanvasTexture>();
 
 // Get or create diagonal texture (shared across all nodes with same color)
+// Uses a seamlessly tileable pattern to avoid visible seams on 3D sphere
 function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THREE.CanvasTexture {
   const cacheKey = `${lineColor}-${lineOpacity}`;
 
@@ -55,7 +56,9 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
     return diagonalTextureCache.get(cacheKey)!;
   }
 
-  const size = 64;
+  // Use a size that's a multiple of spacing for seamless tiling
+  const spacing = 8;
+  const size = spacing * 8; // 64px, ensures perfect alignment at tile edges
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -69,15 +72,11 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
   ctx.globalAlpha = lineOpacity;
   ctx.lineWidth = 1;
 
-  // Spacing for the diagonal pattern
-  const spacing = 6;
-
-  // Draw diagonal lines from top-right to bottom-left (matching 2D pattern)
+  // Draw diagonal lines that tile seamlessly
+  // Lines go from top-left to bottom-right direction (matching 2D)
   ctx.beginPath();
-  for (let i = 0; i < size * 2; i += spacing) {
-    ctx.moveTo(i, 0);
-    ctx.lineTo(0, i);
-    ctx.moveTo(size, i);
+  for (let i = -size; i < size * 2; i += spacing) {
+    ctx.moveTo(i + size, 0);
     ctx.lineTo(i, size);
   }
   ctx.stroke();
@@ -85,7 +84,11 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(3, 3);
+  // Use power-of-2 repeat for cleaner UV mapping on sphere
+  texture.repeat.set(4, 2);
+  // Use linear filtering to reduce harsh edges
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
 
   diagonalTextureCache.set(cacheKey, texture);
   return texture;
