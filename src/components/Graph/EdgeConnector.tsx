@@ -62,7 +62,7 @@ export const EdgeConnector = ({
           fill: 'url(#nodeGradientDefault)',
           stroke: 'var(--color-node-stroke)',
           strokeWidth: 1,
-          filter: 'drop-shadow(1.5px 1.5px 2px rgba(50, 45, 40, 0.25))',
+          filter: 'drop-shadow(1.5px 1.5px 2px var(--node-shadow-color))',
         }}
       />
     </g>
