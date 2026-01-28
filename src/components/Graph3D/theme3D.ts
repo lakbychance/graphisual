@@ -6,21 +6,61 @@
  */
 
 import type { ResolvedTheme } from "../../hooks/useResolvedTheme";
+import type { GradientColors } from "../../utils/cssVariables";
 
 // =============================================================================
-// Node Colors
+// Node Colors - Override-based configuration
 // =============================================================================
+// Only store values that OVERRIDE CSS variables. Missing = use CSS.
+// This pattern is self-documenting: if a value isn't here, CSS is used.
 
-export const NODE_STROKE_COLORS: Record<ResolvedTheme, string> = {
-  light: '#a09080',    // Warm brown
-  dark: '#787878',     // Gray
-  blueprint: '#4080c0', // Blue
+type VisState = 'default' | 'visited' | 'path' | 'start' | 'end';
+
+// Fill/emissive overrides (only light theme needs these for 3D appearance)
+const NODE_FILL_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState, {
+  fill: string;
+  emissive: string;
+}>>>> = {
+  light: {
+    default: { fill: '#faf6f0', emissive: '#f0d8a8' },
+    visited: { fill: '#70c870', emissive: '#5cbc7e' },
+    path:    { fill: '#e8b050', emissive: '#c38f41' },
+    start:   { fill: '#60b8e0', emissive: '#40a0d0' },
+    end:     { fill: '#e07860', emissive: '#d06048' },
+  },
 };
 
-export const NODE_LIGHT_THEME = {
-  defaultColor: '#fff0d8',    // Warm cream
-  defaultEmissive: '#ffe0a0', // Soft gold glow
-} as const;
+// Stroke overrides (most themes need brighter strokes for 3D visibility)
+const NODE_STROKE_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState, string>>>> = {
+  light: {
+    default: '#a09080', visited: '#4a8a4a', path: '#b08030', start: '#3090b8', end: '#c05040',
+  },
+  dark: {
+    default: '#a0a0a0', visited: '#5a9a5a', path: '#c0a060', start: '#60a0c0', end: '#c07060',
+  },
+  blueprint: {
+    default: '#4080c0',
+  },
+};
+
+/**
+ * Get resolved node colors for 3D rendering.
+ * Uses theme overrides if defined, otherwise falls back to CSS variables.
+ */
+export function getNode3DColors(
+  theme: ResolvedTheme,
+  visState: VisState,
+  cssColors: GradientColors
+): { fill: string; emissive: string; stroke: string } {
+  const fillOverride = NODE_FILL_OVERRIDES[theme]?.[visState];
+  const strokeOverride = NODE_STROKE_OVERRIDES[theme]?.[visState];
+
+  return {
+    fill: fillOverride?.fill ?? cssColors.mid,
+    emissive: fillOverride?.emissive ?? cssColors.start,
+    stroke: strokeOverride ?? cssColors.mid,
+  };
+}
 
 // =============================================================================
 // Edge Colors

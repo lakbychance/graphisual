@@ -7,7 +7,7 @@ import { FONT_URL } from "../../constants/ui";
 import { getNodeGradientColors, getUIColors } from "../../utils/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
-import { NODE_STROKE_COLORS, NODE_LIGHT_THEME, NODE_GEOMETRY } from "./theme3D";
+import { getNode3DColors, NODE_GEOMETRY } from "./theme3D";
 import { introClippingPlanes } from "./introAnimation";
 
 // Shared geometries - created once and reused across all nodes
@@ -148,9 +148,10 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
   // Get shared geometries (created once, reused across all nodes)
   const geometries = getSharedGeometries();
 
-  // Torus color - use gradient mid color for visualization states (solid hex, no alpha)
-  // The --color-tint-* variables have rgba with alpha which Three.js doesn't handle well
-  const torusColor = visState === 'default' ? NODE_STROKE_COLORS[theme] : colors.mid;
+  // Get resolved 3D colors - uses overrides when defined, CSS variables otherwise
+  const node3DColors = useMemo(() => {
+    return getNode3DColors(theme, visState, colors);
+  }, [theme, visState, colors]);
 
   return (
     <group position={[0, 0, introZOffset]}>
@@ -190,7 +191,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
         {/* Outer ring / stroke - polished metallic look */}
         <mesh geometry={geometries.torusRing}>
           <meshPhysicalMaterial
-            color={torusColor}
+            color={node3DColors.stroke}
             roughness={0.3}
             metalness={0.6}
             clearcoat={0.5}
@@ -230,9 +231,9 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
           )}
           {isLightTheme && (
             <meshPhysicalMaterial
-              color={visState === 'default' ? NODE_LIGHT_THEME.defaultColor : colors.mid}
-              emissive={visState === 'default' ? NODE_LIGHT_THEME.defaultEmissive : colors.start}
-              emissiveIntensity={visState === 'default' ? 0.05 : 0.18 + hoverEmissiveBoost}
+              color={node3DColors.fill}
+              emissive={node3DColors.emissive}
+              emissiveIntensity={0.5 + hoverEmissiveBoost}
               roughness={0.2}
               metalness={0.05}
               clearcoat={1.0}
