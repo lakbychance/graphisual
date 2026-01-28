@@ -32,11 +32,11 @@
   --color-accent-pressed: #3a943a;
   --color-error: #d96850;
 
-  /* Node state tints (applied as overlays, not flat fills) */
-  --color-tint-visited: rgba(92, 184, 92, 0.25);
-  --color-tint-path: rgba(230, 162, 60, 0.3);
-  --color-tint-start: rgba(93, 173, 226, 0.3);
-  --color-tint-end: rgba(224, 123, 90, 0.3);
+  /* Node state tints (used for strokes) */
+  --color-tint-visited: #5a9a5a;
+  --color-tint-path: #b08030;
+  --color-tint-start: #4090b8;
+  --color-tint-end: #c06048;
 
   /* === SHADOW SYSTEM (Flat Paper Aesthetic) === */
 
@@ -59,26 +59,26 @@
   --shadow-premium:
     0px 0px 0px 1px rgba(50, 45, 40, 0.2);
 
-  /* Node gradient colors */
-  --gradient-default-start: #f5f2ed;
+  /* Node gradient colors - flat for minimal 2D look */
+  --gradient-default-start: #e8e3db;
   --gradient-default-mid: #e8e3db;
-  --gradient-default-end: #d0c9be;
+  --gradient-default-end: #e8e3db;
 
-  --gradient-visited-start: #c0ecc0;
+  --gradient-visited-start: #a0d4a0;
   --gradient-visited-mid: #a0d4a0;
-  --gradient-visited-end: #70b870;
+  --gradient-visited-end: #a0d4a0;
 
-  --gradient-path-start: #f5e4c0;
+  --gradient-path-start: #e4c890;
   --gradient-path-mid: #e4c890;
-  --gradient-path-end: #cca860;
+  --gradient-path-end: #e4c890;
 
-  --gradient-start-start: #c0e8f8;
+  --gradient-start-start: #90c8e0;
   --gradient-start-mid: #90c8e0;
-  --gradient-start-end: #60b0cc;
+  --gradient-start-end: #90c8e0;
 
-  --gradient-end-start: #f8d4c0;
+  --gradient-end-start: #e4a088;
   --gradient-end-mid: #e4a088;
-  --gradient-end-end: #d08058;
+  --gradient-end-end: #e4a088;
 
   /* Edge colors */
   --color-edge-default: rgba(50, 45, 40, 0.45);
@@ -93,8 +93,8 @@
   /* Node drop shadow - none for flat design */
   --node-shadow-color: transparent;
 
-  /* Node stroke - lighter than text-muted for subtle definition */
-  --color-node-stroke: #a8a29a;
+  /* Node stroke */
+  --color-node-stroke: #8a847a;
 
   /* Interactive states (for hover on items) */
   --color-interactive-hover: rgba(50, 45, 40, 0.12);
