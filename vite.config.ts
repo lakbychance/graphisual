@@ -16,7 +16,7 @@ export default defineConfig({
     reactScanPlugin(),
     jsonldPlugin(),
     sitemapPlugin({
-      hostname: "https://graphisual.vercel.app",
+      hostname: "https://graphisual.app",
       routes: [{ path: "/", changefreq: "weekly", priority: 1.0 }],
     }),
     pwaPlugin(),

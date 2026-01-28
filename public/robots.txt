@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://graphisual.vercel.app/sitemap.xml
+Sitemap: https://graphisual.app/sitemap.xml
