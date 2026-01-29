@@ -37,7 +37,7 @@ export const StepControls = ({
     <div
       role="group"
       aria-label="Step controls"
-      className="flex items-center gap-2 relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]"
+      className="flex justify-around items-center gap-1 md:gap-2 relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]"
     >
       <GrainTexture baseFrequency={3} className="rounded-md" />
 

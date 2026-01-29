@@ -286,99 +286,99 @@ export const Board = () => {
             <ToolbarSeparator />
 
             {/* Last toolbar items - wrapped for consistent gap */}
-            <div className="flex items-center gap-2">
-            {/* 3D Toggle Button - Desktop only */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToolbarButton asChild>
-                  <Button
-                    onClick={() => setIs3DMode(!is3DMode)}
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn(
-                      "z-10 hidden md:inline-flex",
-                      is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
-                    )}
-                    disabled={isVisualizing}
-                    aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
-                  >
-                    <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
-                  </Button>
-                </ToolbarButton>
-              </TooltipTrigger>
-              <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-            </Tooltip>
-
-            {/* Export - direct button in 3D mode, dropdown in 2D mode */}
-            {is3DMode ? (
+            <div className="flex items-center gap-1 md:gap-2">
+              {/* 3D Toggle Button - Desktop only */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <ToolbarButton asChild>
                     <Button
-                      onClick={handleExport3DPng}
-                      disabled={isVisualizing || !hasNodes}
+                      onClick={() => setIs3DMode(!is3DMode)}
                       variant="ghost"
                       size="icon-sm"
-                      className="z-10"
-                      aria-label="Export PNG"
+                      className={cn(
+                        "z-10 hidden md:inline-flex",
+                        is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
+                      )}
+                      disabled={isVisualizing}
+                      aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
                     >
-                      <Download className="h-4 w-4 text-[var(--color-text)]" />
+                      <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
                     </Button>
                   </ToolbarButton>
                 </TooltipTrigger>
-                <TooltipContent>Export PNG</TooltipContent>
+                <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
               </Tooltip>
-            ) : (
-              <DropdownMenu>
+
+              {/* Export - direct button in 3D mode, dropdown in 2D mode */}
+              {is3DMode ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <ToolbarButton asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          disabled={isVisualizing || !hasNodes}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                          aria-label="Export"
-                        >
-                          <Download className="h-4 w-4 text-[var(--color-text)]" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                      <Button
+                        onClick={handleExport3DPng}
+                        disabled={isVisualizing || !hasNodes}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="z-10"
+                        aria-label="Export PNG"
+                      >
+                        <Download className="h-4 w-4 text-[var(--color-text)]" />
+                      </Button>
                     </ToolbarButton>
                   </TooltipTrigger>
-                  <TooltipContent>Export</TooltipContent>
+                  <TooltipContent>Export PNG</TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent align="center" sideOffset={8}>
-                  <DropdownMenuItem onClick={handleExportSvg}>
-                    <FileCode className="h-4 w-4 mr-2" />
-                    Export as SVG
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExport2DPng}>
-                    <Image className="h-4 w-4 mr-2" />
-                    Export as PNG
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+              ) : (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <ToolbarButton asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            disabled={isVisualizing || !hasNodes}
+                            variant="ghost"
+                            size="icon-sm"
+                            className="z-10"
+                            aria-label="Export"
+                          >
+                            <Download className="h-4 w-4 text-[var(--color-text)]" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </ToolbarButton>
+                    </TooltipTrigger>
+                    <TooltipContent>Export</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="center" sideOffset={8}>
+                    <DropdownMenuItem onClick={handleExportSvg}>
+                      <FileCode className="h-4 w-4 mr-2" />
+                      Export as SVG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExport2DPng}>
+                      <Image className="h-4 w-4 mr-2" />
+                      Export as PNG
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
-            {/* Reset button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToolbarButton asChild>
-                  <Button
-                    onClick={handleReset}
-                    disabled={isVisualizing}
-                    variant="ghost"
-                    size="icon-sm"
-                    className="z-10"
-                    aria-label="Reset Graph"
-                  >
-                    <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
-                  </Button>
-                </ToolbarButton>
-              </TooltipTrigger>
-              <TooltipContent>Reset Graph</TooltipContent>
-            </Tooltip>
+              {/* Reset button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToolbarButton asChild>
+                    <Button
+                      onClick={handleReset}
+                      disabled={isVisualizing}
+                      variant="ghost"
+                      size="icon-sm"
+                      className="z-10"
+                      aria-label="Reset Graph"
+                    >
+                      <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
+                    </Button>
+                  </ToolbarButton>
+                </TooltipTrigger>
+                <TooltipContent>Reset Graph</TooltipContent>
+              </Tooltip>
             </div>
           </Toolbar>
 
@@ -392,7 +392,7 @@ export const Board = () => {
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed z-50 top-[max(0.75rem,env(safe-area-inset-top))] md:top-[5.5rem] left-1/2 -translate-x-1/2"
+              className="fixed z-50 top-[max(0.75rem,env(safe-area-inset-top))] left-4 right-4 md:top-[5.5rem] min-[450px]:left-1/2 min-[450px]:right-auto min-[450px]:-translate-x-1/2"
             >
               <StepControls
                 stepIndex={stepIndex}
