@@ -23,9 +23,10 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
       )}
     >
       <m.div
-        initial={prefersReducedMotion ? false : { opacity: 0, filter: 'blur(2px)' }}
-        animate={{ opacity: 1, filter: 'blur(0px)' }}
-        exit={prefersReducedMotion ? undefined : { opacity: 0, filter: 'blur(2px)' }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: -8, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8, filter: "blur(4px)" }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className="relative">
         {/* Content layer - persists for width animation */}
         <m.div

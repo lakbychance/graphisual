@@ -850,8 +850,8 @@ export const useGraphStore = create<GraphStore>()(
 
         resetStepThrough: () => {
           const { visualization } = get();
-          // Switch back to auto mode and clear
-          const { algorithm, input, speed } = visualization;
+          // Clear visualization but preserve mode preference
+          const { algorithm, input, speed, mode } = visualization;
           set({
             visualization: {
               algorithm,
@@ -859,8 +859,11 @@ export const useGraphStore = create<GraphStore>()(
               state: VisualizationState.IDLE,
               input,
               speed,
-              mode: VisualizationMode.AUTO,
-            } as AutoVisualization,
+              mode,
+              ...(mode === VisualizationMode.MANUAL && {
+                step: { index: -1, history: [], isComplete: false },
+              }),
+            } as Visualization,
           });
         },
       };

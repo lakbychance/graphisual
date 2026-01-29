@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
+import { ToolbarToggleGroup, ToolbarToggleItem, ToolbarSeparator } from "../ui/toolbar";
 import { VisualizationMode } from "../../constants/visualization";
 import { useHasHover } from "../../hooks/useMediaQuery";
 
@@ -12,56 +12,61 @@ interface ModeToggleProps {
 export const ModeToggle = ({ mode, onModeChange, disabled }: ModeToggleProps) => {
   const hasHover = useHasHover();
 
-  const AutoItem = (
-    <span className="flex-1">
-      <RadixToggleGroupItem
-        value={VisualizationMode.AUTO}
-        className="px-2.5 py-1 text-xs w-full"
-      >
-        Auto
-      </RadixToggleGroupItem>
-    </span>
-  );
-
-  const StepItem = (
-    <span className="flex-1">
-      <RadixToggleGroupItem
-        value={VisualizationMode.MANUAL}
-        className="px-2.5 py-1 text-xs w-full"
-      >
-        Step
-      </RadixToggleGroupItem>
-    </span>
-  );
-
   return (
     <>
-      <RadixToggleGroup
+      <ToolbarToggleGroup
         type="single"
         value={mode}
         onValueChange={(value) => value && onModeChange(value as VisualizationMode)}
-        variant="pressed"
         disabled={disabled}
       >
         {hasHover ? (
           <Tooltip>
-            <TooltipTrigger asChild>{AutoItem}</TooltipTrigger>
+            <TooltipTrigger asChild>
+              <span className="flex-1">
+                <ToolbarToggleItem
+                  value={VisualizationMode.AUTO}
+                  className="px-2.5 py-1 text-xs w-full"
+                >
+                  Auto
+                </ToolbarToggleItem>
+              </span>
+            </TooltipTrigger>
             <TooltipContent>Runs visualization automatically</TooltipContent>
           </Tooltip>
         ) : (
-          AutoItem
+          <ToolbarToggleItem
+            value={VisualizationMode.AUTO}
+            className="px-2.5 py-1 text-xs"
+          >
+            Auto
+          </ToolbarToggleItem>
         )}
         {hasHover ? (
           <Tooltip>
-            <TooltipTrigger asChild>{StepItem}</TooltipTrigger>
+            <TooltipTrigger asChild>
+              <span className="flex-1">
+                <ToolbarToggleItem
+                  value={VisualizationMode.MANUAL}
+                  className="px-2.5 py-1 text-xs w-full"
+                >
+                  Step
+                </ToolbarToggleItem>
+              </span>
+            </TooltipTrigger>
             <TooltipContent>Control each step manually</TooltipContent>
           </Tooltip>
         ) : (
-          StepItem
+          <ToolbarToggleItem
+            value={VisualizationMode.MANUAL}
+            className="px-2.5 py-1 text-xs"
+          >
+            Step
+          </ToolbarToggleItem>
         )}
-      </RadixToggleGroup>
+      </ToolbarToggleGroup>
 
-      <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
+      <ToolbarSeparator />
     </>
   );
 };

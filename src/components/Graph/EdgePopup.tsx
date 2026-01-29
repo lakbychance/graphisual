@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { GraphEdge } from "./types";
 import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
 import { GrainTexture } from "../ui/grain-texture";
-import { RadixToggleGroup, RadixToggleGroupItem } from "../ui/toggle-group";
 import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui/stepper-input";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
@@ -10,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 import { EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 import { useHasHover } from "../../hooks/useMediaQuery";
+import { cn } from "../../lib/utils";
 
 interface EdgePopupProps {
   edge: GraphEdge;
@@ -75,27 +75,35 @@ export const EdgePopup = ({
     handleClose();
   };
 
-  const DirectedItem = (
-    <span className="flex-1">
-      <RadixToggleGroupItem
-        value={EDGE_TYPE.DIRECTED}
-        className="w-8 h-8 flex-none px-1.5"
-      >
-        <MoveRight className="w-4 h-4" />
-      </RadixToggleGroupItem>
-    </span>
+  const toggleButtonClass = (isActive: boolean, isDisabled?: boolean) => cn(
+    "w-8 h-8 flex items-center justify-center rounded-md cursor-pointer focus-ring-animated",
+    isActive
+      ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-raised),var(--highlight-edge)]"
+      : "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+    isDisabled && "opacity-50 cursor-not-allowed"
   );
 
-  const UndirectedItem = (
-    <span className="flex-1">
-      <RadixToggleGroupItem
-        value={EDGE_TYPE.UNDIRECTED}
-        disabled={!canSwitchToUndirected}
-        className="w-8 h-8 flex-none px-1.5"
-      >
-        <Minus className="w-4 h-4" />
-      </RadixToggleGroupItem>
-    </span>
+  const DirectedButton = (
+    <button
+      onClick={() => handleTypeChange(EDGE_TYPE.DIRECTED)}
+      className={toggleButtonClass(type === EDGE_TYPE.DIRECTED)}
+      aria-pressed={type === EDGE_TYPE.DIRECTED}
+      aria-label="Directed edge"
+    >
+      <MoveRight className="w-4 h-4" />
+    </button>
+  );
+
+  const UndirectedButton = (
+    <button
+      onClick={() => canSwitchToUndirected && handleTypeChange(EDGE_TYPE.UNDIRECTED)}
+      disabled={!canSwitchToUndirected}
+      className={toggleButtonClass(type === EDGE_TYPE.UNDIRECTED, !canSwitchToUndirected)}
+      aria-pressed={type === EDGE_TYPE.UNDIRECTED}
+      aria-label="Undirected edge"
+    >
+      <Minus className="w-4 h-4" />
+    </button>
   );
 
   return (
@@ -123,33 +131,32 @@ export const EdgePopup = ({
         >
           <GrainTexture className="rounded-lg" />
 
-          <div className="flex items-center gap-2">
+          <div role="group" aria-label="Edge controls" className="flex items-center gap-2">
             {/* Type toggle section */}
-            <RadixToggleGroup
-              type="single"
-              value={type}
-              onValueChange={(value) => value && handleTypeChange(value as EdgeType)}
-              variant="etched"
+            <div
+              role="group"
+              aria-label="Edge type"
+              className="flex p-0.5 gap-2 bg-[var(--color-paper)] shadow-[var(--shadow-etched)] rounded-lg"
             >
               {hasHover ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>{DirectedItem}</TooltipTrigger>
+                  <TooltipTrigger asChild>{DirectedButton}</TooltipTrigger>
                   <TooltipContent side="bottom">Directed</TooltipContent>
                 </Tooltip>
               ) : (
-                DirectedItem
+                DirectedButton
               )}
               {hasHover ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>{UndirectedItem}</TooltipTrigger>
+                  <TooltipTrigger asChild>{UndirectedButton}</TooltipTrigger>
                   <TooltipContent side="bottom">
                     {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                UndirectedItem
+                UndirectedButton
               )}
-            </RadixToggleGroup>
+            </div>
 
             {/* Divider */}
             <div className="w-px h-6 bg-[var(--color-divider)]" />
@@ -168,7 +175,7 @@ export const EdgePopup = ({
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Decrease weight</TooltipContent>
               </Tooltip>
-              <StepperField ref={weightInputRef} />
+              <StepperField ref={weightInputRef} aria-label="Edge weight" />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <StepperIncrement />
@@ -181,37 +188,35 @@ export const EdgePopup = ({
             <div className="w-px h-6 bg-[var(--color-divider)]" />
 
             {/* Actions section */}
-            <div className="flex gap-2">
-              {type === EDGE_TYPE.DIRECTED && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleReverse}
-                      variant="default"
-                      size="icon-sm"
-                      aria-label="Reverse direction"
-                    >
-                      <ArrowLeftRight className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Reverse direction</TooltipContent>
-                </Tooltip>
-              )}
+            {type === EDGE_TYPE.DIRECTED && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={onDelete}
+                    onClick={handleReverse}
                     variant="default"
                     size="icon-sm"
-                    className="text-[var(--color-error)]"
-                    aria-label="Delete edge"
+                    aria-label="Reverse direction"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <ArrowLeftRight className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Delete edge</TooltipContent>
+                <TooltipContent side="bottom">Reverse direction</TooltipContent>
               </Tooltip>
-            </div>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={onDelete}
+                  variant="default"
+                  size="icon-sm"
+                  className="text-[var(--color-error)]"
+                  aria-label="Delete edge"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Delete edge</TooltipContent>
+            </Tooltip>
           </div>
         </PopoverContent>
       </Popover>

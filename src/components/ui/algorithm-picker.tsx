@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Workflow } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Button } from "./button";
+import { ToolbarButton } from "./toolbar";
 import { GrainTexture } from "./grain-texture";
 import { cn } from "../../lib/utils";
 import { algorithmRegistry, type AlgorithmAdapter } from "../../algorithms";
@@ -68,20 +69,22 @@ export const AlgorithmPicker = ({
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          disabled={disabled}
-          aria-label="Select algorithm"
-          className={cn(
-            "w-auto transition-none h-9 !rounded-lg gap-1.5",
-            "justify-center",
-            "md:min-w-[11rem]"
-          )}
-        >
-          <TriggerIcon className="w-4 h-4 shrink-0" />
-          <span className="hidden md:inline">
-            {selectedAlgo ? selectedAlgo.text : "Algorithm"}
-          </span>
-        </Button>
+        <ToolbarButton asChild>
+          <Button
+            disabled={disabled}
+            aria-label="Select algorithm"
+            className={cn(
+              "w-auto transition-none h-9 !rounded-lg gap-1.5",
+              "justify-center",
+              "md:min-w-[11rem]"
+            )}
+          >
+            <TriggerIcon className="w-4 h-4 shrink-0" />
+            <span className="hidden md:inline">
+              {selectedAlgo ? selectedAlgo.text : "Algorithm"}
+            </span>
+          </Button>
+        </ToolbarButton>
       </PopoverTrigger>
       <PopoverContent
         className="w-[320px] p-3"

@@ -1,5 +1,6 @@
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,23 +23,24 @@ export const SpeedControl = ({
 }: SpeedControlProps) => {
   return (
     <>
-      {/* Divider */}
-      <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
+      <ToolbarSeparator />
 
-      {/* Speed stepper */}
-      <div className="flex items-center gap-2 px-1">
+      {/* Speed control group */}
+      <div role="group" aria-label="Speed control" className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              onClick={onDecrease}
-              disabled={disabled || !canDecrease}
-              variant="ghost"
-              size="icon-xs"
-              className="z-10"
-              aria-label="Decrease speed"
-            >
-              <Minus className={cn("h-3.5 w-3.5", canDecrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
+            <ToolbarButton asChild>
+              <Button
+                onClick={onDecrease}
+                disabled={disabled || !canDecrease}
+                variant="ghost"
+                size="icon-xs"
+                className="z-10"
+                aria-label="Decrease speed"
+              >
+                <Minus className={cn("h-3.5 w-3.5", canDecrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+              </Button>
+            </ToolbarButton>
           </TooltipTrigger>
           <TooltipContent>Slower</TooltipContent>
         </Tooltip>
@@ -54,16 +56,18 @@ export const SpeedControl = ({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              onClick={onIncrease}
-              disabled={disabled || !canIncrease}
-              variant="ghost"
-              size="icon-xs"
-              className="z-10"
-              aria-label="Increase speed"
-            >
-              <Plus className={cn("h-3.5 w-3.5", canIncrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
+            <ToolbarButton asChild>
+              <Button
+                onClick={onIncrease}
+                disabled={disabled || !canIncrease}
+                variant="ghost"
+                size="icon-xs"
+                className="z-10"
+                aria-label="Increase speed"
+              >
+                <Plus className={cn("h-3.5 w-3.5", canIncrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+              </Button>
+            </ToolbarButton>
           </TooltipTrigger>
           <TooltipContent>Faster</TooltipContent>
         </Tooltip>
