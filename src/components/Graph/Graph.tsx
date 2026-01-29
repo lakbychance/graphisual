@@ -201,7 +201,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         onKeyDown={handleCanvasKeyDown}
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid slice"
-        role="application"
         aria-label="Graph canvas"
       >
         <defs>

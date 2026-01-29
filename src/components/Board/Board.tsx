@@ -186,7 +186,6 @@ export const Board = () => {
     return hints[0] || '';
   };
 
-
   // Handle skip link - focus graph and select topmost node
   const handleSkipToGraph = useCallback(() => {
     const { data, selectNode } = useGraphStore.getState();
@@ -440,7 +439,6 @@ export const Board = () => {
             <AlgorithmHint text={getAlgorithmHintText()} algorithmName={visualizationAlgorithm.key} />
           )}
         </AnimatePresence>
-
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
