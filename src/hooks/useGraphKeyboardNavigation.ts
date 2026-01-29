@@ -4,6 +4,7 @@ import { useShallow } from "zustand/shallow";
 import { calculateTextLoc } from "../utils/geometry/calc";
 import { findNodeInDirection, type Direction } from "../utils/focus/findNodeInDirection";
 import { isElementInPopup } from "../utils/dom";
+import { useIsDesktop } from "./useMediaQuery";
 
 interface UseGraphKeyboardNavigationOptions {
   graphRef: RefObject<SVGSVGElement | null>;
@@ -24,6 +25,8 @@ export function useGraphKeyboardNavigation({
   isAlgorithmSelected = false,
   isVisualizing = false,
 }: UseGraphKeyboardNavigationOptions) {
+  // Keyboard navigation is desktop only
+  const isDesktop = useIsDesktop();
   // Store state
   const orderedNodeIds = useGraphStore(
     useShallow((state) => [...state.data.stackingOrder])
@@ -41,6 +44,8 @@ export function useGraphKeyboardNavigation({
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Skip on mobile - keyboard navigation is desktop only
+    if (!isDesktop) return;
     // Skip during step mode (arrows control stepping)
     if (isInStepMode) return;
 
@@ -141,11 +146,13 @@ export function useGraphKeyboardNavigation({
         selectNode(nextNode.id);
       }
     }
-  }, [isInStepMode, selectedNodeId, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
+  }, [isDesktop, isInStepMode, selectedNodeId, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
 
   // Handle blur - deselect node and clear edge focus when focus leaves the graph
   // But don't clear if focus is moving to the edge popup
   const handleBlur = useCallback((e: React.FocusEvent) => {
+    // Skip on mobile - keyboard navigation is desktop only
+    if (!isDesktop) return;
     if (isElementInPopup(e.relatedTarget as Element)) return;
 
     if (selectedNodeId !== null) {
@@ -154,7 +161,7 @@ export function useGraphKeyboardNavigation({
     if (focusedEdge !== null) {
       clearFocusedEdge();
     }
-  }, [selectedNodeId, focusedEdge, selectNode, clearFocusedEdge]);
+  }, [isDesktop, selectedNodeId, focusedEdge, selectNode, clearFocusedEdge]);
 
   // Wrapper for closeEdgePopup that refocuses the canvas (only for keyboard navigation)
   const handleCloseEdgePopup = useCallback(() => {
