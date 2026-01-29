@@ -201,10 +201,12 @@ export const Board = () => {
   return (
     <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
       <main className="h-dvh w-screen relative overflow-hidden">
-        {/* Skip link for keyboard navigation - first in tab order */}
-        <Button variant="skipLink" onClick={handleSkipToGraph}>
-          Skip to graph
-        </Button>
+        {/* Skip link for keyboard navigation - first in tab order, 2D only */}
+        {!is3DMode && (
+          <Button variant="skipLink" onClick={handleSkipToGraph}>
+            Skip to graph
+          </Button>
+        )}
 
         {/* Background color */}
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
