@@ -15,12 +15,14 @@ import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
+import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
 import { useShallow } from "zustand/shallow";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
+import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 
 export interface GraphHandle {
   getSvgElement: () => SVGSVGElement | null;
@@ -35,6 +37,8 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const selectedEdge = useGraphStore((state) => state.selection.edge);
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
   const panTarget = useGraphStore((state) => state.viewport.pan);
+  const visualizationMode = useGraphStore((state) => state.visualization.mode);
+  const visualizationState = useGraphStore((state) => state.visualization.state);
 
   // Animated viewport values (spring-smoothed)
   const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
@@ -85,6 +89,18 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     if (!ctm) return { x: 0, y: 0 };
     const svgPoint = point.matrixTransform(ctm);
     return { x: svgPoint.x, y: svgPoint.y };
+  }, []);
+
+  // Convert SVG coordinates to screen coordinates
+  const svgToScreenCoords = useCallback((svgX: number, svgY: number) => {
+    if (!graph.current) return { x: 0, y: 0 };
+    const point = graph.current.createSVGPoint();
+    point.x = svgX;
+    point.y = svgY;
+    const ctm = graph.current.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const screenPoint = point.matrixTransform(ctm);
+    return { x: screenPoint.x, y: screenPoint.y };
   }, []);
 
   // Apply step-through visualization when stepIndex changes
@@ -150,6 +166,25 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     }
   }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas]);
 
+  // Check if we're in step mode (manual visualization with steps)
+  const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
+    visualizationState === VisualizationState.RUNNING;
+
+  // Keyboard navigation hook
+  const {
+    handleKeyDown: handleCanvasKeyDown,
+    handleBlur: handleCanvasBlur,
+    handleCloseEdgePopup,
+  } = useGraphKeyboardNavigation({
+    graphRef: graph,
+    svgToScreenCoords,
+    isInStepMode,
+    closeEdgePopup,
+    onAlgorithmNodeSelect: handleNodeClick,
+    isAlgorithmSelected: !!currentAlgorithm,
+    isVisualizing,
+  });
+
   // Hide content until viewBox is ready to prevent flicker on mount
   const isReady = viewBox !== undefined;
 
@@ -157,12 +192,16 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     <div className="relative flex-1 w-full h-full flex flex-col">
       <svg
         ref={graph}
-        className="flex-1 w-full h-full cursor-crosshair"
+        tabIndex={-1}
+        className="flex-1 w-full h-full cursor-crosshair focus:outline-none"
         style={{ visibility: isReady ? 'visible' : 'hidden' }}
         onPointerDown={handleCanvasPointerDown}
         onClick={handleCanvasClick}
+        onBlur={handleCanvasBlur}
+        onKeyDown={handleCanvasKeyDown}
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid slice"
+        aria-label="Graph canvas"
       >
         <defs>
           <CanvasDefs />
@@ -208,7 +247,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
           <EdgePopup
             edge={edge}
             anchorPosition={clickPosition}
-            onClose={closeEdgePopup}
+            onClose={handleCloseEdgePopup}
             onUpdateType={updateEdgeType}
             onUpdateWeight={updateEdgeWeight}
             onReverse={reverseEdge}

@@ -27,6 +27,9 @@ const buttonVariants = cva(
                 // Link: text only
                 link:
                     "bg-transparent text-[var(--color-accent)] underline-offset-4 hover:underline",
+                // Skip link: hidden until focused, for accessibility skip navigation
+                skipLink:
+                    "sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:h-10 focus:px-5 focus:py-2 focus:rounded-lg focus:bg-[var(--color-surface)] focus:text-[var(--color-text)] focus:shadow-[var(--shadow-raised),var(--highlight-edge)]",
             },
             size: {
                 default: "h-10 px-5 py-2 rounded-lg",
@@ -46,7 +49,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "default" | "primary" | "destructive" | "secondary" | "ghost" | "link";
+    variant?: "default" | "primary" | "destructive" | "secondary" | "ghost" | "link" | "skipLink";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
     asChild?: boolean;
     ref?: React.Ref<HTMLButtonElement>;

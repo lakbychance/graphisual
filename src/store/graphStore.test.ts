@@ -30,6 +30,7 @@ beforeEach(() => {
     selection: {
       nodeId: null,
       edge: null,
+      focusedEdge: null,
     },
     viewport: { zoom: 1, pan: { x: 0, y: 0 } },
   })

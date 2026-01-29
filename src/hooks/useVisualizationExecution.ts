@@ -48,6 +48,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   const setVisualizationState = useGraphStore((state) => state.setVisualizationState);
   const resetVisualization = useGraphStore((state) => state.resetVisualization);
   const initStepThrough = useGraphStore((state) => state.initStepThrough);
+  const selectNode = useGraphStore((state) => state.selectNode);
 
   // Derive boolean for simpler logic
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
@@ -173,6 +174,9 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       const generator = currentAlgorithm.generator(input);
       const steps: AlgorithmStep[] = [...generator];
 
+      // Clear node selection when visualization starts
+      selectNode(null);
+
       // Initialize step-through mode
       initStepThrough(steps);
       return;
@@ -189,10 +193,13 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       return;
     }
 
+    // Clear node selection when visualization starts
+    selectNode(null);
+
     const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
     visualizeTraversedEdges(visitedEdges, resultEdges);
-  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough]);
+  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough, selectNode]);
 
   return {
     runAlgorithm,

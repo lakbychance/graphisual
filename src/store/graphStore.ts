@@ -75,6 +75,7 @@ export interface GraphData {
 interface Selection {
   nodeId: number | null;
   edge: { edge: GraphEdge; sourceNode: GraphNode; clickPosition: { x: number; y: number } } | null;
+  focusedEdge: { from: number; to: number } | null;
 }
 
 interface GraphState {
@@ -106,6 +107,8 @@ interface GraphActions {
   selectNode: (nodeId: number | null) => void;
   selectEdge: (edge: GraphEdge, sourceNode: GraphNode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
+  setFocusedEdge: (from: number, to: number) => void;
+  clearFocusedEdge: () => void;
 
   // === Visualization Actions ===
   setVisualizationAlgorithm: (algo: SelectedOption | undefined) => void;
@@ -180,6 +183,7 @@ const initialData: GraphData = {
 const initialSelection: Selection = {
   nodeId: null,
   edge: null,
+  focusedEdge: null,
 };
 
 const initialState: GraphState = {
@@ -312,7 +316,7 @@ export const useGraphStore = create<GraphStore>()(
 
           set({
             data: { nodes: newNodes, edges: newEdges, nodeCounter, stackingOrder: newStackingOrder },
-            selection: { nodeId: null, edge: null },
+            selection: { nodeId: null, edge: null, focusedEdge: null },
           });
         }),
 
@@ -369,7 +373,7 @@ export const useGraphStore = create<GraphStore>()(
 
           set({
             data: { nodes, edges, nodeCounter, stackingOrder },
-            selection: { nodeId: null, edge: null },
+            selection: { nodeId: null, edge: null, focusedEdge: null },
             visualization: { ...visualization, input: null },
             viewport: { zoom: 1, pan: { x: 0, y: 0 } }, // Reset viewport to center on new graph
           });
@@ -585,7 +589,7 @@ export const useGraphStore = create<GraphStore>()(
             () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
-              selection: { nodeId: null, edge: null },
+              selection: { nodeId: null, edge: null, focusedEdge: null },
             })
           );
         },
@@ -598,7 +602,7 @@ export const useGraphStore = create<GraphStore>()(
             () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
-              selection: { nodeId: null, edge: null },
+              selection: { nodeId: null, edge: null, focusedEdge: null },
             })
           );
         },
@@ -618,7 +622,7 @@ export const useGraphStore = create<GraphStore>()(
 
         selectNode: (nodeId) => {
           const { selection } = get();
-          set({ selection: { ...selection, nodeId } });
+          set({ selection: { ...selection, nodeId, focusedEdge: null } });
         },
 
         selectEdge: (edge, sourceNode, clickPosition) => {
@@ -629,6 +633,16 @@ export const useGraphStore = create<GraphStore>()(
         clearEdgeSelection: () => {
           const { selection } = get();
           set({ selection: { ...selection, edge: null } });
+        },
+
+        setFocusedEdge: (from: number, to: number) => {
+          const { selection } = get();
+          set({ selection: { ...selection, focusedEdge: { from, to } } });
+        },
+
+        clearFocusedEdge: () => {
+          const { selection } = get();
+          set({ selection: { ...selection, focusedEdge: null } });
         },
 
         // ========================================
@@ -932,3 +946,30 @@ export const selectEdgeVisState = (fromId: number, toId: number) =>
     if (flags?.isUsedInTraversal) return 'traversal';
     return 'default';
   };
+
+/**
+ * Selector factory for checking if an edge is focused (keyboard navigation).
+ * Returns true if this specific edge direction is focused.
+ * For undirected edges, also returns true if the reverse direction is focused.
+ *
+ * Usage: const isFocused = useGraphStore(selectIsEdgeFocused(fromId, toId));
+ */
+export const selectIsEdgeFocused = (fromId: number, toId: number) =>
+  (state: GraphStore): boolean => {
+    const focused = state.selection.focusedEdge;
+    if (focused === null) return false;
+
+    // Direct match
+    if (focused.from === fromId && focused.to === toId) return true;
+
+    // For undirected edges, check if reverse is focused
+    if (focused.from === toId && focused.to === fromId) {
+      // Check if this edge is undirected
+      const edges = state.data.edges.get(fromId);
+      const edge = edges?.find(e => e.to === toId);
+      if (edge?.type === 'undirected') return true;
+    }
+
+    return false;
+  };
+
