@@ -2,6 +2,7 @@ import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import { Minus, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SpeedControlProps {
   speedMultiplier: string;
@@ -30,14 +31,14 @@ export const SpeedControl = ({
           <TooltipTrigger asChild>
             <ToolbarButton asChild>
               <Button
-                onClick={() => !disabled && canDecrease && onDecrease()}
-                aria-disabled={disabled || !canDecrease}
+                onClick={onDecrease}
+                disabled={disabled || !canDecrease}
                 variant="ghost"
                 size="icon-xs"
                 className="z-10"
                 aria-label="Decrease speed"
               >
-                <Minus className="h-3.5 w-3.5 text-[var(--color-text)]" />
+                <Minus className={cn("h-3.5 w-3.5", canDecrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
             </ToolbarButton>
           </TooltipTrigger>
@@ -57,14 +58,14 @@ export const SpeedControl = ({
           <TooltipTrigger asChild>
             <ToolbarButton asChild>
               <Button
-                onClick={() => !disabled && canIncrease && onIncrease()}
-                aria-disabled={disabled || !canIncrease}
+                onClick={onIncrease}
+                disabled={disabled || !canIncrease}
                 variant="ghost"
                 size="icon-xs"
                 className="z-10"
                 aria-label="Increase speed"
               >
-                <Plus className="h-3.5 w-3.5 text-[var(--color-text)]" />
+                <Plus className={cn("h-3.5 w-3.5", canIncrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               </Button>
             </ToolbarButton>
           </TooltipTrigger>

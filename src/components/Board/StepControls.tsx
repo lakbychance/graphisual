@@ -1,10 +1,10 @@
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import {
   SkipBack, ChevronLeft, ChevronRight, SkipForward, Play, Pause,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GrainTexture } from "../ui/grain-texture";
 
 interface StepControlsProps {
   stepIndex: number;
@@ -34,25 +34,26 @@ export const StepControls = ({
   onStop,
 }: StepControlsProps) => {
   return (
-    <>
-      {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
-      <ToolbarSeparator className="hidden md:block" />
+    <div
+      role="group"
+      aria-label="Step controls"
+      className="flex items-center gap-1 relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]"
+    >
+      <GrainTexture baseFrequency={3} className="rounded-md" />
 
       {/* Jump to start */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onJumpToStart}
-              disabled={!canStepBackward}
-              variant="ghost"
-              size="icon-sm"
-              className="z-10"
-              aria-label="Jump to start"
-            >
-              <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onJumpToStart}
+            disabled={!canStepBackward}
+            variant="ghost"
+            size="icon-sm"
+            className="z-10"
+            aria-label="Jump to start"
+          >
+            <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Jump to Start (Home)</TooltipContent>
       </Tooltip>
@@ -60,18 +61,16 @@ export const StepControls = ({
       {/* Step backward */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onStepBackward}
-              disabled={!canStepBackward}
-              variant="ghost"
-              size="icon-sm"
-              className="z-10"
-              aria-label="Previous step"
-            >
-              <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onStepBackward}
+            disabled={!canStepBackward}
+            variant="ghost"
+            size="icon-sm"
+            className="z-10"
+            aria-label="Previous step"
+          >
+            <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Previous Step (←)</TooltipContent>
       </Tooltip>
@@ -84,18 +83,16 @@ export const StepControls = ({
       {/* Step forward */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onStepForward}
-              disabled={!canStepForward}
-              variant="ghost"
-              size="icon-sm"
-              className="z-10"
-              aria-label="Next step"
-            >
-              <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onStepForward}
+            disabled={!canStepForward}
+            variant="ghost"
+            size="icon-sm"
+            className="z-10"
+            aria-label="Next step"
+          >
+            <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Next Step (→)</TooltipContent>
       </Tooltip>
@@ -103,18 +100,16 @@ export const StepControls = ({
       {/* Jump to end */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onJumpToEnd}
-              disabled={!canStepForward}
-              variant="ghost"
-              size="icon-sm"
-              className="z-10"
-              aria-label="Jump to end"
-            >
-              <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onJumpToEnd}
+            disabled={!canStepForward}
+            variant="ghost"
+            size="icon-sm"
+            className="z-10"
+            aria-label="Jump to end"
+          >
+            <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Jump to End (End)</TooltipContent>
       </Tooltip>
@@ -122,42 +117,40 @@ export const StepControls = ({
       {/* Play/Pause */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onTogglePlay}
-              disabled={!canStepForward && !isPlaying}
-              variant="ghost"
-              size="icon-sm"
-              className="z-10"
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? (
-                <Pause className="h-4 w-4 text-[var(--color-text)]" />
-              ) : (
-                <Play className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-              )}
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onTogglePlay}
+            disabled={!canStepForward && !isPlaying}
+            variant="ghost"
+            size="icon-sm"
+            className="z-10"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4 text-[var(--color-text)]" />
+            ) : (
+              <Play className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            )}
+          </Button>
         </TooltipTrigger>
         <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
       </Tooltip>
 
+      {/* Divider */}
+      <div className="w-px h-7 mx-1 bg-[var(--color-divider)]" />
+
       {/* Stop/Done button */}
-      <ToolbarSeparator />
       <Tooltip>
         <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onStop}
-              variant="ghost"
-              className="h-9 px-3 z-10 !rounded-md text-sm text-[var(--color-error)]"
-            >
-              Done
-            </Button>
-          </ToolbarButton>
+          <Button
+            onClick={onStop}
+            variant="ghost"
+            className="h-9 px-3 z-10 !rounded-md text-sm text-[var(--color-error)]"
+          >
+            Done
+          </Button>
         </TooltipTrigger>
         <TooltipContent>End Visualization</TooltipContent>
       </Tooltip>
-    </>
+    </div>
   );
 };

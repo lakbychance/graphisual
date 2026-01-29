@@ -32,6 +32,7 @@ import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
 import { ZoomControls } from "./ZoomControls";
 import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { Toolbar, ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 
 export const Board = () => {
@@ -252,34 +253,144 @@ export const Board = () => {
           <Toolbar aria-label="Graph controls" className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={3} className="rounded-md" />
 
-            {/* Mode toggle - hidden during step visualization */}
-            {!isInStepMode && (
-              <ModeToggle
-                mode={visualizationMode}
-                onModeChange={setVisualizationMode}
+            {/* Mode toggle */}
+            <ModeToggle
+              mode={visualizationMode}
+              onModeChange={setVisualizationMode}
+              disabled={isVisualizing}
+            />
+
+            {/* Algorithm picker */}
+            <AlgorithmPicker
+              selectedAlgo={visualizationAlgorithm}
+              onSelect={handleAlgoChange}
+              disabled={isVisualizing || !hasNodes}
+            />
+
+            {/* Graph Generator */}
+            <ToolbarSeparator />
+            <GraphGenerator disabled={isVisualizing} />
+
+            {/* Speed control - Desktop only */}
+            {isDesktop && (
+              <SpeedControl
+                speedMultiplier={currentSpeedMultiplier}
                 disabled={isVisualizing}
+                canDecrease={currentSpeedIndex > 0}
+                canIncrease={currentSpeedIndex < SPEED_LEVELS.length - 1}
+                onDecrease={handleDecreaseSpeed}
+                onIncrease={handleIncreaseSpeed}
               />
             )}
 
-            {/* Algorithm picker - hidden on mobile during step mode */}
-            {(!isInStepMode || isDesktop) && (
-              <AlgorithmPicker
-                selectedAlgo={visualizationAlgorithm}
-                onSelect={handleAlgoChange}
-                disabled={isVisualizing || !hasNodes}
-              />
+            <ToolbarSeparator />
+
+            {/* 3D Toggle Button - Desktop only */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToolbarButton asChild>
+                  <Button
+                    onClick={() => setIs3DMode(!is3DMode)}
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn(
+                      "z-10 hidden md:inline-flex",
+                      is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
+                    )}
+                    disabled={isVisualizing}
+                    aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
+                  >
+                    <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
+                  </Button>
+                </ToolbarButton>
+              </TooltipTrigger>
+              <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
+            </Tooltip>
+
+            {/* Export - direct button in 3D mode, dropdown in 2D mode */}
+            {is3DMode ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ToolbarButton asChild>
+                    <Button
+                      onClick={handleExport3DPng}
+                      disabled={isVisualizing || !hasNodes}
+                      variant="ghost"
+                      size="icon-sm"
+                      className="z-10"
+                      aria-label="Export PNG"
+                    >
+                      <Download className="h-4 w-4 text-[var(--color-text)]" />
+                    </Button>
+                  </ToolbarButton>
+                </TooltipTrigger>
+                <TooltipContent>Export PNG</TooltipContent>
+              </Tooltip>
+            ) : (
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToolbarButton asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          disabled={isVisualizing || !hasNodes}
+                          variant="ghost"
+                          size="icon-sm"
+                          className="z-10"
+                          aria-label="Export"
+                        >
+                          <Download className="h-4 w-4 text-[var(--color-text)]" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </ToolbarButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Export</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="center" sideOffset={8}>
+                  <DropdownMenuItem onClick={handleExportSvg}>
+                    <FileCode className="h-4 w-4 mr-2" />
+                    Export as SVG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExport2DPng}>
+                    <Image className="h-4 w-4 mr-2" />
+                    Export as PNG
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
-            {/* Graph Generator - hidden during step mode visualization */}
-            {!isInStepMode && (
-              <>
-                <ToolbarSeparator />
-                <GraphGenerator disabled={isVisualizing} />
-              </>
-            )}
+            {/* Reset button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ToolbarButton asChild>
+                  <Button
+                    onClick={handleReset}
+                    disabled={isVisualizing}
+                    variant="ghost"
+                    size="icon-sm"
+                    className="z-10"
+                    aria-label="Reset Graph"
+                  >
+                    <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
+                  </Button>
+                </ToolbarButton>
+              </TooltipTrigger>
+              <TooltipContent>Reset Graph</TooltipContent>
+            </Tooltip>
+          </Toolbar>
 
-            {/* Step controls - shown when in manual step mode during visualization */}
-            {isInStepMode && (
+        </div>
+
+        {/* Step controls - fixed position, top on mobile, below toolbar on desktop */}
+        <AnimatePresence>
+          {isInStepMode && (
+            <m.div
+              initial={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="fixed z-50 top-[max(0.75rem,env(safe-area-inset-top))] md:top-[5.5rem] left-1/2 -translate-x-1/2"
+            >
               <StepControls
                 stepIndex={stepIndex}
                 totalSteps={stepHistory.length}
@@ -293,121 +404,9 @@ export const Board = () => {
                 onTogglePlay={actions.togglePlay.execute}
                 onStop={actions.stopVisualization.execute}
               />
-            )}
-
-            {/* Speed control - Desktop only (hidden during step mode) */}
-            {!isInStepMode && isDesktop && (
-              <SpeedControl
-                speedMultiplier={currentSpeedMultiplier}
-                disabled={isVisualizing}
-                canDecrease={currentSpeedIndex > 0}
-                canIncrease={currentSpeedIndex < SPEED_LEVELS.length - 1}
-                onDecrease={handleDecreaseSpeed}
-                onIncrease={handleIncreaseSpeed}
-              />
-            )}
-
-            {/* Normal toolbar controls - hidden during step mode visualization */}
-            {!isInStepMode && (
-              <>
-                <ToolbarSeparator />
-
-                {/* 3D Toggle Button - Desktop only */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToolbarButton asChild>
-                      <Button
-                        onClick={() => setIs3DMode(!is3DMode)}
-                        variant="ghost"
-                        size="icon-sm"
-                        className={cn(
-                          "z-10 hidden md:inline-flex",
-                          is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
-                        )}
-                        disabled={isVisualizing}
-                        aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
-                      >
-                        <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
-                      </Button>
-                    </ToolbarButton>
-                  </TooltipTrigger>
-                  <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-                </Tooltip>
-
-                {/* Export - direct button in 3D mode, dropdown in 2D mode */}
-                {is3DMode ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <ToolbarButton asChild>
-                        <Button
-                          onClick={handleExport3DPng}
-                          disabled={isVisualizing || !hasNodes}
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10"
-                          aria-label="Export PNG"
-                        >
-                          <Download className="h-4 w-4 text-[var(--color-text)]" />
-                        </Button>
-                      </ToolbarButton>
-                    </TooltipTrigger>
-                    <TooltipContent>Export PNG</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <ToolbarButton asChild>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              disabled={isVisualizing || !hasNodes}
-                              variant="ghost"
-                              size="icon-sm"
-                              className="z-10"
-                              aria-label="Export"
-                            >
-                              <Download className="h-4 w-4 text-[var(--color-text)]" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                        </ToolbarButton>
-                      </TooltipTrigger>
-                      <TooltipContent>Export</TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="center" sideOffset={8}>
-                      <DropdownMenuItem onClick={handleExportSvg}>
-                        <FileCode className="h-4 w-4 mr-2" />
-                        Export as SVG
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleExport2DPng}>
-                        <Image className="h-4 w-4 mr-2" />
-                        Export as PNG
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                {/* Reset button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToolbarButton asChild>
-                      <Button
-                        onClick={handleReset}
-                        disabled={isVisualizing}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                        aria-label="Reset Graph"
-                      >
-                        <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
-                      </Button>
-                    </ToolbarButton>
-                  </TooltipTrigger>
-                  <TooltipContent>Reset Graph</TooltipContent>
-                </Tooltip>
-              </>
-            )}
-          </Toolbar>
-        </div>
+            </m.div>
+          )}
+        </AnimatePresence>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
         <AnimatePresence>
