@@ -63,11 +63,17 @@ export const Edge = memo(function Edge({
   const handleMouseEnter = (e: React.MouseEvent<SVGPathElement>) => {
     if (!isVisualizing) {
       e.currentTarget.style.stroke = hoverColor;
+      if (edge.type === 'directed') {
+        e.currentTarget.style.markerEnd = 'url(#arrowhead-focused)';
+      }
     }
   };
 
   const handleMouseLeave = (e: React.MouseEvent<SVGPathElement>) => {
     e.currentTarget.style.stroke = edgeColor;
+    if (edge.type === 'directed') {
+      e.currentTarget.style.markerEnd = `url(#${arrowMarkerId})`;
+    }
   };
 
   const getStrokeWidth = () => {
