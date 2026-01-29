@@ -285,6 +285,8 @@ export const Board = () => {
 
             <ToolbarSeparator />
 
+            {/* Last toolbar items - wrapped for consistent gap */}
+            <div className="flex items-center gap-2">
             {/* 3D Toggle Button - Desktop only */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -377,6 +379,7 @@ export const Board = () => {
               </TooltipTrigger>
               <TooltipContent>Reset Graph</TooltipContent>
             </Tooltip>
+            </div>
           </Toolbar>
 
         </div>
