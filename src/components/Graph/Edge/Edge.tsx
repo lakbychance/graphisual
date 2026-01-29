@@ -2,7 +2,7 @@ import { memo } from "react";
 import { calculateCurve, calculateTextLoc } from "../../../utils/geometry/calc";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
-import { useGraphStore } from "../../../store/graphStore";
+import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
 
 export interface EdgeProps {
   edge: GraphEdge;
@@ -22,6 +22,9 @@ export const Edge = memo(function Edge({
     state.visualization.trace.edges.get(`${sourceNodeId}-${edge.to}`)
   );
 
+  // Subscribe to keyboard focus state for this edge
+  const isFocused = useGraphStore(selectIsEdgeFocused(sourceNodeId, edge.to));
+
   const directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
   const undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
   const textCoordDirected = calculateTextLoc(edge.x1, edge.y1, edge.x2, edge.y2);
@@ -33,12 +36,14 @@ export const Edge = memo(function Edge({
   };
 
   const getEdgeColor = () => {
+    if (isFocused) return "var(--color-accent-form)";
     if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
     if (visFlags?.isUsedInTraversal) return "var(--color-edge-traversal)";
     return "var(--color-edge-default)";
   };
 
   const getArrowMarkerId = () => {
+    if (isFocused) return "arrowhead-focused";
     if (visFlags?.isUsedInShortestPath) return "arrowhead-path";
     if (visFlags?.isUsedInTraversal) return "arrowhead-traversal";
     return "arrowhead-default";

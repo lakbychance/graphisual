@@ -75,6 +75,11 @@ export const EdgePopup = ({
     handleClose();
   };
 
+  const handleDelete = () => {
+    onDelete();
+    handleClose();
+  };
+
   const toggleButtonClass = (isActive: boolean, isDisabled?: boolean) => cn(
     "w-8 h-8 flex items-center justify-center rounded-md cursor-pointer focus-ring-animated",
     isActive
@@ -122,12 +127,17 @@ export const EdgePopup = ({
             }}
           />
         </PopoverAnchor>
-
         <PopoverContent
           side="top"
           sideOffset={8}
           className="p-2"
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              handleClose();
+            }
+          }}
         >
           <GrainTexture className="rounded-lg" />
 
@@ -206,7 +216,7 @@ export const EdgePopup = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={onDelete}
+                  onClick={handleDelete}
                   variant="default"
                   size="icon-sm"
                   className="text-[var(--color-error)]"

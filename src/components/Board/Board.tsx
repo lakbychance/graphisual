@@ -185,18 +185,30 @@ export const Board = () => {
     return hints[0] || '';
   };
 
+  // Handle skip link - focus graph and select topmost node
+  const handleSkipToGraph = useCallback(() => {
+    const { data, selectNode } = useGraphStore.getState();
+    const orderedNodeIds = [...data.stackingOrder];
+    if (orderedNodeIds.length > 0) {
+      const topmostNodeId = orderedNodeIds[orderedNodeIds.length - 1];
+      selectNode(topmostNodeId);
+      graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
+    }
+  }, []);
+
   return (
     <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
       <main className="h-dvh w-screen relative overflow-hidden">
+        {/* Skip link for keyboard navigation - first in tab order */}
+        <Button variant="skipLink" onClick={handleSkipToGraph}>
+          Skip to graph
+        </Button>
+
         {/* Background color */}
         <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
 
-        {/* Full-screen Graph with crossfade transition */}
-        <div className="absolute inset-0 touch-action-manipulation">
-          <GraphRenderer ref={graphRendererRef} />
-        </div>
-
         {/* Toolbar - Bottom on mobile, Top on desktop */}
+        {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
         <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
           {/* Mobile: Floating Undo/Redo/Delete - aligned to right edge of toolbar */}
           <div className="flex justify-between">
@@ -385,6 +397,7 @@ export const Board = () => {
         </div>
 
         {/* Step controls - fixed position, top on mobile, below toolbar on desktop */}
+        {/* DOM order: After main toolbar for natural tab flow during step mode */}
         <AnimatePresence>
           {isInStepMode && (
             <m.div
@@ -410,6 +423,12 @@ export const Board = () => {
             </m.div>
           )}
         </AnimatePresence>
+
+        {/* Full-screen Graph with crossfade transition */}
+        {/* DOM order: After toolbar/step controls for natural tab order */}
+        <div className="absolute inset-0 touch-action-manipulation">
+          <GraphRenderer ref={graphRendererRef} />
+        </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
         <AnimatePresence>

@@ -15,6 +15,8 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
   const updateEdgeWeightAction = useGraphStore((state) => state.updateEdgeWeight);
   const reverseEdgeAction = useGraphStore((state) => state.reverseEdge);
   const deleteEdgeAction = useGraphStore((state) => state.deleteEdge);
+  const selectNode = useGraphStore((state) => state.selectNode);
+  const clearFocusedEdge = useGraphStore((state) => state.clearFocusedEdge);
 
   // Subscribe to selectedEdge for the action callbacks
   const selectedEdge = useGraphStore((state) => state.selection.edge);
@@ -25,9 +27,12 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
       const { data } = useGraphStore.getState();
       const fromNode = data.nodes.find(n => n.id === fromNodeId);
       if (!fromNode) return;
+      // Clear keyboard navigation state when using mouse to select edge
+      selectNode(null);
+      clearFocusedEdge();
       selectEdgeAction(edge, fromNode, clickPosition);
     },
-    [isVisualizing, selectEdgeAction]
+    [isVisualizing, selectNode, clearFocusedEdge, selectEdgeAction]
   );
 
   const closeEdgePopup = useCallback(() => {
