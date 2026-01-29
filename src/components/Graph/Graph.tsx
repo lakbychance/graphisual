@@ -180,6 +180,9 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     svgToScreenCoords,
     isInStepMode,
     closeEdgePopup,
+    onAlgorithmNodeSelect: handleNodeClick,
+    isAlgorithmSelected: !!currentAlgorithm,
+    isVisualizing,
   });
 
   // Hide content until viewBox is ready to prevent flicker on mount

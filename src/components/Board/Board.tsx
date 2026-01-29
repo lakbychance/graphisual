@@ -201,8 +201,8 @@ export const Board = () => {
   return (
     <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
       <main className="h-dvh w-screen relative overflow-hidden">
-        {/* Skip link for keyboard navigation - first in tab order, 2D only */}
-        {!is3DMode && (
+        {/* Skip link for keyboard navigation - first in tab order, 2D only, only if nodes exist */}
+        {!is3DMode && hasNodes && (
           <Button variant="skipLink" onClick={handleSkipToGraph}>
             Skip to graph
           </Button>

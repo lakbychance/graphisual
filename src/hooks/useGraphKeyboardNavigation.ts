@@ -10,6 +10,9 @@ interface UseGraphKeyboardNavigationOptions {
   svgToScreenCoords: (svgX: number, svgY: number) => { x: number; y: number };
   isInStepMode: boolean;
   closeEdgePopup: () => void;
+  onAlgorithmNodeSelect?: (nodeId: number) => void;
+  isAlgorithmSelected?: boolean;
+  isVisualizing?: boolean;
 }
 
 export function useGraphKeyboardNavigation({
@@ -17,6 +20,9 @@ export function useGraphKeyboardNavigation({
   svgToScreenCoords,
   isInStepMode,
   closeEdgePopup,
+  onAlgorithmNodeSelect,
+  isAlgorithmSelected = false,
+  isVisualizing = false,
 }: UseGraphKeyboardNavigationOptions) {
   // Store state
   const orderedNodeIds = useGraphStore(
@@ -62,7 +68,7 @@ export function useGraphKeyboardNavigation({
       return;
     }
 
-    // === Enter key: open edge popup ===
+    // === Enter key: open edge popup (when edge focused) ===
     if (e.key === 'Enter' && focusedEdge) {
       e.preventDefault();
       const edgeList = edges.get(focusedEdge.from);
@@ -83,6 +89,13 @@ export function useGraphKeyboardNavigation({
           selectEdgeAction(edge, sourceNode, clickPosition);
         }
       }
+      return;
+    }
+
+    // === Enter key: select node for algorithm (when algorithm selected) ===
+    if (e.key === 'Enter' && isAlgorithmSelected && selectedNodeId !== null && !isVisualizing && onAlgorithmNodeSelect) {
+      e.preventDefault();
+      onAlgorithmNodeSelect(selectedNodeId);
       return;
     }
 
@@ -128,7 +141,7 @@ export function useGraphKeyboardNavigation({
         selectNode(nextNode.id);
       }
     }
-  }, [isInStepMode, selectedNodeId, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords]);
+  }, [isInStepMode, selectedNodeId, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
 
   // Handle blur - deselect node and clear edge focus when focus leaves the graph
   // But don't clear if focus is moving to the edge popup
