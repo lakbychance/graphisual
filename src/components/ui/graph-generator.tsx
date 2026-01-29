@@ -3,6 +3,7 @@ import { Sparkles, Shuffle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { Button } from "./button";
+import { ToolbarButton } from "./toolbar";
 import { CardButton } from "./card-button";
 import { StepperInput } from "./stepper-input";
 import { Slider } from "./slider";
@@ -293,17 +294,19 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          disabled={disabled}
-          aria-label="Generate graph"
-          className={cn(
-            "w-auto md:w-[110px] transition-none h-9 !rounded-lg gap-1.5",
-            "justify-center"
-          )}
-        >
-          <Sparkles className="w-4 h-4 shrink-0" />
-          <span className="hidden md:inline">Generate</span>
-        </Button>
+        <ToolbarButton asChild>
+          <Button
+            disabled={disabled}
+            aria-label="Generate graph"
+            className={cn(
+              "w-auto md:w-[110px] transition-none h-9 !rounded-lg gap-1.5",
+              "justify-center"
+            )}
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="hidden md:inline">Generate</span>
+          </Button>
+        </ToolbarButton>
       </PopoverTrigger>
       <PopoverContent
         className="w-[300px] p-0"

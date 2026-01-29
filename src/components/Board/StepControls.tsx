@@ -1,5 +1,6 @@
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import {
   SkipBack, ChevronLeft, ChevronRight, SkipForward, Play, Pause,
 } from "lucide-react";
@@ -35,12 +36,12 @@ export const StepControls = ({
   return (
     <>
       {/* Divider - hidden on mobile since algorithm dropdown is also hidden */}
-      <div className="hidden md:block w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
+      <ToolbarSeparator className="hidden md:block" />
 
-      <div className="flex items-center gap-2">
-        {/* Jump to start */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Jump to start */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ToolbarButton asChild>
             <Button
               onClick={onJumpToStart}
               disabled={!canStepBackward}
@@ -51,13 +52,15 @@ export const StepControls = ({
             >
               <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Jump to Start (Home)</TooltipContent>
-        </Tooltip>
+          </ToolbarButton>
+        </TooltipTrigger>
+        <TooltipContent>Jump to Start (Home)</TooltipContent>
+      </Tooltip>
 
-        {/* Step backward */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Step backward */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ToolbarButton asChild>
             <Button
               onClick={onStepBackward}
               disabled={!canStepBackward}
@@ -68,18 +71,20 @@ export const StepControls = ({
             >
               <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Previous Step (←)</TooltipContent>
-        </Tooltip>
+          </ToolbarButton>
+        </TooltipTrigger>
+        <TooltipContent>Previous Step (←)</TooltipContent>
+      </Tooltip>
 
-        {/* Step counter */}
-        <span className="text-xs md:text-sm px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
-          {stepIndex + 1} / {totalSteps}
-        </span>
+      {/* Step counter */}
+      <span className="text-xs md:text-sm px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
+        {stepIndex + 1} / {totalSteps}
+      </span>
 
-        {/* Step forward */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Step forward */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ToolbarButton asChild>
             <Button
               onClick={onStepForward}
               disabled={!canStepForward}
@@ -90,13 +95,15 @@ export const StepControls = ({
             >
               <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Next Step (→)</TooltipContent>
-        </Tooltip>
+          </ToolbarButton>
+        </TooltipTrigger>
+        <TooltipContent>Next Step (→)</TooltipContent>
+      </Tooltip>
 
-        {/* Jump to end */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Jump to end */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ToolbarButton asChild>
             <Button
               onClick={onJumpToEnd}
               disabled={!canStepForward}
@@ -107,13 +114,15 @@ export const StepControls = ({
             >
               <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Jump to End (End)</TooltipContent>
-        </Tooltip>
+          </ToolbarButton>
+        </TooltipTrigger>
+        <TooltipContent>Jump to End (End)</TooltipContent>
+      </Tooltip>
 
-        {/* Play/Pause */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+      {/* Play/Pause */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <ToolbarButton asChild>
             <Button
               onClick={onTogglePlay}
               disabled={!canStepForward && !isPlaying}
@@ -128,22 +137,24 @@ export const StepControls = ({
                 <Play className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
               )}
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
-        </Tooltip>
-      </div>
+          </ToolbarButton>
+        </TooltipTrigger>
+        <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
+      </Tooltip>
 
       {/* Stop/Done button */}
-      <div className="w-px h-7 mx-1 md:mx-2 bg-[var(--color-divider)]" />
+      <ToolbarSeparator />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            onClick={onStop}
-            variant="ghost"
-            className="h-9 px-3 z-10 !rounded-md text-sm text-[var(--color-error)]"
-          >
-            Done
-          </Button>
+          <ToolbarButton asChild>
+            <Button
+              onClick={onStop}
+              variant="ghost"
+              className="h-9 px-3 z-10 !rounded-md text-sm text-[var(--color-error)]"
+            >
+              Done
+            </Button>
+          </ToolbarButton>
         </TooltipTrigger>
         <TooltipContent>End Visualization</TooltipContent>
       </Tooltip>

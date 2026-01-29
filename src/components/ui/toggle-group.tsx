@@ -20,68 +20,7 @@ const toggleGroupVariants = cva(
   }
 )
 
-const toggleItemVariants = cva(
-  "flex-1 py-1.5 flex items-center justify-center  duration-100 cursor-pointer focus-ring-animated",
-  {
-    variants: {
-      active: {
-        true: "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
-        false: "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-      },
-      disabled: {
-        true: "opacity-50 cursor-not-allowed",
-        false: "",
-      },
-      rounded: {
-        sm: "rounded-md",
-        md: "rounded-lg",
-        full: "rounded-full",
-      },
-    },
-    defaultVariants: {
-      active: false,
-      disabled: false,
-      rounded: "sm",
-    },
-  }
-)
-
-// === Custom Toggle Group (for manual active state control) ===
-
-export interface ToggleGroupProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-  VariantProps<typeof toggleGroupVariants> {
-  ref?: React.Ref<HTMLDivElement>
-}
-
-function ToggleGroup({ className, variant, ref, ...props }: ToggleGroupProps) {
-  return (
-    <div
-      ref={ref}
-      className={cn(toggleGroupVariants({ variant, className }))}
-      {...props}
-    />
-  )
-}
-
-export interface ToggleItemProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'>,
-  VariantProps<typeof toggleItemVariants> {
-  ref?: React.Ref<HTMLButtonElement>
-}
-
-function ToggleItem({ className, active, disabled, rounded, ref, ...props }: ToggleItemProps) {
-  return (
-    <button
-      ref={ref}
-      disabled={disabled === true}
-      className={cn(toggleItemVariants({ active, disabled, rounded, className }))}
-      {...props}
-    />
-  )
-}
-
-// === Radix Toggle Group (for proper single/multiple selection) ===
+// === Radix Toggle Group ===
 
 type RadixToggleGroupProps =
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
@@ -129,10 +68,7 @@ function RadixToggleGroupItem({ className, rounded = "sm", children, ref, ...pro
 }
 
 export {
-  ToggleGroup,
-  ToggleItem,
   RadixToggleGroup,
   RadixToggleGroupItem,
   toggleGroupVariants,
-  toggleItemVariants,
 }

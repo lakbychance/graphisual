@@ -62,9 +62,9 @@ export const GraphRenderer = ({
           key="3d"
           className="absolute inset-0"
           initial={{ opacity: 0, filter: 'blur(8px)' }}
-          animate={{ opacity: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, filter: 'blur(8px)' }}
-          transition={{ duration: 0.15 }}
+          animate={{ opacity: 1, filter: 'blur(0px)', transition: { duration: 0.15 } }}
+          // Skip exit animation for 3D - WebGL context cleanup during animation causes warnings
+          exit={{ opacity: 0, transition: { duration: 0 } }}
         >
           <ErrorBoundary FallbackComponent={Graph3DErrorFallback}>
             <Suspense
