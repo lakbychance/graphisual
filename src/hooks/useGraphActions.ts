@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, RefObject } from "react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
+import { isElementInPopup } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
 import { VisualizationState, VisualizationMode } from "../constants/visualization";
 
@@ -248,6 +249,11 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
     (e: KeyboardEvent) => {
       // Ignore if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Ignore Escape if focus is inside a popup (dropdown, popover, dialog)
+      if (e.key === "Escape" && isElementInPopup(e.target as Element)) {
         return;
       }
 

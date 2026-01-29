@@ -28,6 +28,7 @@ import {
 import { ThemeSelector } from "./ThemeSelector";
 import { AlgorithmHint } from "./AlgorithmHint";
 import { StepControls } from "./StepControls";
+import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
 import { ZoomControls } from "./ZoomControls";
@@ -184,6 +185,7 @@ export const Board = () => {
     }
     return hints[0] || '';
   };
+
 
   // Handle skip link - focus graph and select topmost node
   const handleSkipToGraph = useCallback(() => {
@@ -437,6 +439,7 @@ export const Board = () => {
           )}
         </AnimatePresence>
 
+
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
           {/* Zoom controls group */}
@@ -491,8 +494,12 @@ export const Board = () => {
           </Toolbar>
         </div>
 
-        {/* Theme selector - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40">
+        {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
+          {/* Keyboard shortcuts - Desktop only */}
+          <div className="hidden md:block">
+            <KeyboardShortcuts />
+          </div>
           <ThemeSelector
             theme={theme}
             setTheme={setTheme}

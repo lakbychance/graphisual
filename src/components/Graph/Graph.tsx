@@ -23,6 +23,7 @@ import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
 import { findNodeInDirection, type Direction } from "../../utils/focus/findNodeInDirection";
+import { isElementInPopup } from "../../utils/dom";
 import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 
 export interface GraphHandle {
@@ -279,10 +280,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // But don't clear if focus is moving to the edge popup
   const handleCanvasBlur = useCallback((e: React.FocusEvent) => {
     // Check if focus is moving to a popup (identified by data attribute or role)
-    const relatedTarget = e.relatedTarget as HTMLElement | null;
-    const isMovingToPopup = relatedTarget?.closest('[role="dialog"]') !== null;
-
-    if (isMovingToPopup) return;
+    if (isElementInPopup(e.relatedTarget as Element)) return;
 
     if (selectedNodeId !== null) {
       selectNode(null);
