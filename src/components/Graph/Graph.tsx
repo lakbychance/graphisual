@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
+import { createPortal } from "react-dom";
 import { Node } from "../Graph/Node/Node";
 import { NodeEdges } from "./NodeEdges";
 import { ZOOM } from "../../constants/ui";
@@ -240,21 +241,21 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
 
       </svg>
 
-      {/* Edge popup - rendered outside SVG using Popover */}
-      {selectedEdge && (() => {
-        const { edge, clickPosition } = selectedEdge;
-        return (
-          <EdgePopup
-            edge={edge}
-            anchorPosition={clickPosition}
-            onClose={handleCloseEdgePopup}
-            onUpdateType={updateEdgeType}
-            onUpdateWeight={updateEdgeWeight}
-            onReverse={reverseEdge}
-            onDelete={deleteEdge}
-          />
-        );
-      })()}
+      {/* Edge popup - portaled to document.body to escape filter: blur containing block.
+          CSS filter creates a new containing block for position: fixed elements,
+          causing incorrect positioning on iOS Safari when address bar collapses/expands. */}
+      {selectedEdge && createPortal(
+        <EdgePopup
+          edge={selectedEdge.edge}
+          anchorPosition={selectedEdge.clickPosition}
+          onClose={handleCloseEdgePopup}
+          onUpdateType={updateEdgeType}
+          onUpdateWeight={updateEdgeWeight}
+          onReverse={reverseEdge}
+          onDelete={deleteEdge}
+        />,
+        document.body
+      )}
     </div>
   );
 }
