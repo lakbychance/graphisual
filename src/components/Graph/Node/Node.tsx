@@ -193,7 +193,7 @@ export const Node = memo(function Node(props: NodeProps) {
           fill: { duration: STROKE_ANIMATION.DURATION },
           stroke: { duration: STROKE_ANIMATION.DURATION },
           strokeWidth: isSelected
-            ? { duration: STROKE_ANIMATION.POP_DURATION, times: STROKE_ANIMATION.POP_TIMES, ease: STROKE_ANIMATION.POP_EASE }
+            ? { duration: STROKE_ANIMATION.POP_DURATION, times: [...STROKE_ANIMATION.POP_TIMES], ease: [...STROKE_ANIMATION.POP_EASE] }
             : { duration: STROKE_ANIMATION.DURATION },
           r: { duration: STROKE_ANIMATION.DURATION },
         }}
