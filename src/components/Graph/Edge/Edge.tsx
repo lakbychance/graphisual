@@ -61,7 +61,8 @@ export const Edge = memo(function Edge({
   };
 
   const handleMouseEnter = (e: React.MouseEvent<SVGPathElement>) => {
-    if (!isVisualizing) {
+    // Don't override styles when focused (CSS class handles it) or visualizing
+    if (!isVisualizing && !isFocused) {
       e.currentTarget.style.stroke = hoverColor;
       if (edge.type === 'directed') {
         e.currentTarget.style.markerEnd = 'url(#arrowhead-focused)';
@@ -70,9 +71,12 @@ export const Edge = memo(function Edge({
   };
 
   const handleMouseLeave = (e: React.MouseEvent<SVGPathElement>) => {
-    e.currentTarget.style.stroke = edgeColor;
-    if (edge.type === 'directed') {
-      e.currentTarget.style.markerEnd = `url(#${arrowMarkerId})`;
+    // Don't override styles when focused (CSS class handles it)
+    if (!isFocused) {
+      e.currentTarget.style.stroke = edgeColor;
+      if (edge.type === 'directed') {
+        e.currentTarget.style.markerEnd = `url(#${arrowMarkerId})`;
+      }
     }
   };
 
@@ -122,12 +126,16 @@ export const Edge = memo(function Edge({
           onMouseLeave={handleMouseLeave}
           d={directedPath}
           style={{
-            stroke: edgeColor,
-            strokeWidth: getStrokeWidth(),
+            // Only set stroke via style when not focused (CSS class handles focused state)
+            ...(!isFocused && {
+              stroke: edgeColor,
+              strokeWidth: getStrokeWidth(),
+            }),
           }}
           className={cn(
             "fill-transparent cursor-pointer",
-            isVisualizing && "pointer-events-none"
+            isVisualizing && "pointer-events-none",
+            isFocused && "edge-focused"
           )}
           markerEnd={`url(#${arrowMarkerId})`}
         />
@@ -149,12 +157,16 @@ export const Edge = memo(function Edge({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         style={{
-          stroke: edgeColor,
-          strokeWidth: getStrokeWidth(),
+          // Only set stroke via style when not focused (CSS class handles focused state)
+          ...(!isFocused && {
+            stroke: edgeColor,
+            strokeWidth: getStrokeWidth(),
+          }),
         }}
         className={cn(
           "fill-transparent cursor-pointer",
-          isVisualizing && "pointer-events-none"
+          isVisualizing && "pointer-events-none",
+          isFocused && "edge-focused"
         )}
       />
       {renderWeightLabel(centerX, centerY)}

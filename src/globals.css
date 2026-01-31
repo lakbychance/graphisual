@@ -84,7 +84,6 @@
   --color-edge-default: rgba(50, 45, 40, 0.45);
   --color-edge-traversal: #4a9a4a;
   --color-edge-path: #b89040;
-  --color-edge-hover: #d89020;
 
   /* Arrow colors (slightly darker than edges for differentiation) */
   --color-arrow-traversal: #429242;
@@ -107,9 +106,6 @@
   --color-accent-form: #d86840;
   --color-accent-form-glow: rgba(224, 120, 80, 0.4);
 
-  /* Focus ring for contrasting elements (orange controls) */
-  --color-focus-ring-contrast: rgba(0, 0, 0, 0.7);
-
   /* Graph paper grid */
   --color-grid-line: rgba(50, 45, 40, 0.08);
   --color-grid-line-major: rgba(50, 45, 40, 0.15);
@@ -121,6 +117,11 @@
   --focus-ring-width: 3px;
   --focus-ring-active-width: 6px;
   --focus-ring-duration: 600ms;
+
+  /* Edge focus stroke animation */
+  --edge-stroke-width: 2px;
+  --edge-stroke-focused-width: 3px;
+  --edge-stroke-active-width: 5px;
 }
 
 /* === DARK THEME === */
@@ -207,7 +208,6 @@
   --color-edge-default: rgba(180, 175, 165, 0.4);
   --color-edge-traversal: #7ac97a;
   --color-edge-path: #d4b070;
-  --color-edge-hover: #f0b050;
 
   /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #5aa95a;
@@ -229,9 +229,6 @@
   /* Form control accent (brighter warm orange for dark mode) */
   --color-accent-form: #e88060;
   --color-accent-form-glow: rgba(232, 128, 96, 0.5);
-
-  /* Focus ring for contrasting elements (orange controls) */
-  --color-focus-ring-contrast: rgba(255, 255, 255, 0.8);
 
   /* Graph paper grid */
   --color-grid-line: rgba(255, 255, 255, 0.06);
@@ -319,7 +316,6 @@
   --color-edge-default: rgba(200, 225, 245, 0.5);
   --color-edge-traversal: #60d8c8;
   --color-edge-path: #f0c050;
-  --color-edge-hover: #ffd060;
 
   /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #40b8a8;
@@ -339,9 +335,6 @@
   /* Form accent - warm amber */
   --color-accent-form: #f0b040;
   --color-accent-form-glow: rgba(240, 176, 64, 0.45);
-
-  /* Focus ring */
-  --color-focus-ring-contrast: #90d8f0;
 
   /* Grid - white blueprint lines */
   --color-grid-line: rgba(200, 225, 245, 0.12);
@@ -443,6 +436,31 @@
 @media (prefers-reduced-motion: reduce) {
   .focus-ring-animated:focus-visible,
   .focus-ring-animated-inset:focus-visible {
+    animation: none;
+  }
+}
+
+/* Edge focus stroke animation - matches focus ring timing */
+@keyframes edge-stroke-grow {
+  from { stroke-width: var(--edge-stroke-width); }
+  to { stroke-width: var(--edge-stroke-active-width); }
+}
+
+@keyframes edge-stroke-shrink {
+  from { stroke-width: var(--edge-stroke-active-width); }
+  to { stroke-width: var(--edge-stroke-focused-width); }
+}
+
+.edge-focused {
+  stroke: var(--color-accent-form);
+  stroke-width: var(--edge-stroke-focused-width);
+  animation:
+    edge-stroke-grow calc(var(--focus-ring-duration) * 0.25) cubic-bezier(0.2, 0, 0, 1),
+    edge-stroke-shrink calc(var(--focus-ring-duration) * 0.75) calc(var(--focus-ring-duration) * 0.25) cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-focused {
     animation: none;
   }
 }

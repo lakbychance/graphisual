@@ -185,7 +185,7 @@ export const EdgePopup = ({
                 </TooltipTrigger>
                 <TooltipContent side="bottom">Decrease weight</TooltipContent>
               </Tooltip>
-              <StepperField ref={weightInputRef} aria-label="Edge weight" />
+              <StepperField ref={weightInputRef} aria-label="Edge weight" className="max-w-10" />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <StepperIncrement />
