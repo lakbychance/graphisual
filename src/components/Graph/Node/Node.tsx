@@ -3,8 +3,8 @@ import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
-import { DRAG_THRESHOLD } from "../../../constants/ui";
-import { NODE, NODE_GRADIENT, gradientUrl } from "../../../constants/graph";
+import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE } from "../../../constants/ui";
+import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 
@@ -135,28 +135,22 @@ export const Node = memo(function Node(props: NodeProps) {
   // Hit area radius: node radius + padding for connectors and touch target
   const hitAreaRadius = node.r + NODE.HIT_AREA_PADDING;
 
-  // Determine node fill - using gradient references for tactile button look
+  // Determine node fill - using solid colors for smooth Framer Motion animation
   const getNodeFill = () => {
-    if (visualizationInput?.startNodeId === node.id) return gradientUrl(NODE_GRADIENT.START);
-    if (visualizationInput?.endNodeId === node.id) return gradientUrl(NODE_GRADIENT.END);
-    if (visFlags?.isInShortestPath) return gradientUrl(NODE_GRADIENT.PATH);
-    if (visFlags?.isVisited) return gradientUrl(NODE_GRADIENT.VISITED);
-    return gradientUrl(NODE_GRADIENT.DEFAULT);
+    if (visualizationInput?.startNodeId === node.id) return 'var(--gradient-start-mid)';
+    if (visualizationInput?.endNodeId === node.id) return 'var(--gradient-end-mid)';
+    if (visFlags?.isInShortestPath) return 'var(--gradient-path-mid)';
+    if (visFlags?.isVisited) return 'var(--gradient-visited-mid)';
+    return 'var(--gradient-default-mid)';
   };
 
-  // Stroke color for edge definition and selected state
+  // Stroke color for non-selected states (selected state handled by Framer Motion animate)
   const getNodeStroke = () => {
-    if (isSelected) return "var(--color-accent-form)"; // Focus color for selected
     if (visualizationInput?.startNodeId === node.id) return "var(--color-tint-start)";
     if (visualizationInput?.endNodeId === node.id) return "var(--color-tint-end)";
     if (visFlags?.isInShortestPath) return "var(--color-tint-path)";
     if (visFlags?.isVisited) return "var(--color-tint-visited)";
     return "var(--color-node-stroke)";
-  };
-
-  // Stroke width - thicker when selected
-  const getNodeStrokeWidth = () => {
-    return isSelected ? 2.5 : 1.5;
   };
 
   return (
@@ -172,77 +166,91 @@ export const Node = memo(function Node(props: NodeProps) {
       }}
       style={{ transformOrigin: `${node.x}px ${node.y}px` }}
     >
-        {/* Invisible hit area to keep hover state when moving to connectors */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={hitAreaRadius}
-          className="fill-transparent pointer-events-auto"
-        />
-        {/* Main node token - tangible, pickable button */}
-        <circle
-          onPointerDown={handlePointerDown}
-          onMouseEnter={handleMouseEnter}
-          style={{
-            fill: getNodeFill(),
-            stroke: getNodeStroke(),
-            strokeWidth: getNodeStrokeWidth(),
-            filter: 'drop-shadow(1.5px 1.5px 3px var(--node-shadow-color))',
-          }}
-          className={cn(
-            // Only transition visual properties, not position (cx/cy)
-            "[transition:fill_150ms,r_150ms,stroke_150ms,stroke-width_150ms]",
-            // Cursor: pointer when algorithm selected, grab otherwise
-            isAlgorithmSelected ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
-          )}
-          cx={node.x}
-          cy={node.y}
-          r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
-          id={node.id.toString()}
-        />
-        {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
-          fill="url(#crosshatch)"
-          mask="url(#sphereMask)"
-          className="pointer-events-none [transition:r_150ms]"
-        />
+      {/* Invisible hit area to keep hover state when moving to connectors */}
+      <circle
+        cx={node.x}
+        cy={node.y}
+        r={hitAreaRadius}
+        className="fill-transparent pointer-events-auto"
+      />
+      {/* Main node token - tangible, pickable button */}
+      <m.circle
+        onPointerDown={handlePointerDown}
+        onMouseEnter={handleMouseEnter}
+        style={{
+          filter: 'drop-shadow(1.5px 1.5px 3px var(--node-shadow-color))',
+        }}
+        animate={{
+          fill: getNodeFill(),
+          stroke: isSelected ? 'var(--color-accent-form)' : getNodeStroke(),
+          // Keyframes for pop effect: default → active → selected
+          strokeWidth: isSelected
+            ? [NODE_STROKE.DEFAULT, NODE_STROKE.ACTIVE, NODE_STROKE.SELECTED]
+            : NODE_STROKE.DEFAULT,
+          r: isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r,
+        }}
+        transition={prefersReducedMotion ? { duration: 0 } : {
+          fill: { duration: STROKE_ANIMATION.DURATION },
+          stroke: { duration: STROKE_ANIMATION.DURATION },
+          strokeWidth: isSelected
+            ? { duration: STROKE_ANIMATION.POP_DURATION, times: STROKE_ANIMATION.POP_TIMES, ease: STROKE_ANIMATION.POP_EASE }
+            : { duration: STROKE_ANIMATION.DURATION },
+          r: { duration: STROKE_ANIMATION.DURATION },
+        }}
+        className={cn(
+          // Cursor: pointer when algorithm selected, grab otherwise
+          isAlgorithmSelected ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+        )}
+        cx={node.x}
+        cy={node.y}
+        id={node.id.toString()}
+      />
+      {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
+      <m.circle
+        cx={node.x}
+        cy={node.y}
+        animate={{
+          r: isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r,
+        }}
+        transition={prefersReducedMotion ? { duration: 0 } : { r: { duration: STROKE_ANIMATION.DURATION } }}
+        fill="url(#crosshatch)"
+        mask="url(#sphereMask)"
+        className="pointer-events-none"
+      />
 
-        {/* Edge Connectors - shown on hover */}
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="top"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="right"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="bottom"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
-        <EdgeConnector
-          nodeX={node.x}
-          nodeY={node.y}
-          nodeR={node.r}
-          position="left"
-          visible={connectorsVisible}
-          onDragStart={handleConnectorDrag}
-        />
+      {/* Edge Connectors - shown on hover */}
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="top"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="right"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="bottom"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
+      <EdgeConnector
+        nodeX={node.x}
+        nodeY={node.y}
+        nodeR={node.r}
+        position="left"
+        visible={connectorsVisible}
+        onDragStart={handleConnectorDrag}
+      />
 
       {/* Node label */}
       <text

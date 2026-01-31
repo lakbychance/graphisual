@@ -121,6 +121,11 @@
   --focus-ring-width: 3px;
   --focus-ring-active-width: 6px;
   --focus-ring-duration: 600ms;
+
+  /* Edge focus stroke animation */
+  --edge-stroke-width: 2px;
+  --edge-stroke-focused-width: 3px;
+  --edge-stroke-active-width: 5px;
 }
 
 /* === DARK THEME === */
@@ -443,6 +448,31 @@
 @media (prefers-reduced-motion: reduce) {
   .focus-ring-animated:focus-visible,
   .focus-ring-animated-inset:focus-visible {
+    animation: none;
+  }
+}
+
+/* Edge focus stroke animation - matches focus ring timing */
+@keyframes edge-stroke-grow {
+  from { stroke-width: var(--edge-stroke-width); }
+  to { stroke-width: var(--edge-stroke-active-width); }
+}
+
+@keyframes edge-stroke-shrink {
+  from { stroke-width: var(--edge-stroke-active-width); }
+  to { stroke-width: var(--edge-stroke-focused-width); }
+}
+
+.edge-focused {
+  stroke: var(--color-accent-form);
+  stroke-width: var(--edge-stroke-focused-width);
+  animation:
+    edge-stroke-grow calc(var(--focus-ring-duration) * 0.25) cubic-bezier(0.2, 0, 0, 1),
+    edge-stroke-shrink calc(var(--focus-ring-duration) * 0.75) calc(var(--focus-ring-duration) * 0.25) cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-focused {
     animation: none;
   }
 }
