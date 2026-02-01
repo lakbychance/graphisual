@@ -912,7 +912,7 @@ export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (s
 // ============================================================================
 
 // Node visualization state (discriminated union matching NodeColorState in cssVariables.ts)
-export type NodeVisState = 'start' | 'end' | 'path' | 'visited' | 'default';
+export type NodeVisState = 'start' | 'end' | 'path' | 'cycle' | 'visited' | 'default';
 
 /**
  * Selector factory for getting a node's visualization state.
@@ -925,13 +925,14 @@ export const selectNodeVisState = (nodeId: number, startNodeId: number | null, e
     if (startNodeId === nodeId) return 'start';
     if (endNodeId === nodeId) return 'end';
     const flags = state.visualization.trace.nodes.get(nodeId);
+    if (flags?.isInCycle) return 'cycle';
     if (flags?.isInShortestPath) return 'path';
     if (flags?.isVisited) return 'visited';
     return 'default';
   };
 
 // Edge visualization state (discriminated union matching EdgeColorState in cssVariables.ts)
-export type EdgeVisState = 'path' | 'traversal' | 'default';
+export type EdgeVisState = 'path' | 'cycle' | 'traversal' | 'default';
 
 /**
  * Selector factory for getting an edge's visualization state.
@@ -942,6 +943,7 @@ export type EdgeVisState = 'path' | 'traversal' | 'default';
 export const selectEdgeVisState = (fromId: number, toId: number) =>
   (state: GraphStore): EdgeVisState => {
     const flags = state.visualization.trace.edges.get(`${fromId}-${toId}`);
+    if (flags?.isUsedInCycle) return 'cycle';
     if (flags?.isUsedInShortestPath) return 'path';
     if (flags?.isUsedInTraversal) return 'traversal';
     return 'default';

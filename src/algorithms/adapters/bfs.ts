@@ -1,8 +1,8 @@
 /**
  * Breadth-First Search (BFS) Algorithm Adapter
  *
- * Explores the graph level by level, visiting all neighbors
- * of a node before moving to the next level.
+ * Traversal algorithm that explores the graph level by level from start node.
+ * For pathfinding, use bfs-pathfinding adapter instead.
  */
 
 import { BfsIcon } from "../icons";
@@ -14,29 +14,11 @@ import {
   AlgorithmGenerator,
   StepType,
 } from "../types";
+import { Queue } from "../utils/dataStructures";
 
 /**
- * Simple Queue implementation for BFS.
- */
-class Queue<T> {
-  private items: T[] = [];
-
-  push(item: T): void {
-    this.items.push(item);
-  }
-
-  shift(): T | undefined {
-    return this.items.shift();
-  }
-
-  isEmpty(): boolean {
-    return this.items.length === 0;
-  }
-}
-
-/**
- * Generator function for step-through BFS execution.
- * Yields each step as the algorithm progresses.
+ * Generator function for step-through BFS traversal.
+ * Explores the graph level by level from the start node.
  */
 function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
   const { adjacencyList, startNodeId } = input;
@@ -54,8 +36,10 @@ function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
       continue;
     }
 
-    // Mark as visited and yield the step
+    // Mark as visited
     visited.add(nodeId);
+
+    // Yield the visit step
     yield { type: StepType.VISIT, edge: { from: current.from, to: nodeId } };
 
     // Get neighbors and add unvisited ones to queue
@@ -93,9 +77,6 @@ const bfsAdapter: AlgorithmAdapter = {
     return {
       visitedEdges: steps
         .filter((s) => s.type === StepType.VISIT)
-        .map((s) => s.edge),
-      resultEdges: steps
-        .filter((s) => s.type === StepType.RESULT)
         .map((s) => s.edge),
     };
   },

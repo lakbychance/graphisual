@@ -15,6 +15,7 @@ export interface SelectedOption {
 export interface NodeVisualizationFlags {
   isVisited?: boolean;
   isInShortestPath?: boolean;
+  isInCycle?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export interface NodeVisualizationFlags {
 export interface EdgeVisualizationFlags {
   isUsedInTraversal?: boolean;
   isUsedInShortestPath?: boolean;
+  isUsedInCycle?: boolean;
 }
 
 /**

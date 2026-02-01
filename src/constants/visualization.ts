@@ -17,6 +17,7 @@ export enum VisualizationMode {
 export enum StepType {
   VISIT = 'visit',
   RESULT = 'result',
+  CYCLE = 'cycle',
 }
 
 // Speed levels for visualization (multiplier display with actual ms delay)

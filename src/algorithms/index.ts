@@ -7,6 +7,8 @@ import { algorithmRegistry } from "./registry";
 // Import all algorithm adapters
 import bfsAdapter from "./adapters/bfs";
 import dfsAdapter from "./adapters/dfs";
+import bfsPathfindingAdapter from "./adapters/bfs-pathfinding";
+import dfsPathfindingAdapter from "./adapters/dfs-pathfinding";
 import dijkstraAdapter from "./adapters/dijkstra";
 import primsAdapter from "./adapters/prims";
 import cycleDetectionAdapter from "./adapters/cycleDetection";
@@ -15,6 +17,8 @@ import bellmanFordAdapter from "./adapters/bellmanFord";
 // Register all algorithms
 algorithmRegistry.register(bfsAdapter);
 algorithmRegistry.register(dfsAdapter);
+algorithmRegistry.register(bfsPathfindingAdapter);
+algorithmRegistry.register(dfsPathfindingAdapter);
 algorithmRegistry.register(dijkstraAdapter);
 algorithmRegistry.register(primsAdapter);
 algorithmRegistry.register(cycleDetectionAdapter);

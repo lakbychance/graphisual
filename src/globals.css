@@ -37,6 +37,7 @@
   --color-tint-path: #b08030;
   --color-tint-start: #4090b8;
   --color-tint-end: #c06048;
+  --color-tint-cycle: #d86850;
 
   /* === SHADOW SYSTEM (Flat Paper Aesthetic) === */
 
@@ -80,14 +81,20 @@
   --gradient-end-mid: #e4a088;
   --gradient-end-end: #e4a088;
 
+  --gradient-cycle-start: #e8a090;
+  --gradient-cycle-mid: #e8a090;
+  --gradient-cycle-end: #e8a090;
+
   /* Edge colors */
   --color-edge-default: rgba(50, 45, 40, 0.45);
   --color-edge-traversal: #4a9a4a;
   --color-edge-path: #b89040;
+  --color-edge-cycle: #d86850;
 
   /* Arrow colors (slightly darker than edges for differentiation) */
   --color-arrow-traversal: #429242;
   --color-arrow-path: #a88038;
+  --color-arrow-cycle: #c85840;
 
   /* Node drop shadow - none for flat design */
   --node-shadow-color: transparent;
@@ -147,6 +154,7 @@
   --color-tint-path: rgba(230, 162, 60, 0.35);
   --color-tint-start: rgba(93, 173, 226, 0.35);
   --color-tint-end: rgba(224, 123, 90, 0.35);
+  --color-tint-cycle: rgba(216, 104, 80, 0.4);
 
   /* === SHADOW SYSTEM (adjusted for dark mode) === */
 
@@ -204,14 +212,20 @@
   --gradient-end-mid: #482818;
   --gradient-end-end: #382010;
 
+  --gradient-cycle-start: #503028;
+  --gradient-cycle-mid: #482420;
+  --gradient-cycle-end: #381c18;
+
   /* Edge colors (brighter for dark bg) */
   --color-edge-default: rgba(180, 175, 165, 0.4);
   --color-edge-traversal: #7ac97a;
   --color-edge-path: #d4b070;
+  --color-edge-cycle: #e88870;
 
   /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #5aa95a;
   --color-arrow-path: #b49050;
+  --color-arrow-cycle: #c86850;
 
   /* Node drop shadow */
   --node-shadow-color: rgba(0, 0, 0, 0.5);
@@ -258,6 +272,7 @@
   --color-tint-path: rgba(255, 200, 80, 0.4);
   --color-tint-start: rgba(100, 220, 150, 0.4);
   --color-tint-end: rgba(255, 120, 110, 0.4);
+  --color-tint-cycle: rgba(255, 100, 90, 0.45);
 
   /* Shadows - balanced for steel blue surfaces */
   --shadow-raised:
@@ -312,14 +327,21 @@
   --gradient-end-mid: #a04848;
   --gradient-end-end: #883838;
 
+  /* Cycle: distinct coral/red */
+  --gradient-cycle-start: #c85858;
+  --gradient-cycle-mid: #b04848;
+  --gradient-cycle-end: #983838;
+
   /* Edge colors - white blueprint lines */
   --color-edge-default: rgba(200, 225, 245, 0.5);
   --color-edge-traversal: #60d8c8;
   --color-edge-path: #f0c050;
+  --color-edge-cycle: #ff8070;
 
   /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #40b8a8;
   --color-arrow-path: #d0a030;
+  --color-arrow-cycle: #e06050;
 
   /* Node shadow & stroke */
   --node-shadow-color: rgba(10, 40, 70, 0.4);

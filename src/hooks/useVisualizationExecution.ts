@@ -77,14 +77,14 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     applyVisualizationStep(currentEdge, stepType, edgesRef.current);
   }, []);
 
-  // Animates the result/shortest path
-  const visualizeResultPath = useCallback((resultEdges: GraphEdge[]) => {
+  // Animates the result/shortest path (or cycle path)
+  const visualizeResultPath = useCallback((resultEdges: GraphEdge[], stepType: StepType = StepType.RESULT) => {
     animationRef.current = animateSequence({
       items: resultEdges,
       delayMs: visualizationSpeed,
       onStep: (edge) => {
         // Always mark edge and node - setTraceNode/setTraceEdge are idempotent
-        markEdgeAndNode(edge, StepType.RESULT);
+        markEdgeAndNode(edge, stepType);
       },
       onComplete: () => {
         setVisualizationState(VisualizationState.DONE);
@@ -94,7 +94,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   }, [visualizationSpeed, markEdgeAndNode, setVisualizationState, resetVisualization]);
 
   // Animates traversal, then chains to result path visualization
-  const visualizeTraversedEdges = useCallback((visitedEdges: GraphEdge[], resultEdges: GraphEdge[] = []) => {
+  const visualizeTraversedEdges = useCallback((visitedEdges: GraphEdge[], resultEdges: GraphEdge[] = [], resultStepType: StepType = StepType.RESULT) => {
     animationRef.current?.cancel();
     setVisualizationState(VisualizationState.RUNNING);
 
@@ -107,7 +107,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       },
       onComplete: () => {
         setVisualizationInput(null);
-        visualizeResultPath(resultEdges);
+        visualizeResultPath(resultEdges, resultStepType);
       },
     });
   }, [visualizationSpeed, visualizeResultPath, markEdgeAndNode, setVisualizationState, setVisualizationInput]);
@@ -198,7 +198,8 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
 
     const visitedEdges = convertToVisualizationEdges(result.visitedEdges);
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
-    visualizeTraversedEdges(visitedEdges, resultEdges);
+    const resultStepType = result.resultStepType ?? StepType.RESULT;
+    visualizeTraversedEdges(visitedEdges, resultEdges, resultStepType);
   }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough, selectNode]);
 
   return {

@@ -5,7 +5,7 @@
  * Handles registration and lookup.
  */
 
-import { AlgorithmAdapter } from "./types";
+import { AlgorithmAdapter, AlgorithmType } from "./types";
 
 /**
  * Algorithm Registry Class
@@ -44,6 +44,23 @@ class AlgorithmRegistry {
    */
   getAll(): AlgorithmAdapter[] {
     return Array.from(this.algorithms.values());
+  }
+
+  /**
+   * Get algorithms by category (for tab-based UI).
+   * Filters by algorithm type directly.
+   *
+   * @param category The algorithm category to filter by
+   * @returns Array of algorithm adapters for this category
+   */
+  getByCategory(category: "traversal" | "pathfinding"): AlgorithmAdapter[] {
+    return Array.from(this.algorithms.values()).filter((adapter) => {
+      if (category === "traversal") {
+        return adapter.metadata.type === AlgorithmType.TRAVERSAL ||
+               adapter.metadata.type === AlgorithmType.TREE;
+      }
+      return adapter.metadata.type === AlgorithmType.PATHFINDING;
+    });
   }
 }
 

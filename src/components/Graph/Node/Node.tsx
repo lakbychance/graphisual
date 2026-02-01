@@ -139,6 +139,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const getNodeFill = () => {
     if (visualizationInput?.startNodeId === node.id) return 'var(--gradient-start-mid)';
     if (visualizationInput?.endNodeId === node.id) return 'var(--gradient-end-mid)';
+    if (visFlags?.isInCycle) return 'var(--gradient-cycle-mid)';
     if (visFlags?.isInShortestPath) return 'var(--gradient-path-mid)';
     if (visFlags?.isVisited) return 'var(--gradient-visited-mid)';
     return 'var(--gradient-default-mid)';
@@ -148,6 +149,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const getNodeStroke = () => {
     if (visualizationInput?.startNodeId === node.id) return "var(--color-tint-start)";
     if (visualizationInput?.endNodeId === node.id) return "var(--color-tint-end)";
+    if (visFlags?.isInCycle) return "var(--color-tint-cycle)";
     if (visFlags?.isInShortestPath) return "var(--color-tint-path)";
     if (visFlags?.isVisited) return "var(--color-tint-visited)";
     return "var(--color-node-stroke)";

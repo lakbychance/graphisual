@@ -2,39 +2,12 @@ import { describe, it, expect } from 'vitest'
 import primsAdapter from './prims'
 import { AlgorithmInput, EdgeInfo } from '../types'
 
-function createAdjacencyList(
+// Helper wrapper for Prim's tests since MST requires undirected edges by default
+const createUndirectedAdjacencyList = (
   nodeIds: number[],
   edges: Array<{ from: number; to: number; weight: number; type?: 'directed' | 'undirected' }>
-): Map<number, EdgeInfo[]> {
-  const adjacencyList = new Map<number, EdgeInfo[]>()
-
-  for (const id of nodeIds) {
-    adjacencyList.set(id, [])
-  }
-
-  for (const edge of edges) {
-    const edgeType = edge.type ?? 'undirected'
-    const edgeInfo: EdgeInfo = {
-      from: edge.from,
-      to: edge.to,
-      weight: edge.weight,
-      type: edgeType,
-    }
-    adjacencyList.get(edge.from)?.push(edgeInfo)
-
-    // For undirected, add reverse edge too
-    if (edgeType === 'undirected') {
-      adjacencyList.get(edge.to)?.push({
-        from: edge.to,
-        to: edge.from,
-        weight: edge.weight,
-        type: 'undirected',
-      })
-    }
-  }
-
-  return adjacencyList
-}
+) => createAdjacencyList(nodeIds, edges.map(e => ({ ...e, type: e.type ?? 'undirected' })))
+import { createAdjacencyList } from './__tests__/testUtils'
 
 describe("Prim's MST Algorithm", () => {
   it('has correct metadata', () => {
@@ -50,7 +23,7 @@ describe("Prim's MST Algorithm", () => {
     // Weights:    1     2     3
     // MST should use edges 1-2 (1) and 2-3 (2), skip 1-3 (3)
     const input: AlgorithmInput = {
-      adjacencyList: createAdjacencyList([1, 2, 3], [
+      adjacencyList: createUndirectedAdjacencyList([1, 2, 3], [
         { from: 1, to: 2, weight: 1 },
         { from: 2, to: 3, weight: 2 },
         { from: 1, to: 3, weight: 3 },
@@ -67,7 +40,7 @@ describe("Prim's MST Algorithm", () => {
 
   it('handles a single node graph', () => {
     const input: AlgorithmInput = {
-      adjacencyList: createAdjacencyList([1], []),
+      adjacencyList: createUndirectedAdjacencyList([1], []),
       nodes: [{ id: 1 }],
       startNodeId: 1,
     }
@@ -122,7 +95,7 @@ describe("Prim's MST Algorithm", () => {
     // MST should be: 1-2 (1), 1-3 (2), 2-3 (3) = total 6
     // Not 1-4 (5) or 3-4 (4)
     const input: AlgorithmInput = {
-      adjacencyList: createAdjacencyList([1, 2, 3, 4], [
+      adjacencyList: createUndirectedAdjacencyList([1, 2, 3, 4], [
         { from: 1, to: 2, weight: 1 },
         { from: 2, to: 3, weight: 3 },
         { from: 3, to: 4, weight: 4 },

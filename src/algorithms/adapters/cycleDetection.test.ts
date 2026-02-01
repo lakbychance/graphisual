@@ -1,39 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import cycleDetectionAdapter from './cycleDetection'
-import { AlgorithmInput, EdgeInfo } from '../types'
-
-function createAdjacencyList(
-  nodeIds: number[],
-  edges: Array<{ from: number; to: number; type?: 'directed' | 'undirected' }>
-): Map<number, EdgeInfo[]> {
-  const adjacencyList = new Map<number, EdgeInfo[]>()
-
-  for (const id of nodeIds) {
-    adjacencyList.set(id, [])
-  }
-
-  for (const edge of edges) {
-    const edgeType = edge.type ?? 'directed'
-    const edgeInfo: EdgeInfo = {
-      from: edge.from,
-      to: edge.to,
-      weight: 0,
-      type: edgeType,
-    }
-    adjacencyList.get(edge.from)?.push(edgeInfo)
-
-    if (edgeType === 'undirected') {
-      adjacencyList.get(edge.to)?.push({
-        from: edge.to,
-        to: edge.from,
-        weight: 0,
-        type: 'undirected',
-      })
-    }
-  }
-
-  return adjacencyList
-}
+import { AlgorithmInput } from '../types'
+import { createAdjacencyList } from './__tests__/testUtils'
 
 describe('Cycle Detection Algorithm', () => {
   it('has correct metadata', () => {
