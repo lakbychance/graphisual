@@ -2,6 +2,7 @@ import { LazyMotion, domAnimation } from "motion/react";
 import { Board } from "./components/Board/Board";
 import { Toaster } from "sonner";
 import { useTheme } from "./hooks/useTheme";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   // Initialize theme system (applies data-theme attribute to document)
@@ -23,6 +24,7 @@ function App() {
           },
         }}
       />
+      <SpeedInsights />
     </LazyMotion>
   );
 }
