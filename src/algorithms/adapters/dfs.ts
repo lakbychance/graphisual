@@ -14,25 +14,7 @@ import {
   AlgorithmGenerator,
   StepType,
 } from "../types";
-
-/**
- * Simple Stack implementation for DFS.
- */
-class Stack<T> {
-  private items: T[] = [];
-
-  push(item: T): void {
-    this.items.push(item);
-  }
-
-  pop(): T | undefined {
-    return this.items.pop();
-  }
-
-  isEmpty(): boolean {
-    return this.items.length === 0;
-  }
-}
+import { Stack } from "../utils/dataStructures";
 
 /**
  * Generator function for step-through DFS traversal.

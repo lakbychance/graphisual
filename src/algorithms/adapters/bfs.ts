@@ -14,25 +14,7 @@ import {
   AlgorithmGenerator,
   StepType,
 } from "../types";
-
-/**
- * Simple Queue implementation for BFS.
- */
-class Queue<T> {
-  private items: T[] = [];
-
-  push(item: T): void {
-    this.items.push(item);
-  }
-
-  shift(): T | undefined {
-    return this.items.shift();
-  }
-
-  isEmpty(): boolean {
-    return this.items.length === 0;
-  }
-}
+import { Queue } from "../utils/dataStructures";
 
 /**
  * Generator function for step-through BFS traversal.
