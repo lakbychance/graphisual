@@ -115,7 +115,7 @@ export const AlgorithmPicker = ({
           </TabsList>
 
           {(['traversal', 'pathfinding'] as TabCategory[]).map((algoType) => (
-            <TabsContent value={algoType} className="grid grid-cols-2 gap-3">
+            <TabsContent key={algoType} value={algoType} className="grid grid-cols-2 gap-3">
               {getAlgorithms(algoType).map((algo) => (
                 <AlgorithmCard
                   key={algo.metadata.id}
@@ -126,9 +126,6 @@ export const AlgorithmPicker = ({
               ))}
             </TabsContent>
           ))}
-
-
-
         </Tabs>
       </PopoverContent>
     </Popover>

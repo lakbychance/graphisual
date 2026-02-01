@@ -1,29 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import dijkstraAdapter from './dijkstra'
-import { AlgorithmInput, EdgeInfo } from '../types'
-
-function createAdjacencyList(
-  nodeIds: number[],
-  edges: Array<{ from: number; to: number; weight: number }>
-): Map<number, EdgeInfo[]> {
-  const adjacencyList = new Map<number, EdgeInfo[]>()
-
-  for (const id of nodeIds) {
-    adjacencyList.set(id, [])
-  }
-
-  for (const edge of edges) {
-    const edgeInfo: EdgeInfo = {
-      from: edge.from,
-      to: edge.to,
-      weight: edge.weight,
-      type: 'directed',
-    }
-    adjacencyList.get(edge.from)?.push(edgeInfo)
-  }
-
-  return adjacencyList
-}
+import { AlgorithmInput } from '../types'
+import { createAdjacencyList } from './__tests__/testUtils'
 
 describe('Dijkstra Algorithm', () => {
   it('has correct metadata', () => {

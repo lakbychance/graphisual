@@ -1,32 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import dfsPathfindingAdapter from './dfs-pathfinding'
-import { AlgorithmInput, EdgeInfo, StepType } from '../types'
-
-// Helper to create adjacency list from edges
-function createAdjacencyList(
-  nodeIds: number[],
-  edges: Array<{ from: number; to: number; weight?: number }>
-): Map<number, EdgeInfo[]> {
-  const adjacencyList = new Map<number, EdgeInfo[]>()
-
-  // Initialize all nodes
-  for (const id of nodeIds) {
-    adjacencyList.set(id, [])
-  }
-
-  // Add edges
-  for (const edge of edges) {
-    const edgeInfo: EdgeInfo = {
-      from: edge.from,
-      to: edge.to,
-      weight: edge.weight ?? 0,
-      type: 'directed',
-    }
-    adjacencyList.get(edge.from)?.push(edgeInfo)
-  }
-
-  return adjacencyList
-}
+import { AlgorithmInput, StepType } from '../types'
+import { createAdjacencyList } from './__tests__/testUtils'
 
 describe('DFS Pathfinding Algorithm', () => {
   it('has correct metadata', () => {
