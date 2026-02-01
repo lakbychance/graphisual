@@ -119,27 +119,21 @@ export const AlgorithmPicker = ({
             <TabsTrigger value="pathfinding">Pathfinding</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="traversal" className="grid grid-cols-2 gap-3">
-            {getAlgorithms("traversal").map((algo) => (
-              <AlgorithmCard
-                key={algo.metadata.id}
-                algorithm={algo}
-                selected={isAlgoSelected(algo.metadata.id)}
-                onClick={() => handleSelect(algo.metadata.id)}
-              />
-            ))}
-          </TabsContent>
+          {(['traversal', 'pathfinding'] as TabCategory[]).map((algoType) => (
+            <TabsContent value={algoType} className="grid grid-cols-2 gap-3">
+              {getAlgorithms(algoType).map((algo) => (
+                <AlgorithmCard
+                  key={algo.metadata.id}
+                  algorithm={algo}
+                  selected={isAlgoSelected(algo.metadata.id)}
+                  onClick={() => handleSelect(algo.metadata.id)}
+                />
+              ))}
+            </TabsContent>
+          ))}
 
-          <TabsContent value="pathfinding" className="grid grid-cols-2 gap-3">
-            {getAlgorithms("pathfinding").map((algo) => (
-              <AlgorithmCard
-                key={algo.metadata.id}
-                algorithm={algo}
-                selected={isAlgoSelected(algo.metadata.id)}
-                onClick={() => handleSelect(algo.metadata.id)}
-              />
-            ))}
-          </TabsContent>
+
+
         </Tabs>
       </PopoverContent>
     </Popover>
