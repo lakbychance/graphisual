@@ -41,10 +41,14 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const canRedo = useGraphStore((state) => state.canRedo());
   const visualizationState = useGraphStore((state) => state.visualization.state);
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
+  const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
   const isStepComplete = useGraphStore(selectIsStepComplete);
   const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
+
+  // Derived state for algorithm selection
+  const isAlgorithmSelected = visualizationAlgorithm?.key != null && visualizationAlgorithm.key !== 'select';
 
   // Derived state
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
@@ -61,6 +65,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const stepBackward = useGraphStore((state) => state.stepBackward);
   const jumpToStep = useGraphStore((state) => state.jumpToStep);
   const resetStepThrough = useGraphStore((state) => state.resetStepThrough);
+  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
 
   // Stable refs for play state to avoid recreating callbacks
   const playStateRef = useRef(playState);
@@ -103,6 +108,12 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       selectNode(null);
     }
   }, [isInStepMode, selectNode]);
+
+  const executeClearAlgorithm = useCallback(() => {
+    if (isAlgorithmSelected && !isVisualizing) {
+      setVisualizationAlgorithm(undefined);
+    }
+  }, [isAlgorithmSelected, isVisualizing, setVisualizationAlgorithm]);
 
   const executeStepForward = useCallback(() => {
     if (isInStepMode && !isStepComplete) {
@@ -209,7 +220,12 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
     },
     deselect: {
       execute: executeDeselect,
-      enabled: !isInStepMode,
+      enabled: !isInStepMode && !isAlgorithmSelected,
+      shortcut: { key: "Escape" },
+    },
+    clearAlgorithm: {
+      execute: executeClearAlgorithm,
+      enabled: isAlgorithmSelected && !isVisualizing,
       shortcut: { key: "Escape" },
     },
     stepForward: {
@@ -282,11 +298,15 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
           if (shiftKey === false && e.shiftKey) continue;
         }
 
-        // Handle Escape specially - step mode takes precedence
+        // Handle Escape specially - priority: step mode > algorithm selected > deselect
         if (e.key === "Escape") {
           if (isInStepMode) {
             if (preventDefault) e.preventDefault();
             actions.stopVisualization.execute();
+            return;
+          } else if (isAlgorithmSelected && !isVisualizing) {
+            if (preventDefault) e.preventDefault();
+            actions.clearAlgorithm.execute();
             return;
           } else {
             if (preventDefault) e.preventDefault();

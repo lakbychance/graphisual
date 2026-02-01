@@ -289,6 +289,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   const pan = useGraphStore((state) => state.viewport.pan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
+  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
 
   // Callbacks for CameraController
   const handleZoomChange = useCallback((newZoom: number) => {
@@ -298,6 +299,13 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   const handlePanChange = useCallback((x: number, y: number) => {
     setViewportPan(x, y);
   }, [setViewportPan]);
+
+  // Cancel algorithm selection when clicking empty 3D space
+  const handlePointerMissed = useCallback(() => {
+    if (currentAlgorithm && !isVisualizing) {
+      setVisualizationAlgorithm(undefined);
+    }
+  }, [currentAlgorithm, isVisualizing, setVisualizationAlgorithm]);
 
   // Don't render Canvas until dimensions are ready to prevent WebGL context issues
   const isReady = containerDimensions.height > 0;
@@ -368,6 +376,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
         <Canvas
           gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
           dpr={[1, 2]}
+          onPointerMissed={handlePointerMissed}
         >
           <ClippingSetup />
           <CanvasCapture onReady={handleCanvasReady} />

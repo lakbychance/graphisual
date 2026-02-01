@@ -47,6 +47,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const { addNode, moveNode, selectNode } = useNodeActions();
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
+  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
 
   // Shared algorithm node click handler
   const { handleNodeClick } = useAlgorithmNodeClick();
@@ -155,6 +156,12 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
       return;
     }
 
+    // Cancel algorithm selection when clicking empty canvas (not panning)
+    if (!isNode && currentAlgorithm && !isVisualizing && !isDraggingCanvas.current) {
+      setVisualizationAlgorithm(undefined);
+      return;
+    }
+
     // Deselect node when clicking canvas
     if (!isNode && selectedNodeId !== null) {
       selectNode(null);
@@ -165,7 +172,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas]);
+  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, setVisualizationAlgorithm]);
 
   // Check if we're in step mode (manual visualization with steps)
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
