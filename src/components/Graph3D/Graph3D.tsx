@@ -300,8 +300,10 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
     setViewportPan(x, y);
   }, [setViewportPan]);
 
-  // Cancel algorithm selection when clicking empty 3D space
-  const handlePointerMissed = useCallback(() => {
+  // Cancel algorithm selection when left-clicking empty 3D space
+  const handlePointerMissed = useCallback((event: MouseEvent) => {
+    // Only trigger on left-click (button 0), not right-click (pan) or middle-click
+    if (event.button !== 0) return;
     if (currentAlgorithm && !isVisualizing) {
       setVisualizationAlgorithm(undefined);
     }
