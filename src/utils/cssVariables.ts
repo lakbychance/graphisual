@@ -30,8 +30,8 @@ export function invalidateCSSVarCache(): void {
 // Typed Color State Accessors
 // ============================================================================
 
-export type NodeColorState = 'default' | 'visited' | 'path' | 'start' | 'end';
-export type EdgeColorState = 'default' | 'traversal' | 'path';
+export type NodeColorState = 'default' | 'visited' | 'path' | 'cycle' | 'start' | 'end';
+export type EdgeColorState = 'default' | 'traversal' | 'path' | 'cycle';
 
 export interface GradientColors {
   start: string;
@@ -62,6 +62,12 @@ export function getNodeGradientColors(state: NodeColorState): GradientColors {
         mid: getCSSVar('--gradient-path-mid'),
         end: getCSSVar('--gradient-path-end'),
       };
+    case 'cycle':
+      return {
+        start: getCSSVar('--gradient-cycle-start'),
+        mid: getCSSVar('--gradient-cycle-mid'),
+        end: getCSSVar('--gradient-cycle-end'),
+      };
     case 'visited':
       return {
         start: getCSSVar('--gradient-visited-start'),
@@ -86,6 +92,8 @@ export function getEdgeColor(state: EdgeColorState): string {
   switch (state) {
     case 'path':
       return getCSSVar('--color-edge-path');
+    case 'cycle':
+      return getCSSVar('--color-edge-cycle');
     case 'traversal':
       return getCSSVar('--color-edge-traversal');
     case 'default':
@@ -96,13 +104,15 @@ export function getEdgeColor(state: EdgeColorState): string {
 
 /**
  * Get the arrow color based on visualization state.
- * Returns darker colors for traversal/path (to differentiate from edge),
+ * Returns darker colors for traversal/path/cycle (to differentiate from edge),
  * and node-stroke for default state (lighter than edge).
  */
 export function getEdgeArrowColor(state: EdgeColorState): string {
   switch (state) {
     case 'path':
       return getCSSVar('--color-arrow-path');
+    case 'cycle':
+      return getCSSVar('--color-arrow-cycle');
     case 'traversal':
       return getCSSVar('--color-arrow-traversal');
     case 'default':
@@ -117,6 +127,7 @@ export function getEdgeArrowColor(state: EdgeColorState): string {
 export function getEdgeLineWidth(state: EdgeColorState): number {
   switch (state) {
     case 'path':
+    case 'cycle':
       return 3.5;
     case 'traversal':
       return 3;
@@ -149,6 +160,8 @@ export function getNodeStrokeColor(state: NodeColorState): string {
       return getCSSVar('--color-tint-end');
     case 'path':
       return getCSSVar('--color-tint-path');
+    case 'cycle':
+      return getCSSVar('--color-tint-cycle');
     case 'visited':
       return getCSSVar('--color-tint-visited');
     case 'default':

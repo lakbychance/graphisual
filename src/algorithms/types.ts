@@ -103,6 +103,8 @@ export interface AlgorithmResult {
   visitedEdges: EdgeRef[];
   /** Final result edges (shortest path, MST edges, etc.) - optional */
   resultEdges?: EdgeRef[];
+  /** Step type for result edges (defaults to RESULT if not specified, use CYCLE for cycle detection) */
+  resultStepType?: StepType;
   /** Error message if algorithm cannot run on this graph */
   error?: string;
 }

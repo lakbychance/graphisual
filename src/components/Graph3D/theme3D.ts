@@ -14,7 +14,7 @@ import type { GradientColors } from "../../utils/cssVariables";
 // Only store values that OVERRIDE CSS variables. Missing = use CSS.
 // This pattern is self-documenting: if a value isn't here, CSS is used.
 
-type VisState = 'default' | 'visited' | 'path' | 'start' | 'end';
+type VisState = 'default' | 'visited' | 'path' | 'cycle' | 'start' | 'end';
 
 // Fill/emissive overrides (only light theme needs these for 3D appearance)
 const NODE_FILL_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState, {
@@ -25,6 +25,7 @@ const NODE_FILL_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState
     default: { fill: '#faf6f0', emissive: '#f0d8a8' },
     visited: { fill: '#70c870', emissive: '#5cbc7e' },
     path:    { fill: '#e8b050', emissive: '#c38f41' },
+    cycle:   { fill: '#e87860', emissive: '#d86050' },
     start:   { fill: '#60b8e0', emissive: '#40a0d0' },
     end:     { fill: '#e07860', emissive: '#d06048' },
   },
@@ -33,13 +34,13 @@ const NODE_FILL_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState
 // Stroke overrides (most themes need brighter strokes for 3D visibility)
 const NODE_STROKE_OVERRIDES: Partial<Record<ResolvedTheme, Partial<Record<VisState, string>>>> = {
   light: {
-    default: '#a09080', visited: '#4a8a4a', path: '#b08030', start: '#3090b8', end: '#c05040',
+    default: '#a09080', visited: '#4a8a4a', path: '#b08030', cycle: '#c85840', start: '#3090b8', end: '#c05040',
   },
   dark: {
-    default: '#a0a0a0', visited: '#5a9a5a', path: '#c0a060', start: '#60a0c0', end: '#c07060',
+    default: '#a0a0a0', visited: '#5a9a5a', path: '#c0a060', cycle: '#e87060', start: '#60a0c0', end: '#c07060',
   },
   blueprint: {
-    default: '#4080c0',
+    default: '#4080c0', cycle: '#e06050',
   },
 };
 

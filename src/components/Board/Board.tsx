@@ -119,13 +119,11 @@ export const Board = () => {
     const algo = algorithmRegistry.get(algoId);
     if (!algo) return;
 
-    const selectedOption = {
+    setVisualizationAlgorithm({
       key: algoId,
       text: algo.metadata.name,
       data: algo.metadata.type,
-    };
-
-    setVisualizationAlgorithm(selectedOption);
+    });
   };
 
   const handleReset = () => {
@@ -179,8 +177,9 @@ export const Board = () => {
 
   // Get algorithm hint text
   const getAlgorithmHintText = () => {
-    const hints = algorithmRegistry.get(visualizationAlgorithm?.key || '')?.metadata.inputStepHints || [];
-    if (visualizationInput && visualizationInput.startNodeId !== -1 && visualizationInput.endNodeId === -1) {
+    const algo = algorithmRegistry.get(visualizationAlgorithm?.key || '');
+    const hints = algo?.metadata.inputStepHints || [];
+    if (visualizationInput?.startNodeId !== -1 && visualizationInput?.endNodeId === -1) {
       return hints[1] || '';
     }
     return hints[0] || '';

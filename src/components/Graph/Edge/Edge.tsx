@@ -37,6 +37,7 @@ export const Edge = memo(function Edge({
 
   const getEdgeColor = () => {
     if (isFocused) return "var(--color-accent-form)";
+    if (visFlags?.isUsedInCycle) return "var(--color-edge-cycle)";
     if (visFlags?.isUsedInShortestPath) return "var(--color-edge-path)";
     if (visFlags?.isUsedInTraversal) return "var(--color-edge-traversal)";
     return "var(--color-edge-default)";
@@ -44,6 +45,7 @@ export const Edge = memo(function Edge({
 
   const getArrowMarkerId = () => {
     if (isFocused) return "arrowhead-focused";
+    if (visFlags?.isUsedInCycle) return "arrowhead-cycle";
     if (visFlags?.isUsedInShortestPath) return "arrowhead-path";
     if (visFlags?.isUsedInTraversal) return "arrowhead-traversal";
     return "arrowhead-default";

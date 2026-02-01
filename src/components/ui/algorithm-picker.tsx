@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Workflow } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Button } from "./button";
 import { ToolbarButton } from "./toolbar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { GrainTexture } from "./grain-texture";
 import { cn } from "../../lib/utils";
 import { algorithmRegistry, type AlgorithmAdapter } from "../../algorithms";
@@ -23,6 +24,8 @@ interface AlgorithmCardProps {
   selected: boolean;
   onClick: () => void;
 }
+
+type TabCategory = "traversal" | "pathfinding";
 
 const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => {
   const { metadata } = algorithm;
@@ -60,11 +63,27 @@ export const AlgorithmPicker = ({
   disabled,
 }: AlgorithmPickerProps) => {
   const [open, setOpen] = useState(false);
-  const algorithms = algorithmRegistry.getAll();
+  const [activeTab, setActiveTab] = useState<TabCategory>("traversal");
 
   // Get the selected algorithm's icon, or fall back to Workflow
   const selectedAlgorithm = selectedAlgo ? algorithmRegistry.get(selectedAlgo.key) : null;
   const TriggerIcon = selectedAlgorithm?.metadata.icon ?? Workflow;
+
+  // Handle algorithm selection
+  const handleSelect = useCallback((algoId: string) => {
+    onSelect(algoId);
+    setOpen(false);
+  }, [onSelect]);
+
+  // Check if an algorithm card should show as selected
+  const isAlgoSelected = useCallback((algoId: string): boolean => {
+    return selectedAlgo?.key === algoId;
+  }, [selectedAlgo]);
+
+  // Get algorithms for a category
+  const getAlgorithms = (category: TabCategory) => {
+    return algorithmRegistry.getByCategory(category);
+  };
 
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
@@ -91,19 +110,37 @@ export const AlgorithmPicker = ({
         align="center"
         sideOffset={12}
       >
-        <div className="grid grid-cols-2 gap-3">
-          {algorithms.map((algo) => (
-            <AlgorithmCard
-              key={algo.metadata.id}
-              algorithm={algo}
-              selected={selectedAlgo?.key === algo.metadata.id}
-              onClick={() => {
-                onSelect(algo.metadata.id);
-                setOpen(false);
-              }}
-            />
-          ))}
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as TabCategory)}
+        >
+          <TabsList className="mb-3">
+            <TabsTrigger value="traversal">Traversal</TabsTrigger>
+            <TabsTrigger value="pathfinding">Pathfinding</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="traversal" className="grid grid-cols-2 gap-3">
+            {getAlgorithms("traversal").map((algo) => (
+              <AlgorithmCard
+                key={algo.metadata.id}
+                algorithm={algo}
+                selected={isAlgoSelected(algo.metadata.id)}
+                onClick={() => handleSelect(algo.metadata.id)}
+              />
+            ))}
+          </TabsContent>
+
+          <TabsContent value="pathfinding" className="grid grid-cols-2 gap-3">
+            {getAlgorithms("pathfinding").map((algo) => (
+              <AlgorithmCard
+                key={algo.metadata.id}
+                algorithm={algo}
+                selected={isAlgoSelected(algo.metadata.id)}
+                onClick={() => handleSelect(algo.metadata.id)}
+              />
+            ))}
+          </TabsContent>
+        </Tabs>
       </PopoverContent>
     </Popover>
   );

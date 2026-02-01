@@ -139,10 +139,10 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
     yield step;
   }
 
-  // If cycle found, yield result steps
+  // If cycle found, yield cycle steps (distinct from path/result)
   if (cycleFound) {
     for (const edge of cycleEdges) {
-      yield { type: StepType.RESULT, edge };
+      yield { type: StepType.CYCLE, edge };
     }
   }
 }
@@ -171,18 +171,19 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
     const visitedEdges = steps
       .filter((s) => s.type === StepType.VISIT)
       .map((s) => s.edge);
-    const resultEdges = steps
-      .filter((s) => s.type === StepType.RESULT)
+    // Cycle detection uses StepType.CYCLE for cycle edges
+    const cycleEdges = steps
+      .filter((s) => s.type === StepType.CYCLE)
       .map((s) => s.edge);
 
-    if (resultEdges.length === 0) {
+    if (cycleEdges.length === 0) {
       return {
         visitedEdges,
         error: "No cycle found in the graph.",
       };
     }
 
-    return { visitedEdges, resultEdges };
+    return { visitedEdges, resultEdges: cycleEdges, resultStepType: StepType.CYCLE };
   },
 };
 

@@ -17,11 +17,12 @@ export interface EdgeRef {
  * Marks the target node and edge based on the step type:
  * - VISIT: marks as visited/used in traversal
  * - RESULT: marks as part of shortest path
+ * - CYCLE: marks as part of a detected cycle
  *
  * For undirected edges, also marks the reverse direction if edges map is provided.
  *
  * @param edge - Edge reference with from/to node IDs
- * @param stepType - Whether this is a VISIT or RESULT step
+ * @param stepType - Whether this is a VISIT, RESULT, or CYCLE step
  * @param edges - Optional edges map for undirected edge handling
  */
 export function applyVisualizationStep(
@@ -33,18 +34,25 @@ export function applyVisualizationStep(
   const fromId = edge.from;
   const toId = edge.to;
 
-  // Mark the target node
+  // Mark the target node based on step type
   if (stepType === StepType.VISIT) {
     setTraceNode(toId, { isVisited: true });
+  } else if (stepType === StepType.CYCLE) {
+    setTraceNode(toId, { isInCycle: true });
   } else {
     setTraceNode(toId, { isInShortestPath: true });
   }
 
   // Mark the edge (skip root edge from -1)
   if (fromId !== -1) {
-    const edgeFlags = stepType === StepType.VISIT
-      ? { isUsedInTraversal: true }
-      : { isUsedInShortestPath: true };
+    let edgeFlags;
+    if (stepType === StepType.VISIT) {
+      edgeFlags = { isUsedInTraversal: true };
+    } else if (stepType === StepType.CYCLE) {
+      edgeFlags = { isUsedInCycle: true };
+    } else {
+      edgeFlags = { isUsedInShortestPath: true };
+    }
 
     setTraceEdge(fromId, toId, edgeFlags);
 

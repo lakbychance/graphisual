@@ -100,6 +100,46 @@ export const PrimsIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+/** BFS Pathfinding: Level-by-level exploration to target */
+export const BfsPathfindingIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Start node - center left */}
+    <circle cx="4" cy="12" r="2.5" fill="currentColor" />
+    {/* Level 1 nodes - explored (around start) */}
+    <circle cx="11" cy="5" r="2" fill="currentColor" />
+    <circle cx="11" cy="12" r="2" fill="currentColor" />
+    <circle cx="11" cy="19" r="2" fill="currentColor" />
+    {/* Level 2 - end node found */}
+    <circle cx="20" cy="12" r="2.5" />
+    {/* Edges from start to level 1 */}
+    <path d="M6.5 11 L9 5.5" opacity="0.4" />
+    <path d="M6.5 12 L9 12" strokeWidth="2" />
+    <path d="M6.5 13 L9 18.5" opacity="0.4" />
+    {/* Path to destination - highlighted */}
+    <path d="M13 12 L17.5 12" strokeWidth="2" />
+  </svg>
+);
+
+/** DFS Pathfinding: Deep path to target */
+export const DfsPathfindingIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    {/* Start node */}
+    <circle cx="4" cy="4" r="2" fill="currentColor" />
+    {/* Path nodes */}
+    <circle cx="10" cy="10" r="2" fill="currentColor" />
+    <circle cx="8" cy="18" r="2" fill="currentColor" />
+    {/* End node */}
+    <circle cx="18" cy="20" r="2" />
+    {/* Path lines */}
+    <path d="M5.5 5.5 L8.5 8.5" strokeWidth="2" />
+    <path d="M9 12 L8.5 16" strokeWidth="2" />
+    <path d="M10 18.5 L16 19.5" strokeWidth="2" />
+    {/* Unvisited branch - faded */}
+    <circle cx="18" cy="8" r="2" opacity="0.4" />
+    <path d="M11.5 9 L16 8" opacity="0.4" />
+  </svg>
+);
+
 /** Cycle Detection: Circular loop */
 export const CycleDetectionIcon = ({ className }: IconProps) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

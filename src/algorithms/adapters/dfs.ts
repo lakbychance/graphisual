@@ -1,8 +1,8 @@
 /**
  * Depth-First Search (DFS) Algorithm Adapter
  *
- * Explores the graph by going as deep as possible along each branch
- * before backtracking.
+ * Traversal algorithm that explores the graph by going as deep as possible before backtracking.
+ * For pathfinding, use dfs-pathfinding adapter instead.
  */
 
 import { DfsIcon } from "../icons";
@@ -35,8 +35,8 @@ class Stack<T> {
 }
 
 /**
- * Generator function for step-through DFS execution.
- * Yields each step as the algorithm progresses.
+ * Generator function for step-through DFS traversal.
+ * Explores the graph by going as deep as possible before backtracking.
  */
 function* dfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
   const { adjacencyList, startNodeId } = input;
@@ -54,8 +54,10 @@ function* dfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
       continue;
     }
 
-    // Mark as visited and yield the step
+    // Mark as visited
     visited.add(nodeId);
+
+    // Yield the visit step
     yield { type: StepType.VISIT, edge: { from: current.from, to: nodeId } };
 
     // Get neighbors and add unvisited ones to stack
@@ -93,9 +95,6 @@ const dfsAdapter: AlgorithmAdapter = {
     return {
       visitedEdges: steps
         .filter((s) => s.type === StepType.VISIT)
-        .map((s) => s.edge),
-      resultEdges: steps
-        .filter((s) => s.type === StepType.RESULT)
         .map((s) => s.edge),
     };
   },
