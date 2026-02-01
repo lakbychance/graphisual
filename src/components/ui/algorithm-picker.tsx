@@ -75,11 +75,6 @@ export const AlgorithmPicker = ({
     setOpen(false);
   }, [onSelect]);
 
-  // Check if an algorithm card should show as selected
-  const isAlgoSelected = useCallback((algoId: string): boolean => {
-    return selectedAlgo?.key === algoId;
-  }, [selectedAlgo]);
-
   // Get algorithms for a category
   const getAlgorithms = (category: TabCategory) => {
     return algorithmRegistry.getByCategory(category);
@@ -125,7 +120,7 @@ export const AlgorithmPicker = ({
                 <AlgorithmCard
                   key={algo.metadata.id}
                   algorithm={algo}
-                  selected={isAlgoSelected(algo.metadata.id)}
+                  selected={selectedAlgo?.key === algo.metadata.id}
                   onClick={() => handleSelect(algo.metadata.id)}
                 />
               ))}
