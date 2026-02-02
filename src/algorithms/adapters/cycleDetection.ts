@@ -100,7 +100,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
     stepsToYield.push({
       type: StepType.VISIT,
       edge: { from: parentId, to: nodeId },
-      narration: {
+      trace: {
         message: `**Exploring node ${nodeId}**. Recursion depth: ${recursionStack.length}`,
         dataStructure: {
           type: "stack",
@@ -132,7 +132,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
         stepsToYield.push({
           type: StepType.VISIT,
           edge: { from: nodeId, to: neighborId },
-          narration: {
+          trace: {
             message: `**Cycle detected!** Back edge **${nodeId}→${neighborId}** found (node ${neighborId} is in recursion stack)`,
             dataStructure: {
               type: "stack",

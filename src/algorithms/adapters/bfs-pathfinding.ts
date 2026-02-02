@@ -34,7 +34,7 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
     yield {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
-      narration: {
+      trace: {
         message: `**Start and destination are the same** (node ${startNodeId})`,
         dataStructure: { type: "queue", items: [], processing: { id: startNodeId } },
       },
@@ -67,7 +67,7 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
       yield {
         type: StepType.VISIT,
         edge: { from: current.from, to: nodeId },
-        narration: {
+        trace: {
           message: `**Found destination node ${nodeId}!**`,
           dataStructure: {
             type: "queue",
@@ -90,17 +90,17 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
       }
     }
 
-    // Build narration message
+    // Build trace message
     let message = `**Visiting node ${nodeId}**`;
     if (addedToQueue.length > 0) {
       message += `, added **${addedToQueue.join(", ")}** to queue`;
     }
 
-    // Yield the visit step with narration
+    // Yield the visit step with trace
     yield {
       type: StepType.VISIT,
       edge: { from: current.from, to: nodeId },
-      narration: {
+      trace: {
         message,
         dataStructure: {
           type: "queue",

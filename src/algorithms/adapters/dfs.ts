@@ -46,17 +46,17 @@ function* dfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
       }
     }
 
-    // Build narration message
+    // Build trace message
     let message = `**Visiting node ${nodeId}**`;
     if (addedToStack.length > 0) {
       message += `, pushed **${addedToStack.join(", ")}** to stack`;
     }
 
-    // Yield the visit step with narration
+    // Yield the visit step with trace
     yield {
       type: StepType.VISIT,
       edge: { from: current.from, to: nodeId },
-      narration: {
+      trace: {
         message,
         dataStructure: {
           type: "stack",

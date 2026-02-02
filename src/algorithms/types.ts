@@ -78,7 +78,7 @@ export interface EdgeRef {
 }
 
 /**
- * State of a data structure for visualization in the narration panel.
+ * State of a data structure for visualization in the trace panel.
  * Used to show queue/stack/etc. contents during step-through mode.
  */
 export interface DataStructureState {
@@ -93,10 +93,10 @@ export interface DataStructureState {
 }
 
 /**
- * Narration information for a single algorithm step.
+ * Trace information for a single algorithm step.
  * Provides human-readable context about what the algorithm is doing.
  */
-export interface StepNarration {
+export interface StepTrace {
   /** Human-readable description of the current action */
   message: string;
   /** Optional data structure state to visualize */
@@ -112,8 +112,8 @@ export interface AlgorithmStep {
   type: StepType;
   /** The edge being visualized in this step */
   edge: EdgeRef;
-  /** Optional narration for this step (shown in narration panel) */
-  narration?: StepNarration;
+  /** Optional trace for this step (shown in trace panel) */
+  trace?: StepTrace;
 }
 
 /**

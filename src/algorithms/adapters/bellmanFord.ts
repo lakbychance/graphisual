@@ -35,7 +35,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
     yield {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
-      narration: {
+      trace: {
         message: `**Start and destination are the same** (node ${startNodeId})`,
         dataStructure: { type: "distances", items: [{ id: startNodeId, value: 0 }] },
       },
@@ -77,7 +77,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
   yield {
     type: StepType.VISIT,
     edge: { from: -1, to: startNodeId },
-    narration: {
+    trace: {
       message: `**Starting at node ${startNodeId}** (distance: 0)\n**1** node reachable`,
       dataStructure: {
         type: "distances",
@@ -115,7 +115,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
         yield {
           type: StepType.VISIT,
           edge: { from: edge.from, to: edge.to },
-          narration: {
+          trace: {
             message,
             dataStructure: {
               type: "distances",

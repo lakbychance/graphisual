@@ -86,7 +86,7 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     const edgeWeight = parentNode !== undefined ? minKey : 0;
     totalWeight += edgeWeight;
 
-    // Update keys of adjacent vertices first (so narration shows updated state)
+    // Update keys of adjacent vertices first (so trace shows updated state)
     const neighbors = adjacencyList.get(minNode) || [];
     const updatedNodes: number[] = [];
     for (const edge of neighbors) {
@@ -98,7 +98,7 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
       }
     }
 
-    // Build narration message
+    // Build trace message
     let message: string;
     if (parentNode === undefined) {
       message = `**Starting at node ${minNode}**`;
@@ -110,14 +110,14 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
     message += `\nMST: **${mstSet.size}** nodes, total weight: **${totalWeight}**`;
 
-    // Yield the edge with narration
+    // Yield the edge with trace
     yield {
       type: StepType.VISIT,
       edge: {
         from: parentNode !== undefined ? parentNode : -1,
         to: minNode,
       },
-      narration: {
+      trace: {
         message,
         dataStructure: {
           type: "priority-queue",

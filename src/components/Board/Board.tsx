@@ -432,9 +432,9 @@ export const Board = () => {
 
         {/* Trace Panel - Desktop only, bottom center, hidden during RESULT steps */}
         <AnimatePresence>
-          {isInStepMode && tracePanelVisible && stepIndex >= 0 && stepHistory[stepIndex]?.narration && (
+          {isInStepMode && tracePanelVisible && stepIndex >= 0 && stepHistory[stepIndex]?.trace && (
             <TracePanel
-              narration={stepHistory[stepIndex].narration}
+              trace={stepHistory[stepIndex].trace}
               onCollapse={() => setTracePanelVisible(false)}
             />
           )}

@@ -33,7 +33,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     yield {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
-      narration: {
+      trace: {
         message: `**Start and destination are the same** (node ${startNodeId})`,
         dataStructure: { type: "priority-queue", items: [], processing: { id: startNodeId, value: 0 } },
       },
@@ -96,7 +96,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
   yield {
     type: StepType.VISIT,
     edge: { from: -1, to: startNodeId },
-    narration: {
+    trace: {
       message: startMessage,
       dataStructure: {
         type: "priority-queue",
@@ -134,7 +134,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     // Remove from unvisited
     unvisited.delete(currentNode);
 
-    // Update neighbors first to show updated distances in narration
+    // Update neighbors first to show updated distances in trace
     const neighbors = adjacencyList.get(currentNode) || [];
     const updatedNodes: number[] = [];
     for (const edge of neighbors) {
@@ -148,7 +148,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
       }
     }
 
-    // Build narration message
+    // Build trace message
     let message = `**Visiting node ${currentNode}**`;
     if (updatedNodes.length > 0) {
       message += `, updated **${updatedNodes.join(", ")}**`;
@@ -160,7 +160,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
       yield {
         type: StepType.VISIT,
         edge: { from: prevNode ?? -1, to: currentNode },
-        narration: {
+        trace: {
           message: `**Found destination node ${currentNode}!**`,
           dataStructure: {
             type: "priority-queue",
@@ -184,7 +184,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
         yield {
           type: StepType.VISIT,
           edge: { from: prevNode, to: currentNode },
-          narration: {
+          trace: {
             message,
             dataStructure: {
               type: "priority-queue",

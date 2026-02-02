@@ -27,13 +27,13 @@ interface VisualizationTrace {
   edges: Map<string, EdgeVisualizationFlags>; // key: "fromId-toId"
 }
 
-// Import StepNarration type for step history
-import type { StepNarration } from "../algorithms/types";
+// Import StepTrace type for step history
+import type { StepTrace } from "../algorithms/types";
 
 // Step-through state (only exists in manual mode)
 interface StepState {
   index: number;
-  history: Array<{ type: StepType; edge: { from: number; to: number }; narration?: StepNarration }>;
+  history: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }>;
   isComplete: boolean;
 }
 
@@ -131,7 +131,7 @@ interface GraphActions {
   setViewportPan: (x: number, y: number) => void;
 
   // === Step-Through Actions ===
-  initStepThrough: (steps: Array<{ type: StepType; edge: { from: number; to: number }; narration?: StepNarration }>) => void;
+  initStepThrough: (steps: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }>) => void;
   stepForward: () => void;
   stepBackward: () => void;
   jumpToStep: (index: number) => void;
@@ -894,7 +894,7 @@ export const useGraphStore = create<GraphStore>()(
 // ============================================================================
 
 // Stable empty array for selectors (prevents infinite re-renders)
-const EMPTY_STEP_HISTORY: Array<{ type: StepType; edge: { from: number; to: number }; narration?: StepNarration }> = [];
+const EMPTY_STEP_HISTORY: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }> = [];
 
 // Step-through selectors (only available in manual mode)
 export const selectStepIndex = (state: GraphStore) =>

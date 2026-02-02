@@ -2,11 +2,11 @@ import { X } from "lucide-react";
 import { Button } from "../ui/button";
 import { GrainTexture } from "../ui/grain-texture";
 import { DataStructureVis } from "./DataStructureVis";
-import type { StepNarration } from "../../algorithms/types";
+import type { StepTrace } from "../../algorithms/types";
 import * as m from "motion/react-m";
 
 // Parse **bold** markers and newlines in text and return React nodes
-const parseNarration = (text: string): React.ReactNode => {
+const parseTrace = (text: string): React.ReactNode => {
   // Split by newlines first
   const lines = text.split("\n");
 
@@ -29,11 +29,11 @@ const parseNarration = (text: string): React.ReactNode => {
 };
 
 interface TracePanelProps {
-  narration: StepNarration | undefined;
+  trace: StepTrace | undefined;
   onCollapse: () => void;
 }
 
-export const TracePanel = ({ narration, onCollapse }: TracePanelProps) => {
+export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
   return (
     <m.div
       layout='preserve-aspect'
@@ -61,15 +61,15 @@ export const TracePanel = ({ narration, onCollapse }: TracePanelProps) => {
           <X size={14} className="text-[var(--color-text-muted)]" />
         </Button>
 
-        {/* Narration message */}
+        {/* Trace message */}
         <div className="text-sm text-[var(--color-text-muted)] relative z-10">
-          {narration?.message ? parseNarration(narration.message) : "Starting algorithm..."}
+          {trace?.message ? parseTrace(trace.message) : "Starting algorithm..."}
         </div>
 
         {/* Data structure visualization */}
-        {narration?.dataStructure && (
+        {trace?.dataStructure && (
           <div className="relative z-10 pt-1 border-t border-[var(--color-divider)]">
-            <DataStructureVis dataStructure={narration.dataStructure} />
+            <DataStructureVis dataStructure={trace.dataStructure} />
           </div>
         )}
       </div>
