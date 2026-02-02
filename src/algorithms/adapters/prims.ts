@@ -108,7 +108,7 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     if (updatedNodes.length > 0) {
       message += `, updated **${updatedNodes.join(", ")}**`;
     }
-    message += `. MST: ${mstSet.size} nodes, total weight: ${totalWeight}`;
+    message += `\nMST: **${mstSet.size}** nodes, total weight: **${totalWeight}**`;
 
     // Yield the edge with narration
     yield {

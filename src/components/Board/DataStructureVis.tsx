@@ -1,74 +1,129 @@
 import type { DataStructureState } from "../../algorithms/types";
 import { cn } from "@/lib/utils";
 
+const MAX_VISIBLE_ITEMS = 6;
+
+// Shared component for the processing/updated indicator
+const ProcessingIndicator = ({
+  label,
+  id,
+  value,
+}: {
+  label: string;
+  id: number;
+  value?: number;
+}) => (
+  <div className="flex items-center gap-1.5">
+    <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
+    <div
+      className={cn(
+        "px-2.5 py-1 rounded text-xs font-mono",
+        "bg-[var(--color-accent-form)] text-white",
+        "shadow-sm",
+        value !== undefined && "text-center flex flex-col leading-tight"
+      )}
+    >
+      {value !== undefined ? (
+        <>
+          <span>{id}</span>
+          <span className="text-[10px] opacity-75">d={value}</span>
+        </>
+      ) : (
+        id
+      )}
+    </div>
+  </div>
+);
+
+// Shared component for individual item boxes
+const ItemBox = ({
+  id,
+  value,
+  hasRing,
+  isJustAdded,
+}: {
+  id: number;
+  value?: number;
+  hasRing?: boolean;
+  isJustAdded?: boolean;
+}) => (
+  <div
+    className={cn(
+      "px-2.5 py-1 rounded text-xs font-mono",
+      "bg-[var(--color-paper)] text-[var(--color-text)]",
+      "border border-[var(--color-divider)]",
+      value !== undefined && "text-center flex flex-col leading-tight",
+      hasRing && "ring-1 ring-[var(--color-text-muted)] ring-offset-1 ring-offset-[var(--color-surface)]",
+      isJustAdded && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
+    )}
+  >
+    {value !== undefined ? (
+      <>
+        <span>{id}</span>
+        <span className="text-[10px] text-[var(--color-text-muted)]">d={value}</span>
+      </>
+    ) : (
+      id
+    )}
+  </div>
+);
+
+// Shared component for overflow indicator
+const OverflowIndicator = ({ count }: { count: number }) =>
+  count > 0 ? (
+    <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
+      +{count} more
+    </span>
+  ) : null;
+
+// Shared empty state
+const EmptyState = () => (
+  <span className="text-xs text-[var(--color-text-muted)] italic">empty</span>
+);
+
+// Direction label (front/back/top/bottom/min)
+const DirectionLabel = ({ text }: { text: string }) => (
+  <span className="text-[10px] text-[var(--color-text-muted)]">({text})</span>
+);
+
 interface DataStructureVisProps {
   dataStructure: DataStructureState;
 }
-
-const MAX_VISIBLE_ITEMS = 6;
 
 export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   const { items, processing, justAdded } = dataStructure;
   const justAddedSet = new Set(justAdded || []);
 
   if (dataStructure.type === "queue") {
-    const isEmpty = items.length === 0;
     const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
       <div className="flex flex-col gap-2">
-        {/* Processing indicator */}
         {processing && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
-            <div
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-mono",
-                "bg-[var(--color-accent-form)] text-white",
-                "shadow-sm"
-              )}
-            >
-              {processing.id}
-            </div>
-          </div>
+          <ProcessingIndicator label="Processing:" id={processing.id} />
         )}
 
-        {/* Queue visualization */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-[var(--color-text-muted)] mr-0.5">Queue:</span>
 
-          {isEmpty ? (
-            <span className="text-xs text-[var(--color-text-muted)] italic">
-              empty
-            </span>
+          {items.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
-              <span className="text-[10px] text-[var(--color-text-muted)]">(front)</span>
+              <DirectionLabel text="front" />
               <div className="flex items-center gap-1">
                 {visibleItems.map((item, index) => (
-                  <div
+                  <ItemBox
                     key={item.id}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-xs font-mono",
-                      "bg-[var(--color-paper)] text-[var(--color-text)]",
-                      "border border-[var(--color-divider)]",
-                      index === 0 && "ring-1 ring-[var(--color-text-muted)] ring-offset-1 ring-offset-[var(--color-surface)]",
-                      justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                    )}
-                  >
-                    {item.id}
-                  </div>
+                    id={item.id}
+                    hasRing={index === 0}
+                    isJustAdded={justAddedSet.has(item.id)}
+                  />
                 ))}
-                {hiddenCount > 0 && (
-                  <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
-                    +{hiddenCount} more
-                  </span>
-                )}
+                <OverflowIndicator count={hiddenCount} />
               </div>
-              {hiddenCount <= 0 && (
-                <span className="text-[10px] text-[var(--color-text-muted)]">(back)</span>
-              )}
+              {hiddenCount <= 0 && <DirectionLabel text="back" />}
             </>
           )}
         </div>
@@ -77,65 +132,38 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   }
 
   if (dataStructure.type === "stack") {
-    const isEmpty = items.length === 0;
-    // For stack, show last items (top of stack) - take from end
     const visibleItems = items.slice(-MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
       <div className="flex flex-col gap-2">
-        {/* Processing indicator */}
         {processing && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
-            <div
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-mono",
-                "bg-[var(--color-accent-form)] text-white",
-                "shadow-sm"
-              )}
-            >
-              {processing.id}
-            </div>
-          </div>
+          <ProcessingIndicator label="Processing:" id={processing.id} />
         )}
 
-        {/* Stack visualization */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-[var(--color-text-muted)] mr-0.5">Stack:</span>
 
-          {isEmpty ? (
-            <span className="text-xs text-[var(--color-text-muted)] italic">
-              empty
-            </span>
+          {items.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
-              {hiddenCount > 0 && (
-                <span className="text-xs text-[var(--color-text-muted)] mr-0.5">
-                  +{hiddenCount} more
-                </span>
-              )}
-              {hiddenCount <= 0 && (
-                <span className="text-[10px] text-[var(--color-text-muted)]">(bottom)</span>
+              {hiddenCount > 0 ? (
+                <OverflowIndicator count={hiddenCount} />
+              ) : (
+                <DirectionLabel text="bottom" />
               )}
               <div className="flex items-center gap-1">
                 {visibleItems.map((item, index) => (
-                  <div
+                  <ItemBox
                     key={item.id}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-xs font-mono",
-                      "bg-[var(--color-paper)] text-[var(--color-text)]",
-                      "border border-[var(--color-divider)]",
-                      // Last item is top of stack (will be popped next)
-                      index === visibleItems.length - 1 && "ring-1 ring-[var(--color-text-muted)] ring-offset-1 ring-offset-[var(--color-surface)]",
-                      justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                    )}
-                  >
-                    {item.id}
-                  </div>
+                    id={item.id}
+                    hasRing={index === visibleItems.length - 1}
+                    isJustAdded={justAddedSet.has(item.id)}
+                  />
                 ))}
               </div>
-              <span className="text-[10px] text-[var(--color-text-muted)]">(top)</span>
+              <DirectionLabel text="top" />
             </>
           )}
         </div>
@@ -144,66 +172,38 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   }
 
   if (dataStructure.type === "priority-queue") {
-    const isEmpty = items.length === 0;
     const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
       <div className="flex flex-col gap-2">
-        {/* Processing indicator */}
         {processing && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
-            <div
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-mono text-center",
-                "bg-[var(--color-accent-form)] text-white",
-                "shadow-sm flex flex-col leading-tight"
-              )}
-            >
-              <span>{processing.id}</span>
-              {processing.value !== undefined && (
-                <span className="text-[10px] opacity-75">d={processing.value}</span>
-              )}
-            </div>
-          </div>
+          <ProcessingIndicator
+            label="Processing:"
+            id={processing.id}
+            value={processing.value}
+          />
         )}
 
-        {/* Priority Queue visualization */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-[var(--color-text-muted)] mr-0.5">Priority Queue:</span>
 
-          {isEmpty ? (
-            <span className="text-xs text-[var(--color-text-muted)] italic">
-              empty
-            </span>
+          {items.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
-              <span className="text-[10px] text-[var(--color-text-muted)]">(min)</span>
+              <DirectionLabel text="min" />
               <div className="flex items-center gap-1">
                 {visibleItems.map((item, index) => (
-                  <div
+                  <ItemBox
                     key={item.id}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-xs font-mono text-center",
-                      "bg-[var(--color-paper)] text-[var(--color-text)]",
-                      "border border-[var(--color-divider)]",
-                      "flex flex-col leading-tight",
-                      index === 0 && "ring-1 ring-[var(--color-text-muted)] ring-offset-1 ring-offset-[var(--color-surface)]",
-                      justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                    )}
-                  >
-                    <span>{item.id}</span>
-                    {item.value !== undefined && (
-                      <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
-                    )}
-                  </div>
+                    id={item.id}
+                    value={item.value}
+                    hasRing={index === 0}
+                    isJustAdded={justAddedSet.has(item.id)}
+                  />
                 ))}
-                {hiddenCount > 0 && (
-                  <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
-                    +{hiddenCount} more
-                  </span>
-                )}
+                <OverflowIndicator count={hiddenCount} />
               </div>
             </>
           )}
@@ -218,52 +218,27 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
 
     return (
       <div className="flex flex-col gap-2">
-        {/* Processing indicator */}
         {processing && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--color-text-muted)]">Updated:</span>
-            <div
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-mono text-center",
-                "bg-[var(--color-accent-form)] text-white",
-                "shadow-sm flex flex-col leading-tight"
-              )}
-            >
-              <span>{processing.id}</span>
-              {processing.value !== undefined && (
-                <span className="text-[10px] opacity-75">d={processing.value}</span>
-              )}
-            </div>
-          </div>
+          <ProcessingIndicator
+            label="Updated:"
+            id={processing.id}
+            value={processing.value}
+          />
         )}
 
-        {/* Distances visualization - only show if there are items */}
         {visibleItems.length > 0 && (
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-[var(--color-text-muted)] mr-0.5">Distances:</span>
             <div className="flex items-center gap-1">
               {visibleItems.map((item) => (
-                <div
+                <ItemBox
                   key={item.id}
-                  className={cn(
-                    "px-2.5 py-1 rounded text-xs font-mono text-center",
-                    "bg-[var(--color-paper)] text-[var(--color-text)]",
-                    "border border-[var(--color-divider)]",
-                    "flex flex-col leading-tight",
-                    justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                  )}
-                >
-                  <span>{item.id}</span>
-                  {item.value !== undefined && (
-                    <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
-                  )}
-                </div>
+                  id={item.id}
+                  value={item.value}
+                  isJustAdded={justAddedSet.has(item.id)}
+                />
               ))}
-              {hiddenCount > 0 && (
-                <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
-                  +{hiddenCount} more
-                </span>
-              )}
+              <OverflowIndicator count={hiddenCount} />
             </div>
           </div>
         )}

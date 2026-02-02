@@ -5,14 +5,26 @@ import { DataStructureVis } from "./DataStructureVis";
 import type { StepNarration } from "../../algorithms/types";
 import * as m from "motion/react-m";
 
-// Parse **bold** markers in text and return React nodes
+// Parse **bold** markers and newlines in text and return React nodes
 const parseNarration = (text: string): React.ReactNode => {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i} className="font-semibold text-[var(--color-text)]">{part.slice(2, -2)}</strong>;
+  // Split by newlines first
+  const lines = text.split("\n");
+
+  return lines.map((line, lineIndex) => {
+    // Parse bold markers within each line
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    const parsedLine = parts.map((part, partIndex) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={partIndex} className="font-semibold text-[var(--color-text)]">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+
+    // Add line break between lines (but not after the last one)
+    if (lineIndex < lines.length - 1) {
+      return <span key={lineIndex}>{parsedLine}<br /></span>;
     }
-    return part;
+    return <span key={lineIndex}>{parsedLine}</span>;
   });
 };
 
