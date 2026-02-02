@@ -108,8 +108,8 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
         // Check if we found the target
         const isTarget = edge.to === endNodeId;
         const message = isTarget
-          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**. (${reachableCount} nodes reachable)`
-          : `Iteration ${i + 1}: Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**. (${reachableCount} nodes reachable)`;
+          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`
+          : `Iteration ${i + 1}: Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`;
 
         // Yield the relaxation step
         yield {
