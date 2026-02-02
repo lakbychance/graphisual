@@ -16,12 +16,12 @@ const parseNarration = (text: string): React.ReactNode => {
   });
 };
 
-interface NarrationPanelProps {
+interface TracePanelProps {
   narration: StepNarration | undefined;
   onCollapse: () => void;
 }
 
-export const NarrationPanel = ({ narration, onCollapse }: NarrationPanelProps) => {
+export const TracePanel = ({ narration, onCollapse }: TracePanelProps) => {
   return (
     <m.div
       layout='preserve-aspect'

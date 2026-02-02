@@ -81,17 +81,11 @@ interface Selection {
   focusedEdge: { from: number; to: number } | null;
 }
 
-// UI state for panels and overlays
-interface UIState {
-  narrationPanelVisible: boolean;
-}
-
 interface GraphState {
   data: GraphData;
   visualization: Visualization;
   selection: Selection;
   viewport: Viewport;
-  ui: UIState;
 }
 
 interface GraphActions {
@@ -135,7 +129,6 @@ interface GraphActions {
   // === UI Actions ===
   setViewportZoom: (zoom: number) => void;
   setViewportPan: (x: number, y: number) => void;
-  setNarrationPanelVisible: (visible: boolean) => void;
 
   // === Step-Through Actions ===
   initStepThrough: (steps: Array<{ type: StepType; edge: { from: number; to: number }; narration?: StepNarration }>) => void;
@@ -196,16 +189,11 @@ const initialSelection: Selection = {
   focusedEdge: null,
 };
 
-const initialUI: UIState = {
-  narrationPanelVisible: true,
-};
-
 const initialState: GraphState = {
   data: initialData,
   visualization: initialVisualization,
   selection: initialSelection,
   viewport: initialViewport,
-  ui: initialUI,
 };
 
 // ============================================================================
@@ -802,11 +790,6 @@ export const useGraphStore = create<GraphStore>()(
         setViewportPan: (x, y) => {
           const { viewport } = get();
           set({ viewport: { ...viewport, pan: { x, y } } });
-        },
-
-        setNarrationPanelVisible: (visible) => {
-          const { ui } = get();
-          set({ ui: { ...ui, narrationPanelVisible: visible } });
         },
 
         // ========================================
