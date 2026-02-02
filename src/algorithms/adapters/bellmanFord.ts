@@ -78,7 +78,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
     type: StepType.VISIT,
     edge: { from: -1, to: startNodeId },
     narration: {
-      message: `**Starting at node ${startNodeId}** (distance: 0). 1 node reachable.`,
+      message: `**Starting at node ${startNodeId}** (distance: 0)\n**1** node reachable`,
       dataStructure: {
         type: "distances",
         items: [],
