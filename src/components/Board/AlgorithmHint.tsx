@@ -1,6 +1,5 @@
 import { AnimatePresence, useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
-import useMeasure from "react-use-measure";
 import { cn } from "@/lib/utils";
 
 interface AlgorithmHintProps {
@@ -10,10 +9,10 @@ interface AlgorithmHintProps {
 
 export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
   const prefersReducedMotion = useReducedMotion();
-  const [ref, { width }] = useMeasure();
 
   return (
-    <div
+    <m.div
+      layout
       className={cn(
         "fixed z-40 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]",
         // Mobile: center top
@@ -30,7 +29,6 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
         className="relative">
         {/* Content layer - persists for width animation */}
         <m.div
-          animate={{ width: width || "auto" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.6, type: 'spring', bounce: 0.4 }}
           className="relative rounded-md text-sm text-center bg-[var(--color-surface)] text-[var(--color-text)] overflow-hidden flex justify-center"
         >
@@ -41,7 +39,6 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
               exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.95, filter: 'blur(1px)', x: '-100%' }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.6, type: 'spring', bounce: 0.2 }}
               key={text}
-              ref={ref}
               className="font-medium z-10 px-4 py-2.5 w-fit whitespace-nowrap"
             >
               {text}
@@ -72,6 +69,6 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
           />
         </AnimatePresence>
       </m.div>
-    </div>
+    </m.div>
   );
 };

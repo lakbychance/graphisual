@@ -32,7 +32,14 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
   // Handle same start and end
   if (startNodeId === endNodeId) {
-    yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+    yield {
+      type: StepType.VISIT,
+      edge: { from: -1, to: startNodeId },
+      trace: {
+        message: `**Start and destination are the same** (node ${startNodeId})`,
+        dataStructure: { type: "distances", items: [{ id: startNodeId, value: 0 }] },
+      },
+    };
     yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
     return;
   }
@@ -61,8 +68,24 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
   });
 
+  // Helper to count reachable nodes
+  const getReachableCount = () => {
+    return Array.from(distances.values()).filter((d) => d !== Infinity).length;
+  };
+
   // Yield start node
-  yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+  yield {
+    type: StepType.VISIT,
+    edge: { from: -1, to: startNodeId },
+    trace: {
+      message: `**Starting at node ${startNodeId}** (distance: 0)\n**1** node reachable`,
+      dataStructure: {
+        type: "distances",
+        items: [],
+        processing: { id: startNodeId, value: 0 },
+      },
+    },
+  };
 
   // Relax all edges V-1 times
   const V = Math.max(nodes.length, distances.size);
@@ -75,12 +98,32 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
       const newDist = distFrom + edge.weight;
 
       if (distFrom !== Infinity && newDist < distTo) {
+        const oldDist = distTo === Infinity ? "∞" : distTo;
         distances.set(edge.to, newDist);
         previous.set(edge.to, edge.from);
         updated = true;
 
+        const reachableCount = getReachableCount();
+
+        // Check if we found the target
+        const isTarget = edge.to === endNodeId;
+        const message = isTarget
+          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`
+          : `Iteration ${i + 1}: Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`;
+
         // Yield the relaxation step
-        yield { type: StepType.VISIT, edge: { from: edge.from, to: edge.to } };
+        yield {
+          type: StepType.VISIT,
+          edge: { from: edge.from, to: edge.to },
+          trace: {
+            message,
+            dataStructure: {
+              type: "distances",
+              items: [],
+              processing: { id: edge.to, value: newDist },
+            },
+          },
+        };
       }
     }
 

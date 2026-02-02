@@ -22,33 +22,48 @@ import { Queue } from "../utils/dataStructures";
  */
 function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
   const { adjacencyList, startNodeId } = input;
-  const visited = new Set<number>();
+  const seen = new Set<number>(); // Tracks nodes added to queue (prevents duplicates)
   const queue = new Queue<{ from: number; to: number }>();
 
   // Start with the initial node (from: -1 indicates root)
   queue.push({ from: -1, to: startNodeId });
+  seen.add(startNodeId);
 
   while (!queue.isEmpty()) {
     const current = queue.shift()!;
     const nodeId = current.to;
 
-    if (visited.has(nodeId)) {
-      continue;
-    }
-
-    // Mark as visited
-    visited.add(nodeId);
-
-    // Yield the visit step
-    yield { type: StepType.VISIT, edge: { from: current.from, to: nodeId } };
-
-    // Get neighbors and add unvisited ones to queue
+    // Get neighbors and add unseen ones to queue
     const neighbors = adjacencyList.get(nodeId) || [];
+    const addedToQueue: number[] = [];
     for (const edge of neighbors) {
-      if (!visited.has(edge.to)) {
+      if (!seen.has(edge.to)) {
+        seen.add(edge.to);
         queue.push({ from: nodeId, to: edge.to });
+        addedToQueue.push(edge.to);
       }
     }
+
+    // Build trace message
+    let message = `**Visiting node ${nodeId}**`;
+    if (addedToQueue.length > 0) {
+      message += `, added **${addedToQueue.join(", ")}** to queue`;
+    }
+
+    // Yield the visit step with trace
+    yield {
+      type: StepType.VISIT,
+      edge: { from: current.from, to: nodeId },
+      trace: {
+        message,
+        dataStructure: {
+          type: "queue",
+          items: queue.getContents().map((item) => ({ id: item.to })),
+          processing: { id: nodeId },
+          justAdded: addedToQueue.length > 0 ? addedToQueue : undefined,
+        },
+      },
+    };
   }
 }
 

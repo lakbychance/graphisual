@@ -19,6 +19,10 @@ export class Queue<T> {
   isEmpty(): boolean {
     return this.items.length === 0;
   }
+
+  getContents(): T[] {
+    return [...this.items];
+  }
 }
 
 /**
@@ -37,5 +41,9 @@ export class Stack<T> {
 
   isEmpty(): boolean {
     return this.items.length === 0;
+  }
+
+  getContents(): T[] {
+    return [...this.items];
   }
 }

@@ -31,17 +31,25 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
   // Handle same start and end
   if (startNodeId === endNodeId) {
-    yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+    yield {
+      type: StepType.VISIT,
+      edge: { from: -1, to: startNodeId },
+      trace: {
+        message: `**Start and destination are the same** (node ${startNodeId})`,
+        dataStructure: { type: "queue", items: [], processing: { id: startNodeId } },
+      },
+    };
     yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
     return;
   }
 
-  const visited = new Set<number>();
+  const seen = new Set<number>(); // Tracks nodes added to queue (prevents duplicates)
   const parent = new Map<number, number>();
   const queue = new Queue<{ from: number; to: number }>();
 
   // Start with the initial node
   queue.push({ from: -1, to: startNodeId });
+  seen.add(startNodeId);
 
   let foundTarget = false;
 
@@ -49,30 +57,59 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
     const current = queue.shift()!;
     const nodeId = current.to;
 
-    if (visited.has(nodeId)) {
-      continue;
-    }
-
-    // Mark as visited and record parent
-    visited.add(nodeId);
+    // Record parent for path reconstruction
     parent.set(nodeId, current.from);
-
-    // Yield the visit step
-    yield { type: StepType.VISIT, edge: { from: current.from, to: nodeId } };
 
     // Check if we found the target
     if (nodeId === endNodeId) {
       foundTarget = true;
+      // Yield the visit step with found message
+      yield {
+        type: StepType.VISIT,
+        edge: { from: current.from, to: nodeId },
+        trace: {
+          message: `**Found destination node ${nodeId}!**`,
+          dataStructure: {
+            type: "queue",
+            items: queue.getContents().map((item) => ({ id: item.to })),
+            processing: { id: nodeId },
+          },
+        },
+      };
       break;
     }
 
-    // Get neighbors and add unvisited ones to queue
+    // Get neighbors and add unseen ones to queue
     const neighbors = adjacencyList.get(nodeId) || [];
+    const addedToQueue: number[] = [];
     for (const edge of neighbors) {
-      if (!visited.has(edge.to)) {
+      if (!seen.has(edge.to)) {
+        seen.add(edge.to);
         queue.push({ from: nodeId, to: edge.to });
+        addedToQueue.push(edge.to);
       }
     }
+
+    // Build trace message
+    let message = `**Visiting node ${nodeId}**`;
+    if (addedToQueue.length > 0) {
+      message += `, added **${addedToQueue.join(", ")}** to queue`;
+    }
+
+    // Yield the visit step with trace
+    yield {
+      type: StepType.VISIT,
+      edge: { from: current.from, to: nodeId },
+      trace: {
+        message,
+        dataStructure: {
+          type: "queue",
+          items: queue.getContents().map((item) => ({ id: item.to })),
+          processing: { id: nodeId },
+          justAdded: addedToQueue.length > 0 ? addedToQueue : undefined,
+        },
+      },
+    };
   }
 
   // Reconstruct and yield the path
