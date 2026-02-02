@@ -55,6 +55,14 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
   // Steps to yield (collected during DFS)
   const stepsToYield: AlgorithmStep[] = [];
 
+  // Track recursion stack for visualization
+  const recursionStack: number[] = [];
+
+  // Helper to get recursion stack state
+  const getStackState = () => {
+    return recursionStack.map((id) => ({ id }));
+  };
+
   // Reconstruct cycle from the back edge
   const reconstructCycle = (
     fromNode: number,
@@ -86,9 +94,21 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
   const dfs = (nodeId: number, parentId: number): boolean => {
     color.set(nodeId, GRAY);
     parent.set(nodeId, parentId);
+    recursionStack.push(nodeId);
 
     // Record visiting this node
-    stepsToYield.push({ type: StepType.VISIT, edge: { from: parentId, to: nodeId } });
+    stepsToYield.push({
+      type: StepType.VISIT,
+      edge: { from: parentId, to: nodeId },
+      narration: {
+        message: `**Exploring node ${nodeId}**. Recursion depth: ${recursionStack.length}`,
+        dataStructure: {
+          type: "stack",
+          items: getStackState(),
+          processing: { id: nodeId },
+        },
+      },
+    });
 
     const neighbors = adjacencyList.get(nodeId) || [];
 
@@ -109,7 +129,18 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
         }
 
         // Record the edge that completes the cycle
-        stepsToYield.push({ type: StepType.VISIT, edge: { from: nodeId, to: neighborId } });
+        stepsToYield.push({
+          type: StepType.VISIT,
+          edge: { from: nodeId, to: neighborId },
+          narration: {
+            message: `**Cycle detected!** Back edge **${nodeId}→${neighborId}** found (node ${neighborId} is in recursion stack)`,
+            dataStructure: {
+              type: "stack",
+              items: getStackState(),
+              processing: { id: neighborId },
+            },
+          },
+        });
 
         // Reconstruct the cycle path
         cycleEdges = reconstructCycle(nodeId, neighborId, parent);
@@ -119,6 +150,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     color.set(nodeId, BLACK);
+    recursionStack.pop();
     return false;
   };
 

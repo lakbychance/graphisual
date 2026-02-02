@@ -30,7 +30,14 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
   // Handle same start and end
   if (startNodeId === endNodeId) {
-    yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+    yield {
+      type: StepType.VISIT,
+      edge: { from: -1, to: startNodeId },
+      narration: {
+        message: `**Start and destination are the same** (node ${startNodeId})`,
+        dataStructure: { type: "priority-queue", items: [], processing: { id: startNodeId, value: 0 } },
+      },
+    };
     yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
     return;
   }
@@ -56,8 +63,55 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     unvisited.add(endNodeId);
   }
 
-  // Yield start node
-  yield { type: StepType.VISIT, edge: { from: -1, to: startNodeId } };
+  // Helper to get priority queue state (unvisited nodes sorted by distance)
+  const getPriorityQueueState = () => {
+    return Array.from(unvisited)
+      .map((id) => ({ id, value: distances.get(id) ?? Infinity }))
+      .filter((item) => item.value !== Infinity) // Only show reachable nodes
+      .sort((a, b) => a.value - b.value);
+  };
+
+  // Process start node: relax its edges first, then yield
+  unvisited.delete(startNodeId);
+  const startNeighbors = adjacencyList.get(startNodeId) || [];
+  const startUpdatedNodes: number[] = [];
+  for (const edge of startNeighbors) {
+    if (unvisited.has(edge.to)) {
+      const newDist = edge.weight;
+      if (newDist < (distances.get(edge.to) ?? Infinity)) {
+        distances.set(edge.to, newDist);
+        previous.set(edge.to, startNodeId);
+        startUpdatedNodes.push(edge.to);
+      }
+    }
+  }
+
+  // Build start node message
+  let startMessage = `**Starting at node ${startNodeId}**`;
+  if (startUpdatedNodes.length > 0) {
+    startMessage += `, updated **${startUpdatedNodes.join(", ")}**`;
+  }
+
+  // Yield start node with queue state AFTER relaxation
+  yield {
+    type: StepType.VISIT,
+    edge: { from: -1, to: startNodeId },
+    narration: {
+      message: startMessage,
+      dataStructure: {
+        type: "priority-queue",
+        items: getPriorityQueueState(),
+        processing: { id: startNodeId, value: 0 },
+        justAdded: startUpdatedNodes.length > 0 ? startUpdatedNodes : undefined,
+      },
+    },
+  };
+
+  // Check if start node is the target (shouldn't happen, handled above, but just in case)
+  if (startNodeId === endNodeId) {
+    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
+    return;
+  }
 
   while (unvisited.size > 0) {
     // Find the unvisited node with minimum distance
@@ -80,16 +134,42 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     // Remove from unvisited
     unvisited.delete(currentNode);
 
-    // Yield the edge that led to this node (for animation)
-    if (currentNode !== startNodeId) {
-      const prevNode = previous.get(currentNode);
-      if (prevNode !== undefined) {
-        yield { type: StepType.VISIT, edge: { from: prevNode, to: currentNode } };
+    // Update neighbors first to show updated distances in narration
+    const neighbors = adjacencyList.get(currentNode) || [];
+    const updatedNodes: number[] = [];
+    for (const edge of neighbors) {
+      if (unvisited.has(edge.to)) {
+        const newDist = (distances.get(currentNode) ?? Infinity) + edge.weight;
+        if (newDist < (distances.get(edge.to) ?? Infinity)) {
+          distances.set(edge.to, newDist);
+          previous.set(edge.to, currentNode);
+          updatedNodes.push(edge.to);
+        }
       }
     }
 
-    // Found the target - yield result path
+    // Build narration message
+    let message = `**Visiting node ${currentNode}**`;
+    if (updatedNodes.length > 0) {
+      message += `, updated **${updatedNodes.join(", ")}**`;
+    }
+
+    // Found the target
     if (currentNode === endNodeId) {
+      const prevNode = previous.get(currentNode);
+      yield {
+        type: StepType.VISIT,
+        edge: { from: prevNode ?? -1, to: currentNode },
+        narration: {
+          message: `**Found destination node ${currentNode}!**`,
+          dataStructure: {
+            type: "priority-queue",
+            items: getPriorityQueueState(),
+            processing: { id: currentNode, value: minDistance },
+          },
+        },
+      };
+
       const resultEdges = reconstructPath(previous, startNodeId, endNodeId);
       for (const edge of resultEdges) {
         yield { type: StepType.RESULT, edge };
@@ -97,15 +177,23 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
       return;
     }
 
-    // Update neighbors
-    const neighbors = adjacencyList.get(currentNode) || [];
-    for (const edge of neighbors) {
-      if (unvisited.has(edge.to)) {
-        const newDist = (distances.get(currentNode) ?? Infinity) + edge.weight;
-        if (newDist < (distances.get(edge.to) ?? Infinity)) {
-          distances.set(edge.to, newDist);
-          previous.set(edge.to, currentNode);
-        }
+    // Yield the edge that led to this node (for animation)
+    if (currentNode !== startNodeId) {
+      const prevNode = previous.get(currentNode);
+      if (prevNode !== undefined) {
+        yield {
+          type: StepType.VISIT,
+          edge: { from: prevNode, to: currentNode },
+          narration: {
+            message,
+            dataStructure: {
+              type: "priority-queue",
+              items: getPriorityQueueState(),
+              processing: { id: currentNode, value: minDistance },
+              justAdded: updatedNodes.length > 0 ? updatedNodes : undefined,
+            },
+          },
+        };
       }
     }
   }

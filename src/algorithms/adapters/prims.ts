@@ -51,6 +51,17 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
   // Start node has key 0
   key.set(startNodeId, 0);
 
+  // Helper to get priority queue state (nodes not in MST with finite keys, sorted by key)
+  const getPriorityQueueState = () => {
+    return Array.from(key.entries())
+      .filter(([nodeId, k]) => !mstSet.has(nodeId) && k !== Infinity)
+      .sort((a, b) => a[1] - b[1])
+      .map(([id, value]) => ({ id, value }));
+  };
+
+  // Track total MST weight
+  let totalWeight = 0;
+
   // Process all nodes
   for (let i = 0; i < nodes.length; i++) {
     // Find minimum key vertex not in MST
@@ -71,26 +82,51 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
 
     // Add to MST
     mstSet.add(minNode);
-
-    // Yield the edge
     const parentNode = parent.get(minNode);
+    const edgeWeight = parentNode !== undefined ? minKey : 0;
+    totalWeight += edgeWeight;
+
+    // Update keys of adjacent vertices first (so narration shows updated state)
+    const neighbors = adjacencyList.get(minNode) || [];
+    const updatedNodes: number[] = [];
+    for (const edge of neighbors) {
+      const neighborId = edge.to;
+      if (!mstSet.has(neighborId) && edge.weight < (key.get(neighborId) ?? Infinity)) {
+        key.set(neighborId, edge.weight);
+        parent.set(neighborId, minNode);
+        updatedNodes.push(neighborId);
+      }
+    }
+
+    // Build narration message
+    let message: string;
+    if (parentNode === undefined) {
+      message = `**Starting at node ${minNode}**`;
+    } else {
+      message = `**Adding edge ${parentNode}→${minNode}** (weight: ${edgeWeight})`;
+    }
+    if (updatedNodes.length > 0) {
+      message += `, updated **${updatedNodes.join(", ")}**`;
+    }
+    message += `. MST: ${mstSet.size} nodes, total weight: ${totalWeight}`;
+
+    // Yield the edge with narration
     yield {
       type: StepType.VISIT,
       edge: {
         from: parentNode !== undefined ? parentNode : -1,
         to: minNode,
       },
+      narration: {
+        message,
+        dataStructure: {
+          type: "priority-queue",
+          items: getPriorityQueueState(),
+          processing: { id: minNode, value: edgeWeight },
+          justAdded: updatedNodes.length > 0 ? updatedNodes : undefined,
+        },
+      },
     };
-
-    // Update keys of adjacent vertices
-    const neighbors = adjacencyList.get(minNode) || [];
-    for (const edge of neighbors) {
-      const neighborId = edge.to;
-      if (!mstSet.has(neighborId) && edge.weight < (key.get(neighborId) ?? Infinity)) {
-        key.set(neighborId, edge.weight);
-        parent.set(neighborId, minNode);
-      }
-    }
   }
 }
 

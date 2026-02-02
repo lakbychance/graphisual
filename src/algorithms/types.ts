@@ -78,6 +78,32 @@ export interface EdgeRef {
 }
 
 /**
+ * State of a data structure for visualization in the narration panel.
+ * Used to show queue/stack/etc. contents during step-through mode.
+ */
+export interface DataStructureState {
+  /** Type of data structure being visualized */
+  type: 'queue' | 'stack' | 'priority-queue' | 'distances';
+  /** Items in the data structure with their node IDs and optional values */
+  items: Array<{ id: number; value?: number }>;
+  /** The item currently being processed (just dequeued/popped) */
+  processing?: { id: number; value?: number };
+  /** Items that were just added in this step */
+  justAdded?: number[];
+}
+
+/**
+ * Narration information for a single algorithm step.
+ * Provides human-readable context about what the algorithm is doing.
+ */
+export interface StepNarration {
+  /** Human-readable description of the current action */
+  message: string;
+  /** Optional data structure state to visualize */
+  dataStructure?: DataStructureState;
+}
+
+/**
  * A single step yielded by an algorithm generator.
  * Used for step-through visualization mode.
  */
@@ -86,6 +112,8 @@ export interface AlgorithmStep {
   type: StepType;
   /** The edge being visualized in this step */
   edge: EdgeRef;
+  /** Optional narration for this step (shown in narration panel) */
+  narration?: StepNarration;
 }
 
 /**

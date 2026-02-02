@@ -32,6 +32,8 @@ import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
 import { ZoomControls } from "./ZoomControls";
+import { NarrationPanel } from "./NarrationPanel";
+import { NarrationToggle } from "./NarrationToggle";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { Toolbar, ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
@@ -48,6 +50,8 @@ export const Board = () => {
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
   const isStepComplete = useGraphStore(selectIsStepComplete);
+  const narrationPanelVisible = useGraphStore((state) => state.ui.narrationPanelVisible);
+  const setNarrationPanelVisible = useGraphStore((state) => state.setNarrationPanelVisible);
 
   // Derive boolean for simpler component logic
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
@@ -426,6 +430,16 @@ export const Board = () => {
           )}
         </AnimatePresence>
 
+        {/* Narration Panel - Desktop only, bottom center, hidden during RESULT steps */}
+        <AnimatePresence>
+          {isInStepMode && narrationPanelVisible && stepIndex >= 0 && stepHistory[stepIndex]?.narration && (
+            <NarrationPanel
+              narration={stepHistory[stepIndex].narration}
+              onCollapse={() => setNarrationPanelVisible(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Full-screen Graph with crossfade transition */}
         {/* DOM order: After toolbar/step controls for natural tab order */}
         <div className="absolute inset-0 touch-action-manipulation">
@@ -495,6 +509,12 @@ export const Board = () => {
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
+          {/* Narration toggle - Desktop only, visible when panel is collapsed during step mode */}
+          <AnimatePresence>
+            {isInStepMode && !narrationPanelVisible && (
+              <NarrationToggle onExpand={() => setNarrationPanelVisible(true)} />
+            )}
+          </AnimatePresence>
           {/* Keyboard shortcuts - Desktop only */}
           <div className="hidden md:block">
             <KeyboardShortcuts />
