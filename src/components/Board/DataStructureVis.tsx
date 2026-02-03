@@ -1,13 +1,120 @@
 import type { DataStructureState } from "../../algorithms/types";
 import { cn } from "@/lib/utils";
 import * as m from 'motion/react-m';
-import { AnimatePresence, LayoutGroup } from "motion/react";
-import { useRef, useEffect, useState } from "react";
+import { AnimatePresence, MotionConfig } from "motion/react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 const MAX_VISIBLE_ITEMS = 6;
 const RAPID_STEP_THRESHOLD = 300; // ms - if updates come faster than this, reduce animations
 
-// Shared component for individual item boxes
+// Shared styles
+const styles = {
+  itemBase: "px-2.5 py-1 rounded text-xs font-mono",
+  itemDefault: "bg-[var(--color-paper)] text-[var(--color-text)] border border-[var(--color-divider)]",
+  itemProcessing: "bg-[var(--color-accent-form)] text-white shadow-sm",
+  itemRing: "ring-2 ring-[var(--color-accent-form)]",
+  itemJustAdded: "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]",
+  itemWithValue: "text-center flex flex-col leading-tight",
+  label: "text-xs text-[var(--color-text-muted)]",
+  grid: "grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center",
+};
+
+// Animation helpers
+const fadeScaleAnimation = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+};
+
+// Shared label component
+const DSLabel = ({ children }: { children: React.ReactNode }) => (
+  <span className={styles.label}>{children}</span>
+);
+
+// Shared overflow indicator
+const OverflowIndicator = ({ count }: { count: number }) =>
+  count > 0 ? (
+    <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
+      +{count} more
+    </span>
+  ) : null;
+
+// Shared empty state
+const EmptyState = () => (
+  <span className="text-xs text-[var(--color-text-muted)] italic">empty</span>
+);
+
+// Processing box with layout animation
+const ProcessingBox = ({
+  id,
+  value,
+  layoutId,
+}: {
+  id: number;
+  value?: number;
+  layoutId: string;
+}) => (
+  <m.div
+    key={id}
+    layoutId={layoutId}
+    className={cn(
+      styles.itemBase,
+      styles.itemProcessing,
+      value !== undefined && styles.itemWithValue
+    )}
+    {...fadeScaleAnimation}
+  >
+    {value !== undefined ? (
+      <>
+        <span>{id}</span>
+        <span className="text-[10px] opacity-75">d={value}</span>
+      </>
+    ) : (
+      id
+    )}
+  </m.div>
+);
+
+// Animated item for queue/stack/priority-queue
+const AnimatedItem = ({
+  item,
+  layoutId,
+  hasRing,
+  isJustAdded,
+  showValue,
+}: {
+  item: { id: number; value?: number };
+  layoutId: string;
+  hasRing: boolean;
+  isJustAdded: boolean;
+  showValue: boolean;
+}) => (
+  <m.div
+    key={item.id}
+    layoutId={layoutId}
+    layout
+    className={cn(
+      styles.itemBase,
+      styles.itemDefault,
+      showValue && styles.itemWithValue,
+      hasRing && styles.itemRing,
+      isJustAdded && styles.itemJustAdded
+    )}
+    initial={isJustAdded ? { opacity: 0, scale: 0.95 } : false}
+    animate={{ opacity: 1, scale: 1 }}
+  >
+    {showValue && item.value !== undefined ? (
+      <>
+        <span>{item.id}</span>
+        <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
+      </>
+    ) : (
+      item.id
+    )}
+  </m.div>
+);
+
+// Static item box (for non-animated sections)
 const ItemBox = ({
   id,
   value,
@@ -21,12 +128,11 @@ const ItemBox = ({
 }) => (
   <div
     className={cn(
-      "px-2.5 py-1 rounded text-xs font-mono",
-      "bg-[var(--color-paper)] text-[var(--color-text)]",
-      "border border-[var(--color-divider)]",
-      value !== undefined && "text-center flex flex-col leading-tight",
-      hasRing && "ring-2 ring-[var(--color-accent-form)]",
-      isJustAdded && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
+      styles.itemBase,
+      styles.itemDefault,
+      value !== undefined && styles.itemWithValue,
+      hasRing && styles.itemRing,
+      isJustAdded && styles.itemJustAdded
     )}
   >
     {value !== undefined ? (
@@ -40,26 +146,13 @@ const ItemBox = ({
   </div>
 );
 
-// Shared component for overflow indicator
-const OverflowIndicator = ({ count }: { count: number }) =>
-  count > 0 ? (
-    <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
-      +{count} more
-    </span>
-  ) : null;
-
-// Shared empty state
-const EmptyState = () => (
-  <span className="text-xs text-[var(--color-text-muted)] italic">empty</span>
-);
-
 interface DataStructureVisProps {
   dataStructure: DataStructureState;
 }
 
 export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   const { items, processing, justAdded } = dataStructure;
-  const justAddedSet = new Set(justAdded || []);
+  const justAddedSet = useMemo(() => new Set(justAdded || []), [justAdded]);
 
   // Track timing to detect rapid stepping
   const lastUpdateRef = useRef<number>(Date.now());
@@ -72,65 +165,47 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
     setIsRapidStepping(timeSinceLastUpdate < RAPID_STEP_THRESHOLD);
   }, [dataStructure]);
 
-  const transitionDuration = isRapidStepping ? 0.08 : 0.5;
+  const transition = useMemo(() => ({
+    type: "spring" as const,
+    duration: isRapidStepping ? 0.08 : 0.5,
+    bounce: isRapidStepping ? 0 : 0.15,
+  }), [isRapidStepping]);
 
   if (dataStructure.type === "queue") {
     const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
-      <LayoutGroup>
-        <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center">
-          {/* Processing row */}
-          <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
+      <MotionConfig transition={transition} reducedMotion="user">
+        <div className={styles.grid}>
+          <DSLabel>Processing:</DSLabel>
           <div className="flex items-center h-7">
             <AnimatePresence mode="popLayout">
               {processing && (
-                <m.div
-                  key={processing.id}
+                <ProcessingBox
+                  id={processing.id}
                   layoutId={`queue-item-${processing.id}`}
-                  className={cn(
-                    "px-2.5 py-1 rounded text-xs font-mono",
-                    "bg-[var(--color-accent-form)] text-white",
-                    "shadow-sm"
-                  )}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                >
-                  {processing.id}
-                </m.div>
+                />
               )}
             </AnimatePresence>
           </div>
 
-          {/* Queue row */}
-          <span className="text-xs text-[var(--color-text-muted)]">Queue:</span>
+          <DSLabel>Queue:</DSLabel>
           <div className="flex items-center gap-1.5">
-            {items.length === 0 && !processing ? (
+            {items.length === 0 ? (
               <EmptyState />
             ) : (
               <>
                 <div className="flex items-center gap-1">
                   {visibleItems.map((item, index) => (
-                    <m.div
+                    <AnimatedItem
                       key={item.id}
+                      item={item}
                       layoutId={`queue-item-${item.id}`}
-                      layout
-                      className={cn(
-                        "px-2.5 py-1 rounded text-xs font-mono",
-                        "bg-[var(--color-paper)] text-[var(--color-text)]",
-                        "border border-[var(--color-divider)]",
-                        index === 0 && "ring-2 ring-[var(--color-accent-form)]",
-                        justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                      )}
-                      initial={justAddedSet.has(item.id) ? { opacity: 0, scale: 0.95 } : false}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                    >
-                      {item.id}
-                    </m.div>
+                      hasRing={index === 0}
+                      isJustAdded={justAddedSet.has(item.id)}
+                      showValue={false}
+                    />
                   ))}
                 </div>
                 <OverflowIndicator count={hiddenCount} />
@@ -138,7 +213,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
             )}
           </div>
         </div>
-      </LayoutGroup>
+      </MotionConfig>
     );
   }
 
@@ -147,64 +222,44 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
-      <LayoutGroup>
-        <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center">
-          <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
+      <MotionConfig transition={transition} reducedMotion="user">
+        <div className={styles.grid}>
+          <DSLabel>Processing:</DSLabel>
           <div className="flex items-center h-7">
             <AnimatePresence mode="popLayout">
               {processing && (
-                <m.div
-                  key={processing.id}
+                <ProcessingBox
+                  id={processing.id}
                   layoutId={`stack-item-${processing.id}`}
-                  className={cn(
-                    "px-2.5 py-1 rounded text-xs font-mono",
-                    "bg-[var(--color-accent-form)] text-white",
-                    "shadow-sm"
-                  )}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                >
-                  {processing.id}
-                </m.div>
+                />
               )}
             </AnimatePresence>
           </div>
 
-          <span className="text-xs text-[var(--color-text-muted)]">Stack:</span>
+          <DSLabel>Stack:</DSLabel>
           <div className="flex items-center gap-1.5">
-            {items.length === 0 && !processing ? (
+            {items.length === 0 ? (
               <EmptyState />
             ) : (
               <>
                 <OverflowIndicator count={hiddenCount} />
                 <div className="flex items-center gap-1">
                   {visibleItems.map((item, index) => (
-                    <m.div
+                    <AnimatedItem
                       key={item.id}
+                      item={item}
                       layoutId={`stack-item-${item.id}`}
-                      layout
-                      className={cn(
-                        "px-2.5 py-1 rounded text-xs font-mono",
-                        "bg-[var(--color-paper)] text-[var(--color-text)]",
-                        "border border-[var(--color-divider)]",
-                        index === visibleItems.length - 1 && "ring-2 ring-[var(--color-accent-form)]",
-                        justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                      )}
-                      initial={justAddedSet.has(item.id) ? { opacity: 0, scale: 0.95 } : false}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                    >
-                      {item.id}
-                    </m.div>
+                      hasRing={index === visibleItems.length - 1}
+                      isJustAdded={justAddedSet.has(item.id)}
+                      showValue={false}
+                    />
                   ))}
                 </div>
               </>
             )}
           </div>
         </div>
-      </LayoutGroup>
+      </MotionConfig>
     );
   }
 
@@ -213,59 +268,37 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
-      <LayoutGroup>
-        <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center">
-          <span className="text-xs text-[var(--color-text-muted)]">Processing:</span>
+      <MotionConfig transition={transition} reducedMotion="user">
+        <div className={styles.grid}>
+          <DSLabel>Processing:</DSLabel>
           <div className="flex items-center h-9">
             <AnimatePresence mode="popLayout">
               {processing && (
-                <m.div
-                  key={processing.id}
+                <ProcessingBox
+                  id={processing.id}
+                  value={processing.value}
                   layoutId={`pq-item-${processing.id}`}
-                  className={cn(
-                    "px-2.5 py-1 rounded text-xs font-mono",
-                    "bg-[var(--color-accent-form)] text-white",
-                    "shadow-sm text-center flex flex-col leading-tight"
-                  )}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                >
-                  <span>{processing.id}</span>
-                  <span className="text-[10px] opacity-75">d={processing.value}</span>
-                </m.div>
+                />
               )}
             </AnimatePresence>
           </div>
 
-          <span className="text-xs text-[var(--color-text-muted)]">Priority Queue:</span>
+          <DSLabel>Priority Queue:</DSLabel>
           <div className="flex items-center gap-1.5">
-            {items.length === 0 && !processing ? (
+            {items.length === 0 ? (
               <EmptyState />
             ) : (
               <>
                 <div className="flex items-center gap-1">
                   {visibleItems.map((item, index) => (
-                    <m.div
+                    <AnimatedItem
                       key={item.id}
+                      item={item}
                       layoutId={`pq-item-${item.id}`}
-                      layout
-                      className={cn(
-                        "px-2.5 py-1 rounded text-xs font-mono",
-                        "bg-[var(--color-paper)] text-[var(--color-text)]",
-                        "border border-[var(--color-divider)]",
-                        "text-center flex flex-col leading-tight",
-                        index === 0 && "ring-2 ring-[var(--color-accent-form)]",
-                        justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                      )}
-                      initial={justAddedSet.has(item.id) ? { opacity: 0, scale: 0.95 } : false}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: "spring", duration: transitionDuration, bounce: isRapidStepping ? 0 : 0.15 }}
-                    >
-                      <span>{item.id}</span>
-                      <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
-                    </m.div>
+                      hasRing={index === 0}
+                      isJustAdded={justAddedSet.has(item.id)}
+                      showValue={true}
+                    />
                   ))}
                 </div>
                 <OverflowIndicator count={hiddenCount} />
@@ -273,64 +306,63 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
             )}
           </div>
         </div>
-      </LayoutGroup>
+      </MotionConfig>
     );
   }
 
   if (dataStructure.type === "recursion-stack") {
     const visibleItems = items.slice(-MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
+    const recursionTransition = {
+      type: "spring" as const,
+      duration: isRapidStepping ? 0.1 : 0.6,
+      bounce: isRapidStepping ? 0 : 0.1,
+    };
 
     return (
-      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center">
-        <span className="text-xs text-[var(--color-text-muted)]">Exploring:</span>
-        <div className="flex items-center h-7">
-          {processing && (
-            <div
-              className={cn(
-                "px-2.5 py-1 rounded text-xs font-mono",
-                "bg-[var(--color-accent-form)] text-white",
-                "shadow-sm"
-              )}
-            >
-              {processing.id}
-            </div>
-          )}
-        </div>
-
-        <span className="text-xs text-[var(--color-text-muted)]">Call Stack:</span>
-        <div className="flex items-center gap-1.5">
-          {items.length === 0 && !processing ? (
-            <EmptyState />
-          ) : (
-            <>
-              <OverflowIndicator count={hiddenCount} />
-              <div className="flex items-center gap-1">
-                <AnimatePresence mode="popLayout">
-                  {visibleItems.map((item, index) => (
-                    <m.div
-                      key={item.id}
-                      className={cn(
-                        "px-2.5 py-1 rounded text-xs font-mono",
-                        "bg-[var(--color-paper)] text-[var(--color-text)]",
-                        "border border-[var(--color-divider)]",
-                        index === visibleItems.length - 1 && "ring-2 ring-[var(--color-accent-form)]",
-                        justAddedSet.has(item.id) && "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]"
-                      )}
-                      initial={{ opacity: 0, scale: 0.95, x: 10 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, x: 10 }}
-                      transition={{ type: "spring", duration: isRapidStepping ? 0.1 : 0.6, bounce: isRapidStepping ? 0 : 0.1 }}
-                    >
-                      {item.id}
-                    </m.div>
-                  ))}
-                </AnimatePresence>
+      <MotionConfig transition={recursionTransition} reducedMotion="user">
+        <div className={styles.grid}>
+          <DSLabel>Exploring:</DSLabel>
+          <div className="flex items-center h-7">
+            {processing && (
+              <div className={cn(styles.itemBase, styles.itemProcessing)}>
+                {processing.id}
               </div>
-            </>
-          )}
+            )}
+          </div>
+
+          <DSLabel>Call Stack:</DSLabel>
+          <div className="flex items-center gap-1.5">
+            {items.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                <OverflowIndicator count={hiddenCount} />
+                <div className="flex items-center gap-1">
+                  <AnimatePresence mode="popLayout">
+                    {visibleItems.map((item, index) => (
+                      <m.div
+                        key={item.id}
+                        className={cn(
+                          styles.itemBase,
+                          styles.itemDefault,
+                          index === visibleItems.length - 1 && styles.itemRing,
+                          justAddedSet.has(item.id) && styles.itemJustAdded
+                        )}
+                        initial={{ opacity: 0, scale: 0.95, x: 10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, x: 10 }}
+                      >
+                        {item.id}
+                      </m.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </MotionConfig>
     );
   }
 
@@ -339,18 +371,12 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
-      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center">
+      <div className={styles.grid}>
         {processing && (
           <>
-            <span className="text-xs text-[var(--color-text-muted)]">Updated:</span>
+            <DSLabel>Updated:</DSLabel>
             <div className="flex items-center">
-              <div
-                className={cn(
-                  "px-2.5 py-1 rounded text-xs font-mono",
-                  "bg-[var(--color-accent-form)] text-white",
-                  "shadow-sm text-center flex flex-col leading-tight"
-                )}
-              >
+              <div className={cn(styles.itemBase, styles.itemProcessing, styles.itemWithValue)}>
                 <span>{processing.id}</span>
                 <span className="text-[10px] opacity-75">d={processing.value}</span>
               </div>
@@ -360,7 +386,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
 
         {visibleItems.length > 0 && (
           <>
-            <span className="text-xs text-[var(--color-text-muted)]">Distances:</span>
+            <DSLabel>Distances:</DSLabel>
             <div className="flex items-center gap-1">
               {visibleItems.map((item) => (
                 <ItemBox
@@ -384,7 +410,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
       {items.map((item, index) => (
         <div
           key={`${item.id}-${index}`}
-          className="px-2 py-1 rounded text-xs font-mono bg-[var(--color-paper)] text-[var(--color-text)]"
+          className={cn(styles.itemBase, "bg-[var(--color-paper)] text-[var(--color-text)]")}
         >
           {item.id}
           {item.value !== undefined && `:${item.value}`}
