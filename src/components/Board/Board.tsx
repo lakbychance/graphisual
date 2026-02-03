@@ -484,7 +484,7 @@ export const Board = () => {
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>
-              <TooltipContent>Undo (⌘+Z)</TooltipContent>
+              <TooltipContent>Undo</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -502,7 +502,7 @@ export const Board = () => {
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>
-              <TooltipContent>Redo (⌘+Shift+Z)</TooltipContent>
+              <TooltipContent>Redo</TooltipContent>
             </Tooltip>
           </Toolbar>
         </div>

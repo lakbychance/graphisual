@@ -3,7 +3,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ToolbarButton } from "../ui/toolbar";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MOD_KEY } from "../../utils/keyboard";
 import { ZOOM } from "../../constants/ui";
 
 interface ZoomControlsProps {
@@ -31,7 +30,7 @@ export const ZoomControls = ({ zoom, onZoomIn, onZoomOut, onZoomReset }: ZoomCon
             </Button>
           </ToolbarButton>
         </TooltipTrigger>
-        <TooltipContent>Zoom Out ({MOD_KEY}−)</TooltipContent>
+        <TooltipContent>Zoom Out</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -64,7 +63,7 @@ export const ZoomControls = ({ zoom, onZoomIn, onZoomOut, onZoomReset }: ZoomCon
             </Button>
           </ToolbarButton>
         </TooltipTrigger>
-        <TooltipContent>Zoom In ({MOD_KEY}+)</TooltipContent>
+        <TooltipContent>Zoom In</TooltipContent>
       </Tooltip>
     </>
   );

@@ -55,7 +55,7 @@ export const StepControls = ({
             <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Jump to Start (Home)</TooltipContent>
+        <TooltipContent>Jump to Start</TooltipContent>
       </Tooltip>
 
       {/* Step backward */}
@@ -72,7 +72,7 @@ export const StepControls = ({
             <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Previous Step (←)</TooltipContent>
+        <TooltipContent>Previous Step</TooltipContent>
       </Tooltip>
 
       {/* Step counter */}
@@ -94,7 +94,7 @@ export const StepControls = ({
             <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Next Step (→)</TooltipContent>
+        <TooltipContent>Next Step</TooltipContent>
       </Tooltip>
 
       {/* Jump to end */}
@@ -111,7 +111,7 @@ export const StepControls = ({
             <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Jump to End (End)</TooltipContent>
+        <TooltipContent>Jump to End</TooltipContent>
       </Tooltip>
 
       {/* Play/Pause */}
@@ -132,7 +132,7 @@ export const StepControls = ({
             )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
+        <TooltipContent>{isPlaying ? 'Pause' : 'Play'}</TooltipContent>
       </Tooltip>
 
       {/* Divider */}
