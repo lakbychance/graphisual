@@ -2,10 +2,13 @@ import type { DataStructureState } from "../../algorithms/types";
 import { cn } from "@/lib/utils";
 import * as m from 'motion/react-m';
 import { AnimatePresence, MotionConfig } from "motion/react";
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 
 const MAX_VISIBLE_ITEMS = 6;
-const RAPID_STEP_THRESHOLD = 300; // ms - if updates come faster than this, reduce animations
+
+// Shared transition configs
+const transition = { type: "spring", duration: 0.5, bounce: 0.15 } as const;
+const recursionTransition = { type: "spring", duration: 0.6, bounce: 0.1 } as const;
 
 // Shared styles
 const styles = {
@@ -154,23 +157,6 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   const { items, processing, justAdded } = dataStructure;
   const justAddedSet = useMemo(() => new Set(justAdded || []), [justAdded]);
 
-  // Track timing to detect rapid stepping
-  const lastUpdateRef = useRef<number>(Date.now());
-  const [isRapidStepping, setIsRapidStepping] = useState(false);
-
-  useEffect(() => {
-    const now = Date.now();
-    const timeSinceLastUpdate = now - lastUpdateRef.current;
-    lastUpdateRef.current = now;
-    setIsRapidStepping(timeSinceLastUpdate < RAPID_STEP_THRESHOLD);
-  }, [dataStructure]);
-
-  const transition = useMemo(() => ({
-    type: "spring" as const,
-    duration: isRapidStepping ? 0.08 : 0.5,
-    bounce: isRapidStepping ? 0 : 0.15,
-  }), [isRapidStepping]);
-
   if (dataStructure.type === "queue") {
     const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
@@ -313,11 +299,6 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   if (dataStructure.type === "recursion-stack") {
     const visibleItems = items.slice(-MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
-    const recursionTransition = {
-      type: "spring" as const,
-      duration: isRapidStepping ? 0.1 : 0.6,
-      bounce: isRapidStepping ? 0 : 0.1,
-    };
 
     return (
       <MotionConfig transition={recursionTransition} reducedMotion="user">
