@@ -83,7 +83,7 @@ export interface EdgeRef {
  */
 export interface DataStructureState {
   /** Type of data structure being visualized */
-  type: 'queue' | 'stack' | 'priority-queue' | 'distances';
+  type: 'queue' | 'stack' | 'priority-queue' | 'distances' | 'recursion-stack';
   /** Items in the data structure with their node IDs and optional values */
   items: Array<{ id: number; value?: number }>;
   /** The item currently being processed (just dequeued/popped) */
