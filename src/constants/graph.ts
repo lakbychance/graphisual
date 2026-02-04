@@ -13,7 +13,7 @@ export type EdgeType = typeof EDGE_TYPE[keyof typeof EDGE_TYPE];
 // Edge defaults
 export const EDGE = {
   DEFAULT_WEIGHT: 1,
-  MIN_WEIGHT: 1,
+  MIN_WEIGHT: -999,
   MAX_WEIGHT: 999,
 } as const;
 
