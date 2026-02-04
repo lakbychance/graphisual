@@ -6,7 +6,7 @@ import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { EDGE_TYPE, type EdgeType } from "../../constants/graph";
+import { EDGE, EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
 import { useHasHover } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/utils";
@@ -30,7 +30,7 @@ export const EdgePopup = ({
   onReverse,
   onDelete,
 }: EdgePopupProps) => {
-  const [weight, setWeight] = useState(edge.weight || 0);
+  const [weight, setWeight] = useState(edge.weight ?? EDGE.DEFAULT_WEIGHT);
   const [type, setType] = useState<EdgeType>(edge.type as EdgeType);
   const [isOpen, setIsOpen] = useState(true);
   const weightInputRef = useRef<HTMLInputElement>(null);
@@ -175,8 +175,8 @@ export const EdgePopup = ({
             <Stepper
               value={weight}
               onChange={handleWeightChange}
-              min={-999}
-              max={999}
+              min={EDGE.MIN_WEIGHT}
+              max={EDGE.MAX_WEIGHT}
               onEnter={handleClose}
             >
               <Tooltip>

@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import { GraphNode, GraphEdge } from "../components/Graph/types";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { TIMING } from "../constants/ui";
-import { EDGE_TYPE } from "../constants/graph";
+import { EDGE, EDGE_TYPE } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
 
 interface UseEdgeDraggingProps {
@@ -30,7 +30,7 @@ export function useEdgeDragging({
           x1: startX, y1: startY, x2: endX, y2: endY,
           nodeX2: 0, nodeY2: 0,
           from: sourceNodeId, to: -1,
-          weight: 0, type: EDGE_TYPE.DIRECTED,
+          weight: EDGE.DEFAULT_WEIGHT, type: EDGE_TYPE.DIRECTED,
         });
       };
 
