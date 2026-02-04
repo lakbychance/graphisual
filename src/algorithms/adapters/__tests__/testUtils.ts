@@ -1,8 +1,9 @@
 import { EdgeInfo } from '../../types';
+import { EDGE } from '../../../constants/graph';
 
 /**
  * Helper to create adjacency list from edges for testing.
- * Supports optional weight (defaults to 0) and optional type (defaults to 'directed').
+ * Supports optional weight (defaults to EDGE.DEFAULT_WEIGHT for unweighted graphs) and optional type (defaults to 'directed').
  * For undirected edges, automatically adds the reverse edge.
  */
 export function createAdjacencyList(
@@ -24,7 +25,7 @@ export function createAdjacencyList(
   // Add edges
   for (const edge of edges) {
     const edgeType = edge.type ?? 'directed';
-    const edgeWeight = edge.weight ?? 0;
+    const edgeWeight = edge.weight ?? EDGE.DEFAULT_WEIGHT;
 
     const edgeInfo: EdgeInfo = {
       from: edge.from,

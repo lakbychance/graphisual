@@ -1,5 +1,5 @@
 import { GraphNode, GraphEdge } from "../../components/Graph/types";
-import { NODE, EDGE_TYPE, type EdgeType } from "../../constants/graph";
+import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { calculateAccurateCoords } from "../geometry/calc";
 
 export interface GeneratedGraph {
@@ -33,7 +33,7 @@ function createEdge(
   fromNode: GraphNode,
   toNode: GraphNode,
   type: EdgeType,
-  weight: number = 0
+  weight: number = EDGE.DEFAULT_WEIGHT
 ): GraphEdge {
   const { tempX, tempY } = calculateAccurateCoords(
     fromNode.x,
@@ -64,7 +64,7 @@ function addEdgeToMap(
   fromNode: GraphNode,
   toNode: GraphNode,
   type: EdgeType,
-  weight: number = 0
+  weight: number = EDGE.DEFAULT_WEIGHT
 ): void {
   const edge = createEdge(fromNode, toNode, type, weight);
   const fromEdges = edges.get(fromNode.id) || [];
@@ -223,7 +223,7 @@ export function generateRandomGraph(options: RandomGeneratorOptions): GeneratedG
     if (addedEdges.has(edgeKey)) continue;
 
     addedEdges.add(edgeKey);
-    const weight = weighted ? randomWeight(minWeight, maxWeight) : 0;
+    const weight = weighted ? randomWeight(minWeight, maxWeight) : EDGE.DEFAULT_WEIGHT;
     addEdgeToMap(edges, nodes[fromIdx], nodes[toIdx], edgeType, weight);
     edgeCount++;
   }

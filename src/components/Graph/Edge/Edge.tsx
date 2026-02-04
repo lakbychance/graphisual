@@ -3,6 +3,7 @@ import { calculateCurve, calculateTextLoc } from "../../../utils/geometry/calc";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
+import { EDGE } from "../../../constants/graph";
 
 export interface EdgeProps {
   edge: GraphEdge;
@@ -87,7 +88,7 @@ export const Edge = memo(function Edge({
   };
 
   const renderWeightLabel = (centerX: number, centerY: number) => {
-    if (edge.weight === undefined || edge.weight === 0) return null;
+    if (edge.weight === undefined || edge.weight === EDGE.DEFAULT_WEIGHT) return null;
 
     return (
       <g>

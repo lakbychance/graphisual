@@ -12,7 +12,7 @@ import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { TIMING } from "../constants/ui";
-import { NODE, EDGE_TYPE, type EdgeType } from "../constants/graph";
+import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
 import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";
 import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
@@ -352,7 +352,7 @@ export const useGraphStore = create<GraphStore>()(
             nodeY2: toNode.y,
             from: fromNode.id,
             to: toNode.id,
-            weight: 0,
+            weight: EDGE.DEFAULT_WEIGHT,
             type: EDGE_TYPE.DIRECTED,
           };
 
