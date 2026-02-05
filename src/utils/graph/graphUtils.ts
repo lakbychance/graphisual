@@ -14,10 +14,9 @@ export function hasNegativeWeights(edges: Map<number, GraphEdge[]>): boolean {
 
 /**
  * Algorithm IDs that don't support negative edge weights.
+ * Note: MST algorithms (Prim's, Kruskal's) DO support negative weights
+ * since they compare individual edge weights, not cumulative distances.
  */
 export const ALGORITHMS_NO_NEGATIVE_WEIGHTS = new Set([
   "dijkstra",
-  "astar",
-  "prims",
-  "kruskals",
 ]);
