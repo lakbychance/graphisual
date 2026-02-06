@@ -58,14 +58,14 @@ export const calculateAccurateCoords = (
   const tempY = y1 + dy;
   return { tempX, tempY };
 };
-//find the to Node for the edge drawn for touch based devices
+//find the to Node for the edge drawn - uses hit area radius for forgiving drop zone
 export const findToNodeForTouchBasedDevices = (
   x: number,
   y: number,
   nodes: GraphNode[]
 ) => {
   return nodes.find((node: GraphNode) =>
-    doesPointLieOnCircle(x, y, NODE.RADIUS, node.x, node.y)
+    doesPointLieOnCircle(x, y, NODE.RADIUS + NODE.HIT_AREA_PADDING, node.x, node.y)
   );
 };
 

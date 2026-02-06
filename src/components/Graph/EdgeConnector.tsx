@@ -36,7 +36,7 @@ export const EdgeConnector = ({
   };
 
   return (
-    <g>
+    <g className="edge-connector">
       {/* Invisible larger hit area for touch devices */}
       <circle
         cx={cx}

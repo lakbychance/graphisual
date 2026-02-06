@@ -136,7 +136,7 @@ export const Edge = memo(function Edge({
             }),
           }}
           className={cn(
-            "fill-transparent cursor-pointer",
+            "graph-edge fill-transparent cursor-pointer",
             isVisualizing && "pointer-events-none",
             isFocused && "edge-focused"
           )}
@@ -167,7 +167,7 @@ export const Edge = memo(function Edge({
           }),
         }}
         className={cn(
-          "fill-transparent cursor-pointer",
+          "graph-edge fill-transparent cursor-pointer",
           isVisualizing && "pointer-events-none",
           isFocused && "edge-focused"
         )}

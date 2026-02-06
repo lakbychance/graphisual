@@ -462,6 +462,27 @@
   }
 }
 
+/* Edge drag: hide connectors and highlight hit areas */
+svg[data-edge-dragging] .edge-connector,
+svg[data-edge-dragging] .graph-edge {
+  pointer-events: none;
+}
+
+svg[data-edge-dragging] .edge-connector {
+  opacity: 0;
+}
+
+.node-hit-area[data-source],
+.node-hit-area[data-target] {
+  fill: var(--color-accent-form-glow);
+  stroke: var(--color-accent-form);
+  stroke-width: 1.5;
+}
+
+.node-hit-area[data-source] {
+  stroke-dasharray: 4 3;
+}
+
 /* Edge focus stroke animation - matches focus ring timing */
 @keyframes edge-stroke-grow {
   from { stroke-width: var(--edge-stroke-width); }

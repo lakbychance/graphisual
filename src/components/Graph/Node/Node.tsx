@@ -129,7 +129,7 @@ export const Node = memo(function Node(props: NodeProps) {
   // Early return if node not found - after all hooks
   if (!node) return null;
 
-  // Hide connectors when visualizing or algorithm is selected (only show on hover)
+  // Hide connectors when visualizing or algorithm is selected (CSS handles hiding during edge drag)
   const connectorsVisible = !isVisualizing && !isAlgorithmSelected && isHovered;
 
   // Hit area radius: node radius + padding for connectors and touch target
@@ -168,12 +168,13 @@ export const Node = memo(function Node(props: NodeProps) {
       }}
       style={{ transformOrigin: `${node.x}px ${node.y}px` }}
     >
-      {/* Invisible hit area to keep hover state when moving to connectors */}
+      {/* Invisible hit area - styled via DOM during edge drag */}
       <circle
         cx={node.x}
         cy={node.y}
         r={hitAreaRadius}
-        className="fill-transparent pointer-events-auto"
+        id={`hit-${node.id}`}
+        className="node-hit-area fill-transparent pointer-events-auto [transition:fill_150ms,stroke_150ms]"
       />
       {/* Main node token - tangible, pickable button */}
       <m.circle
