@@ -19,7 +19,9 @@ import { useVisualizationExecution } from "../../hooks/useVisualizationExecution
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useNodeActions } from "../../hooks/useNodeActions";
+import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
 import { EdgePopup } from "../Graph/EdgePopup";
+import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 import { ZOOM, DRAG_THRESHOLD, TIMING } from "../../constants/ui";
 import { getCSSVar } from "../../utils/cssVariables";
 import { findToNodeForTouchBasedDevices } from "../../utils/geometry/calc";
@@ -35,9 +37,11 @@ import {
   applyViewportTransform,
   resetTransform,
   screenToWorld,
+  worldToScreen,
   type ViewportState,
 } from "./ViewportTransform";
 import { hitTestNodes, hitTestEdges, hitTestConnectors, nodesInRect } from "./HitTesting";
+import { canCreateEdge } from "../../utils/graph/edgeUtils";
 
 // Types
 import type { NodeColorState, EdgeColorState } from "../../utils/cssVariables";
@@ -59,6 +63,28 @@ interface DragState {
   connectorNodeId?: number;
 }
 
+/**
+ * Check if an edge is hovered, accounting for undirected edges.
+ * For undirected edges, both directions should show hover state
+ * since they're rendered as two separate edges in the store.
+ */
+function isEdgeHovered(
+  nodeId: number,
+  edge: { to: number; type: string },
+  hoveredEdge: { sourceNodeId: number; toNodeId: number } | null
+): boolean {
+  if (!hoveredEdge) return false;
+  // Direct match
+  if (hoveredEdge.sourceNodeId === nodeId && hoveredEdge.toNodeId === edge.to) {
+    return true;
+  }
+  // Reverse match for undirected edges
+  if (edge.type === 'undirected') {
+    return hoveredEdge.sourceNodeId === edge.to && hoveredEdge.toNodeId === nodeId;
+  }
+  return false;
+}
+
 export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,6 +98,8 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const focusedEdge = useGraphStore((state) => state.selection.focusedEdge);
   const visualizationInput = useGraphStore((state) => state.visualization.input);
   const visualizationTrace = useGraphStore((state) => state.visualization.trace);
+  const visualizationMode = useGraphStore((state) => state.visualization.mode);
+  const visualizationState = useGraphStore((state) => state.visualization.state);
 
   // Viewport state
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
@@ -103,6 +131,17 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
   useStepThroughVisualization();
 
+  // Check if we're in step mode (manual visualization with steps)
+  const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
+    visualizationState === VisualizationState.RUNNING;
+
+  // Convert world coordinates to screen coordinates (for edge popup positioning)
+  const worldToScreenCoords = useCallback((worldX: number, worldY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    return worldToScreen(worldX, worldY, canvas, { zoom, pan, width: canvas.clientWidth, height: canvas.clientHeight });
+  }, [zoom, pan]);
+
   // Local state
   const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<{ sourceNodeId: number; toNodeId: number } | null>(null);
@@ -111,7 +150,6 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const [dragState, setDragState] = useState<DragState>({ type: 'none', startX: 0, startY: 0, startWorldX: 0, startWorldY: 0 });
   const [previewEdge, setPreviewEdge] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
-  const [edgePopupPosition, setEdgePopupPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Track canvas size - triggers re-render when canvas resizes
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -224,11 +262,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
       if (nodeEdges) {
         for (const edge of nodeEdges) {
           // Check if edge is hovered or focused
-          // For undirected edges, check both directions since both edges are stored
-          let isHovered = hoveredEdge?.sourceNodeId === nodeId && hoveredEdge?.toNodeId === edge.to;
-          if (!isHovered && edge.type === 'undirected') {
-            isHovered = hoveredEdge?.sourceNodeId === edge.to && hoveredEdge?.toNodeId === nodeId;
-          }
+          const isHovered = isEdgeHovered(nodeId, edge, hoveredEdge);
           drawEdge(ctx, edge, {
             colorState: getEdgeColorState(nodeId, edge.to),
             isFocused: isEdgeFocused(nodeId, edge.to) || isHovered,
@@ -448,7 +482,6 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
       const sourceNode = nodes.find(n => n.id === hitEdge.sourceNodeId);
       if (sourceNode) {
         selectEdge(hitEdge.edge, sourceNode, { x: e.clientX, y: e.clientY });
-        setEdgePopupPosition({ x: e.clientX, y: e.clientY });
       }
       return;
     }
@@ -601,15 +634,10 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     if (state.type === 'edge-create' && state.connectorNodeId !== undefined) {
       const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
       const targetNode = findToNodeForTouchBasedDevices(world.x, world.y, nodes);
-      // Check constraints: no self-loops, no duplicate edges
-      if (targetNode && targetNode.id !== state.connectorNodeId) {
-        const existingEdges = edges.get(state.connectorNodeId) || [];
-        const edgeExists = existingEdges.some((edge) => edge.to === targetNode.id);
-        if (!edgeExists) {
-          const sourceNode = nodes.find(n => n.id === state.connectorNodeId);
-          if (sourceNode) {
-            addEdge(sourceNode, targetNode);
-          }
+      if (targetNode && canCreateEdge(edges, state.connectorNodeId, targetNode.id)) {
+        const sourceNode = nodes.find(n => n.id === state.connectorNodeId);
+        if (sourceNode) {
+          addEdge(sourceNode, targetNode);
         }
       }
     }
@@ -661,11 +689,25 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     setVisualizationAlgorithm,
   ]);
 
-  // Close edge popup
-  const handleCloseEdgePopup = useCallback(() => {
+  // Close edge popup (basic version for keyboard nav hook)
+  const closeEdgePopup = useCallback(() => {
     clearEdgeSelection();
-    setEdgePopupPosition(null);
   }, [clearEdgeSelection]);
+
+  // Keyboard navigation hook
+  const {
+    handleKeyDown: handleCanvasKeyDown,
+    handleBlur: handleCanvasBlur,
+    handleCloseEdgePopup,
+  } = useGraphKeyboardNavigation({
+    graphRef: canvasRef as React.RefObject<SVGSVGElement | null>, // Type cast - hook works with any focusable element
+    svgToScreenCoords: worldToScreenCoords,
+    isInStepMode,
+    closeEdgePopup,
+    onAlgorithmNodeSelect: handleNodeClick,
+    isAlgorithmSelected: !!currentAlgorithm,
+    isVisualizing,
+  });
 
   // Edge popup handlers
   const handleUpdateEdgeType = useGraphStore((state) => state.updateEdgeType);
@@ -696,21 +738,23 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
       <canvas
         ref={canvasRef}
         className="absolute inset-0 focus:outline-none"
-        style={{ width: '100%', height: '100%', cursor: getCursor() }}
+        style={{ width: '100%', height: '100%', cursor: getCursor(), touchAction: 'none' }}
         tabIndex={-1}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onKeyDown={handleCanvasKeyDown}
+        onBlur={handleCanvasBlur}
         aria-label="Graph canvas"
       />
 
       {/* Edge popup - same as SVG version */}
-      {selectedEdge && edgePopupPosition && createPortal(
+      {selectedEdge && createPortal(
         <EdgePopup
           edge={selectedEdge.edge}
-          anchorPosition={edgePopupPosition}
+          anchorPosition={selectedEdge.clickPosition}
           onClose={handleCloseEdgePopup}
           onUpdateType={(type) => handleUpdateEdgeType(selectedEdge.sourceNode.id, selectedEdge.edge.to, type)}
           onUpdateWeight={(weight) => handleUpdateEdgeWeight(selectedEdge.sourceNode.id, selectedEdge.edge.to, weight)}

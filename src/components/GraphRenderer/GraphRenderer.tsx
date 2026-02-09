@@ -25,7 +25,7 @@ function Graph3DErrorFallback() {
         There was a problem with the 3D view
       </p>
       <Button onClick={() => setRenderMode('svg')} variant="secondary">
-        Switch to 2D view
+        Switch to standard view
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { GraphNode, GraphEdge } from "../components/Graph/types";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
+import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { TIMING } from "../constants/ui";
 import { EDGE, EDGE_TYPE } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
@@ -91,12 +92,8 @@ export function useEdgeDragging({
           targetNode = findToNodeForTouchBasedDevices(endX, endY, nodes);
         }
 
-        if (targetNode && targetNode.id !== sourceNodeId) {
-          const existingEdges = edges.get(sourceNodeId) || [];
-          const edgeExists = existingEdges.some((edge) => edge.to === targetNode!.id);
-          if (!edgeExists) {
-            addEdge(sourceNode, targetNode);
-          }
+        if (targetNode && canCreateEdge(edges, sourceNodeId, targetNode.id)) {
+          addEdge(sourceNode, targetNode);
         }
 
         setMockEdge(null);

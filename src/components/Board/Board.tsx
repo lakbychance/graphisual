@@ -7,7 +7,7 @@ import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Layers, Monitor } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Feather, Zap } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
@@ -17,6 +17,7 @@ import { GrainTexture } from "../ui/grain-texture";
 import { exportSvg } from "../../utils/export/exportSvg";
 import { exportPng } from "../../utils/export/exportPng";
 import { export3DPng } from "../../utils/export/export3DPng";
+import { exportCanvasPng } from "../../utils/export/exportCanvasPng";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,9 +164,17 @@ export const Board = () => {
 
   // Export PNG handler (2D only)
   const handleExport2DPng = useCallback(async () => {
-    const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
-    if (svgElement) {
-      await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+    const currentRenderMode = useSettingsStore.getState().renderMode;
+    if (currentRenderMode === 'canvas') {
+      const canvasElement = graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement();
+      if (canvasElement) {
+        await exportCanvasPng(canvasElement, { filename: 'graph.png' });
+      }
+    } else {
+      const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
+      if (svgElement) {
+        await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+      }
     }
   }, []);
 
@@ -197,7 +206,13 @@ export const Board = () => {
     if (orderedNodeIds.length > 0) {
       const topmostNodeId = orderedNodeIds[orderedNodeIds.length - 1];
       selectNode(topmostNodeId);
-      graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
+      // Focus the appropriate graph element based on render mode
+      const renderMode = useSettingsStore.getState().renderMode;
+      if (renderMode === 'canvas') {
+        graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement()?.focus();
+      } else {
+        graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
+      }
     }
   }, []);
 
@@ -317,33 +332,42 @@ export const Board = () => {
                           size="icon-sm"
                           className="z-10 hidden md:inline-flex"
                           disabled={isVisualizing}
-                          aria-label="Render mode"
+                          aria-label="View mode"
                         >
                           {renderMode === '3d' ? (
                             <Box size={16} className="text-[var(--color-text)]" />
                           ) : renderMode === 'canvas' ? (
-                            <Layers size={16} className="text-[var(--color-text)]" />
+                            <Zap size={16} className="text-[var(--color-text)]" />
                           ) : (
-                            <Monitor size={16} className="text-[var(--color-text)]" />
+                            <Feather size={16} className="text-[var(--color-text)]" />
                           )}
                         </Button>
                       </DropdownMenuTrigger>
                     </ToolbarButton>
                   </TooltipTrigger>
-                  <TooltipContent>Render mode</TooltipContent>
+                  <TooltipContent>View mode</TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent align="center" sideOffset={8}>
-                  <DropdownMenuItem onClick={() => setRenderMode('svg')} className={cn(renderMode === 'svg' && "bg-accent")}>
-                    <Monitor className="h-4 w-4 mr-2" />
-                    SVG (Default)
+                <DropdownMenuContent className="space-y-1" align="center" sideOffset={8}>
+                  <DropdownMenuItem onClick={() => setRenderMode('svg')} className={cn(renderMode === 'svg' && "bg-[var(--color-interactive-hover)]")}>
+                    <Feather className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col">
+                      <span>Standard</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">Smooth animations</span>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setRenderMode('canvas')} className={cn(renderMode === 'canvas' && "bg-accent")}>
-                    <Layers className="h-4 w-4 mr-2" />
-                    Canvas (Fast)
+                  <DropdownMenuItem onClick={() => setRenderMode('canvas')} className={cn(renderMode === 'canvas' && "bg-[var(--color-interactive-hover)]")}>
+                    <Zap className="h-4 w-4 mr-2" />
+                    <div className="flex flex-col">
+                      <span>Performance</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">For large graphs</span>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setRenderMode('3d')} className={cn(renderMode === '3d' && "bg-accent")}>
+                  <DropdownMenuItem onClick={() => setRenderMode('3d')} className={cn(renderMode === '3d' && "bg-[var(--color-interactive-hover)]")}>
                     <Box className="h-4 w-4 mr-2" />
-                    3D View
+                    <div className="flex flex-col">
+                      <span>3D Preview</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">View only</span>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -388,10 +412,12 @@ export const Board = () => {
                     <TooltipContent>Export</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent align="center" sideOffset={8}>
-                    <DropdownMenuItem onClick={handleExportSvg}>
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Export as SVG
-                    </DropdownMenuItem>
+                    {renderMode === 'svg' && (
+                      <DropdownMenuItem onClick={handleExportSvg}>
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Export as SVG
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleExport2DPng}>
                       <Image className="h-4 w-4 mr-2" />
                       Export as PNG

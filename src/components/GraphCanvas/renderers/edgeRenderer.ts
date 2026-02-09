@@ -89,7 +89,7 @@ function drawWeightLabel(
   const fontSize = 12;
 
   ctx.save();
-  ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `600 ${fontSize}px 'Outfit', system-ui, sans-serif`;
 
   const textMetrics = ctx.measureText(text);
   const textWidth = textMetrics.width;

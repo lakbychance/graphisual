@@ -160,8 +160,9 @@ export function drawNode(
     isEdgeCreateTarget = false,
   } = options;
 
-  // Apply animation transforms
-  const radius = node.r * scale;
+  // Apply animation transforms and hover scale
+  const hoverScale = isHovered ? NODE.HOVER_SCALE : 1;
+  const radius = node.r * scale * hoverScale;
   if (radius <= 0 || opacity <= 0) return;
 
   ctx.save();
@@ -220,16 +221,6 @@ export function drawNode(
   // Crosshatch overlay
   drawCrosshatch(ctx, node, radius);
 
-  // Hover effect (algorithm mode)
-  if (isHovered && !isSelected) {
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, radius * 1.05, 0, Math.PI * 2);
-    ctx.strokeStyle = getCSSVar('--color-accent-form');
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.5;
-    ctx.stroke();
-  }
-
   ctx.restore();
 
   // Label (drawn without transforms affecting it)
@@ -242,12 +233,13 @@ export function drawNode(
 function drawNodeLabel(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
-  radius: number
+  _radius: number
 ): void {
-  const fontSize = Math.max(10, radius * 0.5);
+  // Match SVG: text-xs (12px) on desktop
+  const fontSize = 12;
 
   ctx.save();
-  ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `bold ${fontSize}px 'Outfit', system-ui, sans-serif`;
   ctx.fillStyle = getCSSVar('--color-text');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
