@@ -28,7 +28,7 @@ beforeEach(() => {
       mode: VisualizationMode.AUTO,
     },
     selection: {
-      nodeId: null,
+      nodeIds: new Set<number>(),
       edge: null,
       focusedEdge: null,
     },
@@ -89,16 +89,46 @@ describe('graphStore', () => {
       expect(state.data.edges.has(1)).toBe(false)
     })
 
-    it('selectNode updates selectedNodeId', () => {
+    it('selectNode updates selectedNodeIds', () => {
       const { addNode, selectNode } = useGraphStore.getState()
 
       addNode(0, 0)
       selectNode(1)
 
-      expect(useGraphStore.getState().selection.nodeId).toBe(1)
+      expect(useGraphStore.getState().selection.nodeIds.has(1)).toBe(true)
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(1)
 
       selectNode(null)
-      expect(useGraphStore.getState().selection.nodeId).toBe(null)
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(0)
+    })
+
+    it('selectNodes updates selectedNodeIds with multiple nodes', () => {
+      const { addNode, selectNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      addNode(100, 100)
+      selectNodes([1, 2, 3])
+
+      const nodeIds = useGraphStore.getState().selection.nodeIds
+      expect(nodeIds.size).toBe(3)
+      expect(nodeIds.has(1)).toBe(true)
+      expect(nodeIds.has(2)).toBe(true)
+      expect(nodeIds.has(3)).toBe(true)
+    })
+
+    it('deselectAllNodes clears selection', () => {
+      const { addNode, selectNodes, deselectAllNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      selectNodes([1, 2])
+
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(2)
+
+      deselectAllNodes()
+
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(0)
     })
   })
 

@@ -11,6 +11,7 @@ import { useShallow } from "zustand/shallow";
 export interface NodeProps {
   nodeId: number;
   onNodeMove: (nodeId: number, x: number, y: number) => void;
+  onGroupMove: (nodeIds: number[], deltaX: number, deltaY: number) => void;
   onConnectorDragStart: (
     sourceNodeId: number,
     position: string,
@@ -29,6 +30,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const {
     nodeId,
     onNodeMove,
+    onGroupMove,
     onConnectorDragStart,
     isVisualizing,
     isAlgorithmSelected,
@@ -48,7 +50,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const visualizationInput = useGraphStore((state) => state.visualization.input);
 
   // Derived selector: only re-renders when THIS node's selection state changes
-  const isSelected = useGraphStore((state) => state.selection.nodeId === nodeId);
+  const isSelected = useGraphStore((state) => state.selection.nodeIds.has(nodeId));
 
   const bringNodeToFront = useGraphStore((state) => state.bringNodeToFront);
 
@@ -89,22 +91,48 @@ export const Node = memo(function Node(props: NodeProps) {
       const startY = event.clientY;
       isDragging.current = false;
 
+      // Capture initial SVG position for delta calculation
+      const startSvgPos = screenToSvgCoords(startX, startY);
+      let lastSvgPos = startSvgPos;
+
+      // Get current selection from store at drag start (avoids subscription)
+      const currentSelection = useGraphStore.getState().selection.nodeIds;
+
+      // Determine if we're doing a group drag (this node is part of multi-selection)
+      const isGroupDrag = isSelected && currentSelection.size > 1;
+      const groupNodeIds = isGroupDrag ? Array.from(currentSelection) : [];
+
       const handlePointerMove = (e: PointerEvent) => {
         // Stop node drag if pinch gesture starts
         if (isGestureActive()) return;
 
-        const deltaX = Math.abs(e.clientX - startX);
-        const deltaY = Math.abs(e.clientY - startY);
+        const deltaScreenX = Math.abs(e.clientX - startX);
+        const deltaScreenY = Math.abs(e.clientY - startY);
 
         // Check if movement exceeds threshold - user is dragging
-        if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+        if (deltaScreenX > DRAG_THRESHOLD || deltaScreenY > DRAG_THRESHOLD) {
           // Bring node to front on first drag movement
           if (!isDragging.current) {
             bringNodeToFront(nodeId);
+            // If dragging an unselected node, select only that node
+            if (!isSelected) {
+              onNodeSelect(nodeId);
+            }
           }
           isDragging.current = true;
-          const { x: nodeX, y: nodeY } = screenToSvgCoords(e.clientX, e.clientY);
-          onNodeMove(nodeId, nodeX, nodeY);
+
+          const currentSvgPos = screenToSvgCoords(e.clientX, e.clientY);
+
+          if (isGroupDrag) {
+            // Group drag: move all selected nodes by delta
+            const deltaX = currentSvgPos.x - lastSvgPos.x;
+            const deltaY = currentSvgPos.y - lastSvgPos.y;
+            onGroupMove(groupNodeIds, deltaX, deltaY);
+            lastSvgPos = currentSvgPos;
+          } else {
+            // Single node drag: move to absolute position
+            onNodeMove(nodeId, currentSvgPos.x, currentSvgPos.y);
+          }
         }
       };
 
@@ -123,7 +151,7 @@ export const Node = memo(function Node(props: NodeProps) {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [nodeId, onNodeMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront]
+    [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront]
   );
 
   // Early return if node not found - after all hooks

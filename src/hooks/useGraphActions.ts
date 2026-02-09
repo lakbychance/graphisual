@@ -36,7 +36,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
 
   // Store selectors
   const zoom = useGraphStore((state) => state.viewport.zoom);
-  const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
+  const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
   const canUndo = useGraphStore((state) => state.canUndo());
   const canRedo = useGraphStore((state) => state.canRedo());
   const visualizationState = useGraphStore((state) => state.visualization.state);
@@ -57,7 +57,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   // Store actions
   const undo = useGraphStore((state) => state.undo);
   const redo = useGraphStore((state) => state.redo);
-  const deleteNode = useGraphStore((state) => state.deleteNode);
+  const deleteNodes = useGraphStore((state) => state.deleteNodes);
   const selectNode = useGraphStore((state) => state.selectNode);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
@@ -84,11 +84,13 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
     }
   }, [canRedo, isVisualizing, redo]);
 
-  const executeDeleteSelectedNode = useCallback(() => {
-    if (selectedNodeId !== null && !isVisualizing) {
-      deleteNode(selectedNodeId);
+  const executeDeleteSelectedNodes = useCallback(() => {
+    if (hasSelectedNodes && !isVisualizing) {
+      // Get current selection from store and delete all at once
+      const nodeIds = Array.from(useGraphStore.getState().selection.nodeIds);
+      deleteNodes(nodeIds);
     }
-  }, [selectedNodeId, isVisualizing, deleteNode]);
+  }, [hasSelectedNodes, isVisualizing, deleteNodes]);
 
   const executeZoomIn = useCallback(() => {
     setViewportZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
@@ -199,9 +201,9 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
       enabled: canRedo && !isVisualizing,
       shortcut: { key: ["z", "y"], modKey: true, shiftKey: true, preventDefault: true },
     },
-    deleteSelectedNode: {
-      execute: executeDeleteSelectedNode,
-      enabled: selectedNodeId !== null && !isVisualizing,
+    deleteSelectedNodes: {
+      execute: executeDeleteSelectedNodes,
+      enabled: hasSelectedNodes && !isVisualizing,
       shortcut: { key: ["Delete", "Backspace"], preventDefault: true },
     },
     zoomIn: {
@@ -327,7 +329,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
         if (stepModeActions.includes(actionName) && !isInStepMode) continue;
 
         // Non-step-mode shortcuts (undo, redo, delete, zoom) shouldn't work during step mode
-        const normalActions = ["undo", "redo", "deleteSelectedNode"];
+        const normalActions = ["undo", "redo", "deleteSelectedNodes"];
         if (normalActions.includes(actionName) && isInStepMode) continue;
 
         // Execute the action if enabled
