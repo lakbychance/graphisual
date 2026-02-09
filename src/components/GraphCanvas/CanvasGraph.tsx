@@ -679,6 +679,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   }, [
     viewportForHitTest,
     nodes,
+    edges,
     stackingOrder,
     selectedNodeIds,
     currentAlgorithm,
@@ -700,7 +701,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     handleBlur: handleCanvasBlur,
     handleCloseEdgePopup,
   } = useGraphKeyboardNavigation({
-    graphRef: canvasRef as React.RefObject<SVGSVGElement | null>, // Type cast - hook works with any focusable element
+    graphRef: canvasRef,
     svgToScreenCoords: worldToScreenCoords,
     isInStepMode,
     closeEdgePopup,
