@@ -22,6 +22,7 @@ export function useCanvasPan({
       const target = event.target as SVGElement;
       if (target.tagName !== "svg") return;
 
+      const svgElement = event.currentTarget;
       const startX = event.clientX;
       const startY = event.clientY;
       panAtDragStart.current = { ...pan };
@@ -33,6 +34,10 @@ export function useCanvasPan({
         const deltaY = e.clientY - startY;
 
         if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+          // Set cursor to grabbing when pan actually starts
+          if (!isDraggingCanvas.current) {
+            svgElement.style.cursor = 'grabbing';
+          }
           isDraggingCanvas.current = true;
           setViewportPan(
             panAtDragStart.current.x + deltaX / zoom,
@@ -44,6 +49,8 @@ export function useCanvasPan({
       const handlePointerUp = () => {
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerUp);
+        // Reset cursor
+        svgElement.style.cursor = '';
         setTimeout(() => { isDraggingCanvas.current = false; }, TIMING.POPUP_DELAY);
       };
 

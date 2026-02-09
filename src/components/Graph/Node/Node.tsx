@@ -123,6 +123,8 @@ export const Node = memo(function Node(props: NodeProps) {
                 onNodeSelect(nodeId);
               }
             }
+            // Set cursor to move while dragging
+            target.style.cursor = 'move';
           }
           isDragging.current = true;
 
@@ -145,6 +147,9 @@ export const Node = memo(function Node(props: NodeProps) {
         target.releasePointerCapture(e.pointerId);
         document.removeEventListener("pointermove", handlePointerMove);
         document.removeEventListener("pointerup", handlePointerUp);
+
+        // Reset cursor
+        target.style.cursor = '';
 
         // If not dragging and not pinching, toggle node selection (single click)
         if (!isDragging.current && !isGestureActive()) {
@@ -235,7 +240,7 @@ export const Node = memo(function Node(props: NodeProps) {
         }}
         className={cn(
           // Cursor: pointer when algorithm selected, grab otherwise
-          isAlgorithmSelected ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+          isAlgorithmSelected ? "cursor-pointer" : "cursor-default"
         )}
         cx={node.x}
         cy={node.y}

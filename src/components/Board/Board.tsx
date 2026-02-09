@@ -7,7 +7,7 @@ import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Layers, Monitor } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
@@ -60,9 +60,10 @@ export const Board = () => {
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
 
-  // 3D mode state
-  const is3DMode = useSettingsStore((state) => state.is3DMode);
-  const setIs3DMode = useSettingsStore((state) => state.setIs3DMode);
+  // Render mode state
+  const renderMode = useSettingsStore((state) => state.renderMode);
+  const setRenderMode = useSettingsStore((state) => state.setRenderMode);
+  const is3DMode = renderMode === '3d';
 
   // Actions from store
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
@@ -305,27 +306,47 @@ export const Board = () => {
 
             {/* Last toolbar items - wrapped for consistent gap */}
             <div className="flex items-center gap-1 md:gap-2">
-              {/* 3D Toggle Button - Desktop only */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <ToolbarButton asChild>
-                    <Button
-                      onClick={() => setIs3DMode(!is3DMode)}
-                      variant="ghost"
-                      size="icon-sm"
-                      className={cn(
-                        "z-10 hidden md:inline-flex",
-                        is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
-                      )}
-                      disabled={isVisualizing}
-                      aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
-                    >
-                      <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
-                    </Button>
-                  </ToolbarButton>
-                </TooltipTrigger>
-                <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-              </Tooltip>
+              {/* Render Mode Selector - Desktop only */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToolbarButton asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="z-10 hidden md:inline-flex"
+                          disabled={isVisualizing}
+                          aria-label="Render mode"
+                        >
+                          {renderMode === '3d' ? (
+                            <Box size={16} className="text-[var(--color-text)]" />
+                          ) : renderMode === 'canvas' ? (
+                            <Layers size={16} className="text-[var(--color-text)]" />
+                          ) : (
+                            <Monitor size={16} className="text-[var(--color-text)]" />
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </ToolbarButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Render mode</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="center" sideOffset={8}>
+                  <DropdownMenuItem onClick={() => setRenderMode('svg')} className={cn(renderMode === 'svg' && "bg-accent")}>
+                    <Monitor className="h-4 w-4 mr-2" />
+                    SVG (Default)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setRenderMode('canvas')} className={cn(renderMode === 'canvas' && "bg-accent")}>
+                    <Layers className="h-4 w-4 mr-2" />
+                    Canvas (Fast)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setRenderMode('3d')} className={cn(renderMode === '3d' && "bg-accent")}>
+                    <Box className="h-4 w-4 mr-2" />
+                    3D View
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Export - direct button in 3D mode, dropdown in 2D mode */}
               {is3DMode ? (
