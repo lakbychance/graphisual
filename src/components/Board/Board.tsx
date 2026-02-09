@@ -24,6 +24,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "../ui/select";
 
 // Extracted components
 import { ThemeSelector } from "./ThemeSelector";
@@ -322,11 +328,11 @@ export const Board = () => {
             {/* Last toolbar items - wrapped for consistent gap */}
             <div className="flex items-center gap-1 md:gap-2">
               {/* Render Mode Selector - Desktop only */}
-              <DropdownMenu>
+              <Select value={renderMode} onValueChange={(value) => setRenderMode(value as 'svg' | 'canvas' | '3d')} disabled={isVisualizing}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <ToolbarButton asChild>
-                      <DropdownMenuTrigger asChild>
+                      <SelectTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon-sm"
@@ -342,35 +348,41 @@ export const Board = () => {
                             <Feather size={16} className="text-[var(--color-text)]" />
                           )}
                         </Button>
-                      </DropdownMenuTrigger>
+                      </SelectTrigger>
                     </ToolbarButton>
                   </TooltipTrigger>
                   <TooltipContent>View mode</TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent className="space-y-1" align="center" sideOffset={8}>
-                  <DropdownMenuItem onClick={() => setRenderMode('svg')} className={cn(renderMode === 'svg' && "bg-[var(--color-interactive-hover)]")}>
-                    <Feather className="h-4 w-4 mr-2" />
-                    <div className="flex flex-col">
-                      <span>Standard</span>
-                      <span className="text-xs text-[var(--color-text-muted)]">Smooth animations</span>
+                <SelectContent align="center" sideOffset={8}>
+                  <SelectItem value="svg">
+                    <div className="flex items-center">
+                      <Feather className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>Standard</span>
+                        <span className="text-xs opacity-70">Smooth animations</span>
+                      </div>
                     </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setRenderMode('canvas')} className={cn(renderMode === 'canvas' && "bg-[var(--color-interactive-hover)]")}>
-                    <Zap className="h-4 w-4 mr-2" />
-                    <div className="flex flex-col">
-                      <span>Performance</span>
-                      <span className="text-xs text-[var(--color-text-muted)]">For large graphs</span>
+                  </SelectItem>
+                  <SelectItem value="canvas">
+                    <div className="flex items-center">
+                      <Zap className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>Performance</span>
+                        <span className="text-xs opacity-70">For large graphs</span>
+                      </div>
                     </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setRenderMode('3d')} className={cn(renderMode === '3d' && "bg-[var(--color-interactive-hover)]")}>
-                    <Box className="h-4 w-4 mr-2" />
-                    <div className="flex flex-col">
-                      <span>3D Preview</span>
-                      <span className="text-xs text-[var(--color-text-muted)]">View only</span>
+                  </SelectItem>
+                  <SelectItem value="3d">
+                    <div className="flex items-center">
+                      <Box className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>3D</span>
+                        <span className="text-xs opacity-70">View only</span>
+                      </div>
                     </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
               {/* Export - direct button in 3D mode, dropdown in 2D mode */}
               {is3DMode ? (
