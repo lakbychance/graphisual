@@ -33,7 +33,9 @@ export function useGraphKeyboardNavigation({
   );
   const nodes = useGraphStore(useShallow((state) => state.data.nodes));
   const edges = useGraphStore((state) => state.data.edges);
-  const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
+  // For keyboard navigation, we use the first selected node (or null if none)
+  const selectedNodeIds = useGraphStore((state) => state.selection.nodeIds);
+  const selectedNodeId = selectedNodeIds.size > 0 ? [...selectedNodeIds][0] : null;
   const focusedEdge = useGraphStore((state) => state.selection.focusedEdge);
 
   // Store actions
@@ -146,7 +148,7 @@ export function useGraphKeyboardNavigation({
         selectNode(nextNode.id);
       }
     }
-  }, [isDesktop, isInStepMode, selectedNodeId, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
+  }, [isDesktop, isInStepMode, selectedNodeId, selectedNodeIds, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
 
   // Handle blur - deselect node and clear edge focus when focus leaves the graph
   // But don't clear if focus is moving to the edge popup
@@ -155,13 +157,13 @@ export function useGraphKeyboardNavigation({
     if (!isDesktop) return;
     if (isElementInPopup(e.relatedTarget as Element)) return;
 
-    if (selectedNodeId !== null) {
+    if (selectedNodeIds.size > 0) {
       selectNode(null);
     }
     if (focusedEdge !== null) {
       clearFocusedEdge();
     }
-  }, [isDesktop, selectedNodeId, focusedEdge, selectNode, clearFocusedEdge]);
+  }, [isDesktop, selectedNodeIds, focusedEdge, selectNode, clearFocusedEdge]);
 
   // Wrapper for closeEdgePopup that refocuses the canvas (only for keyboard navigation)
   const handleCloseEdgePopup = useCallback(() => {

@@ -10,6 +10,7 @@ import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualiza
 import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useCanvasPan } from "../../hooks/useCanvasPan";
+import { useBoxSelection } from "../../hooks/useBoxSelection";
 import { useEdgeDragging } from "../../hooks/useEdgeDragging";
 import { useEdgeSelection } from "../../hooks/useEdgeSelection";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
@@ -34,7 +35,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const orderedNodeIds = useGraphStore(
     useShallow((state) => [...state.data.stackingOrder])
   );
-  const selectedNodeId = useGraphStore((state) => state.selection.nodeId);
+  const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
   const selectedEdge = useGraphStore((state) => state.selection.edge);
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
   const panTarget = useGraphStore((state) => state.viewport.pan);
@@ -45,6 +46,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
 
   const { addNode, moveNode, selectNode } = useNodeActions();
+  const moveNodes = useGraphStore((state) => state.moveNodes);
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
@@ -120,12 +122,31 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   });
 
   // Canvas panning hook
-  const { handleCanvasPointerDown, isDraggingCanvas } = useCanvasPan({
+  const { handleCanvasPointerDown: handlePanPointerDown, isDraggingCanvas } = useCanvasPan({
     pan,
     zoom,
     isGestureActive,
     setViewportPan,
   });
+
+  // Box selection hook (Shift+drag)
+  const { selectionBox, handleBoxSelectionPointerDown, isBoxSelecting } = useBoxSelection({
+    screenToSvgCoords,
+    isGestureActive,
+  });
+
+  // Combined pointer down handler: box selection takes priority when Shift is held
+  const handleCanvasPointerDown = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      // Try box selection first (only activates with Shift)
+      if (handleBoxSelectionPointerDown(event)) {
+        return;
+      }
+      // Fall back to panning
+      handlePanPointerDown(event);
+    },
+    [handleBoxSelectionPointerDown, handlePanPointerDown]
+  );
 
   // Edge dragging hook
   const { handleConnectorDragStart, isDraggingEdge } = useEdgeDragging({
@@ -162,17 +183,17 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
       return;
     }
 
-    // Deselect node when clicking canvas
-    if (!isNode && selectedNodeId !== null) {
+    // Deselect nodes when clicking canvas (but not after box selection)
+    if (!isNode && hasSelectedNodes && !isBoxSelecting.current) {
       selectNode(null);
     }
 
-    // Create node on empty canvas (not during visualization or algorithm selection)
-    if (!isNode && selectedNodeId === null && !isDraggingEdge.current && !isDraggingCanvas.current && !isVisualizing && !currentAlgorithm) {
+    // Create node on empty canvas (not during visualization or algorithm selection or box selection)
+    if (!isNode && !hasSelectedNodes && !isDraggingEdge.current && !isDraggingCanvas.current && !isBoxSelecting.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
     }
-  }, [currentAlgorithm, isVisualizing, handleNodeClick, selectedNodeId, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, setVisualizationAlgorithm]);
+  }, [currentAlgorithm, isVisualizing, handleNodeClick, hasSelectedNodes, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, isBoxSelecting, setVisualizationAlgorithm]);
 
   // Check if we're in step mode (manual visualization with steps)
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
@@ -210,6 +231,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid slice"
         aria-label="Graph canvas"
+        data-box-selecting={selectionBox ? true : undefined}
       >
         <defs>
           <CanvasDefs />
@@ -235,6 +257,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
             key={nodeId}
             nodeId={nodeId}
             onNodeMove={moveNode}
+            onGroupMove={moveNodes}
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
             isAlgorithmSelected={!!currentAlgorithm}
@@ -245,6 +268,22 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         ))}
 
         <DragPreviewEdge edge={mockEdge} />
+
+        {/* Box selection rectangle - uses same accent color as selected nodes */}
+        {selectionBox && (
+          <rect
+            x={Math.min(selectionBox.startX, selectionBox.currentX)}
+            y={Math.min(selectionBox.startY, selectionBox.currentY)}
+            width={Math.abs(selectionBox.currentX - selectionBox.startX)}
+            height={Math.abs(selectionBox.currentY - selectionBox.startY)}
+            fill="var(--color-accent-form)"
+            fillOpacity={0.1}
+            stroke="var(--color-accent-form)"
+            strokeWidth={1}
+            strokeDasharray="4"
+            className="pointer-events-none"
+          />
+        )}
 
       </svg>
 

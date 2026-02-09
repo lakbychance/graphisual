@@ -464,7 +464,8 @@
 
 /* Edge drag: hide connectors and highlight hit areas */
 svg[data-edge-dragging] .edge-connector,
-svg[data-edge-dragging] .graph-edge {
+svg[data-edge-dragging] .graph-edge,
+svg[data-box-selecting] .graph-edge {
   pointer-events: none;
 }
 

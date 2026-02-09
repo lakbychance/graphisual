@@ -76,7 +76,7 @@ export interface GraphData {
 
 // Selection state
 interface Selection {
-  nodeId: number | null;
+  nodeIds: Set<number>;
   edge: { edge: GraphEdge; sourceNode: GraphNode; clickPosition: { x: number; y: number } } | null;
   focusedEdge: { from: number; to: number } | null;
 }
@@ -93,7 +93,9 @@ interface GraphActions {
   addNode: (x: number, y: number) => void;
   moveNode: (nodeId: number, x: number, y: number) => void;
   deleteNode: (nodeId: number) => void;
+  deleteNodes: (nodeIds: number[]) => void;
   bringNodeToFront: (nodeId: number) => void;
+  bringNodesToFront: (nodeIds: number[]) => void;
   addEdge: (fromNode: GraphNode, toNode: GraphNode) => void;
   setGraph: (nodes: GraphNode[], edges: Map<number, GraphEdge[]>, nodeCounter: number) => void;
   updateEdgeType: (fromNodeId: number, toNodeId: number, newType: EdgeType) => void;
@@ -108,10 +110,15 @@ interface GraphActions {
 
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
+  selectNodes: (nodeIds: number[]) => void;
+  deselectAllNodes: () => void;
   selectEdge: (edge: GraphEdge, sourceNode: GraphNode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
   setFocusedEdge: (from: number, to: number) => void;
   clearFocusedEdge: () => void;
+
+  // === Multi-Node Movement ===
+  moveNodes: (nodeIds: number[], deltaX: number, deltaY: number) => void;
 
   // === Visualization Actions ===
   setVisualizationAlgorithm: (algo: SelectedOption | undefined) => void;
@@ -184,7 +191,7 @@ const initialData: GraphData = {
 };
 
 const initialSelection: Selection = {
-  nodeId: null,
+  nodeIds: new Set<number>(),
   edge: null,
   focusedEdge: null,
 };
@@ -319,7 +326,47 @@ export const useGraphStore = create<GraphStore>()(
 
           set({
             data: { nodes: newNodes, edges: newEdges, nodeCounter, stackingOrder: newStackingOrder },
-            selection: { nodeId: null, edge: null, focusedEdge: null },
+            selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
+          });
+        }),
+
+        deleteNodes: autoHistory((nodeIds: number[]) => {
+          if (nodeIds.length === 0) return;
+          get().clearVisualization();
+          const { data } = get();
+          const { nodes, edges, nodeCounter, stackingOrder } = data;
+
+          const nodeIdSet = new Set(nodeIds);
+
+          // Filter out all deleted nodes
+          const newNodes = nodes.filter((n) => !nodeIdSet.has(n.id));
+
+          // Remove edges from/to deleted nodes
+          const newEdges = new Map(edges);
+          nodeIdSet.forEach((nodeId) => {
+            newEdges.delete(nodeId);
+          });
+
+          // Update remaining nodes' edge arrays to remove edges pointing to deleted nodes
+          edges.forEach((edgeList, fromNodeId) => {
+            if (edgeList && !nodeIdSet.has(fromNodeId)) {
+              const hasEdgesToDeleted = edgeList.some((edge) => nodeIdSet.has(edge.to));
+              if (hasEdgesToDeleted) {
+                const filtered = edgeList.filter((edge) => !nodeIdSet.has(edge.to));
+                newEdges.set(fromNodeId, filtered);
+              }
+            }
+          });
+
+          // Remove from stacking order
+          const newStackingOrder = new Set(stackingOrder);
+          nodeIdSet.forEach((nodeId) => {
+            newStackingOrder.delete(nodeId);
+          });
+
+          set({
+            data: { nodes: newNodes, edges: newEdges, nodeCounter, stackingOrder: newStackingOrder },
+            selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
           });
         }),
 
@@ -328,6 +375,23 @@ export const useGraphStore = create<GraphStore>()(
           const newStackingOrder = new Set(data.stackingOrder);
           newStackingOrder.delete(nodeId);
           newStackingOrder.add(nodeId);  // Moves to end (top of z-order)
+          set({ data: { ...data, stackingOrder: newStackingOrder } });
+        },
+
+        bringNodesToFront: (nodeIds: number[]) => {
+          const { data } = get();
+          const nodeIdSet = new Set(nodeIds);
+
+          // Current order as array (insertion order preserved)
+          const currentOrder = [...data.stackingOrder];
+
+          // Split into two groups, each preserving original relative order
+          const notSelected = currentOrder.filter(id => !nodeIdSet.has(id));
+          const selected = currentOrder.filter(id => nodeIdSet.has(id));
+
+          // Concatenate: non-selected at bottom, selected on top
+          const newStackingOrder = new Set([...notSelected, ...selected]);
+
           set({ data: { ...data, stackingOrder: newStackingOrder } });
         },
 
@@ -376,7 +440,7 @@ export const useGraphStore = create<GraphStore>()(
 
           set({
             data: { nodes, edges, nodeCounter, stackingOrder },
-            selection: { nodeId: null, edge: null, focusedEdge: null },
+            selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
             visualization: { ...visualization, input: null },
             viewport: { zoom: 1, pan: { x: 0, y: 0 } }, // Reset viewport to center on new graph
           });
@@ -592,7 +656,7 @@ export const useGraphStore = create<GraphStore>()(
             () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
-              selection: { nodeId: null, edge: null, focusedEdge: null },
+              selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
             })
           );
         },
@@ -605,7 +669,7 @@ export const useGraphStore = create<GraphStore>()(
             () => createGraphSnapshot(data.nodes, data.edges, data.nodeCounter, data.stackingOrder),
             (snapshot) => set({
               data: snapshotToData(snapshot),
-              selection: { nodeId: null, edge: null, focusedEdge: null },
+              selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
             })
           );
         },
@@ -625,7 +689,18 @@ export const useGraphStore = create<GraphStore>()(
 
         selectNode: (nodeId) => {
           const { selection } = get();
-          set({ selection: { ...selection, nodeId, focusedEdge: null } });
+          const newNodeIds = nodeId === null ? new Set<number>() : new Set<number>([nodeId]);
+          set({ selection: { ...selection, nodeIds: newNodeIds, focusedEdge: null } });
+        },
+
+        selectNodes: (nodeIds: number[]) => {
+          const { selection } = get();
+          set({ selection: { ...selection, nodeIds: new Set<number>(nodeIds), focusedEdge: null } });
+        },
+
+        deselectAllNodes: () => {
+          const { selection } = get();
+          set({ selection: { ...selection, nodeIds: new Set<number>(), focusedEdge: null } });
         },
 
         selectEdge: (edge, sourceNode, clickPosition) => {
@@ -647,6 +722,77 @@ export const useGraphStore = create<GraphStore>()(
           const { selection } = get();
           set({ selection: { ...selection, focusedEdge: null } });
         },
+
+        // ========================================
+        // Multi-Node Movement
+        // ========================================
+
+        moveNodes: batchedAutoHistory((nodeIds: number[], deltaX: number, deltaY: number) => {
+          const { data } = get();
+          const { nodes, edges } = data;
+
+          // Get all nodes to move
+          const nodeIdSet = new Set(nodeIds);
+
+          // Update all node positions
+          const newNodes = nodes.map((node) => {
+            if (nodeIdSet.has(node.id)) {
+              return { ...node, x: node.x + deltaX, y: node.y + deltaY };
+            }
+            return node;
+          });
+
+          // Create a lookup for new positions
+          const newPositions = new Map<number, { x: number; y: number }>();
+          newNodes.forEach((node) => {
+            if (nodeIdSet.has(node.id)) {
+              newPositions.set(node.id, { x: node.x, y: node.y });
+            }
+          });
+
+          // Update all affected edges
+          const newEdges = new Map(edges);
+
+          // Update edges for each moved node
+          nodeIdSet.forEach((nodeId) => {
+            const newPos = newPositions.get(nodeId);
+            if (!newPos) return;
+
+            // Update edges starting from this node
+            const nodeEdges = edges.get(nodeId);
+            if (nodeEdges) {
+              const updatedNodeEdges = nodeEdges.map((edge) => {
+                const targetPos = newPositions.get(edge.to) || { x: edge.nodeX2, y: edge.nodeY2 };
+                const { tempX, tempY } = calculateAccurateCoords(newPos.x, newPos.y, targetPos.x, targetPos.y);
+                return { ...edge, x1: newPos.x, y1: newPos.y, x2: tempX, y2: tempY, nodeX2: targetPos.x, nodeY2: targetPos.y };
+              });
+              newEdges.set(nodeId, updatedNodeEdges);
+            }
+          });
+
+          // Update edges pointing to moved nodes (from non-moved nodes)
+          edges.forEach((list, fromNodeId) => {
+            if (list && !nodeIdSet.has(fromNodeId)) {
+              let hasChanges = false;
+              const updatedList = list.map((edge) => {
+                if (nodeIdSet.has(edge.to)) {
+                  hasChanges = true;
+                  const newPos = newPositions.get(edge.to)!;
+                  const { tempX, tempY } = calculateAccurateCoords(edge.x1, edge.y1, newPos.x, newPos.y);
+                  return { ...edge, x2: tempX, y2: tempY, nodeX2: newPos.x, nodeY2: newPos.y };
+                }
+                return edge;
+              });
+              if (hasChanges) {
+                newEdges.set(fromNodeId, updatedList);
+              }
+            }
+          });
+
+          set({
+            data: { ...data, nodes: newNodes, edges: newEdges },
+          });
+        }),
 
         // ========================================
         // Visualization Actions

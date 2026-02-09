@@ -28,7 +28,7 @@ beforeEach(() => {
       mode: VisualizationMode.AUTO,
     },
     selection: {
-      nodeId: null,
+      nodeIds: new Set<number>(),
       edge: null,
       focusedEdge: null,
     },
@@ -89,16 +89,173 @@ describe('graphStore', () => {
       expect(state.data.edges.has(1)).toBe(false)
     })
 
-    it('selectNode updates selectedNodeId', () => {
+    it('selectNode updates selectedNodeIds', () => {
       const { addNode, selectNode } = useGraphStore.getState()
 
       addNode(0, 0)
       selectNode(1)
 
-      expect(useGraphStore.getState().selection.nodeId).toBe(1)
+      expect(useGraphStore.getState().selection.nodeIds.has(1)).toBe(true)
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(1)
 
       selectNode(null)
-      expect(useGraphStore.getState().selection.nodeId).toBe(null)
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(0)
+    })
+
+    it('selectNodes updates selectedNodeIds with multiple nodes', () => {
+      const { addNode, selectNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      addNode(100, 100)
+      selectNodes([1, 2, 3])
+
+      const nodeIds = useGraphStore.getState().selection.nodeIds
+      expect(nodeIds.size).toBe(3)
+      expect(nodeIds.has(1)).toBe(true)
+      expect(nodeIds.has(2)).toBe(true)
+      expect(nodeIds.has(3)).toBe(true)
+    })
+
+    it('deselectAllNodes clears selection', () => {
+      const { addNode, selectNodes, deselectAllNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      selectNodes([1, 2])
+
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(2)
+
+      deselectAllNodes()
+
+      expect(useGraphStore.getState().selection.nodeIds.size).toBe(0)
+    })
+
+    it('deleteNodes removes multiple nodes and their edges in single operation', () => {
+      const { addNode, addEdge, deleteNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 100)
+      addNode(200, 200)
+
+      let state = useGraphStore.getState()
+      addEdge(state.data.nodes[0], state.data.nodes[1])
+      addEdge(state.data.nodes[1], state.data.nodes[2])
+
+      deleteNodes([1, 2])
+
+      state = useGraphStore.getState()
+      expect(state.data.nodes).toHaveLength(1)
+      expect(state.data.nodes[0].id).toBe(3)
+      expect(state.data.edges.has(1)).toBe(false)
+      expect(state.data.edges.has(2)).toBe(false)
+    })
+
+    it('deleteNodes is a single undo operation', () => {
+      const { addNode, deleteNodes, undo } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 100)
+      addNode(200, 200)
+
+      expect(useGraphStore.getState().data.nodes).toHaveLength(3)
+
+      deleteNodes([1, 2, 3])
+
+      expect(useGraphStore.getState().data.nodes).toHaveLength(0)
+
+      // Single undo should restore all nodes
+      undo()
+
+      expect(useGraphStore.getState().data.nodes).toHaveLength(3)
+    })
+
+    it('moveNodes moves multiple nodes by delta', () => {
+      const { addNode, moveNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 100)
+      addNode(200, 200)
+
+      moveNodes([1, 2], 50, 50)
+
+      const state = useGraphStore.getState()
+      const node1 = state.data.nodes.find(n => n.id === 1)
+      const node2 = state.data.nodes.find(n => n.id === 2)
+      const node3 = state.data.nodes.find(n => n.id === 3)
+
+      expect(node1?.x).toBe(50)
+      expect(node1?.y).toBe(50)
+      expect(node2?.x).toBe(150)
+      expect(node2?.y).toBe(150)
+      // Node 3 should be unchanged
+      expect(node3?.x).toBe(200)
+      expect(node3?.y).toBe(200)
+    })
+
+    it('moveNodes updates edges correctly', () => {
+      const { addNode, addEdge, moveNodes } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 0)
+
+      let state = useGraphStore.getState()
+      addEdge(state.data.nodes[0], state.data.nodes[1])
+
+      moveNodes([1], 50, 50)
+
+      state = useGraphStore.getState()
+      const edge = state.data.edges.get(1)?.[0]
+      expect(edge?.x1).toBe(50)
+      expect(edge?.y1).toBe(50)
+    })
+
+    it('bringNodesToFront moves selected nodes to top preserving relative order', () => {
+      const { addNode, bringNodesToFront } = useGraphStore.getState()
+
+      addNode(0, 0)   // id: 1
+      addNode(50, 50) // id: 2
+      addNode(100, 100) // id: 3
+      addNode(150, 150) // id: 4
+      addNode(200, 200) // id: 5
+
+      // Initial stacking order: [1, 2, 3, 4, 5]
+      let stackingOrder = [...useGraphStore.getState().data.stackingOrder]
+      expect(stackingOrder).toEqual([1, 2, 3, 4, 5])
+
+      // Bring nodes 2 and 4 to front
+      bringNodesToFront([2, 4])
+
+      // Expected: [1, 3, 5, 2, 4] - non-selected first, then selected (preserving relative order)
+      stackingOrder = [...useGraphStore.getState().data.stackingOrder]
+      expect(stackingOrder).toEqual([1, 3, 5, 2, 4])
+    })
+
+    it('bringNodesToFront handles single node', () => {
+      const { addNode, bringNodesToFront } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      addNode(100, 100)
+
+      bringNodesToFront([1])
+
+      const stackingOrder = [...useGraphStore.getState().data.stackingOrder]
+      expect(stackingOrder).toEqual([2, 3, 1])
+    })
+
+    it('bringNodesToFront handles all nodes selected', () => {
+      const { addNode, bringNodesToFront } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(50, 50)
+      addNode(100, 100)
+
+      bringNodesToFront([1, 2, 3])
+
+      // Order should be unchanged since all are selected
+      const stackingOrder = [...useGraphStore.getState().data.stackingOrder]
+      expect(stackingOrder).toEqual([1, 2, 3])
     })
   })
 

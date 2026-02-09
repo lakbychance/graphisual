@@ -255,13 +255,13 @@ export const Board = () => {
               <ToolbarSeparator className="h-5 mx-0.5" />
               <ToolbarButton asChild>
                 <Button
-                  onClick={actions.deleteSelectedNode.execute}
-                  disabled={!actions.deleteSelectedNode.enabled}
+                  onClick={actions.deleteSelectedNodes.execute}
+                  disabled={!actions.deleteSelectedNodes.enabled}
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Delete selected node"
+                  aria-label="Delete selected nodes"
                 >
-                  <Trash2 size={16} className={cn(actions.deleteSelectedNode.enabled ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
+                  <Trash2 size={16} className={cn(actions.deleteSelectedNodes.enabled ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
                 </Button>
               </ToolbarButton>
             </Toolbar>
