@@ -231,6 +231,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid slice"
         aria-label="Graph canvas"
+        data-box-selecting={selectionBox ? true : undefined}
       >
         <defs>
           <CanvasDefs />

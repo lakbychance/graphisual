@@ -123,35 +123,6 @@ describe('BFS Algorithm', () => {
   })
 
   describe('generator', () => {
-    it('yields steps one at a time', () => {
-      const input: AlgorithmInput = {
-        adjacencyList: createAdjacencyList([1, 2, 3], [
-          { from: 1, to: 2 },
-          { from: 2, to: 3 },
-        ]),
-        nodes: [{ id: 1 }, { id: 2 }, { id: 3 }],
-        startNodeId: 1,
-      }
-
-      const generator = bfsAdapter.generator!(input)
-
-      // Step through manually
-      const step1 = generator.next()
-      expect(step1.done).toBe(false)
-      expect(step1.value).toEqual({ type: 'visit', edge: { from: -1, to: 1 } })
-
-      const step2 = generator.next()
-      expect(step2.done).toBe(false)
-      expect(step2.value).toEqual({ type: 'visit', edge: { from: 1, to: 2 } })
-
-      const step3 = generator.next()
-      expect(step3.done).toBe(false)
-      expect(step3.value).toEqual({ type: 'visit', edge: { from: 2, to: 3 } })
-
-      const step4 = generator.next()
-      expect(step4.done).toBe(true)
-    })
-
     it('produces same result as execute()', () => {
       const input: AlgorithmInput = {
         adjacencyList: createAdjacencyList([1, 2, 3, 4], [

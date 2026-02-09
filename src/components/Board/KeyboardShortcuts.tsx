@@ -33,8 +33,9 @@ const shortcutGroups: ShortcutGroup[] = [
     title: "General",
     shortcuts: [
       { keys: `${modKey}+Z`, description: "Undo" },
-      { keys: `${modKey}+Shift+Z`, description: "Redo" },
+      { keys: `${modKey}+⇧+Z`, description: "Redo" },
       { keys: `${modKey}+/−`, description: "Zoom in / out" },
+      { keys: "⇧+Drag", description: "Select multiple nodes" },
     ],
   },
   {

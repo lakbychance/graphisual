@@ -95,6 +95,7 @@ interface GraphActions {
   deleteNode: (nodeId: number) => void;
   deleteNodes: (nodeIds: number[]) => void;
   bringNodeToFront: (nodeId: number) => void;
+  bringNodesToFront: (nodeIds: number[]) => void;
   addEdge: (fromNode: GraphNode, toNode: GraphNode) => void;
   setGraph: (nodes: GraphNode[], edges: Map<number, GraphEdge[]>, nodeCounter: number) => void;
   updateEdgeType: (fromNodeId: number, toNodeId: number, newType: EdgeType) => void;
@@ -374,6 +375,23 @@ export const useGraphStore = create<GraphStore>()(
           const newStackingOrder = new Set(data.stackingOrder);
           newStackingOrder.delete(nodeId);
           newStackingOrder.add(nodeId);  // Moves to end (top of z-order)
+          set({ data: { ...data, stackingOrder: newStackingOrder } });
+        },
+
+        bringNodesToFront: (nodeIds: number[]) => {
+          const { data } = get();
+          const nodeIdSet = new Set(nodeIds);
+
+          // Current order as array (insertion order preserved)
+          const currentOrder = [...data.stackingOrder];
+
+          // Split into two groups, each preserving original relative order
+          const notSelected = currentOrder.filter(id => !nodeIdSet.has(id));
+          const selected = currentOrder.filter(id => nodeIdSet.has(id));
+
+          // Concatenate: non-selected at bottom, selected on top
+          const newStackingOrder = new Set([...notSelected, ...selected]);
+
           set({ data: { ...data, stackingOrder: newStackingOrder } });
         },
 

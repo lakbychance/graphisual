@@ -111,12 +111,17 @@ export const Node = memo(function Node(props: NodeProps) {
 
         // Check if movement exceeds threshold - user is dragging
         if (deltaScreenX > DRAG_THRESHOLD || deltaScreenY > DRAG_THRESHOLD) {
-          // Bring node to front on first drag movement
+          // Bring node(s) to front on first drag movement
           if (!isDragging.current) {
-            bringNodeToFront(nodeId);
-            // If dragging an unselected node, select only that node
-            if (!isSelected) {
-              onNodeSelect(nodeId);
+            if (isGroupDrag) {
+              // Bring all selected nodes to front, preserving their relative order
+              useGraphStore.getState().bringNodesToFront(groupNodeIds);
+            } else {
+              bringNodeToFront(nodeId);
+              // If dragging an unselected node, select only that node
+              if (!isSelected) {
+                onNodeSelect(nodeId);
+              }
             }
           }
           isDragging.current = true;
