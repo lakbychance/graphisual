@@ -4,7 +4,7 @@
  */
 
 import type { GraphNode, GraphEdge } from "../Graph/types";
-import { NODE } from "../../constants/graph";
+import { NODE, EDGE } from "../../constants/graph";
 
 export type HitResult =
   | { type: 'node'; nodeId: number; node: GraphNode }
@@ -177,7 +177,7 @@ export function hitTestEdge(
   worldX: number,
   worldY: number,
   edge: GraphEdge,
-  threshold: number = 8
+  threshold: number = EDGE.HIT_THRESHOLD
 ): boolean {
   if (edge.type === 'directed') {
     const { cx, cy } = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
@@ -196,7 +196,7 @@ export function hitTestEdges(
   worldX: number,
   worldY: number,
   edges: Map<number, GraphEdge[]>,
-  threshold: number = 8
+  threshold: number = EDGE.HIT_THRESHOLD
 ): { edge: GraphEdge; sourceNodeId: number } | null {
   for (const [sourceNodeId, nodeEdges] of edges) {
     for (const edge of nodeEdges) {

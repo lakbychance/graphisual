@@ -112,7 +112,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
 
   // Enable pinch-to-zoom, trackpad zoom, and mouse wheel zoom
   const { isGestureActive } = useGestureZoom({
-    svgRef: graph,
+    elementRef: graph,
     zoom: zoomTarget,
     setZoom: setViewportZoom,
     pan: panTarget,
