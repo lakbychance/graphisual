@@ -218,9 +218,6 @@ export const Node = memo(function Node(props: NodeProps) {
       <m.circle
         onPointerDown={handlePointerDown}
         onMouseEnter={handleMouseEnter}
-        style={{
-          filter: 'drop-shadow(1.5px 1.5px 3px var(--node-shadow-color))',
-        }}
         animate={{
           fill: getNodeFill(),
           stroke: isSelected ? 'var(--color-accent-form)' : getNodeStroke(),
@@ -246,52 +243,49 @@ export const Node = memo(function Node(props: NodeProps) {
         cy={node.y}
         id={node.id.toString()}
       />
-      {/* Crosshatch with radial mask - light center, dense edges for 3D sphere */}
-      <m.circle
+      {/* Crosshatch pattern overlay — plain circle with CSS transition instead of motion.circle */}
+      <circle
         cx={node.x}
         cy={node.y}
-        animate={{
-          r: isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r,
-        }}
-        transition={prefersReducedMotion ? { duration: 0 } : { r: { duration: STROKE_ANIMATION.DURATION } }}
+        r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
         fill="url(#crosshatch)"
         mask="url(#sphereMask)"
         className="pointer-events-none"
+        style={{ transition: prefersReducedMotion ? 'none' : `r ${STROKE_ANIMATION.DURATION}s` }}
       />
-
-      {/* Edge Connectors - shown on hover */}
-      <EdgeConnector
-        nodeX={node.x}
-        nodeY={node.y}
-        nodeR={node.r}
-        position="top"
-        visible={connectorsVisible}
-        onDragStart={handleConnectorDrag}
-      />
-      <EdgeConnector
-        nodeX={node.x}
-        nodeY={node.y}
-        nodeR={node.r}
-        position="right"
-        visible={connectorsVisible}
-        onDragStart={handleConnectorDrag}
-      />
-      <EdgeConnector
-        nodeX={node.x}
-        nodeY={node.y}
-        nodeR={node.r}
-        position="bottom"
-        visible={connectorsVisible}
-        onDragStart={handleConnectorDrag}
-      />
-      <EdgeConnector
-        nodeX={node.x}
-        nodeY={node.y}
-        nodeR={node.r}
-        position="left"
-        visible={connectorsVisible}
-        onDragStart={handleConnectorDrag}
-      />
+      {/* Edge Connectors - only mounted on hover to avoid unnecessary renders during drag */}
+      {connectorsVisible && (
+        <>
+          <EdgeConnector
+            nodeX={node.x}
+            nodeY={node.y}
+            nodeR={node.r}
+            position="top"
+            onDragStart={handleConnectorDrag}
+          />
+          <EdgeConnector
+            nodeX={node.x}
+            nodeY={node.y}
+            nodeR={node.r}
+            position="right"
+            onDragStart={handleConnectorDrag}
+          />
+          <EdgeConnector
+            nodeX={node.x}
+            nodeY={node.y}
+            nodeR={node.r}
+            position="bottom"
+            onDragStart={handleConnectorDrag}
+          />
+          <EdgeConnector
+            nodeX={node.x}
+            nodeY={node.y}
+            nodeR={node.r}
+            position="left"
+            onDragStart={handleConnectorDrag}
+          />
+        </>
+      )}
 
       {/* Node label */}
       <text
