@@ -218,6 +218,9 @@ export const Node = memo(function Node(props: NodeProps) {
       <m.circle
         onPointerDown={handlePointerDown}
         onMouseEnter={handleMouseEnter}
+        initial={{
+          r: node.r
+        }}
         animate={{
           fill: getNodeFill(),
           stroke: isSelected ? 'var(--color-accent-form)' : getNodeStroke(),
