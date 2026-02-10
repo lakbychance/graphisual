@@ -9,7 +9,7 @@ import { useGraphStore } from "../../store/graphStore";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
-import { useCanvasPan } from "../../hooks/useCanvasPan";
+import { useSVGCanvasPan } from "../../hooks/useSVGCanvasPan";
 import { useBoxSelection } from "../../hooks/useBoxSelection";
 import { useEdgeDragging } from "../../hooks/useEdgeDragging";
 import { useEdgeSelection } from "../../hooks/useEdgeSelection";
@@ -122,7 +122,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   });
 
   // Canvas panning hook
-  const { handleCanvasPointerDown: handlePanPointerDown, isDraggingCanvas } = useCanvasPan({
+  const { handleCanvasPointerDown: handlePanPointerDown, isDraggingCanvas } = useSVGCanvasPan({
     pan,
     zoom,
     isGestureActive,

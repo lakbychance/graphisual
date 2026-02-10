@@ -8,7 +8,7 @@ interface UseCanvasPanProps {
   setViewportPan: (x: number, y: number) => void;
 }
 
-export function useCanvasPan({
+export function useSVGCanvasPan({
   pan,
   zoom,
   isGestureActive,

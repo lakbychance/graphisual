@@ -336,7 +336,7 @@ export const Board = () => {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="z-10 hidden md:inline-flex"
+                          className="z-10 hidden lg:inline-flex"
                           disabled={isVisualizing}
                           aria-label="View mode"
                         >

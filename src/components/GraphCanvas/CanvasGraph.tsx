@@ -7,7 +7,6 @@ import {
   useRef,
   useEffect,
   useCallback,
-  useState,
   useImperativeHandle,
   type Ref,
 } from "react";
@@ -21,6 +20,7 @@ import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualiza
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
+import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useCanvasColorState } from "../../hooks/useCanvasColorState";
 import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
 import { EdgePopup } from "../Graph/EdgePopup";
@@ -122,23 +122,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   }, [zoom, pan]);
 
   // Track canvas size - triggers re-render when canvas resizes
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        const { width, height } = entry.contentRect;
-        setCanvasSize({ width, height });
-      }
-    });
-
-    resizeObserver.observe(canvas);
-    return () => resizeObserver.disconnect();
-  }, []);
+  const canvasSize = useElementDimensions(canvasRef);
 
   // Expose canvas element
   useImperativeHandle(ref, () => ({

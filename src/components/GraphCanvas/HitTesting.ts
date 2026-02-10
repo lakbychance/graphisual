@@ -5,6 +5,7 @@
 
 import type { GraphNode, GraphEdge } from "../Graph/types";
 import { NODE, EDGE } from "../../constants/graph";
+import { getControlPoint } from "../../utils/geometry/calc";
 
 export type HitResult =
   | { type: 'node'; nodeId: number; node: GraphNode }
@@ -92,21 +93,6 @@ function distanceToLineSegment(
   return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
 }
 
-/**
- * Get control point for directed edge curve.
- * Matches calculateTextLoc from calc.ts.
- */
-function getControlPoint(x1: number, y1: number, x2: number, y2: number): { cx: number; cy: number } {
-  const mpx = (x2 + x1) * 0.5;
-  const mpy = (y2 + y1) * 0.5;
-  const theta = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2;
-  const offset = NODE.RADIUS;
-
-  return {
-    cx: mpx + offset * Math.cos(theta),
-    cy: mpy + offset * Math.sin(theta),
-  };
-}
 
 /**
  * Hit test a single node (including hit area padding).
