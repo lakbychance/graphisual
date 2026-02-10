@@ -21,7 +21,7 @@ const ToolbarButton = React.forwardRef<
   <ToolbarPrimitive.Button
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[background-color,box-shadow,transform,opacity] duration-100 focus-ring-animated disabled:pointer-events-none disabled:opacity-40",
+      "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium focus-ring-animated disabled:pointer-events-none disabled:opacity-40",
       className
     )}
     {...props}
