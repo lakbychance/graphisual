@@ -15,6 +15,7 @@ export const EDGE = {
   DEFAULT_WEIGHT: 1,
   MIN_WEIGHT: -999,
   MAX_WEIGHT: 999,
+  HIT_THRESHOLD: 16,
 } as const;
 
 // Node geometry

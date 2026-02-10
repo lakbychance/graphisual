@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useSettingsStore } from "../store/settingsStore";
 import { THEME, type ResolvedTheme } from "../constants/theme";
+import { invalidateCSSVarCache } from "../utils/cssVariables";
 
 /**
  * Hook to manage theme state and system preference detection.
@@ -11,10 +12,11 @@ export const useTheme = () => {
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
 
-  // Apply theme to document
-  useEffect(() => {
+  // Apply theme to document - useLayoutEffect ensures DOM is updated before any useEffect runs
+  useLayoutEffect(() => {
     const applyTheme = (resolvedTheme: ResolvedTheme) => {
       document.documentElement.setAttribute("data-theme", resolvedTheme);
+      invalidateCSSVarCache();
     };
 
     if (theme === THEME.SYSTEM) {

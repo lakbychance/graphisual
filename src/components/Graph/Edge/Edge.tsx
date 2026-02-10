@@ -66,9 +66,13 @@ export const Edge = memo(function Edge({
   const handleMouseEnter = (e: React.MouseEvent<SVGPathElement>) => {
     // Don't override styles when focused (CSS class handles it) or visualizing
     if (!isVisualizing && !isFocused) {
-      e.currentTarget.style.stroke = hoverColor;
-      if (edge.type === 'directed') {
-        e.currentTarget.style.markerEnd = 'url(#arrowhead-focused)';
+      // Target the visible sibling path (next element after the hit area)
+      const visiblePath = e.currentTarget.nextElementSibling as SVGPathElement | null;
+      if (visiblePath) {
+        visiblePath.style.stroke = hoverColor;
+        if (edge.type === 'directed') {
+          visiblePath.style.markerEnd = 'url(#arrowhead-focused)';
+        }
       }
     }
   };
@@ -76,9 +80,12 @@ export const Edge = memo(function Edge({
   const handleMouseLeave = (e: React.MouseEvent<SVGPathElement>) => {
     // Don't override styles when focused (CSS class handles it)
     if (!isFocused) {
-      e.currentTarget.style.stroke = edgeColor;
-      if (edge.type === 'directed') {
-        e.currentTarget.style.markerEnd = `url(#${arrowMarkerId})`;
+      const visiblePath = e.currentTarget.nextElementSibling as SVGPathElement | null;
+      if (visiblePath) {
+        visiblePath.style.stroke = edgeColor;
+        if (edge.type === 'directed') {
+          visiblePath.style.markerEnd = `url(#${arrowMarkerId})`;
+        }
       }
     }
   };
@@ -122,11 +129,22 @@ export const Edge = memo(function Edge({
 
     return (
       <g key={getEdgeKey(arrowMarkerId)}>
+        {/* Invisible wider path for easier click/tap targeting */}
         <path
-          id={`${sourceNodeId}${edge.to}`}
+          d={directedPath}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={EDGE.HIT_THRESHOLD * 2}
           onClick={handleClick}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          className={cn(
+            "edge-hit-area cursor-pointer",
+            isVisualizing && "pointer-events-none",
+          )}
+        />
+        <path
+          id={`${sourceNodeId}${edge.to}`}
           d={directedPath}
           style={{
             // Only set stroke via style when not focused (CSS class handles focused state)
@@ -136,8 +154,7 @@ export const Edge = memo(function Edge({
             }),
           }}
           className={cn(
-            "graph-edge fill-transparent cursor-pointer",
-            isVisualizing && "pointer-events-none",
+            "fill-transparent pointer-events-none",
             isFocused && "edge-focused"
           )}
           markerEnd={`url(#${arrowMarkerId})`}
@@ -153,12 +170,23 @@ export const Edge = memo(function Edge({
 
   return (
     <g key={getEdgeKey()}>
+      {/* Invisible wider path for easier click/tap targeting */}
       <path
         d={undirectedPath}
-        id={`${sourceNodeId}${edge.to}`}
+        fill="transparent"
+        stroke="transparent"
+        strokeWidth={EDGE.HIT_THRESHOLD * 2}
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        className={cn(
+          "edge-hit-area cursor-pointer",
+          isVisualizing && "pointer-events-none",
+        )}
+      />
+      <path
+        d={undirectedPath}
+        id={`${sourceNodeId}${edge.to}`}
         style={{
           // Only set stroke via style when not focused (CSS class handles focused state)
           ...(!isFocused && {
@@ -167,8 +195,7 @@ export const Edge = memo(function Edge({
           }),
         }}
         className={cn(
-          "graph-edge fill-transparent cursor-pointer",
-          isVisualizing && "pointer-events-none",
+          "fill-transparent pointer-events-none",
           isFocused && "edge-focused"
         )}
       />

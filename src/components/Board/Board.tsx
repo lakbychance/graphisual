@@ -7,7 +7,7 @@ import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box } from "lucide-react";
+import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Feather, Zap } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
@@ -17,12 +17,19 @@ import { GrainTexture } from "../ui/grain-texture";
 import { exportSvg } from "../../utils/export/exportSvg";
 import { exportPng } from "../../utils/export/exportPng";
 import { export3DPng } from "../../utils/export/export3DPng";
+import { exportCanvasPng } from "../../utils/export/exportCanvasPng";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "../ui/select";
 
 // Extracted components
 import { ThemeSelector } from "./ThemeSelector";
@@ -60,9 +67,10 @@ export const Board = () => {
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
 
-  // 3D mode state
-  const is3DMode = useSettingsStore((state) => state.is3DMode);
-  const setIs3DMode = useSettingsStore((state) => state.setIs3DMode);
+  // Render mode state
+  const renderMode = useSettingsStore((state) => state.renderMode);
+  const setRenderMode = useSettingsStore((state) => state.setRenderMode);
+  const is3DMode = renderMode === '3d';
 
   // Actions from store
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
@@ -162,9 +170,17 @@ export const Board = () => {
 
   // Export PNG handler (2D only)
   const handleExport2DPng = useCallback(async () => {
-    const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
-    if (svgElement) {
-      await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+    const currentRenderMode = useSettingsStore.getState().renderMode;
+    if (currentRenderMode === 'canvas') {
+      const canvasElement = graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement();
+      if (canvasElement) {
+        await exportCanvasPng(canvasElement, { filename: 'graph.png' });
+      }
+    } else {
+      const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
+      if (svgElement) {
+        await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
+      }
     }
   }, []);
 
@@ -196,7 +212,13 @@ export const Board = () => {
     if (orderedNodeIds.length > 0) {
       const topmostNodeId = orderedNodeIds[orderedNodeIds.length - 1];
       selectNode(topmostNodeId);
-      graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
+      // Focus the appropriate graph element based on render mode
+      const renderMode = useSettingsStore.getState().renderMode;
+      if (renderMode === 'canvas') {
+        graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement()?.focus();
+      } else {
+        graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
+      }
     }
   }, []);
 
@@ -305,27 +327,62 @@ export const Board = () => {
 
             {/* Last toolbar items - wrapped for consistent gap */}
             <div className="flex items-center gap-1 md:gap-2">
-              {/* 3D Toggle Button - Desktop only */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <ToolbarButton asChild>
-                    <Button
-                      onClick={() => setIs3DMode(!is3DMode)}
-                      variant="ghost"
-                      size="icon-sm"
-                      className={cn(
-                        "z-10 hidden md:inline-flex",
-                        is3DMode && "bg-[var(--color-accent-form)] hover:bg-[var(--color-accent-form)]"
-                      )}
-                      disabled={isVisualizing}
-                      aria-label={is3DMode ? "Switch to 2D" : "Switch to 3D"}
-                    >
-                      <Box size={16} className={cn(is3DMode ? "text-white" : "text-[var(--color-text)]")} />
-                    </Button>
-                  </ToolbarButton>
-                </TooltipTrigger>
-                <TooltipContent>{is3DMode ? "Switch to 2D" : "Switch to 3D"}</TooltipContent>
-              </Tooltip>
+              {/* Render Mode Selector - Desktop only */}
+              <Select value={renderMode} onValueChange={(value) => setRenderMode(value as 'svg' | 'canvas' | '3d')} disabled={isVisualizing}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToolbarButton asChild>
+                      <SelectTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="z-10 hidden lg:inline-flex"
+                          disabled={isVisualizing}
+                          aria-label="View mode"
+                        >
+                          {renderMode === '3d' ? (
+                            <Box size={16} className="text-[var(--color-text)]" />
+                          ) : renderMode === 'canvas' ? (
+                            <Zap size={16} className="text-[var(--color-text)]" />
+                          ) : (
+                            <Feather size={16} className="text-[var(--color-text)]" />
+                          )}
+                        </Button>
+                      </SelectTrigger>
+                    </ToolbarButton>
+                  </TooltipTrigger>
+                  <TooltipContent>View mode</TooltipContent>
+                </Tooltip>
+                <SelectContent align="center" sideOffset={8}>
+                  <SelectItem value="svg">
+                    <div className="flex items-center">
+                      <Feather className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>Standard</span>
+                        <span className="text-xs opacity-70">Smooth animations</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="canvas">
+                    <div className="flex items-center">
+                      <Zap className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>Performance</span>
+                        <span className="text-xs opacity-70">For large graphs</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="3d">
+                    <div className="flex items-center">
+                      <Box className="h-4 w-4 mr-2" />
+                      <div className="flex flex-col">
+                        <span>3D</span>
+                        <span className="text-xs opacity-70">View only</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
               {/* Export - direct button in 3D mode, dropdown in 2D mode */}
               {is3DMode ? (
@@ -367,10 +424,12 @@ export const Board = () => {
                     <TooltipContent>Export</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent align="center" sideOffset={8}>
-                    <DropdownMenuItem onClick={handleExportSvg}>
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Export as SVG
-                    </DropdownMenuItem>
+                    {renderMode === 'svg' && (
+                      <DropdownMenuItem onClick={handleExportSvg}>
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Export as SVG
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleExport2DPng}>
                       <Image className="h-4 w-4 mr-2" />
                       Export as PNG

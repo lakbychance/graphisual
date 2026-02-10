@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { ZOOM } from "../constants/ui";
 
 interface UseGestureZoomOptions {
-  svgRef: React.RefObject<SVGSVGElement | null>;
+  elementRef: React.RefObject<HTMLElement | SVGSVGElement | null>;
   zoom: number;
   setZoom: (zoom: number) => void;
   pan: { x: number; y: number };
@@ -20,7 +20,7 @@ interface UseGestureZoomReturn {
  * Zooms toward the focal point for both gesture types
  */
 export function useGestureZoom({
-  svgRef,
+  elementRef,
   zoom,
   setZoom,
   pan,
@@ -42,18 +42,18 @@ export function useGestureZoom({
   const prevCenter = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
+    const el = elementRef.current as HTMLElement | null;
+    if (!el) return;
 
     // Core focal zoom logic (shared by touch + wheel)
     const zoomAtPoint = (newZoom: number, focalX: number, focalY: number) => {
-      const rect = svg.getBoundingClientRect();
-      const svgCenterX = rect.width / 2;
-      const svgCenterY = rect.height / 2;
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
 
       const zoomDelta = 1 / zoomRef.current - 1 / newZoom;
-      const newPanX = panRef.current.x + zoomDelta * (svgCenterX - focalX);
-      const newPanY = panRef.current.y + zoomDelta * (svgCenterY - focalY);
+      const newPanX = panRef.current.x + zoomDelta * (centerX - focalX);
+      const newPanY = panRef.current.y + zoomDelta * (centerY - focalY);
 
       setZoom(newZoom);
       setPan(newPanX, newPanY);
@@ -65,9 +65,9 @@ export function useGestureZoom({
     const getDistance = (t1: Touch, t2: Touch): number =>
       Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
-    // Calculate midpoint between two touch points (in client coords relative to SVG)
+    // Calculate midpoint between two touch points (in client coords relative to element)
     const getMidpoint = (t1: Touch, t2: Touch): { x: number; y: number } => {
-      const rect = svg.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
       return {
         x: (t1.clientX + t2.clientX) / 2 - rect.left,
         y: (t1.clientY + t2.clientY) / 2 - rect.top,
@@ -125,8 +125,8 @@ export function useGestureZoom({
 
       if (newZoom === currentZoom) return;
 
-      // Calculate focal point (cursor position relative to SVG)
-      const rect = svg.getBoundingClientRect();
+      // Calculate focal point (cursor position relative to element)
+      const rect = el.getBoundingClientRect();
       const cursorX = e.clientX - rect.left;
       const cursorY = e.clientY - rect.top;
 
@@ -134,18 +134,18 @@ export function useGestureZoom({
     };
 
     // Attach all event listeners
-    svg.addEventListener("touchstart", handleTouchStart, { passive: true });
-    svg.addEventListener("touchmove", handleTouchMove, { passive: false });
-    svg.addEventListener("touchend", handleTouchEnd, { passive: true });
-    svg.addEventListener("wheel", handleWheel, { passive: false });
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd, { passive: true });
+    el.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
-      svg.removeEventListener("touchstart", handleTouchStart);
-      svg.removeEventListener("touchmove", handleTouchMove);
-      svg.removeEventListener("touchend", handleTouchEnd);
-      svg.removeEventListener("wheel", handleWheel);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+      el.removeEventListener("wheel", handleWheel);
     };
-  }, [svgRef, setZoom, setPan, minZoom, maxZoom]);
+  }, [elementRef, setZoom, setPan, minZoom, maxZoom]);
 
   // Stable function reference - reads from ref so always returns current value
   const isGestureActive = useCallback(() => gestureActiveRef.current, []);

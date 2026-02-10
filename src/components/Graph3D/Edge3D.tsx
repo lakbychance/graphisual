@@ -3,7 +3,7 @@ import { Cone, Text } from "@react-three/drei";
 import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
 import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCurve3 } from "three";
-import { NODE } from "../../constants/graph";
+import { NODE, EDGE } from "../../constants/graph";
 import { FONT_URL } from "../../constants/ui";
 import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utils/cssVariables";
 import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
@@ -177,8 +177,8 @@ export function Edge3D({
         </group>
       )}
 
-      {/* Weight label - positioned at visual center of the edge */}
-      {weight !== undefined && weight !== 0 && (
+      {/* Weight label - positioned at visual center of the edge (hide default weight) */}
+      {weight !== undefined && weight !== EDGE.DEFAULT_WEIGHT && (
         <group position={labelPosition}>
           {/* Background plane - slightly behind text, toneMapped=false to match CSS colors */}
           <mesh position={[0, 0, 4]}>

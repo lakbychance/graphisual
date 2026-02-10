@@ -7,7 +7,9 @@ import { isElementInPopup } from "../utils/dom";
 import { useIsDesktop } from "./useMediaQuery";
 
 interface UseGraphKeyboardNavigationOptions {
-  graphRef: RefObject<SVGSVGElement | null>;
+  /** Ref to the focusable graph element (SVG or Canvas) */
+  graphRef: RefObject<HTMLElement | SVGSVGElement | null>;
+  /** Convert world/graph coordinates to screen coordinates */
   svgToScreenCoords: (svgX: number, svgY: number) => { x: number; y: number };
   isInStepMode: boolean;
   closeEdgePopup: () => void;

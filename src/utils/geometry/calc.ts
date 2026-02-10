@@ -42,6 +42,27 @@ export const calculateTextLoc = (
   const c1y = mpy + offset * Math.sin(theta);
   return { c1x, c1y };
 };
+
+/**
+ * Get the control point for a directed edge's quadratic bezier curve.
+ * Offset perpendicular to the line at its midpoint by NODE.RADIUS.
+ */
+export const getControlPoint = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { cx: number; cy: number } => {
+  const mpx = (x2 + x1) * 0.5;
+  const mpy = (y2 + y1) * 0.5;
+  const theta = Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2;
+  const offset = NODE.RADIUS;
+
+  return {
+    cx: mpx + offset * Math.cos(theta),
+    cy: mpy + offset * Math.sin(theta),
+  };
+};
 //calculates accurate x2,y2 for the edge to just intersect the node
 export const calculateAccurateCoords = (
   x1: number,
