@@ -76,7 +76,7 @@ export const StepControls = ({
       </Tooltip>
 
       {/* Step counter */}
-      <span className="text-xs md:text-sm px-2 min-w-[60px] whitespace-nowrap text-center text-[var(--color-text)]">
+      <span className="text-xs md:text-sm px-2 min-w-12 whitespace-nowrap text-center text-[var(--color-text)]">
         {stepIndex + 1} / {totalSteps}
       </span>
 
@@ -136,7 +136,7 @@ export const StepControls = ({
       </Tooltip>
 
       {/* Divider */}
-      <div className="w-px h-7 mx-1 bg-[var(--color-divider)]" />
+      <div className="w-px h-6 mx-1 bg-[var(--color-divider)]" />
 
       {/* Stop/Done button */}
       <Tooltip>
@@ -144,7 +144,8 @@ export const StepControls = ({
           <Button
             onClick={onStop}
             variant="ghost"
-            className="h-9 px-3 z-10 !rounded-md text-sm text-[var(--color-error)]"
+            size="sm"
+            className="z-10 text-sm text-[var(--color-error)]"
           >
             Done
           </Button>

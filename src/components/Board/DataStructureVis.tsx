@@ -7,14 +7,14 @@ import { useMemo } from "react";
 const MAX_VISIBLE_ITEMS = 6;
 
 // Shared transition configs
-const transition = { type: "spring", duration: 0.5, bounce: 0.15 } as const;
+const transition = { type: "spring", duration: 0.6, bounce: 0.15 } as const;
 const recursionTransition = { type: "spring", duration: 0.6, bounce: 0.1 } as const;
 
 // Shared styles
 const styles = {
   itemBase: "px-2.5 py-1 rounded text-xs font-mono",
   itemDefault: "bg-[var(--color-paper)] text-[var(--color-text)] border border-[var(--color-divider)]",
-  itemProcessing: "bg-[var(--color-accent-form)] text-white shadow-sm",
+  itemProcessing: "bg-[var(--color-accent-form)] text-white shadow-[var(--shadow-control)]",
   itemRing: "ring-2 ring-[var(--color-accent-form)]",
   itemJustAdded: "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]",
   itemWithValue: "text-center flex flex-col leading-tight",
@@ -165,7 +165,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
       <MotionConfig transition={transition} reducedMotion="user">
         <div className={styles.grid}>
           <DSLabel>Processing:</DSLabel>
-          <div className="flex items-center h-7">
+          <div className="flex items-center h-6">
             <AnimatePresence mode="popLayout">
               {processing && (
                 <ProcessingBox
@@ -211,7 +211,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
       <MotionConfig transition={transition} reducedMotion="user">
         <div className={styles.grid}>
           <DSLabel>Processing:</DSLabel>
-          <div className="flex items-center h-7">
+          <div className="flex items-center h-6">
             <AnimatePresence mode="popLayout">
               {processing && (
                 <ProcessingBox
@@ -257,7 +257,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
       <MotionConfig transition={transition} reducedMotion="user">
         <div className={styles.grid}>
           <DSLabel>Processing:</DSLabel>
-          <div className="flex items-center h-9">
+          <div className="flex items-center h-8">
             <AnimatePresence mode="popLayout">
               {processing && (
                 <ProcessingBox
@@ -304,7 +304,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
       <MotionConfig transition={recursionTransition} reducedMotion="user">
         <div className={styles.grid}>
           <DSLabel>Exploring:</DSLabel>
-          <div className="flex items-center h-7">
+          <div className="flex items-center h-6">
             {processing && (
               <div className={cn(styles.itemBase, styles.itemProcessing)}>
                 {processing.id}

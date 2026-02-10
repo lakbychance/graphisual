@@ -31,14 +31,14 @@ function Slider({ className, variant = "default", ref, ...props }: SliderProps) 
             {/* Raised grip thumb - vintage rectangular slider with grip lines */}
             <SliderPrimitive.Thumb
                 className={cn(
-                    "relative flex items-center justify-center gap-[3px] rounded-md transition-transform duration-100 focus-ring-animated disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing shadow-control",
+                    "relative flex items-center justify-center gap-1 rounded-md transition-transform duration-100 focus-ring-animated disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing shadow-control",
                     isAccent
                         ? "h-4 w-6 hover:scale-110 active:scale-95 bg-accent-control"
                         : "h-4 w-6 bg-[var(--color-surface)]"
                 )}
             >
                 {/* Grip lines */}
-                <span className="flex items-center justify-center gap-[3px]">
+                <span className="flex items-center justify-center gap-1">
                     <span className="w-[1.5px] h-[10px] rounded-full bg-white/70" />
                     <span className="w-[1.5px] h-[10px] rounded-full bg-white/70" />
                     <span className="w-[1.5px] h-[10px] rounded-full bg-white/70" />

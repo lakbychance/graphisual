@@ -80,6 +80,9 @@ export const EdgePopup = ({
     handleClose();
   };
 
+  // Toggle items use manual <button> instead of <Button> because they live inside
+  // a pressed/etched container and need toggle semantics (active = raised, inactive = flat)
+  // without the ghost variant's hover shadow/bg effects.
   const toggleButtonClass = (isActive: boolean, isDisabled?: boolean) => cn(
     "w-8 h-8 flex items-center justify-center rounded-md cursor-pointer focus-ring-animated",
     isActive

@@ -54,8 +54,8 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
         <Button
           onClick={onCollapse}
           variant="ghost"
-          size="icon-sm"
-          className="absolute top-2 right-2 z-10 h-6 w-6"
+          size="icon-xs"
+          className="absolute top-2 right-2 z-10"
           aria-label="Hide trace panel"
         >
           <X size={14} className="text-[var(--color-text-muted)]" />

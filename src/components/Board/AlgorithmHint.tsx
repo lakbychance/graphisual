@@ -54,7 +54,7 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
             animate={{
               boxShadow: prefersReducedMotion
                 ? "inset 0 0 0 2px var(--color-accent-form)"
-                : ["inset 0 0 0 2px var(--color-accent-form)", "inset 0 0 0 11px var(--color-accent-form)", "inset 0 0 0 2px var(--color-accent-form)"],
+                : ["inset 0 0 0 2px var(--color-accent-form)", "inset 0 0 0 12px var(--color-accent-form)", "inset 0 0 0 2px var(--color-accent-form)"],
             }}
             transition={{
               boxShadow: {

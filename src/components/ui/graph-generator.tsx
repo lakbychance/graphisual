@@ -299,9 +299,10 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
             disabled={disabled}
             aria-label="Generate graph"
             className={cn(
-              "w-auto md:w-[110px] transition-none h-9 !rounded-lg gap-1.5",
+              "w-auto md:w-[110px] gap-1.5",
               "justify-center"
             )}
+            size='sm'
           >
             <Sparkles className="w-4 h-4 shrink-0" />
             <span className="hidden md:inline">Generate</span>
@@ -446,7 +447,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
                 {/* Generate button */}
                 <Button
                   onClick={handleGenerateCustom}
-                  className="w-full !rounded-lg gap-2"
+                  className="w-full gap-2"
                 >
                   <Shuffle className="w-4 h-4" />
                   Generate Graph

@@ -36,13 +36,15 @@ export const ZoomControls = ({ zoom, onZoomIn, onZoomOut, onZoomReset }: ZoomCon
       <Tooltip>
         <TooltipTrigger asChild>
           <ToolbarButton asChild>
-            <button
+            <Button
               onClick={onZoomReset}
+              variant="ghost"
+              size="icon-xs"
               aria-label="Reset zoom"
-              className="px-2 py-1 text-xs rounded-md hover:bg-[var(--color-interactive-hover)] transition-colors min-w-[44px] relative z-10 focus-ring-animated text-[var(--color-text)]"
+              className="min-w-10 relative z-10"
             >
               {Math.round(zoom * 100)}%
-            </button>
+            </Button>
           </ToolbarButton>
         </TooltipTrigger>
         <TooltipContent>Reset Zoom</TooltipContent>

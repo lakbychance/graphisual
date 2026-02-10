@@ -1,5 +1,6 @@
 import { Sun, Moon, Monitor, Ruler, Check } from "lucide-react";
 import { SunMoonIcon as ThemeIcon } from '../ui/icons/SunMoonIcon';
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +21,14 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <Button
+          size="icon"
           aria-label="Theme settings"
-          className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated"
+          className="relative"
         >
-          <GrainTexture baseFrequency={4.2} className="rounded-md overflow-hidden" />
+          <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
           <ThemeIcon size={24} className="text-[var(--color-text-muted)]" />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={alignDropdown} sideOffset={8} className="w-40">
         <DropdownMenuLabel className="text-xs font-medium">Theme</DropdownMenuLabel>

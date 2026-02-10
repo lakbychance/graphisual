@@ -1,6 +1,7 @@
 import { Keyboard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Button } from "../ui/button";
 import { GrainTexture } from "../ui/grain-texture";
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
@@ -63,13 +64,14 @@ export const KeyboardShortcuts = () => {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
+            <Button
+              size="icon"
               aria-label="Keyboard shortcuts"
-              className="relative h-10 w-10 flex items-center justify-center rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated"
+              className="relative"
             >
-              <GrainTexture baseFrequency={4.2} className="rounded-md overflow-hidden" />
+              <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
               <Keyboard size={20} className="text-[var(--color-text-muted)]" />
-            </button>
+            </Button>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent>Keyboard shortcuts</TooltipContent>

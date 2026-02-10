@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils"
 
 // Physical button - raised surface that presses in
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[background-color,box-shadow,transform,opacity] duration-100 focus-ring-animated disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium focus-ring-animated disabled:pointer-events-none disabled:opacity-40",
     {
         variants: {
             variant: {
@@ -37,7 +37,7 @@ const buttonVariants = cva(
                 lg: "h-12 px-8 text-base rounded-xl",
                 icon: "h-10 w-10 rounded-lg",
                 "icon-sm": "h-8 w-8 p-1.5 rounded-lg",
-                "icon-xs": "h-7 w-7 p-0 rounded-lg",
+                "icon-xs": "h-6 w-6 p-0 rounded-md",
             },
         },
         defaultVariants: {
