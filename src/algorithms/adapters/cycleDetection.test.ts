@@ -107,6 +107,41 @@ describe('Cycle Detection Algorithm', () => {
     expect(result.resultEdges).toBeDefined()
   })
 
+  it('no false cycle in mixed graph with undirected edges', () => {
+    // Mixed: 1 -- 2 (undirected), 3 -> 4 (directed, no cycle)
+    // The undirected edge should NOT cause a false positive
+    const input: AlgorithmInput = {
+      adjacencyList: createAdjacencyList([1, 2, 3, 4], [
+        { from: 1, to: 2, type: 'undirected' },
+        { from: 3, to: 4, type: 'directed' },
+      ]),
+      nodes: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+      startNodeId: 1,
+    }
+
+    const result = cycleDetectionAdapter.execute(input)
+
+    expect(result.error).toBe('No cycle found in the graph.')
+  })
+
+  it('detects real cycle in mixed graph', () => {
+    // Mixed: 1 -- 2 (undirected), 3 -> 4 -> 3 (directed cycle)
+    const input: AlgorithmInput = {
+      adjacencyList: createAdjacencyList([1, 2, 3, 4], [
+        { from: 1, to: 2, type: 'undirected' },
+        { from: 3, to: 4, type: 'directed' },
+        { from: 4, to: 3, type: 'directed' },
+      ]),
+      nodes: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+      startNodeId: 1,
+    }
+
+    const result = cycleDetectionAdapter.execute(input)
+
+    expect(result.error).toBeUndefined()
+    expect(result.resultEdges).toBeDefined()
+  })
+
   it('finds cycle in disconnected component', () => {
     // 1 -> 2    3 -> 4 -> 3 (cycle in second component)
     const input: AlgorithmInput = {

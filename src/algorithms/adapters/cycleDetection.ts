@@ -42,16 +42,6 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
   let cycleEdges: EdgeRef[] = [];
   let cycleFound = false;
 
-  // Check if graph has any directed edges
-  let hasDirectedEdge = false;
-  adjacencyList.forEach((edges) => {
-    edges.forEach((edge) => {
-      if (edge.type === EDGE_TYPE.DIRECTED) {
-        hasDirectedEdge = true;
-      }
-    });
-  });
-
   // Steps to yield (collected during DFS)
   const stepsToYield: AlgorithmStep[] = [];
 
@@ -124,8 +114,8 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
         }
       } else if (neighborColor === GRAY) {
         // Back edge found - cycle detected!
-        // For undirected graphs, skip if it's just the parent edge
-        if (!hasDirectedEdge && neighborId === parentId) {
+        // For undirected edges, skip if it's just the edge back to parent
+        if (edge.type === EDGE_TYPE.UNDIRECTED && neighborId === parentId) {
           continue;
         }
 
