@@ -147,6 +147,7 @@ export const Board = () => {
       handleAlgoChange(algorithmParam);
       const { nodes, edges, nodeCounter } = generateWeighted();
       useGraphStore.getState().setGraph(nodes, edges, nodeCounter);
+      window.history.replaceState({}, "", "/");
     }
   }, [handleAlgoChange]);
 

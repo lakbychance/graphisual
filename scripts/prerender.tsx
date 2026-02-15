@@ -88,7 +88,7 @@ for (const page of pages) {
   // Helper to replace multi-line meta tag content
   const replaceMeta = (attr: string, value: string, newValue: string) => {
     const pattern = new RegExp(
-      `(<meta[\\s\\S]*?${attr}="${value}"[\\s\\S]*?content=")[^"]*"`
+      `(<meta[^>]*?${attr}="${value}"[^>]*?content=")[^"]*"`
     );
     html = html.replace(pattern, `$1${newValue}"`);
   };
