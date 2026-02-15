@@ -12,6 +12,7 @@ import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { TIMING } from "../../constants/ui";
+import { generateWeighted } from "../../utils/graph/graphGenerator";
 import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
 import { GrainTexture } from "../ui/grain-texture";
 import { exportSvg } from "../../utils/export/exportSvg";
@@ -127,7 +128,7 @@ export const Board = () => {
     }
   }, [isStepComplete, isPlaying]);
 
-  const handleAlgoChange = (algoId: string) => {
+  const handleAlgoChange = useCallback((algoId: string) => {
     const algo = algorithmRegistry.get(algoId);
     if (!algo) return;
 
@@ -136,7 +137,18 @@ export const Board = () => {
       text: algo.metadata.name,
       data: algo.metadata.type,
     });
-  };
+  }, [setVisualizationAlgorithm]);
+
+  // Auto-select algorithm and generate a suitable graph from URL query param (e.g. /?algorithm=dijkstra)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const algorithmParam = params.get("algorithm");
+    if (algorithmParam && algorithmRegistry.get(algorithmParam)) {
+      handleAlgoChange(algorithmParam);
+      const { nodes, edges, nodeCounter } = generateWeighted();
+      useGraphStore.getState().setGraph(nodes, edges, nodeCounter);
+    }
+  }, [handleAlgoChange]);
 
   const handleReset = () => {
     resetGraph();
