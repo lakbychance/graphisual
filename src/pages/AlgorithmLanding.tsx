@@ -2,6 +2,17 @@ import { ArrowRight } from "lucide-react";
 import { GrainTexture } from "../components/ui/grain-texture";
 import { Button } from "../components/ui/button";
 
+const algorithms = [
+  { id: "dijkstra", name: "Dijkstra's" },
+  { id: "bellman-ford", name: "Bellman-Ford" },
+  { id: "bfs", name: "BFS" },
+  { id: "dfs", name: "DFS" },
+  { id: "bfs-pathfinding", name: "BFS Pathfinding" },
+  { id: "dfs-pathfinding", name: "DFS Pathfinding" },
+  { id: "prims", name: "Prim's" },
+  { id: "cycle-detection", name: "Cycle Detection" },
+];
+
 export interface AlgorithmPageProps {
   algorithmId: string;
   title: string;
@@ -129,14 +140,35 @@ export function AlgorithmLanding({
 
       {/* Footer */}
       <footer className="relative border-t border-[var(--color-divider)]">
-        <div className="max-w-3xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[var(--color-text-muted)]">
-          <a
-            href="/"
-            className="focus-ring-animated inline-flex items-center gap-2 rounded-md hover:text-[var(--color-text)]"
-          >
-            <span className="font-semibold">Graphisual</span>
-          </a>
-          <p>Interactive graph editor and algorithm visualizer</p>
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          {/* Explore More Algorithms */}
+          <nav className="mb-8">
+            <h2 className="text-sm font-semibold mb-3">Explore More Algorithms</h2>
+            <ul className="flex flex-wrap gap-2">
+              {algorithms
+                .filter((a) => a.id !== algorithmId)
+                .map((a) => (
+                  <li key={a.id}>
+                    <a
+                      href={`/algorithm/${a.id}`}
+                      className="focus-ring-animated inline-block px-3 py-1.5 text-sm rounded-md bg-[var(--color-surface-hover)] border border-[var(--color-divider)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                    >
+                      {a.name}
+                    </a>
+                  </li>
+                ))}
+            </ul>
+          </nav>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[var(--color-text-muted)] border-t border-[var(--color-divider)] pt-6">
+            <a
+              href="/"
+              className="focus-ring-animated inline-flex items-center gap-2 rounded-md hover:text-[var(--color-text)]"
+            >
+              <span className="font-semibold">Graphisual</span>
+            </a>
+            <p>Interactive graph editor and algorithm visualizer</p>
+          </div>
         </div>
       </footer>
     </div>
