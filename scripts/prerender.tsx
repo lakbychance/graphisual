@@ -116,6 +116,7 @@ for (const page of pages) {
   html = html.replace(/<script type="module" crossorigin src="[^"]*"><\/script>\n?/g, "");
   html = html.replace(/<link rel="modulepreload" crossorigin href="[^"]*">\n?/g, "");
   html = html.replace(/<script id="vite-plugin-pwa:register-sw" src="[^"]*"><\/script>\n?/g, "");
+  html = html.replace(/<link rel="manifest" href="[^"]*">\n?/, "");
   html = html.replace(/<noscript>[^<]*<\/noscript>\n?/, "");
 
   const routePath = page.route.replace(/^\//, "");
