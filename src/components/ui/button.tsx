@@ -21,6 +21,9 @@ const buttonVariants = cva(
                 // Secondary: subtle raised
                 secondary:
                     "bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)]",
+                // Outline: transparent with accent border, tinted fill on hover
+                outline:
+                    "bg-transparent text-[var(--color-accent)] font-semibold border border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 active:bg-[var(--color-accent)]/15",
                 // Ghost: no elevation until hover
                 ghost:
                     "bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:shadow-[var(--shadow-raised),var(--highlight-edge)] active:shadow-[var(--shadow-pressed)]",
@@ -49,7 +52,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "default" | "primary" | "destructive" | "secondary" | "ghost" | "link" | "skipLink";
+    variant?: "default" | "primary" | "destructive" | "secondary" | "outline" | "ghost" | "link" | "skipLink";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
     asChild?: boolean;
     ref?: React.Ref<HTMLButtonElement>;
