@@ -119,9 +119,8 @@ for (const page of pages) {
   html = html.replace(/<noscript>[^<]*<\/noscript>\n?/, "");
 
   const routePath = page.route.replace(/^\//, "");
-  const routeDir = path.resolve(outDir, routePath);
-  fs.mkdirSync(routeDir, { recursive: true });
-  fs.writeFileSync(path.join(routeDir, "index.html"), html, "utf-8");
-  fs.writeFileSync(path.resolve(outDir, `${routePath}.html`), html, "utf-8");
+  const htmlPath = path.resolve(outDir, `${routePath}.html`);
+  fs.mkdirSync(path.dirname(htmlPath), { recursive: true });
+  fs.writeFileSync(htmlPath, html, "utf-8");
   console.log(`[prerender] Generated ${page.route}`);
 }
