@@ -36,6 +36,7 @@ export function pwaPlugin() {
     workbox: {
       globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,ttf}"],
       globIgnores: ["**/logo.png"],
+      navigateFallbackDenylist: [/^\/algorithm\//],
     },
   });
 }

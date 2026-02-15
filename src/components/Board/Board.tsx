@@ -12,6 +12,7 @@ import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { TIMING } from "../../constants/ui";
+import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
 import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
 import { GrainTexture } from "../ui/grain-texture";
 import { exportSvg } from "../../utils/export/exportSvg";
@@ -137,6 +138,9 @@ export const Board = () => {
       data: algo.metadata.type,
     });
   };
+
+  // Auto-select algorithm and generate graph from URL query param (e.g. /?algorithm=dijkstra)
+  useAlgorithmFromUrl();
 
   const handleReset = () => {
     resetGraph();

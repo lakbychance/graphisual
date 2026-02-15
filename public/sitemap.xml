@@ -2,6 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://graphisual.app/</loc>
-    <lastmod>2026-02-01</lastmod>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/dijkstra</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/bfs</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/dfs</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/bfs-pathfinding</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/dfs-pathfinding</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/prims</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/cycle-detection</loc>
+    <lastmod>2026-02-15</lastmod>
+  </url>
+  <url>
+    <loc>https://graphisual.app/algorithm/bellman-ford</loc>
+    <lastmod>2026-02-15</lastmod>
   </url>
 </urlset>
