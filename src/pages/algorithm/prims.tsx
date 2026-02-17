@@ -1,7 +1,34 @@
 import { Timer, Network, Scale, TreePine, Cable, Waypoints } from "lucide-react";
-import { AlgorithmLanding } from "./AlgorithmLanding";
+import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { makeJsonLd } from "@/utils/make-json-ld";
+import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-export function PrimsLanding() {
+
+export const meta = {
+  route: "algorithm/prims",
+  title: "Prim's Algorithm Visualizer — Minimum Spanning Tree | Graphisual",
+  description: "Visualize Prim's algorithm building a minimum spanning tree step by step. Draw a weighted graph and watch the MST grow by greedily adding the cheapest edges.",
+  ogDescription: "Visualize Prim's algorithm building a minimum spanning tree. Watch the MST grow by greedily adding the cheapest edges.",
+  canonical: `${BASE_URL}/algorithm/prims`,
+    ogImage: OG_IMAGE,
+  jsonLd: makeJsonLd({
+    name: "Prim's Algorithm Visualizer",
+    title: "Prim's Algorithm Visualizer — Minimum Spanning Tree | Graphisual",
+    description: "Visualize Prim's algorithm building a minimum spanning tree step by step. Draw a weighted graph and watch the MST grow by greedily adding the cheapest edges.",
+    url: `${BASE_URL}/algorithm/prims`,
+    aboutName: "Prim's algorithm",
+    aboutDescription: "A greedy algorithm that finds a minimum spanning tree for a weighted undirected graph by repeatedly adding the cheapest edge connecting the tree to a non-tree vertex.",
+    sameAs: "https://en.wikipedia.org/wiki/Prim%27s_algorithm",
+    faq: [
+      { question: "What is a minimum spanning tree?", answer: "A minimum spanning tree (MST) is a subset of edges in a connected, weighted, undirected graph that connects all vertices with the minimum possible total edge weight, without forming any cycles." },
+      { question: "What is the difference between Prim's and Kruskal's algorithm?", answer: "Both find minimum spanning trees, but they work differently. Prim's grows the MST from a single starting node by adding the cheapest adjacent edge. Kruskal's sorts all edges by weight and adds them one by one, skipping edges that would create a cycle." },
+      { question: "Does Prim's algorithm work on directed graphs?", answer: "No. Prim's algorithm is designed for undirected graphs only. For directed graphs, finding a minimum spanning arborescence requires different algorithms like Edmonds' algorithm." },
+      { question: "What is the time complexity of Prim's algorithm?", answer: "With a binary heap, Prim's algorithm runs in O((V + E) log V) time. With a Fibonacci heap, this improves to O(E + V log V), which is faster for dense graphs." },
+    ],
+  }),
+};
+
+export default function PrimsPage() {
   return (
     <AlgorithmLanding
       algorithmId="prims"

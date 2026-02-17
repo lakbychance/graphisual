@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
-import { reactScanPlugin, jsonldPlugin, pwaPlugin, bundleAnalyzerPlugin } from "./plugins/vite-plugins";
+import { reactScanPlugin, jsonldPlugin, pwaPlugin, bundleAnalyzerPlugin, prerenderPlugin } from "./plugins/vite-plugins";
 
 export default defineConfig({
   plugins: [
@@ -17,6 +17,15 @@ export default defineConfig({
     jsonldPlugin(),
     pwaPlugin(),
     bundleAnalyzerPlugin(),
+    prerenderPlugin({
+      analytics: { gaTrackingId: "G-WG1RN51DBH" },
+      fonts: [{ href: "/fonts/outfit-latin.woff2", type: "font/woff2" }],
+      favicons: [
+        { rel: "icon", href: "/favicon.png", type: "image/png" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      ],
+      themeColor: "#0a0a0f",
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {
