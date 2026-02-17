@@ -1,4 +1,4 @@
-import { OG_IMAGE } from "@/utils/constants";
+import { OG_IMAGE, SITE_NAME, AUTHOR_NAME, AUTHOR_URL, BASE_URL } from "@/utils/constants";
 
 export function makeJsonLd(opts: {
   name: string;
@@ -8,6 +8,7 @@ export function makeJsonLd(opts: {
   aboutName: string;
   aboutDescription: string;
   sameAs: string;
+  datePublished: string;
   faq: { question: string; answer: string }[];
 }): Record<string, unknown> {
   return {
@@ -22,20 +23,20 @@ export function makeJsonLd(opts: {
         "image": OG_IMAGE,
         "author": {
           "@type": "Person",
-          "name": "Lakshya Thakur",
-          "url": "https://x.com/lakbychance",
+          "name": AUTHOR_NAME,
+          "url": AUTHOR_URL,
         },
-        "datePublished": "2026-02-15",
+        "datePublished": opts.datePublished,
         "publisher": {
           "@type": "Organization",
-          "name": "Graphisual",
-          "url": "https://graphisual.app",
+          "name": SITE_NAME,
+          "url": BASE_URL,
         },
         "mainEntity": {
           "@type": "SoftwareApplication",
-          "name": "Graphisual",
+          "name": SITE_NAME,
           "applicationCategory": "EducationalApplication",
-          "url": "https://graphisual.app",
+          "url": BASE_URL,
         },
         "about": {
           "@type": "Thing",

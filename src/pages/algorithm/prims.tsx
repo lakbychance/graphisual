@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Prim's algorithm",
     aboutDescription: "A greedy algorithm that finds a minimum spanning tree for a weighted undirected graph by repeatedly adding the cheapest edge connecting the tree to a non-tree vertex.",
     sameAs: "https://en.wikipedia.org/wiki/Prim%27s_algorithm",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is a minimum spanning tree?", answer: "A minimum spanning tree (MST) is a subset of edges in a connected, weighted, undirected graph that connects all vertices with the minimum possible total edge weight, without forming any cycles." },
       { question: "What is the difference between Prim's and Kruskal's algorithm?", answer: "Both find minimum spanning trees, but they work differently. Prim's grows the MST from a single starting node by adding the cheapest adjacent edge. Kruskal's sorts all edges by weight and adds them one by one, skipping edges that would create a cycle." },

@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Bellman-Ford algorithm",
     aboutDescription: "An algorithm that finds shortest paths from a single source to all other vertices, handling negative edge weights and detecting negative-weight cycles.",
     sameAs: "https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is the Bellman-Ford algorithm?", answer: "The Bellman-Ford algorithm finds the shortest paths from a single source to all other vertices in a weighted graph. Unlike Dijkstra's, it correctly handles negative edge weights and can detect negative-weight cycles." },
       { question: "Why does Bellman-Ford run V-1 iterations?", answer: "In a graph with V vertices, the shortest path between any two nodes can have at most V-1 edges. Each iteration guarantees at least one more edge of each shortest path is finalized, so V-1 iterations are sufficient to find all shortest paths." },

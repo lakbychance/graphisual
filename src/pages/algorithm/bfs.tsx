@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Breadth-first search",
     aboutDescription: "A graph traversal algorithm that explores all neighbors of a node before moving to the next level, visiting nodes in order of distance from the source.",
     sameAs: "https://en.wikipedia.org/wiki/Breadth-first_search",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is Breadth-First Search?", answer: "Breadth-First Search (BFS) is a graph traversal algorithm that explores all neighbors of a node before moving to the next level. It uses a FIFO queue to visit nodes in order of their distance from the source, guaranteeing level-by-level exploration." },
       { question: "What is the time complexity of BFS?", answer: "BFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. Each vertex and edge is processed exactly once." },

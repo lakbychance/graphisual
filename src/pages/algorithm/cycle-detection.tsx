@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Cycle detection",
     aboutDescription: "Algorithms for detecting cycles in graphs, commonly using DFS with node coloring to identify back edges that indicate circular paths.",
     sameAs: "https://en.wikipedia.org/wiki/Cycle_(graph_theory)#Cycle_detection",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is a cycle in a graph?", answer: "A cycle is a path in a graph that starts and ends at the same node, passing through at least one other node. In a directed graph, the edges must follow the direction; in an undirected graph, any closed path with at least three nodes forms a cycle." },
       { question: "How does DFS detect cycles?", answer: "DFS detects cycles using three-color marking. Nodes start as white (unvisited), turn gray (in progress) when first visited, and black (done) when fully processed. If DFS encounters a gray node, it means there's a back edge forming a cycle." },

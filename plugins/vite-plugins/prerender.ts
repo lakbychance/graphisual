@@ -45,17 +45,13 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
     configResolved(resolved) {
       config = resolved;
     },
-    async closeBundle() {
+    async writeBundle(_outputOptions, bundle) {
       const outDir = config.build.outDir;
 
-      // Discover hashed CSS assets from the build output
-      const assetsDir = path.resolve(outDir, "assets");
-      const cssHrefs = fs.existsSync(assetsDir)
-        ? fs
-          .readdirSync(assetsDir)
-          .filter((f) => f.endsWith(".css"))
-          .map((f) => `/assets/${f}`)
-        : [];
+      // Extract CSS asset paths directly from the bundle metadata
+      const cssHrefs = Object.keys(bundle)
+        .filter((fileName) => fileName.endsWith(".css"))
+        .map((fileName) => `/${fileName}`);
 
       // Find page files
       const pagesDir = path.resolve("src/pages");
@@ -201,8 +197,8 @@ function buildHtml(opts: {
     : "";
 
   const twitterSiteHtml = options.twitterHandle
-    ? `<meta name="twitter:site" content="${options.twitterHandle}" />
-    <meta name="twitter:creator" content="${options.twitterHandle}" />`
+    ? `<meta name="twitter:site" content="${escapeAttr(options.twitterHandle)}" />
+    <meta name="twitter:creator" content="${escapeAttr(options.twitterHandle)}" />`
     : "";
 
   const cssHtml = cssHrefs

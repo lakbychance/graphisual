@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Depth-first search",
     aboutDescription: "A graph traversal algorithm that explores as far as possible along each branch before backtracking, using a stack to track the current path.",
     sameAs: "https://en.wikipedia.org/wiki/Depth-first_search",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is Depth-First Search?", answer: "Depth-First Search (DFS) is a graph traversal algorithm that explores as far as possible along each branch before backtracking. It uses a stack (or recursion) to track the current path and visits every reachable node exactly once." },
       { question: "What is the time complexity of DFS?", answer: "DFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge exactly once." },

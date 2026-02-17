@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "Dijkstra's algorithm",
     aboutDescription: "A greedy algorithm that finds the shortest path from a source node to all other nodes in a weighted graph with non-negative edge weights.",
     sameAs: "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm",
+    datePublished: "2026-02-15",
     faq: [
       { question: "What is Dijkstra's algorithm?", answer: "Dijkstra's algorithm is a greedy graph algorithm that finds the shortest path from a single source node to all other nodes in a weighted graph with non-negative edge weights. It works by repeatedly selecting the unvisited node with the smallest known distance and updating its neighbors." },
       { question: "What is the time complexity of Dijkstra's algorithm?", answer: "With a binary heap priority queue, Dijkstra's algorithm runs in O((V + E) log V) time, where V is the number of vertices and E is the number of edges. Using a Fibonacci heap improves this to O(E + V log V)." },

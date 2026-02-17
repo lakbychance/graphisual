@@ -18,6 +18,7 @@ export const meta = {
     aboutName: "DFS pathfinding",
     aboutDescription: "Using Depth-First Search to find a path between two nodes by exploring as far as possible along each branch before backtracking.",
     sameAs: "https://en.wikipedia.org/wiki/Depth-first_search#Applications",
+    datePublished: "2026-02-15",
     faq: [
       { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path between two nodes but not necessarily the shortest one. It explores deeply along each branch, so it may discover a longer path first. For the shortest path in unweighted graphs, use BFS instead." },
       { question: "When should I use DFS pathfinding over BFS?", answer: "Use DFS pathfinding when you only need to know if a path exists (not the shortest), when memory is limited (DFS uses less memory than BFS), or when the graph is deep and narrow where DFS can find a path faster." },

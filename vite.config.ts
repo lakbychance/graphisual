@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 import { reactScanPlugin, jsonldPlugin, pwaPlugin, bundleAnalyzerPlugin, prerenderPlugin } from "./plugins/vite-plugins";
+import { AUTHOR_NAME, SITE_NAME, TWITTER_HANDLE } from "./src/utils/constants";
 
 export default defineConfig({
   plugins: [
@@ -25,9 +26,9 @@ export default defineConfig({
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
       themeColor: "#0a0a0f",
-      author: "Lakshya Thakur",
-      siteName: "Graphisual",
-      twitterHandle: "@lakbychance",
+      author: AUTHOR_NAME,
+      siteName: SITE_NAME,
+      twitterHandle: TWITTER_HANDLE,
     }),
   ].filter(Boolean),
   resolve: {

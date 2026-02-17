@@ -9,5 +9,5 @@
     "outDir": ".tsc-node",
     "declarationDir": ".tsc-node"
   },
-  "include": ["vite.config.ts", "plugins/**/*.ts"]
+  "include": ["vite.config.ts", "plugins/**/*.ts", "src/utils/constants.ts"]
 }
