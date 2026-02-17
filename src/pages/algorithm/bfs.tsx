@@ -1,7 +1,34 @@
 import { Timer, Layers, Network, Search, Globe, Share2 } from "lucide-react";
-import { AlgorithmLanding } from "./AlgorithmLanding";
+import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { makeJsonLd } from "@/utils/make-json-ld";
+import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-export function BfsLanding() {
+export const meta = {
+  route: "algorithm/bfs",
+  title: "BFS Visualizer — Breadth-First Search | Graphisual",
+  description: "Visualize Breadth-First Search step by step. Build a graph, pick a starting node, and watch BFS explore every reachable node level by level.",
+  ogDescription: "Visualize Breadth-First Search step by step. Build a graph and watch BFS explore nodes level by level.",
+  canonical: `${BASE_URL}/algorithm/bfs`,
+  ogImage: OG_IMAGE,
+  jsonLd: makeJsonLd({
+    name: "BFS Visualizer",
+    title: "BFS Visualizer — Breadth-First Search | Graphisual",
+    description: "Visualize Breadth-First Search step by step. Build a graph, pick a starting node, and watch BFS explore every reachable node level by level.",
+    url: `${BASE_URL}/algorithm/bfs`,
+    aboutName: "Breadth-first search",
+    aboutDescription: "A graph traversal algorithm that explores all neighbors of a node before moving to the next level, visiting nodes in order of distance from the source.",
+    sameAs: "https://en.wikipedia.org/wiki/Breadth-first_search",
+    datePublished: "2026-02-15",
+    faq: [
+      { question: "What is Breadth-First Search?", answer: "Breadth-First Search (BFS) is a graph traversal algorithm that explores all neighbors of a node before moving to the next level. It uses a FIFO queue to visit nodes in order of their distance from the source, guaranteeing level-by-level exploration." },
+      { question: "What is the time complexity of BFS?", answer: "BFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. Each vertex and edge is processed exactly once." },
+      { question: "What is the difference between BFS and DFS?", answer: "BFS explores all neighbors at the current depth before going deeper (level by level), while DFS dives as deep as possible along each branch before backtracking. BFS uses a queue; DFS uses a stack." },
+      { question: "Does BFS find the shortest path?", answer: "Yes, in unweighted graphs. Since BFS visits nodes in order of distance from the source, the first time it reaches any node is via the shortest path. For weighted graphs, use Dijkstra's algorithm instead." },
+    ],
+  }),
+};
+
+export default function BfsPage() {
   return (
     <AlgorithmLanding
       algorithmId="bfs"

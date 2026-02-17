@@ -1,7 +1,34 @@
 import { Route, Network, Timer, Scale, Navigation } from "lucide-react";
-import { AlgorithmLanding } from "./AlgorithmLanding";
+import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { makeJsonLd } from "@/utils/make-json-ld";
+import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-export function DijkstraLanding() {
+export const meta = {
+  route: "algorithm/dijkstra",
+  title: "Dijkstra's Algorithm Visualizer | Graphisual",
+  description: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs, set source and destination nodes, and watch the algorithm find the optimal path interactively.",
+  ogDescription: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs and watch the algorithm find the optimal path.",
+  canonical: `${BASE_URL}/algorithm/dijkstra`,
+  ogImage: OG_IMAGE,
+  jsonLd: makeJsonLd({
+    name: "Dijkstra's Algorithm Visualizer",
+    title: "Dijkstra's Algorithm Visualizer | Graphisual",
+    description: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs, set source and destination nodes, and watch the algorithm find the optimal path interactively.",
+    url: `${BASE_URL}/algorithm/dijkstra`,
+    aboutName: "Dijkstra's algorithm",
+    aboutDescription: "A greedy algorithm that finds the shortest path from a source node to all other nodes in a weighted graph with non-negative edge weights.",
+    sameAs: "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm",
+    datePublished: "2026-02-15",
+    faq: [
+      { question: "What is Dijkstra's algorithm?", answer: "Dijkstra's algorithm is a greedy graph algorithm that finds the shortest path from a single source node to all other nodes in a weighted graph with non-negative edge weights. It works by repeatedly selecting the unvisited node with the smallest known distance and updating its neighbors." },
+      { question: "What is the time complexity of Dijkstra's algorithm?", answer: "With a binary heap priority queue, Dijkstra's algorithm runs in O((V + E) log V) time, where V is the number of vertices and E is the number of edges. Using a Fibonacci heap improves this to O(E + V log V)." },
+      { question: "Can Dijkstra's algorithm handle negative edge weights?", answer: "No. Dijkstra's algorithm requires all edge weights to be non-negative. For graphs with negative weights, use the Bellman-Ford algorithm instead, which can also detect negative-weight cycles." },
+      { question: "What is the difference between Dijkstra's and BFS?", answer: "BFS finds the shortest path in unweighted graphs by exploring level by level. Dijkstra's generalizes this to weighted graphs by using a priority queue to always process the closest unvisited node, accounting for varying edge costs." },
+    ],
+  }),
+};
+
+export default function DijkstraPage() {
   return (
     <AlgorithmLanding
       algorithmId="dijkstra"

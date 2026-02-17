@@ -1,7 +1,34 @@
 import { Timer, RefreshCw, GitBranch, Search, Network, AlertTriangle } from "lucide-react";
-import { AlgorithmLanding } from "./AlgorithmLanding";
+import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { makeJsonLd } from "@/utils/make-json-ld";
+import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-export function CycleDetectionLanding() {
+export const meta = {
+  route: "algorithm/cycle-detection",
+  title: "Cycle Detection Visualizer | Graphisual",
+  description: "Visualize cycle detection in graphs step by step. Build a graph and watch the algorithm identify circular paths using DFS-based back edge detection.",
+  ogDescription: "Visualize cycle detection in graphs step by step. Watch the algorithm identify circular paths using DFS.",
+  canonical: `${BASE_URL}/algorithm/cycle-detection`,
+  ogImage: OG_IMAGE,
+  jsonLd: makeJsonLd({
+    name: "Cycle Detection Visualizer",
+    title: "Cycle Detection Visualizer | Graphisual",
+    description: "Visualize cycle detection in graphs step by step. Build a graph and watch the algorithm identify circular paths using DFS-based back edge detection.",
+    url: `${BASE_URL}/algorithm/cycle-detection`,
+    aboutName: "Cycle detection",
+    aboutDescription: "Algorithms for detecting cycles in graphs, commonly using DFS with node coloring to identify back edges that indicate circular paths.",
+    sameAs: "https://en.wikipedia.org/wiki/Cycle_(graph_theory)#Cycle_detection",
+    datePublished: "2026-02-15",
+    faq: [
+      { question: "What is a cycle in a graph?", answer: "A cycle is a path in a graph that starts and ends at the same node, passing through at least one other node. In a directed graph, the edges must follow the direction; in an undirected graph, any closed path with at least three nodes forms a cycle." },
+      { question: "How does DFS detect cycles?", answer: "DFS detects cycles using three-color marking. Nodes start as white (unvisited), turn gray (in progress) when first visited, and black (done) when fully processed. If DFS encounters a gray node, it means there's a back edge forming a cycle." },
+      { question: "What is the difference between cycle detection in directed and undirected graphs?", answer: "In directed graphs, a cycle exists only when a back edge points to an ancestor in the DFS tree (a gray node). In undirected graphs, any edge to a visited node that isn't the direct parent indicates a cycle." },
+      { question: "What is the time complexity of cycle detection?", answer: "DFS-based cycle detection runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge at most once." },
+    ],
+  }),
+};
+
+export default function CycleDetectionPage() {
   return (
     <AlgorithmLanding
       algorithmId="cycle-detection"
