@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
-import { Workflow } from "lucide-react";
+import { Workflow, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Button } from "./button";
 import { CardButton } from "./card-button";
 import { ToolbarButton } from "./toolbar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { cn } from "../../lib/utils";
 import { algorithmRegistry, type AlgorithmAdapter } from "../../algorithms";
@@ -32,20 +33,35 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
   const Icon = metadata.icon;
 
   return (
-    <CardButton
-      onClick={onClick}
-      selected={selected}
-      rounded="md"
-      className="p-3"
-    >
-      <Icon className="w-6 h-6 text-[var(--color-text-muted)]" />
-      <span className="font-semibold text-sm text-[var(--color-text)]">
-        {metadata.name}
-      </span>
-      <span className="text-xs text-[var(--color-text-muted)] text-center leading-tight">
-        {metadata.tagline}
-      </span>
-    </CardButton>
+    <div className="relative flex">
+      <CardButton
+        onClick={onClick}
+        selected={selected}
+        rounded="md"
+        className="p-3 w-full"
+      >
+        <Icon className="w-6 h-6 text-[var(--color-text-muted)]" />
+        <span className="font-semibold text-sm text-[var(--color-text)]">
+          {metadata.name}
+        </span>
+        <span className="text-xs text-[var(--color-text-muted)] text-center leading-tight">
+          {metadata.tagline}
+        </span>
+      </CardButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            href={`/algorithm/${metadata.id}`}
+            className="focus-ring-animated absolute top-1.5 right-1.5 z-20 p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Info className="w-3.5 h-3.5" />
+          </a>
+        </TooltipTrigger>
+        <TooltipContent side="top">Learn more</TooltipContent>
+      </Tooltip>
+    </div>
   );
 };
 

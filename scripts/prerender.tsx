@@ -43,6 +43,7 @@ function makeJsonLd(opts: {
       "name": "Lakshya Thakur",
       "url": "https://x.com/lakbychance",
     },
+    "datePublished": "2026-02-15",
     "publisher": {
       "@type": "Organization",
       "name": "Graphisual",
