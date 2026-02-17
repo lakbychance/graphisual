@@ -172,7 +172,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
 
     // Algorithm mode - delegate to shared hook
     if (currentAlgorithm && isNode && !isVisualizing) {
-      const nodeId = parseInt(target.id);
+      const nodeId = parseInt(target.id.replace("hit-", ""));
       handleNodeClick(nodeId);
       return;
     }
