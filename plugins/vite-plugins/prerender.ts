@@ -52,9 +52,9 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
       const assetsDir = path.resolve(outDir, "assets");
       const cssHrefs = fs.existsSync(assetsDir)
         ? fs
-            .readdirSync(assetsDir)
-            .filter((f) => f.endsWith(".css"))
-            .map((f) => `/assets/${f}`)
+          .readdirSync(assetsDir)
+          .filter((f) => f.endsWith(".css"))
+          .map((f) => `/assets/${f}`)
         : [];
 
       // Find page files
