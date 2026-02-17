@@ -33,6 +33,12 @@ export function PrimsLanding() {
         { icon: Waypoints, text: "Cluster analysis — building hierarchical clusters by connecting nearest data points" },
         { icon: Network, text: "Circuit design — minimizing wire length on printed circuit boards" },
       ]}
+      faq={[
+        { question: "What is a minimum spanning tree?", answer: "A minimum spanning tree (MST) is a subset of edges in a connected, weighted, undirected graph that connects all vertices with the minimum possible total edge weight, without forming any cycles." },
+        { question: "What is the difference between Prim's and Kruskal's algorithm?", answer: "Both find minimum spanning trees, but they work differently. Prim's grows the MST from a single starting node by adding the cheapest adjacent edge. Kruskal's sorts all edges by weight and adds them one by one, skipping edges that would create a cycle." },
+        { question: "Does Prim's algorithm work on directed graphs?", answer: "No. Prim's algorithm is designed for undirected graphs only. For directed graphs, finding a minimum spanning arborescence requires different algorithms like Edmonds' algorithm." },
+        { question: "What is the time complexity of Prim's algorithm?", answer: "With a binary heap, Prim's algorithm runs in O((V + E) log V) time. With a Fibonacci heap, this improves to O(E + V log V), which is faster for dense graphs." },
+      ]}
     />
   );
 }

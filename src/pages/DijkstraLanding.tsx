@@ -33,6 +33,12 @@ export function DijkstraLanding() {
         { icon: Network, text: "Network routing protocols — OSPF uses Dijkstra's to compute shortest paths" },
         { icon: Route, text: "Game AI pathfinding — navigating NPCs through weighted terrain and obstacle maps" },
       ]}
+      faq={[
+        { question: "What is Dijkstra's algorithm?", answer: "Dijkstra's algorithm is a greedy graph algorithm that finds the shortest path from a single source node to all other nodes in a weighted graph with non-negative edge weights. It works by repeatedly selecting the unvisited node with the smallest known distance and updating its neighbors." },
+        { question: "What is the time complexity of Dijkstra's algorithm?", answer: "With a binary heap priority queue, Dijkstra's algorithm runs in O((V + E) log V) time, where V is the number of vertices and E is the number of edges. Using a Fibonacci heap improves this to O(E + V log V)." },
+        { question: "Can Dijkstra's algorithm handle negative edge weights?", answer: "No. Dijkstra's algorithm requires all edge weights to be non-negative. For graphs with negative weights, use the Bellman-Ford algorithm instead, which can also detect negative-weight cycles." },
+        { question: "What is the difference between Dijkstra's and BFS?", answer: "BFS finds the shortest path in unweighted graphs by exploring level by level. Dijkstra's generalizes this to weighted graphs by using a priority queue to always process the closest unvisited node, accounting for varying edge costs." },
+      ]}
     />
   );
 }

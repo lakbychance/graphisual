@@ -33,6 +33,12 @@ export function BfsPathfindingLanding() {
         { icon: Network, text: "Network hop count — determining minimum hops between routers" },
         { icon: Route, text: "Puzzle solving — finding minimum moves in sliding puzzles or Rubik's cube" },
       ]}
+      faq={[
+        { question: "How does BFS find the shortest path?", answer: "BFS explores nodes in order of their distance from the source. Since it visits all nodes at distance d before any node at distance d+1, the first time it reaches the destination is guaranteed to be via the shortest path." },
+        { question: "Does BFS pathfinding work on weighted graphs?", answer: "No. BFS finds the shortest path only in unweighted graphs where each edge has equal cost. For weighted graphs, use Dijkstra's algorithm, which accounts for varying edge weights using a priority queue." },
+        { question: "How is the path reconstructed in BFS?", answer: "During traversal, BFS records the parent of each discovered node. Once the destination is reached, the path is reconstructed by following parent pointers backward from destination to source." },
+        { question: "What is the difference between BFS traversal and BFS pathfinding?", answer: "BFS traversal visits all reachable nodes from a source. BFS pathfinding has a specific destination and stops as soon as it's found, then reconstructs the shortest path using parent pointers." },
+      ]}
     />
   );
 }

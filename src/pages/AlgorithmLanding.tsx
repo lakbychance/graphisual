@@ -31,6 +31,10 @@ export interface AlgorithmPageProps {
     icon: React.ComponentType<{ className?: string }>;
     text: string;
   }[];
+  faq: {
+    question: string;
+    answer: string;
+  }[];
 }
 
 export function AlgorithmLanding({
@@ -41,6 +45,7 @@ export function AlgorithmLanding({
   howItWorks,
   properties,
   useCases,
+  faq,
 }: AlgorithmPageProps) {
   return (
     <div data-theme="dark" className="relative min-h-screen bg-[var(--color-paper)] text-[var(--color-text)] font-[var(--font-sans)]">
@@ -122,6 +127,21 @@ export function AlgorithmLanding({
               <UseCase key={i} icon={uc.icon} text={uc.text} />
             ))}
           </ul>
+        </section>
+
+        {/* FAQ */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
+          <dl className="space-y-6">
+            {faq.map((item, i) => (
+              <div key={i}>
+                <dt className="font-semibold mb-2">{item.question}</dt>
+                <dd className="text-[var(--color-text-muted)] leading-relaxed">
+                  {item.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         {/* Bottom CTA */}

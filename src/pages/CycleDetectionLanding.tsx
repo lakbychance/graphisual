@@ -33,6 +33,12 @@ export function CycleDetectionLanding() {
         { icon: GitBranch, text: "Dependency validation — ensuring package dependencies form a DAG with no circular imports" },
         { icon: Network, text: "Workflow validation — verifying that task pipelines have no circular dependencies" },
       ]}
+      faq={[
+        { question: "What is a cycle in a graph?", answer: "A cycle is a path in a graph that starts and ends at the same node, passing through at least one other node. In a directed graph, the edges must follow the direction; in an undirected graph, any closed path with at least three nodes forms a cycle." },
+        { question: "How does DFS detect cycles?", answer: "DFS detects cycles using three-color marking. Nodes start as white (unvisited), turn gray (in progress) when first visited, and black (done) when fully processed. If DFS encounters a gray node, it means there's a back edge forming a cycle." },
+        { question: "What is the difference between cycle detection in directed and undirected graphs?", answer: "In directed graphs, a cycle exists only when a back edge points to an ancestor in the DFS tree (a gray node). In undirected graphs, any edge to a visited node that isn't the direct parent indicates a cycle." },
+        { question: "What is the time complexity of cycle detection?", answer: "DFS-based cycle detection runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge at most once." },
+      ]}
     />
   );
 }

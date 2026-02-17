@@ -33,6 +33,12 @@ export function DfsPathfindingLanding() {
         { icon: Map, text: "Reachability testing — checking whether a path exists between two nodes" },
         { icon: GitBranch, text: "Constraint satisfaction — exploring solution spaces with backtracking" },
       ]}
+      faq={[
+        { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path between two nodes but not necessarily the shortest one. It explores deeply along each branch, so it may discover a longer path first. For the shortest path in unweighted graphs, use BFS instead." },
+        { question: "When should I use DFS pathfinding over BFS?", answer: "Use DFS pathfinding when you only need to know if a path exists (not the shortest), when memory is limited (DFS uses less memory than BFS), or when the graph is deep and narrow where DFS can find a path faster." },
+        { question: "How does DFS pathfinding work?", answer: "DFS pathfinding starts at the source and recursively explores each unvisited neighbor as deeply as possible. If it reaches the destination, it returns the path. If a branch leads to a dead end, it backtracks and tries the next neighbor." },
+        { question: "What is the time complexity of DFS pathfinding?", answer: "DFS pathfinding runs in O(V + E) time in the worst case, where V is the number of vertices and E is the number of edges. However, it can terminate early if the destination is found before exploring the entire graph." },
+      ]}
     />
   );
 }

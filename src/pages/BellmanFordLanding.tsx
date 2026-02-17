@@ -33,6 +33,12 @@ export function BellmanFordLanding() {
         { icon: Navigation, text: "Distance-vector routing — protocols like RIP use Bellman-Ford for distributed routing" },
         { icon: Route, text: "Constraint systems — solving systems of difference constraints in scheduling" },
       ]}
+      faq={[
+        { question: "What is the Bellman-Ford algorithm?", answer: "The Bellman-Ford algorithm finds the shortest paths from a single source to all other vertices in a weighted graph. Unlike Dijkstra's, it correctly handles negative edge weights and can detect negative-weight cycles." },
+        { question: "Why does Bellman-Ford run V-1 iterations?", answer: "In a graph with V vertices, the shortest path between any two nodes can have at most V-1 edges. Each iteration guarantees at least one more edge of each shortest path is finalized, so V-1 iterations are sufficient to find all shortest paths." },
+        { question: "What is a negative-weight cycle?", answer: "A negative-weight cycle is a cycle in a graph where the sum of edge weights is negative. If such a cycle is reachable from the source, shortest paths are undefined because you can keep traversing the cycle to reduce the distance infinitely." },
+        { question: "When should I use Bellman-Ford over Dijkstra's?", answer: "Use Bellman-Ford when the graph has negative edge weights, which Dijkstra's cannot handle. If all weights are non-negative, Dijkstra's is faster with O((V + E) log V) time compared to Bellman-Ford's O(V × E)." },
+      ]}
     />
   );
 }

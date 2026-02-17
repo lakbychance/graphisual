@@ -33,6 +33,12 @@ export function DfsLanding() {
         { icon: GitBranch, text: "Topological sorting — ordering tasks with dependencies in build systems" },
         { icon: Map, text: "Connected components — finding isolated groups in a network" },
       ]}
+      faq={[
+        { question: "What is Depth-First Search?", answer: "Depth-First Search (DFS) is a graph traversal algorithm that explores as far as possible along each branch before backtracking. It uses a stack (or recursion) to track the current path and visits every reachable node exactly once." },
+        { question: "What is the time complexity of DFS?", answer: "DFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge exactly once." },
+        { question: "Is DFS or BFS better?", answer: "Neither is universally better — it depends on the problem. DFS uses less memory and is better for deep graphs, topological sorting, and cycle detection. BFS is better for finding shortest paths in unweighted graphs and level-order exploration." },
+        { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path but not necessarily the shortest one. It explores deeply along each branch, so it may find a longer path before a shorter one. Use BFS for shortest paths in unweighted graphs." },
+      ]}
     />
   );
 }

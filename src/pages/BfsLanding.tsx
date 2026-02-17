@@ -33,6 +33,12 @@ export function BfsLanding() {
         { icon: Share2, text: "Social networks — finding degrees of separation between users" },
         { icon: Network, text: "Network broadcasting — reaching all nodes in minimum hops" },
       ]}
+      faq={[
+        { question: "What is Breadth-First Search?", answer: "Breadth-First Search (BFS) is a graph traversal algorithm that explores all neighbors of a node before moving to the next level. It uses a FIFO queue to visit nodes in order of their distance from the source, guaranteeing level-by-level exploration." },
+        { question: "What is the time complexity of BFS?", answer: "BFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. Each vertex and edge is processed exactly once." },
+        { question: "What is the difference between BFS and DFS?", answer: "BFS explores all neighbors at the current depth before going deeper (level by level), while DFS dives as deep as possible along each branch before backtracking. BFS uses a queue; DFS uses a stack." },
+        { question: "Does BFS find the shortest path?", answer: "Yes, in unweighted graphs. Since BFS visits nodes in order of distance from the source, the first time it reaches any node is via the shortest path. For weighted graphs, use Dijkstra's algorithm instead." },
+      ]}
     />
   );
 }
