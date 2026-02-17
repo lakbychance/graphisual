@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/dfs",
   title: "DFS Visualizer — Depth-First Search | Graphisual",
   description: "Visualize Depth-First Search step by step. Build a graph, pick a starting node, and watch DFS dive deep into each branch before backtracking.",
   ogDescription: "Visualize Depth-First Search step by step. Build a graph and watch DFS explore each branch before backtracking.",
   canonical: `${BASE_URL}/algorithm/dfs`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "DFS Visualizer",
     title: "DFS Visualizer — Depth-First Search | Graphisual",

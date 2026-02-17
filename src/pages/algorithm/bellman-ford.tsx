@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/bellman-ford",
   title: "Bellman-Ford Algorithm Visualizer | Graphisual",
   description: "Visualize the Bellman-Ford algorithm finding shortest paths with negative edge weights. Build a weighted graph and watch it relax edges iteratively.",
   ogDescription: "Visualize the Bellman-Ford algorithm finding shortest paths with negative weights. Watch it relax edges iteratively.",
   canonical: `${BASE_URL}/algorithm/bellman-ford`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "Bellman-Ford Algorithm Visualizer",
     title: "Bellman-Ford Algorithm Visualizer | Graphisual",

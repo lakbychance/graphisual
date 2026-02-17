@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/bfs-pathfinding",
   title: "BFS Pathfinding Visualizer | Graphisual",
   description: "Visualize BFS pathfinding to find the shortest path in an unweighted graph. Select source and destination nodes, then watch BFS discover the optimal route.",
   ogDescription: "Visualize BFS pathfinding to find the shortest path in an unweighted graph. Watch BFS discover the optimal route.",
   canonical: `${BASE_URL}/algorithm/bfs-pathfinding`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "BFS Pathfinding Visualizer",
     title: "BFS Pathfinding Visualizer | Graphisual",

@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/bfs",
   title: "BFS Visualizer — Breadth-First Search | Graphisual",
   description: "Visualize Breadth-First Search step by step. Build a graph, pick a starting node, and watch BFS explore every reachable node level by level.",
   ogDescription: "Visualize Breadth-First Search step by step. Build a graph and watch BFS explore nodes level by level.",
   canonical: `${BASE_URL}/algorithm/bfs`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "BFS Visualizer",
     title: "BFS Visualizer — Breadth-First Search | Graphisual",

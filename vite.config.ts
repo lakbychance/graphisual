@@ -25,6 +25,9 @@ export default defineConfig({
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       ],
       themeColor: "#0a0a0f",
+      author: "Lakshya Thakur",
+      siteName: "Graphisual",
+      twitterHandle: "@lakbychance",
     }),
   ].filter(Boolean),
   resolve: {

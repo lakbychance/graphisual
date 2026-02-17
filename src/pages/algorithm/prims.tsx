@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/prims",
   title: "Prim's Algorithm Visualizer — Minimum Spanning Tree | Graphisual",
   description: "Visualize Prim's algorithm building a minimum spanning tree step by step. Draw a weighted graph and watch the MST grow by greedily adding the cheapest edges.",
   ogDescription: "Visualize Prim's algorithm building a minimum spanning tree. Watch the MST grow by greedily adding the cheapest edges.",
   canonical: `${BASE_URL}/algorithm/prims`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "Prim's Algorithm Visualizer",
     title: "Prim's Algorithm Visualizer — Minimum Spanning Tree | Graphisual",

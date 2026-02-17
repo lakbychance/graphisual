@@ -3,14 +3,13 @@ import { AlgorithmLanding } from "@/components/AlgorithmLanding";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
-
 export const meta = {
   route: "algorithm/dfs-pathfinding",
   title: "DFS Pathfinding Visualizer | Graphisual",
   description: "Visualize DFS pathfinding as it searches for a path between two nodes. Select source and destination, then watch DFS navigate through the graph.",
   ogDescription: "Visualize DFS pathfinding as it searches for a path between two nodes by exploring deeply along each branch.",
   canonical: `${BASE_URL}/algorithm/dfs-pathfinding`,
-    ogImage: OG_IMAGE,
+  ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "DFS Pathfinding Visualizer",
     title: "DFS Pathfinding Visualizer | Graphisual",

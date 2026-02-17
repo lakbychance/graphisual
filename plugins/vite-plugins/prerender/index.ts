@@ -1,32 +1,43 @@
 import type { Plugin, ResolvedConfig } from "vite";
 import { build as viteBuild } from "vite";
+import { z } from "zod";
 import fs from "fs";
 import path from "path";
 
-interface PrerenderOptions {
-  /**
-   * Google Analytics tracking ID.
-   * Generates the gtag.js loader + config snippet.
-   */
-  analytics?: { gaTrackingId: string };
+const pageMetaSchema = z.object({
+  route: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  ogDescription: z.string().min(1),
+  canonical: z.string().url(),
+  ogImage: z.string().url(),
+  jsonLd: z.record(z.string(), z.unknown()),
+});
 
-  /**
-   * Font files to preload.
-   * Each entry becomes a `<link rel="preload" as="font" ...>` tag.
-   */
-  fonts?: { href: string; type: string }[];
+const prerenderOptionsSchema = z.object({
+  analytics: z.object({ gaTrackingId: z.string() }).optional(),
+  fonts: z
+    .array(z.object({ href: z.string(), type: z.string() }))
+    .optional(),
+  favicons: z
+    .array(
+      z.object({
+        rel: z.string(),
+        href: z.string(),
+        type: z.string().optional(),
+      })
+    )
+    .optional(),
+  themeColor: z.string().optional(),
+  author: z.string().optional(),
+  siteName: z.string().optional(),
+  twitterHandle: z.string().optional(),
+});
 
-  /**
-   * Favicon links.
-   * Each entry becomes a `<link rel="..." href="...">` tag.
-   */
-  favicons?: { rel: string; href: string; type?: string }[];
-
-  /** Value for `<meta name="theme-color">`. */
-  themeColor?: string;
-}
+type PrerenderOptions = z.infer<typeof prerenderOptionsSchema>;
 
 export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
+  const parsedOptions = prerenderOptionsSchema.parse(options);
   let config: ResolvedConfig;
 
   return {
@@ -91,7 +102,19 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
           // Skip files without meta export
           if (!mod.meta) continue;
 
-          const { meta } = mod;
+          // Validate meta with Zod
+          const result = pageMetaSchema.safeParse(mod.meta);
+          if (!result.success) {
+            const issues = result.error.issues
+              .map((i) => `  ${i.path.join(".")}: ${i.message}`)
+              .join("\n");
+            console.error(
+              `[prerender] ${key}.tsx has invalid meta:\n${issues}`
+            );
+            continue;
+          }
+
+          const meta = result.data;
           const Component = mod.default;
 
           if (!Component) {
@@ -104,18 +127,10 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
           const content = renderToString(createElement(Component));
 
           const html = buildHtml({
-            title: meta.title,
-            description: meta.description,
-            ogDescription: meta.ogDescription,
-            canonical: meta.canonical,
-            ogImage: meta.ogImage,
-            jsonLd: meta.jsonLd,
+            meta,
             content,
             cssHrefs,
-            analytics: options.analytics,
-            favicons: options.favicons,
-            fonts: options.fonts,
-            themeColor: options.themeColor,
+            options: parsedOptions,
           });
 
           const htmlPath = path.resolve(outDir, `${meta.route}.html`);
@@ -139,21 +154,15 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
 }
 
 function buildHtml(opts: {
-  title: string;
-  description: string;
-  ogDescription: string;
-  canonical: string;
-  ogImage: string;
-  jsonLd: Record<string, unknown>;
+  meta: z.infer<typeof pageMetaSchema>;
   content: string;
   cssHrefs: string[];
-  analytics?: { gaTrackingId: string };
-  favicons?: { rel: string; href: string; type?: string }[];
-  fonts?: { href: string; type: string }[];
-  themeColor?: string;
+  options: PrerenderOptions;
 }): string {
-  const analyticsHtml = opts.analytics
-    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${opts.analytics.gaTrackingId}"></script>
+  const { meta, content, cssHrefs, options } = opts;
+
+  const analyticsHtml = options.analytics
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${options.analytics.gaTrackingId}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
@@ -161,29 +170,42 @@ function buildHtml(opts: {
       }
       gtag("js", new Date());
 
-      gtag("config", "${opts.analytics.gaTrackingId}");
+      gtag("config", "${options.analytics.gaTrackingId}");
     </script>`
     : "";
 
-  const faviconHtml = (opts.favicons ?? [])
+  const faviconHtml = (options.favicons ?? [])
     .map((f) => {
       const type = f.type ? ` type="${f.type}"` : "";
       return `<link rel="${f.rel}" href="${f.href}"${type} />`;
     })
     .join("\n    ");
 
-  const fontHtml = (opts.fonts ?? [])
+  const fontHtml = (options.fonts ?? [])
     .map(
       (f) =>
         `<link rel="preload" href="${f.href}" as="font" type="${f.type}" crossorigin />`
     )
     .join("\n    ");
 
-  const themeColorHtml = opts.themeColor
-    ? `<meta name="theme-color" content="${opts.themeColor}" />`
+  const themeColorHtml = options.themeColor
+    ? `<meta name="theme-color" content="${options.themeColor}" />`
     : "";
 
-  const cssHtml = opts.cssHrefs
+  const authorHtml = options.author
+    ? `<meta name="author" content="${escapeAttr(options.author)}" />`
+    : "";
+
+  const siteNameHtml = options.siteName
+    ? `<meta property="og:site_name" content="${escapeAttr(options.siteName)}" />`
+    : "";
+
+  const twitterSiteHtml = options.twitterHandle
+    ? `<meta name="twitter:site" content="${options.twitterHandle}" />
+    <meta name="twitter:creator" content="${options.twitterHandle}" />`
+    : "";
+
+  const cssHtml = cssHrefs
     .map((href) => `<link rel="stylesheet" crossorigin href="${href}" />`)
     .join("\n    ");
 
@@ -196,37 +218,36 @@ function buildHtml(opts: {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     ${themeColorHtml}
 
-    <title>${opts.title}</title>
-    <meta name="description" content="${escapeAttr(opts.description)}" />
-    <meta name="author" content="Lakshya Thakur" />
+    <title>${meta.title}</title>
+    <meta name="description" content="${escapeAttr(meta.description)}" />
+    ${authorHtml}
 
-    <link rel="canonical" href="${opts.canonical}" />
+    <link rel="canonical" href="${meta.canonical}" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="${opts.canonical}" />
-    <meta property="og:title" content="${escapeAttr(opts.title)}" />
-    <meta property="og:description" content="${escapeAttr(opts.ogDescription)}" />
-    <meta property="og:image" content="${opts.ogImage}" />
-    <meta property="og:site_name" content="Graphisual" />
+    <meta property="og:url" content="${meta.canonical}" />
+    <meta property="og:title" content="${escapeAttr(meta.title)}" />
+    <meta property="og:description" content="${escapeAttr(meta.ogDescription)}" />
+    <meta property="og:image" content="${meta.ogImage}" />
+    ${siteNameHtml}
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lakbychance" />
-    <meta name="twitter:creator" content="@lakbychance" />
-    <meta name="twitter:title" content="${escapeAttr(opts.title)}" />
-    <meta name="twitter:description" content="${escapeAttr(opts.ogDescription)}" />
-    <meta name="twitter:image" content="${opts.ogImage}" />
+    ${twitterSiteHtml}
+    <meta name="twitter:title" content="${escapeAttr(meta.title)}" />
+    <meta name="twitter:description" content="${escapeAttr(meta.ogDescription)}" />
+    <meta name="twitter:image" content="${meta.ogImage}" />
 
     ${fontHtml}
 
     <script type="application/ld+json">
-${JSON.stringify(opts.jsonLd, null, 6)}
+${JSON.stringify(meta.jsonLd, null, 6)}
     </script>
 
     ${cssHtml}
   </head>
   <body>
-    ${opts.content}
+    ${content}
   </body>
 </html>`;
 }
