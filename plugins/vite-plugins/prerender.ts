@@ -209,15 +209,22 @@ function buildHtml(opts: {
   const { meta, content, cssHrefs, options, devHead } = opts;
 
   const analyticsHtml = options.analytics
-    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${options.analytics.gaTrackingId}"></script>
-    <script>
+    ? `<script>
       window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
+      function gtag() { dataLayer.push(arguments); }
       gtag("js", new Date());
-
       gtag("config", "${options.analytics.gaTrackingId}");
+
+      function loadGtag() {
+        var s = document.createElement("script");
+        s.src = "https://www.googletagmanager.com/gtag/js?id=${options.analytics.gaTrackingId}";
+        document.body.appendChild(s);
+      }
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(loadGtag);
+      } else {
+        setTimeout(loadGtag, 3000);
+      }
     </script>`
     : "";
 
