@@ -14,6 +14,8 @@ const pageMetaSchema = z.object({
   jsonLd: z.record(z.string(), z.unknown()),
 });
 
+type PageMeta = z.infer<typeof pageMetaSchema>;
+
 const prerenderOptionsSchema = z.object({
   analytics: z.object({ gaTrackingId: z.string() }).optional(),
   fonts: z
@@ -36,6 +38,56 @@ const prerenderOptionsSchema = z.object({
 
 type PrerenderOptions = z.infer<typeof prerenderOptionsSchema>;
 
+/**
+ * Validate a module's exports and render its default component to HTML.
+ * Returns null if the module doesn't have valid meta or a default export.
+ */
+async function renderPage(
+  mod: Record<string, unknown>,
+  label: string,
+): Promise<{ meta: PageMeta; content: string } | null> {
+  if (!mod.meta) return null;
+
+  const result = pageMetaSchema.safeParse(mod.meta);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
+    console.error(`[prerender] ${label} has invalid meta:\n${issues}`);
+    return null;
+  }
+
+  if (!mod.default) {
+    console.warn(`[prerender] ${label} has meta but no default export, skipping.`);
+    return null;
+  }
+
+  const { renderToString } = await import("react-dom/server");
+  const { createElement } = await import("react");
+
+  return {
+    meta: result.data,
+    // mod.default is a React component — safe to cast for createElement
+    content: renderToString(createElement(mod.default as () => React.JSX.Element)),
+  };
+}
+
+/** Discover all .tsx page files under src/pages/ */
+function discoverPages(): Map<string, string> {
+  const pagesDir = path.resolve("src/pages");
+  const pageFiles = fs
+    .readdirSync(pagesDir, { recursive: true })
+    .map((f) => (typeof f === "string" ? f : f.toString()))
+    .filter((f) => f.endsWith(".tsx"));
+
+  const routes = new Map<string, string>();
+  for (const file of pageFiles) {
+    const key = file.replace(/\.tsx$/, "");
+    routes.set(key, path.resolve(pagesDir, file));
+  }
+  return routes;
+}
+
 export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
   const parsedOptions = prerenderOptionsSchema.parse(options);
   let config: ResolvedConfig;
@@ -45,31 +97,52 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
     configResolved(resolved) {
       config = resolved;
     },
+    configureServer(server) {
+      const pages = discoverPages();
+      const routeToFile = new Map<string, string>();
+      pages.forEach((filePath, key) => {
+        routeToFile.set(`/${key}`, filePath);
+      });
+
+      server.middlewares.use(async (req, res, next) => {
+        const url = req.url?.split("?")[0];
+        if (!url || !routeToFile.has(url)) return next();
+
+        try {
+          const mod = await server.ssrLoadModule(routeToFile.get(url)!);
+          const page = await renderPage(mod, url);
+          if (!page) return next();
+
+          const html = buildHtml({
+            meta: page.meta,
+            content: page.content,
+            cssHrefs: [],
+            options: parsedOptions,
+            devHead: `<script type="module" src="/@vite/client"></script>
+    <link rel="stylesheet" href="/src/globals.css" />`,
+          });
+
+          console.log(`[prerender] Served ${url}`);
+          res.setHeader("Content-Type", "text/html");
+          res.end(html);
+        } catch (err) {
+          console.error(`[prerender] Dev render failed for ${url}:`, err);
+          next();
+        }
+      });
+    },
     async writeBundle(_outputOptions, bundle) {
       const outDir = config.build.outDir;
 
-      // Extract CSS asset paths directly from the bundle metadata
       const cssHrefs = Object.keys(bundle)
         .filter((fileName) => fileName.endsWith(".css"))
         .map((fileName) => `/${fileName}`);
 
-      // Find page files
-      const pagesDir = path.resolve("src/pages");
-      const pageFiles = fs
-        .readdirSync(pagesDir, { recursive: true })
-        .map((f) => (typeof f === "string" ? f : f.toString()))
-        .filter((f) => f.endsWith(".tsx"));
+      const pages = discoverPages();
+      if (pages.size === 0) return;
 
-      if (pageFiles.length === 0) return;
+      const input = Object.fromEntries(pages);
 
-      // Build entry map: { "algorithm/dijkstra": "/abs/src/pages/algorithm/dijkstra.tsx" }
-      const input: Record<string, string> = {};
-      for (const file of pageFiles) {
-        const key = file.replace(/\.tsx$/, "");
-        input[key] = path.resolve(pagesDir, file);
-      }
-
-      // Single SSR build pass — inherits project aliases and plugins
       const ssrOutDir = path.resolve(outDir, "_prerender_ssr");
       await viteBuild({
         configFile: false,
@@ -83,9 +156,6 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
         logLevel: "silent",
       });
 
-      const { renderToString } = await import("react-dom/server");
-      const { createElement } = await import("react");
-
       let count = 0;
 
       for (const key of Object.keys(input)) {
@@ -94,52 +164,26 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
 
         try {
           const mod = await import(`file://${bundlePath}`);
-
-          // Skip files without meta export
-          if (!mod.meta) continue;
-
-          // Validate meta with Zod
-          const result = pageMetaSchema.safeParse(mod.meta);
-          if (!result.success) {
-            const issues = result.error.issues
-              .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-              .join("\n");
-            console.error(
-              `[prerender] ${key}.tsx has invalid meta:\n${issues}`
-            );
-            continue;
-          }
-
-          const meta = result.data;
-          const Component = mod.default;
-
-          if (!Component) {
-            console.warn(
-              `[prerender] ${key}.tsx has meta but no default export, skipping.`
-            );
-            continue;
-          }
-
-          const content = renderToString(createElement(Component));
+          const page = await renderPage(mod, `${key}.tsx`);
+          if (!page) continue;
 
           const html = buildHtml({
-            meta,
-            content,
+            meta: page.meta,
+            content: page.content,
             cssHrefs,
             options: parsedOptions,
           });
 
-          const htmlPath = path.resolve(outDir, `${meta.route}.html`);
+          const htmlPath = path.resolve(outDir, `${page.meta.route}.html`);
           fs.mkdirSync(path.dirname(htmlPath), { recursive: true });
           fs.writeFileSync(htmlPath, html, "utf-8");
           count++;
-          console.log(`[prerender] Generated /${meta.route}`);
+          console.log(`[prerender] Generated /${page.meta.route}`);
         } catch (err) {
           console.error(`[prerender] Failed to render ${key}:`, err);
         }
       }
 
-      // Clean up SSR bundle directory
       fs.rmSync(ssrOutDir, { recursive: true, force: true });
 
       if (count > 0) {
@@ -150,12 +194,13 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
 }
 
 function buildHtml(opts: {
-  meta: z.infer<typeof pageMetaSchema>;
+  meta: PageMeta;
   content: string;
   cssHrefs: string[];
   options: PrerenderOptions;
+  devHead?: string;
 }): string {
-  const { meta, content, cssHrefs, options } = opts;
+  const { meta, content, cssHrefs, options, devHead } = opts;
 
   const analyticsHtml = options.analytics
     ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${options.analytics.gaTrackingId}"></script>
@@ -241,6 +286,7 @@ ${JSON.stringify(meta.jsonLd, null, 6)}
     </script>
 
     ${cssHtml}
+    ${devHead ?? ""}
   </head>
   <body>
     ${content}
