@@ -4,7 +4,6 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  route: "algorithm/bellman-ford",
   title: "Bellman-Ford Algorithm Visualizer | Graphisual",
   description: "Visualize the Bellman-Ford algorithm finding shortest paths with negative edge weights. Build a weighted graph and watch it relax edges iteratively.",
   ogDescription: "Visualize the Bellman-Ford algorithm finding shortest paths with negative weights. Watch it relax edges iteratively.",

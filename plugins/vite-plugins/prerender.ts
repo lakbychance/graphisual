@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 
 const pageMetaSchema = z.object({
-  route: z.string().min(1),
   title: z.string().min(1),
   description: z.string().min(1),
   ogDescription: z.string().min(1),
@@ -174,11 +173,11 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
             options: parsedOptions,
           });
 
-          const htmlPath = path.resolve(outDir, `${page.meta.route}.html`);
+          const htmlPath = path.resolve(outDir, `${key}.html`);
           fs.mkdirSync(path.dirname(htmlPath), { recursive: true });
           fs.writeFileSync(htmlPath, html, "utf-8");
           count++;
-          console.log(`[prerender] Generated /${page.meta.route}`);
+          console.log(`[prerender] Generated /${key}`);
         } catch (err) {
           console.error(`[prerender] Failed to render ${key}:`, err);
         }

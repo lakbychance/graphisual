@@ -4,7 +4,6 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  route: "algorithm/dfs",
   title: "DFS Visualizer — Depth-First Search | Graphisual",
   description: "Visualize Depth-First Search step by step. Build a graph, pick a starting node, and watch DFS dive deep into each branch before backtracking.",
   ogDescription: "Visualize Depth-First Search step by step. Build a graph and watch DFS explore each branch before backtracking.",

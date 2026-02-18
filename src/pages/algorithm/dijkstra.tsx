@@ -4,7 +4,6 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  route: "algorithm/dijkstra",
   title: "Dijkstra's Algorithm Visualizer | Graphisual",
   description: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs, set source and destination nodes, and watch the algorithm find the optimal path interactively.",
   ogDescription: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs and watch the algorithm find the optimal path.",

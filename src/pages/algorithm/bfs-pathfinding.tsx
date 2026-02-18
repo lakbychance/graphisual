@@ -4,7 +4,6 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  route: "algorithm/bfs-pathfinding",
   title: "BFS Pathfinding Visualizer | Graphisual",
   description: "Visualize BFS pathfinding to find the shortest path in an unweighted graph. Select source and destination nodes, then watch BFS discover the optimal route.",
   ogDescription: "Visualize BFS pathfinding to find the shortest path in an unweighted graph. Watch BFS discover the optimal route.",

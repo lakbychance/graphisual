@@ -4,7 +4,6 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  route: "algorithm/cycle-detection",
   title: "Cycle Detection Visualizer | Graphisual",
   description: "Visualize cycle detection in graphs step by step. Build a graph and watch the algorithm identify circular paths using DFS-based back edge detection.",
   ogDescription: "Visualize cycle detection in graphs step by step. Watch the algorithm identify circular paths using DFS.",
