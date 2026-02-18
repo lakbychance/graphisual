@@ -57,7 +57,7 @@ export function AlgorithmLanding({
           href="/"
           className="focus-ring-animated inline-flex items-center gap-2.5 rounded-md"
         >
-          <img src="https://ik.imagekit.io/lapstjup/graphisual/logo.png" alt="" className="w-8 h-8 rounded-md" />
+          <img src="https://ik.imagekit.io/lapstjup/graphisual/logo.png" alt="Graphisual logo" className="w-8 h-8 rounded-md" />
         </a>
       </nav>
 
