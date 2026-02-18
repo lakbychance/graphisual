@@ -235,7 +235,6 @@ const dijkstraAdapter: AlgorithmAdapter = {
     tagline: "Find the shortest path",
     icon: DijkstraIcon,
     inputStepHints: ["Select the source node", "Now select the destination node"],
-    failureMessage: "Path is not possible for the given vertices.",
     requirements: {
       weighted: true,
     },

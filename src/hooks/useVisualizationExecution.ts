@@ -163,8 +163,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       const result = currentAlgorithm.execute(input);
 
       if (result.error) {
-        const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
-        toast.error(failureMessage);
+        toast.error(result.error);
         setVisualizationInput(null);
         resetVisualization();
         return;
@@ -186,8 +185,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     const result = currentAlgorithm.execute(input);
 
     if (result.error) {
-      const failureMessage = currentAlgorithm.metadata.failureMessage || "Graph violates the requirements of the algorithm.";
-      toast.error(failureMessage);
+      toast.error(result.error);
       setVisualizationInput(null);
       resetVisualization();
       return;

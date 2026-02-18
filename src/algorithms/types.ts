@@ -154,8 +154,6 @@ export interface AlgorithmMetadata {
   icon: React.ComponentType<{ className?: string }>;
   /** Hints shown for each input step (no full stops) */
   inputStepHints: string[];
-  /** Optional error message when algorithm fails */
-  failureMessage?: string;
   /** Optional constraints that the graph must satisfy */
   requirements?: {
     /** Algorithm uses edge weights */

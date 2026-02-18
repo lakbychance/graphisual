@@ -143,7 +143,6 @@ const bfsPathfindingAdapter: AlgorithmAdapter = {
     tagline: "Shortest path (unweighted)",
     icon: BfsPathfindingIcon,
     inputStepHints: ["Select the source node", "Now select the destination node"],
-    failureMessage: "No path found between the selected nodes.",
   },
 
   /**

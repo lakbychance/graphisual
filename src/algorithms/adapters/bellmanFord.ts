@@ -194,7 +194,6 @@ const bellmanFordAdapter: AlgorithmAdapter = {
     tagline: "Handle negative weights",
     icon: BellmanFordIcon,
     inputStepHints: ["Select the source node", "Now select the destination node"],
-    failureMessage: "Path is not possible or negative cycle detected.",
     requirements: {
       weighted: true,
     },

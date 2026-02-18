@@ -145,7 +145,6 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
     tagline: "Find a path",
     icon: DfsPathfindingIcon,
     inputStepHints: ["Select the source node", "Now select the destination node"],
-    failureMessage: "No path found between the selected nodes.",
   },
 
   /**

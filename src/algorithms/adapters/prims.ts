@@ -138,7 +138,6 @@ const primsAdapter: AlgorithmAdapter = {
     tagline: "Build minimum spanning tree",
     icon: PrimsIcon,
     inputStepHints: ["Select a node"],
-    failureMessage: "Graph violates the requirements of the algorithm.",
     requirements: {
       undirectedOnly: true,
       connectedOnly: true,

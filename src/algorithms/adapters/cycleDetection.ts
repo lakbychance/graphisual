@@ -178,7 +178,6 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
     tagline: "Find loops in graph",
     icon: CycleDetectionIcon,
     inputStepHints: ["Select a node"],
-    failureMessage: "No cycle found in the graph.",
   },
 
   /**
