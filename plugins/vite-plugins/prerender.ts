@@ -1,5 +1,6 @@
 import type { Plugin, ResolvedConfig } from "vite";
 import { build as viteBuild } from "vite";
+import Beasties from "beasties";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -155,6 +156,9 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
         logLevel: "silent",
       });
 
+      // Inline critical CSS — no external stylesheet needed for static pages
+      const beasties = new Beasties({ path: outDir });
+
       let count = 0;
 
       for (const key of Object.keys(input)) {
@@ -173,9 +177,12 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
             options: parsedOptions,
           });
 
+          const optimizedHtml = (await beasties.process(html))
+            .replace(/<link[^<>]*rel="stylesheet"[^<>]*>/g, "");
+
           const htmlPath = path.resolve(outDir, `${key}.html`);
           fs.mkdirSync(path.dirname(htmlPath), { recursive: true });
-          fs.writeFileSync(htmlPath, html, "utf-8");
+          fs.writeFileSync(htmlPath, optimizedHtml, "utf-8");
           count++;
           console.log(`[prerender] Generated /${key}`);
         } catch (err) {
