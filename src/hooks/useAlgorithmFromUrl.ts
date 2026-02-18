@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry } from "../algorithms";
+import { VisualizationMode } from "../constants/visualization";
 import {
   generateWeighted,
   generateRandomGraph,
@@ -32,13 +33,15 @@ export function useAlgorithmFromUrl() {
     const algo = algorithmRegistry.get(algorithmParam);
     if (!algo) return;
 
-    const { setVisualizationAlgorithm, setGraph } = useGraphStore.getState();
+    const { setVisualizationAlgorithm, setVisualizationMode, setGraph } = useGraphStore.getState();
 
     setVisualizationAlgorithm({
       key: algorithmParam,
       text: algo.metadata.name,
       data: algo.metadata.type,
     });
+
+    setVisualizationMode(VisualizationMode.MANUAL);
 
     const generator = graphForAlgorithm[algorithmParam];
     if (generator) {
