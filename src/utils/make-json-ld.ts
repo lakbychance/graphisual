@@ -36,6 +36,7 @@ export function makeJsonLd(opts: {
           "@type": "SoftwareApplication",
           "name": SITE_NAME,
           "applicationCategory": "EducationalApplication",
+          "operatingSystem": "Any",
           "url": BASE_URL,
         },
         "about": {

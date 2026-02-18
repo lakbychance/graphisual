@@ -157,7 +157,7 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
       });
 
       // Inline critical CSS — no external stylesheet needed for static pages
-      const beasties = new Beasties({ path: outDir });
+      const beasties = new Beasties({ path: outDir, inlineFonts: true });
 
       let count = 0;
 
@@ -178,6 +178,7 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
           });
 
           const optimizedHtml = (await beasties.process(html))
+            .replace(/<link[^<>]*rel="(?:stylesheet|preload)"[^<>]*as="style"[^<>]*>/g, "")
             .replace(/<link[^<>]*rel="stylesheet"[^<>]*>/g, "");
 
           const htmlPath = path.resolve(outDir, `${key}.html`);
