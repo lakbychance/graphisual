@@ -28,13 +28,13 @@
     <loc>https://graphisual.app/algorithm/bfs-pathfinding</loc>
     <lastmod>2026-02-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://graphisual.app/algorithm/dfs-pathfinding</loc>
     <lastmod>2026-02-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://graphisual.app/algorithm/prims</loc>
@@ -46,7 +46,7 @@
     <loc>https://graphisual.app/algorithm/cycle-detection</loc>
     <lastmod>2026-02-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://graphisual.app/algorithm/bellman-ford</loc>
