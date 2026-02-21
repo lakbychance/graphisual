@@ -44,7 +44,7 @@ const shortcutGroups: ShortcutGroup[] = [
     shortcuts: [
       { keys: "↑ ↓ ← →", description: "Navigate to nearby node" },
       { keys: "E", description: "Cycle through edges" },
-      { keys: "Enter", description: "Edit focused edge" },
+      { keys: "Enter", description: "Edit label / focused edge" },
       { keys: "Delete", description: "Delete node" },
     ],
   },
