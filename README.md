@@ -4,8 +4,6 @@
 
 An interactive graph editor and algorithm visualizer. Draw graphs, run algorithms, and step through their execution with real-time data structure visualization.
 
-**[graphisual.app](https://graphisual.app)**
-
 ## Features
 
 **Graph Editor**
