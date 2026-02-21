@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, RefObject } from "react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
+import { useCallback, useEffect } from "react";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete, selectIsAutoPlaying } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
 import { isElementInPopup } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
@@ -18,22 +18,10 @@ interface GraphAction {
   shortcut?: ShortcutConfig;
 }
 
-interface PlayState {
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  playIntervalRef: RefObject<number | null>;
-}
-
-interface UseGraphActionsOptions {
-  playState?: PlayState;
-}
-
-export function useGraphActions(options: UseGraphActionsOptions = {}): {
+export function useGraphActions(): {
   actions: Record<string, GraphAction>;
   handleKeyDown: (e: KeyboardEvent) => void;
 } {
-  const { playState } = options;
-
   // Store selectors
   const zoom = useGraphStore((state) => state.viewport.zoom);
   const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
@@ -45,7 +33,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
   const isStepComplete = useGraphStore(selectIsStepComplete);
-  const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
+  const isAutoPlaying = useGraphStore(selectIsAutoPlaying);
 
   // Derived state for algorithm selection
   const isAlgorithmSelected = visualizationAlgorithm?.key != null && visualizationAlgorithm.key !== 'select';
@@ -65,11 +53,9 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
   const stepBackward = useGraphStore((state) => state.stepBackward);
   const jumpToStep = useGraphStore((state) => state.jumpToStep);
   const resetStepThrough = useGraphStore((state) => state.resetStepThrough);
+  const startAutoPlay = useGraphStore((state) => state.startAutoPlay);
+  const stopAutoPlay = useGraphStore((state) => state.stopAutoPlay);
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
-
-  // Stable refs for play state to avoid recreating callbacks
-  const playStateRef = useRef(playState);
-  playStateRef.current = playState;
 
   // Action executors
   const executeUndo = useCallback(() => {
@@ -119,70 +105,43 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
 
   const executeStepForward = useCallback(() => {
     if (isInStepMode && !isStepComplete) {
+      stopAutoPlay();
       stepForward();
     }
-  }, [isInStepMode, isStepComplete, stepForward]);
+  }, [isInStepMode, isStepComplete, stopAutoPlay, stepForward]);
 
   const executeStepBackward = useCallback(() => {
     if (isInStepMode && stepIndex > 0) {
+      stopAutoPlay();
       stepBackward();
     }
-  }, [isInStepMode, stepIndex, stepBackward]);
+  }, [isInStepMode, stepIndex, stopAutoPlay, stepBackward]);
 
   const executeJumpToStart = useCallback(() => {
     if (isInStepMode && stepIndex > 0) {
+      stopAutoPlay();
       jumpToStep(0);
     }
-  }, [isInStepMode, stepIndex, jumpToStep]);
+  }, [isInStepMode, stepIndex, stopAutoPlay, jumpToStep]);
 
   const executeJumpToEnd = useCallback(() => {
     if (isInStepMode && !isStepComplete) {
+      stopAutoPlay();
       jumpToStep(stepHistory.length - 1);
     }
-  }, [isInStepMode, isStepComplete, stepHistory.length, jumpToStep]);
+  }, [isInStepMode, isStepComplete, stopAutoPlay, stepHistory.length, jumpToStep]);
 
   const executeTogglePlay = useCallback(() => {
-    const ps = playStateRef.current;
-    if (!ps || !isInStepMode) return;
-
-    if (ps.isPlaying) {
-      // Pause
-      if (ps.playIntervalRef.current !== null) {
-        clearInterval(ps.playIntervalRef.current);
-        ps.playIntervalRef.current = null;
-      }
-      ps.setIsPlaying(false);
+    if (!isInStepMode) return;
+    if (isAutoPlaying) {
+      stopAutoPlay();
     } else if (!isStepComplete) {
-      // Play
-      ps.setIsPlaying(true);
-      ps.playIntervalRef.current = window.setInterval(() => {
-        const state = useGraphStore.getState();
-        const vis = state.visualization;
-        const stepComplete = vis.mode === VisualizationMode.MANUAL ? vis.step.isComplete : false;
-        const stepIdx = vis.mode === VisualizationMode.MANUAL ? vis.step.index : -1;
-        const stepHist = vis.mode === VisualizationMode.MANUAL ? vis.step.history : [];
-        if (stepComplete || stepIdx >= stepHist.length - 1) {
-          if (ps.playIntervalRef.current !== null) {
-            clearInterval(ps.playIntervalRef.current);
-            ps.playIntervalRef.current = null;
-          }
-          ps.setIsPlaying(false);
-          return;
-        }
-        state.stepForward();
-      }, visualizationSpeed);
+      startAutoPlay();
     }
-  }, [isInStepMode, isStepComplete, visualizationSpeed]);
+  }, [isInStepMode, isAutoPlaying, isStepComplete, startAutoPlay, stopAutoPlay]);
 
   const executeStopVisualization = useCallback(() => {
-    const ps = playStateRef.current;
-    if (ps && ps.playIntervalRef.current !== null) {
-      clearInterval(ps.playIntervalRef.current);
-      ps.playIntervalRef.current = null;
-    }
-    if (ps) {
-      ps.setIsPlaying(false);
-    }
+    // resetStepThrough sets isAutoPlaying: false, which cancels the interval via useAutoPlay
     resetStepThrough();
     const { resetVisualization, clearVisualization } = useGraphStore.getState();
     resetVisualization();
@@ -252,7 +211,7 @@ export function useGraphActions(options: UseGraphActionsOptions = {}): {
     },
     togglePlay: {
       execute: executeTogglePlay,
-      enabled: isInStepMode && (playState?.isPlaying || !isStepComplete),
+      enabled: isInStepMode && (isAutoPlaying || !isStepComplete),
       shortcut: { key: " ", preventDefault: true },
     },
     stopVisualization: {

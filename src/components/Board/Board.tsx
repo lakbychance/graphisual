@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { cn } from "@/lib/utils";
@@ -8,9 +8,10 @@ import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Feather, Zap } from "lucide-react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsAutoPlaying } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
+import { useAutoPlay } from "../../hooks/useAutoPlay";
 import { TIMING } from "../../constants/ui";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
 import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
@@ -57,7 +58,7 @@ export const Board = () => {
   const visualizationMode = useGraphStore((state) => state.visualization.mode);
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
-  const isStepComplete = useGraphStore(selectIsStepComplete);
+  const isPlaying = useGraphStore(selectIsAutoPlaying);
   // Local UI state for trace panel visibility
   const [tracePanelVisible, setTracePanelVisible] = useState(true);
 
@@ -79,54 +80,20 @@ export const Board = () => {
   const resetGraph = useGraphStore((state) => state.resetGraph);
   const setVisualizationMode = useGraphStore((state) => state.setVisualizationMode);
 
-  // Auto-play state for step mode
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playIntervalRef = useRef<number | null>(null);
-
   // Ref to access GraphRenderer for export
   const graphRendererRef = useRef<GraphRendererHandle>(null);
 
+  // Owns the auto-play interval — reacts to isAutoPlaying in the store
+  useAutoPlay();
+
   // Centralized actions from useGraphActions hook
-  const { actions, handleKeyDown } = useGraphActions({
-    playState: { isPlaying, setIsPlaying, playIntervalRef }
-  });
+  const { actions, handleKeyDown } = useGraphActions();
 
   // Register keyboard shortcuts
   useGraphKeyboardShortcuts(handleKeyDown);
 
   // Track if we're on desktop for responsive dropdown alignment
   const isDesktop = useIsDesktop();
-
-  // Clear play interval on unmount or when visualization ends
-  useEffect(() => {
-    return () => {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Stop auto-play when step mode visualization ends
-  useEffect(() => {
-    if (!isVisualizing || visualizationMode !== VisualizationMode.MANUAL) {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-    }
-  }, [isVisualizing, visualizationMode]);
-
-  // Stop auto-play when we reach the end
-  useEffect(() => {
-    if (isStepComplete && isPlaying) {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-    }
-  }, [isStepComplete, isPlaying]);
 
   const handleAlgoChange = (algoId: string) => {
     const algo = algorithmRegistry.get(algoId);
