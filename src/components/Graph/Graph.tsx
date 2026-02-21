@@ -172,9 +172,9 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     const target = event.target as SVGSVGElement;
     const isNode = target.tagName === "circle";
 
-    // Algorithm mode - delegate to shared hook
-    if (currentAlgorithm && isNode && !isVisualizing) {
-      const nodeId = parseInt(target.id.replace("hit-", ""));
+    // Algorithm mode - delegate to shared hook (body click only, not hit area ring)
+    if (currentAlgorithm && isNode && !isVisualizing && !target.id.startsWith("hit-")) {
+      const nodeId = parseInt(target.id);
       handleNodeClick(nodeId);
       return;
     }
