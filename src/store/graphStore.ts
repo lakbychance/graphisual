@@ -103,6 +103,7 @@ interface GraphActions {
   updateEdgeWeight: (fromNodeId: number, toNodeId: number, newWeight: number) => void;
   reverseEdge: (fromNodeId: number, toNodeId: number) => void;
   deleteEdge: (fromNodeId: number, toNodeId: number) => void;
+  updateNodeLabel: (nodeId: number, label: string) => void;
 
   // === History Actions ===
   undo: () => void;
@@ -616,6 +617,16 @@ export const useGraphStore = create<GraphStore>()(
             data: { nodes, edges: newEdges, nodeCounter, stackingOrder },
             selection: { ...selection, edge: null },
           });
+        }),
+
+        updateNodeLabel: autoHistory((nodeId: number, label: string) => {
+          get().clearVisualization();
+          const { data } = get();
+          const trimmed = label.trim().replace(/\*/g, '').slice(0, 5);
+          const newNodes = data.nodes.map((n) =>
+            n.id === nodeId ? { ...n, label: trimmed || undefined } : n
+          );
+          set({ data: { ...data, nodes: newNodes } });
         }),
 
         deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {

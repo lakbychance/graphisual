@@ -7,6 +7,7 @@
  */
 
 import { PrimsIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -101,12 +102,12 @@ function* primsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     // Build trace message
     let message: string;
     if (parentNode === undefined) {
-      message = `**Starting at node ${minNode}**`;
+      message = `**Starting at node ${nid(minNode)}**`;
     } else {
-      message = `**Adding edge ${parentNode}→${minNode}** (weight: ${edgeWeight})`;
+      message = `**Adding edge ${nid(parentNode)}→${nid(minNode)}** (weight: ${edgeWeight})`;
     }
     if (updatedNodes.length > 0) {
-      message += `, updated **${updatedNodes.join(", ")}**`;
+      message += `, updated **${updatedNodes.map(nid).join(", ")}**`;
     }
     message += `\nMST: **${mstSet.size}** nodes, total weight: **${totalWeight}**`;
 

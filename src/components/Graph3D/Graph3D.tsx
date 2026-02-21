@@ -456,6 +456,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
               isClickable={!!currentAlgorithm && !isVisualizing}
               introOpacity={introAnimation.opacity}
               introZOffset={introAnimation.zOffset}
+              label={node.label}
             />
           ))}
         </Canvas>

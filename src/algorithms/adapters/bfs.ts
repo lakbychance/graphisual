@@ -6,6 +6,7 @@
  */
 
 import { BfsIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -45,9 +46,9 @@ function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     // Build trace message
-    let message = `**Visiting node ${nodeId}**`;
+    let message = `**Visiting node ${nid(nodeId)}**`;
     if (addedToQueue.length > 0) {
-      message += `, added **${addedToQueue.join(", ")}** to queue`;
+      message += `, added **${addedToQueue.map(nid).join(", ")}** to queue`;
     }
 
     // Yield the visit step with trace

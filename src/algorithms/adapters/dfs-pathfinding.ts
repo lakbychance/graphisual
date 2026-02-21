@@ -6,6 +6,7 @@
  */
 
 import { DfsPathfindingIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -35,7 +36,7 @@ function* dfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
       trace: {
-        message: `**Start and destination are the same** (node ${startNodeId})`,
+        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
         dataStructure: { type: "stack", items: [], processing: { id: startNodeId } },
       },
     };
@@ -68,7 +69,7 @@ function* dfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
         type: StepType.VISIT,
         edge: { from: current.from, to: nodeId },
         trace: {
-          message: `**Found destination node ${nodeId}!**`,
+          message: `**Found destination node ${nid(nodeId)}!**`,
           dataStructure: {
             type: "stack",
             items: stack.getContents().map((item) => ({ id: item.to })),
@@ -93,9 +94,9 @@ function* dfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     // Build trace message
-    let message = `**Visiting node ${nodeId}**`;
+    let message = `**Visiting node ${nid(nodeId)}**`;
     if (addedToStack.length > 0) {
-      message += `, pushed **${addedToStack.join(", ")}** to stack`;
+      message += `, pushed **${addedToStack.map(nid).join(", ")}** to stack`;
     }
 
     // Yield the visit step with trace

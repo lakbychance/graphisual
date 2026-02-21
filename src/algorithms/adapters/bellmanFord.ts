@@ -7,6 +7,7 @@
  */
 
 import { BellmanFordIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -36,7 +37,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
       trace: {
-        message: `**Start and destination are the same** (node ${startNodeId})`,
+        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
         dataStructure: { type: "distances", items: [{ id: startNodeId, value: 0 }] },
       },
     };
@@ -78,7 +79,7 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
     type: StepType.VISIT,
     edge: { from: -1, to: startNodeId },
     trace: {
-      message: `**Starting at node ${startNodeId}** (distance: 0)\n**1** node reachable`,
+      message: `**Starting at node ${nid(startNodeId)}** (distance: 0)\n**1** node reachable`,
       dataStructure: {
         type: "distances",
         items: [],
@@ -108,8 +109,8 @@ function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
         // Check if we found the target
         const isTarget = edge.to === endNodeId;
         const message = isTarget
-          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`
-          : `Iteration ${i + 1}: Relaxed **${edge.from}→${edge.to}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`;
+          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${nid(edge.from)}→${nid(edge.to)}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`
+          : `Iteration ${i + 1}: Relaxed **${nid(edge.from)}→${nid(edge.to)}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`;
 
         // Yield the relaxation step
         yield {

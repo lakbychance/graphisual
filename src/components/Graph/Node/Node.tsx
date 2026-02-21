@@ -7,6 +7,7 @@ import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE } from "../../../constant
 import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
+import { useIsDesktop } from "../../../hooks/useMediaQuery";
 
 export interface NodeProps {
   nodeId: number;
@@ -23,6 +24,7 @@ export interface NodeProps {
   onNodeSelect: (nodeId: number | null) => void;
   screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
   isGestureActive: () => boolean;
+  onLabelEdit: (nodeId: number) => void;
 }
 
 
@@ -37,6 +39,7 @@ export const Node = memo(function Node(props: NodeProps) {
     onNodeSelect,
     screenToSvgCoords,
     isGestureActive,
+    onLabelEdit,
   } = props;
 
   // Subscribe to THIS node's data only
@@ -55,10 +58,12 @@ export const Node = memo(function Node(props: NodeProps) {
   const bringNodeToFront = useGraphStore((state) => state.bringNodeToFront);
 
   const [isHovered, setIsHovered] = useState(false);
+  const [isBodyHovered, setIsBodyHovered] = useState(false);
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
+  const isDesktop = useIsDesktop();
 
-  // Track hover state for connectors and algorithm mode zoom effect
+  // Group-level hover (hit area + body) — used for connector visibility
   const handleMouseEnter = useCallback(() => {
     if (!isVisualizing) {
       setIsHovered(true);
@@ -67,6 +72,18 @@ export const Node = memo(function Node(props: NodeProps) {
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
+    setIsBodyHovered(false);
+  }, []);
+
+  // Body-only hover — used for algorithm mode scale effect
+  const handleBodyMouseEnter = useCallback(() => {
+    if (!isVisualizing) {
+      setIsBodyHovered(true);
+    }
+  }, [isVisualizing]);
+
+  const handleBodyMouseLeave = useCallback(() => {
+    setIsBodyHovered(false);
   }, []);
 
   const handleConnectorDrag = useCallback(
@@ -164,6 +181,16 @@ export const Node = memo(function Node(props: NodeProps) {
     [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront]
   );
 
+  const handleDoubleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!isDesktop || isVisualizing || isAlgorithmSelected) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onLabelEdit(nodeId);
+    },
+    [isDesktop, isVisualizing, isAlgorithmSelected, onLabelEdit, nodeId]
+  );
+
   // Early return if node not found - after all hooks
   if (!node) return null;
 
@@ -217,7 +244,9 @@ export const Node = memo(function Node(props: NodeProps) {
       {/* Main node token - tangible, pickable button */}
       <m.circle
         onPointerDown={handlePointerDown}
-        onMouseEnter={handleMouseEnter}
+        onDoubleClick={handleDoubleClick}
+        onMouseEnter={handleBodyMouseEnter}
+        onMouseLeave={handleBodyMouseLeave}
         initial={{
           r: node.r
         }}
@@ -228,7 +257,7 @@ export const Node = memo(function Node(props: NodeProps) {
           strokeWidth: isSelected
             ? [NODE_STROKE.DEFAULT, NODE_STROKE.ACTIVE, NODE_STROKE.SELECTED]
             : NODE_STROKE.DEFAULT,
-          r: isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r,
+          r: isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r,
         }}
         transition={prefersReducedMotion ? { duration: 0 } : {
           fill: { duration: STROKE_ANIMATION.DURATION },
@@ -250,7 +279,7 @@ export const Node = memo(function Node(props: NodeProps) {
       <circle
         cx={node.x}
         cy={node.y}
-        r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
+        r={isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r}
         fill="url(#crosshatch)"
         mask="url(#sphereMask)"
         className="pointer-events-none"
@@ -290,14 +319,14 @@ export const Node = memo(function Node(props: NodeProps) {
         </>
       )}
 
-      {/* Node label */}
+      {/* Node label - hidden while editing to avoid overlap with portal input */}
       <text
         className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
         style={{ fill: 'var(--color-text)' }}
         x={node.x}
         y={node.y}
       >
-        {node.id}
+        {node.label || node.id}
       </text>
     </m.g>
   );

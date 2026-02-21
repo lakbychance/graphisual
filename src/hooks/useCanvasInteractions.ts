@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, type RefObject, useMemo } from "react";
 import type { GraphNode, GraphEdge } from "../components/Graph/types";
 import { screenToWorld } from "../components/GraphCanvas/ViewportTransform";
-import { hitTestNodes, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
+import { hitTestNodes, hitTestNodesBody, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
@@ -78,6 +78,7 @@ export function useCanvasInteractions({
 
   // Hover state
   const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
+  const [hoveredBodyNodeId, setHoveredBodyNodeId] = useState<number | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<{ sourceNodeId: number; toNodeId: number } | null>(null);
 
   const dragStateRef = useRef(dragState);
@@ -96,9 +97,11 @@ export function useCanvasInteractions({
 
     const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
     const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    const hitNodeBody = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
     const newHoveredId = hitNode?.id ?? null;
     setHoveredNodeId(newHoveredId);
+    setHoveredBodyNodeId(hitNodeBody?.id ?? null);
     hoveredNodeIdRef.current = newHoveredId;
 
     if (!hitNode && !isVisualizing) {
@@ -115,6 +118,7 @@ export function useCanvasInteractions({
 
   const handleMouseLeave = useCallback(() => {
     setHoveredNodeId(null);
+    setHoveredBodyNodeId(null);
     hoveredNodeIdRef.current = null;
     setHoveredEdge(null);
   }, []);
@@ -126,9 +130,10 @@ export function useCanvasInteractions({
     if (!canvas) return;
 
     const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
-    const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    // Use body-only hit test: selection and drag only trigger on the visible node circle
+    const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
-    // Box selection (Shift + empty canvas)
+    // Box selection (Shift + empty canvas body)
     if (e.shiftKey && !hitNode && !currentAlgorithm) {
       setDragState({
         type: 'box-select',
@@ -141,31 +146,12 @@ export function useCanvasInteractions({
       return;
     }
 
-    // Node interaction
+    // Node body interaction (selection, drag, algorithm click)
     if (hitNode) {
       // Algorithm mode - click to select
       if (currentAlgorithm && !isVisualizing) {
         handleNodeClick(hitNode.id);
         return;
-      }
-
-      // Check if clicking on connector (for edge creation)
-      if (!isVisualizing && !currentAlgorithm && hoveredNodeIdRef.current === hitNode.id) {
-        const connectorHit = hitTestConnectors(world.x, world.y, hitNode);
-        if (connectorHit) {
-          setDragState({
-            type: 'edge-create',
-            startX: e.clientX,
-            startY: e.clientY,
-            startWorldX: hitNode.x,
-            startWorldY: hitNode.y,
-            connectorNodeId: hitNode.id,
-          });
-          setEdgeDragSource(hitNode.id);
-          isDraggingRef.current = false;
-          canvas.setPointerCapture(e.pointerId);
-          return;
-        }
       }
 
       // Start node drag
@@ -199,6 +185,30 @@ export function useCanvasInteractions({
         canvas.setPointerCapture(e.pointerId);
       }
       return;
+    }
+
+    // Connector check: connectors live in the hit-area ring (outside body, inside extended radius).
+    // Use a fresh full-radius hit test rather than hoveredNodeIdRef, which may be stale if
+    // pointer-down fires without a preceding mousemove (e.g. fast pointer entry from outside).
+    if (!isVisualizing && !currentAlgorithm) {
+      const hitNodeFull = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+      if (hitNodeFull) {
+        const connectorHit = hitTestConnectors(world.x, world.y, hitNodeFull);
+        if (connectorHit) {
+          setDragState({
+            type: 'edge-create',
+            startX: e.clientX,
+            startY: e.clientY,
+            startWorldX: hitNodeFull.x,
+            startWorldY: hitNodeFull.y,
+            connectorNodeId: hitNodeFull.id,
+          });
+          setEdgeDragSource(hitNodeFull.id);
+          isDraggingRef.current = false;
+          canvas.setPointerCapture(e.pointerId);
+          return;
+        }
+      }
     }
 
     // Edge click detection
@@ -366,7 +376,7 @@ export function useCanvasInteractions({
     // Handle click (no drag)
     if (!isDraggingRef.current) {
       const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
-      const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+      const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
       if (state.type === 'pending-node' && state.nodeId !== undefined) {
         const isSelected = selectedNodeIds.has(state.nodeId);
@@ -424,6 +434,7 @@ export function useCanvasInteractions({
     edgeDragTarget,
     // Hover state (for rendering)
     hoveredNodeId,
+    hoveredBodyNodeId,
     hoveredEdge,
     // Event handlers
     handlePointerDown,
