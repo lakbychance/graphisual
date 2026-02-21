@@ -176,6 +176,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     edgeDragSource,
     edgeDragTarget,
     hoveredNodeId,
+    hoveredBodyNodeId,
     hoveredEdge,
     handlePointerDown,
     handlePointerMove,
@@ -265,7 +266,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
 
         drawNode(ctx, node, {
           isSelected,
-          isHovered: isHovered && !!currentAlgorithm && !isVisualizing,
+          isHovered: hoveredBodyNodeId === nodeId && !!currentAlgorithm && !isVisualizing,
           colorState: getNodeColorState(nodeId),
           isEdgeCreateSource: isEdgeDragSourceNode,
           isEdgeCreateTarget: isEdgeDragTargetNode,
@@ -292,6 +293,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     stackingOrder,
     selectedNodeIds,
     hoveredNodeId,
+    hoveredBodyNodeId,
     hoveredEdge,
     edgeDragSource,
     edgeDragTarget,

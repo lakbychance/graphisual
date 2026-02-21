@@ -58,11 +58,12 @@ export const Node = memo(function Node(props: NodeProps) {
   const bringNodeToFront = useGraphStore((state) => state.bringNodeToFront);
 
   const [isHovered, setIsHovered] = useState(false);
+  const [isBodyHovered, setIsBodyHovered] = useState(false);
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
 
-  // Track hover state for connectors and algorithm mode zoom effect
+  // Group-level hover (hit area + body) — used for connector visibility
   const handleMouseEnter = useCallback(() => {
     if (!isVisualizing) {
       setIsHovered(true);
@@ -71,6 +72,18 @@ export const Node = memo(function Node(props: NodeProps) {
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
+    setIsBodyHovered(false);
+  }, []);
+
+  // Body-only hover — used for algorithm mode scale effect
+  const handleBodyMouseEnter = useCallback(() => {
+    if (!isVisualizing) {
+      setIsBodyHovered(true);
+    }
+  }, [isVisualizing]);
+
+  const handleBodyMouseLeave = useCallback(() => {
+    setIsBodyHovered(false);
   }, []);
 
   const handleConnectorDrag = useCallback(
@@ -231,7 +244,8 @@ export const Node = memo(function Node(props: NodeProps) {
       <m.circle
         onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
-        onMouseEnter={handleMouseEnter}
+        onMouseEnter={handleBodyMouseEnter}
+        onMouseLeave={handleBodyMouseLeave}
         initial={{
           r: node.r
         }}
@@ -242,7 +256,7 @@ export const Node = memo(function Node(props: NodeProps) {
           strokeWidth: isSelected
             ? [NODE_STROKE.DEFAULT, NODE_STROKE.ACTIVE, NODE_STROKE.SELECTED]
             : NODE_STROKE.DEFAULT,
-          r: isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r,
+          r: isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r,
         }}
         transition={prefersReducedMotion ? { duration: 0 } : {
           fill: { duration: STROKE_ANIMATION.DURATION },
@@ -264,7 +278,7 @@ export const Node = memo(function Node(props: NodeProps) {
       <circle
         cx={node.x}
         cy={node.y}
-        r={isAlgorithmSelected && isHovered ? node.r * NODE.HOVER_SCALE : node.r}
+        r={isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r}
         fill="url(#crosshatch)"
         mask="url(#sphereMask)"
         className="pointer-events-none"

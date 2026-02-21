@@ -78,6 +78,7 @@ export function useCanvasInteractions({
 
   // Hover state
   const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
+  const [hoveredBodyNodeId, setHoveredBodyNodeId] = useState<number | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<{ sourceNodeId: number; toNodeId: number } | null>(null);
 
   const dragStateRef = useRef(dragState);
@@ -96,9 +97,11 @@ export function useCanvasInteractions({
 
     const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
     const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    const hitNodeBody = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
     const newHoveredId = hitNode?.id ?? null;
     setHoveredNodeId(newHoveredId);
+    setHoveredBodyNodeId(hitNodeBody?.id ?? null);
     hoveredNodeIdRef.current = newHoveredId;
 
     if (!hitNode && !isVisualizing) {
@@ -115,6 +118,7 @@ export function useCanvasInteractions({
 
   const handleMouseLeave = useCallback(() => {
     setHoveredNodeId(null);
+    setHoveredBodyNodeId(null);
     hoveredNodeIdRef.current = null;
     setHoveredEdge(null);
   }, []);
@@ -429,6 +433,7 @@ export function useCanvasInteractions({
     edgeDragTarget,
     // Hover state (for rendering)
     hoveredNodeId,
+    hoveredBodyNodeId,
     hoveredEdge,
     // Event handlers
     handlePointerDown,
