@@ -42,7 +42,7 @@ import {
   screenToWorld,
   type ViewportState,
 } from "./ViewportTransform";
-import { hitTestNodes } from "./HitTesting";
+import { hitTestNodesBody } from "./HitTesting";
 
 export interface CanvasGraphHandle {
   getCanvasElement: () => HTMLCanvasElement | null;
@@ -136,7 +136,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     const canvas = canvasRef.current;
     if (!canvas || isVisualizing || currentAlgorithm) return;
     const world = screenToWorld(e.clientX, e.clientY, canvas, { zoom, pan });
-    const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
     if (hitNode) {
       handleLabelEdit(hitNode.id);
     }

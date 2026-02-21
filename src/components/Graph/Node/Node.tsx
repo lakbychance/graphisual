@@ -210,7 +210,6 @@ export const Node = memo(function Node(props: NodeProps) {
     <m.g
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onDoubleClick={handleDoubleClick}
       initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={prefersReducedMotion ? { duration: 0 } : {
@@ -231,6 +230,7 @@ export const Node = memo(function Node(props: NodeProps) {
       {/* Main node token - tangible, pickable button */}
       <m.circle
         onPointerDown={handlePointerDown}
+        onDoubleClick={handleDoubleClick}
         onMouseEnter={handleMouseEnter}
         initial={{
           r: node.r

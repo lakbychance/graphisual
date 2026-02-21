@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, type RefObject, useMemo } from "react";
 import type { GraphNode, GraphEdge } from "../components/Graph/types";
 import { screenToWorld } from "../components/GraphCanvas/ViewportTransform";
-import { hitTestNodes, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
+import { hitTestNodes, hitTestNodesBody, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
@@ -126,9 +126,10 @@ export function useCanvasInteractions({
     if (!canvas) return;
 
     const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
-    const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    // Use body-only hit test: selection and drag only trigger on the visible node circle
+    const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
-    // Box selection (Shift + empty canvas)
+    // Box selection (Shift + empty canvas body)
     if (e.shiftKey && !hitNode && !currentAlgorithm) {
       setDragState({
         type: 'box-select',
@@ -141,31 +142,12 @@ export function useCanvasInteractions({
       return;
     }
 
-    // Node interaction
+    // Node body interaction (selection, drag, algorithm click)
     if (hitNode) {
       // Algorithm mode - click to select
       if (currentAlgorithm && !isVisualizing) {
         handleNodeClick(hitNode.id);
         return;
-      }
-
-      // Check if clicking on connector (for edge creation)
-      if (!isVisualizing && !currentAlgorithm && hoveredNodeIdRef.current === hitNode.id) {
-        const connectorHit = hitTestConnectors(world.x, world.y, hitNode);
-        if (connectorHit) {
-          setDragState({
-            type: 'edge-create',
-            startX: e.clientX,
-            startY: e.clientY,
-            startWorldX: hitNode.x,
-            startWorldY: hitNode.y,
-            connectorNodeId: hitNode.id,
-          });
-          setEdgeDragSource(hitNode.id);
-          isDraggingRef.current = false;
-          canvas.setPointerCapture(e.pointerId);
-          return;
-        }
       }
 
       // Start node drag
@@ -199,6 +181,29 @@ export function useCanvasInteractions({
         canvas.setPointerCapture(e.pointerId);
       }
       return;
+    }
+
+    // Connector check: connectors live in the hit-area ring (outside body, inside extended radius).
+    // The hovered node is tracked via the full hit test in handleMouseMove, so we can look it up here.
+    if (!isVisualizing && !currentAlgorithm && hoveredNodeIdRef.current !== null) {
+      const hoveredNode = nodes.find(n => n.id === hoveredNodeIdRef.current);
+      if (hoveredNode) {
+        const connectorHit = hitTestConnectors(world.x, world.y, hoveredNode);
+        if (connectorHit) {
+          setDragState({
+            type: 'edge-create',
+            startX: e.clientX,
+            startY: e.clientY,
+            startWorldX: hoveredNode.x,
+            startWorldY: hoveredNode.y,
+            connectorNodeId: hoveredNode.id,
+          });
+          setEdgeDragSource(hoveredNode.id);
+          isDraggingRef.current = false;
+          canvas.setPointerCapture(e.pointerId);
+          return;
+        }
+      }
     }
 
     // Edge click detection

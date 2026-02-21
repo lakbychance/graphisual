@@ -132,6 +132,32 @@ export function hitTestNodes(
 }
 
 /**
+ * Hit test nodes using only the visible node radius (no hit area padding).
+ * Use this for interactions that should not fire on the invisible extended hit area,
+ * e.g. double-click to edit label.
+ */
+export function hitTestNodesBody(
+  worldX: number,
+  worldY: number,
+  nodes: GraphNode[],
+  stackingOrder: Set<number>
+): GraphNode | null {
+  const orderedIds = [...stackingOrder];
+  for (let i = orderedIds.length - 1; i >= 0; i--) {
+    const nodeId = orderedIds[i];
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      const dx = worldX - node.x;
+      const dy = worldY - node.y;
+      if (dx * dx + dy * dy <= node.r * node.r) {
+        return node;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Hit test edge connectors (the small circles around a node).
  */
 export function hitTestConnectors(
