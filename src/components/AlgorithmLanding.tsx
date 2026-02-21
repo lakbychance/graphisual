@@ -44,7 +44,7 @@ export function AlgorithmLanding({
   ctaText,
   howItWorks,
   properties,
-  useCases,
+  useCases: cases,
   faq,
 }: AlgorithmPageProps) {
   return (
@@ -88,12 +88,12 @@ export function AlgorithmLanding({
             How It Works
           </h2>
           <div className="space-y-4 text-[var(--color-text-muted)] leading-relaxed">
-            {howItWorks.description.map((paragraph, i) => (
-              <p key={i}>{paragraph}</p>
+            {howItWorks.description.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
             ))}
             <ol className="space-y-0">
               {howItWorks.steps.map((step, i, arr) => (
-                <li key={i} className="flex gap-4">
+                <li key={step} className="flex gap-4">
                   <div className="flex flex-col items-center">
                     <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-divider)] text-xs font-semibold text-[var(--color-text)] shrink-0">
                       {i + 1}
@@ -113,8 +113,8 @@ export function AlgorithmLanding({
         <section className="mb-14">
           <h2 className="text-2xl font-semibold mb-6">Key Properties</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {properties.map((prop, i) => (
-              <PropertyCard key={i} icon={prop.icon} title={prop.title} description={prop.description} />
+            {properties.map((prop) => (
+              <PropertyCard key={prop.title} icon={prop.icon} title={prop.title} description={prop.description} />
             ))}
           </div>
         </section>
@@ -123,8 +123,8 @@ export function AlgorithmLanding({
         <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-4">Common Use Cases</h2>
           <ul className="space-y-3 text-[var(--color-text-muted)]">
-            {useCases.map((uc, i) => (
-              <UseCase key={i} icon={uc.icon} text={uc.text} />
+            {cases.map((uc) => (
+              <CaseItem key={uc.text} icon={uc.icon} text={uc.text} />
             ))}
           </ul>
         </section>
@@ -133,8 +133,8 @@ export function AlgorithmLanding({
         <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
           <dl className="space-y-6">
-            {faq.map((item, i) => (
-              <div key={i}>
+            {faq.map((item) => (
+              <div key={item.question}>
                 <dt className="font-semibold mb-2">{item.question}</dt>
                 <dd className="text-[var(--color-text-muted)] leading-relaxed">
                   {item.answer}
@@ -217,7 +217,7 @@ function PropertyCard({
   );
 }
 
-function UseCase({
+function CaseItem({
   icon: Icon,
   text,
 }: {
