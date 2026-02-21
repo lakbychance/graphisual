@@ -69,7 +69,7 @@ export const NodeLabelPopup = ({
           defaultValue={currentLabel ?? ""}
           placeholder={String(nodeId)}
           maxLength={5}
-          className="focus-ring-animated-inset w-24 h-8 px-2 text-center text-sm font-bold rounded-md bg-[var(--color-paper)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-[var(--shadow-etched)] outline-none"
+          className="focus-ring-animated-inset w-16 h-8 px-2 text-center text-sm font-bold rounded-md bg-[var(--color-paper)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-[var(--shadow-etched)] outline-none"
         />
       </PopoverContent>
     </Popover>
