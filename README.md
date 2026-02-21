@@ -1,6 +1,6 @@
 # Graphisual
 
-[![React Doctor](https://www.react.doctor/share/badge?p=graphisual&s=99&w=8&f=2)](https://www.react.doctor/share?p=graphisual&s=99&w=8&f=2)
+[![React Doctor](https://www.react.doctor/share/badge?p=graphisual&s=97&w=137&f=43)](https://www.react.doctor/share?p=graphisual&s=97&w=137&f=43)
 
 An interactive graph editor and algorithm visualizer. Draw graphs, run algorithms, and step through their execution with real-time data structure visualization.
 
