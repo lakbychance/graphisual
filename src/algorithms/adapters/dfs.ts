@@ -6,6 +6,7 @@
  */
 
 import { DfsIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -47,9 +48,9 @@ function* dfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     // Build trace message
-    let message = `**Visiting node ${nodeId}**`;
+    let message = `**Visiting node ${nid(nodeId)}**`;
     if (addedToStack.length > 0) {
-      message += `, pushed **${addedToStack.join(", ")}** to stack`;
+      message += `, pushed **${addedToStack.map(nid).join(", ")}** to stack`;
     }
 
     // Yield the visit step with trace

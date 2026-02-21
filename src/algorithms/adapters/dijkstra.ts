@@ -6,6 +6,7 @@
  */
 
 import { DijkstraIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -34,7 +35,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
       trace: {
-        message: `**Start and destination are the same** (node ${startNodeId})`,
+        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
         dataStructure: { type: "priority-queue", items: [], processing: { id: startNodeId, value: 0 } },
       },
     };
@@ -87,9 +88,9 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
   }
 
   // Build start node message
-  let startMessage = `**Starting at node ${startNodeId}**`;
+  let startMessage = `**Starting at node ${nid(startNodeId)}**`;
   if (startUpdatedNodes.length > 0) {
-    startMessage += `, updated **${startUpdatedNodes.join(", ")}**`;
+    startMessage += `, updated **${startUpdatedNodes.map(nid).join(", ")}**`;
   }
 
   // Yield start node with queue state AFTER relaxation
@@ -149,9 +150,9 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     // Build trace message
-    let message = `**Visiting node ${currentNode}**`;
+    let message = `**Visiting node ${nid(currentNode)}**`;
     if (updatedNodes.length > 0) {
-      message += `, updated **${updatedNodes.join(", ")}**`;
+      message += `, updated **${updatedNodes.map(nid).join(", ")}**`;
     }
 
     // Found the target
@@ -161,7 +162,7 @@ function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
         type: StepType.VISIT,
         edge: { from: prevNode ?? -1, to: currentNode },
         trace: {
-          message: `**Found destination node ${currentNode}!**`,
+          message: `**Found destination node ${nid(currentNode)}!**`,
           dataStructure: {
             type: "priority-queue",
             items: getPriorityQueueState(),

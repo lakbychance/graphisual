@@ -6,6 +6,7 @@
  */
 
 import { BfsPathfindingIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -35,7 +36,7 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
       type: StepType.VISIT,
       edge: { from: -1, to: startNodeId },
       trace: {
-        message: `**Start and destination are the same** (node ${startNodeId})`,
+        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
         dataStructure: { type: "queue", items: [], processing: { id: startNodeId } },
       },
     };
@@ -68,7 +69,7 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
         type: StepType.VISIT,
         edge: { from: current.from, to: nodeId },
         trace: {
-          message: `**Found destination node ${nodeId}!**`,
+          message: `**Found destination node ${nid(nodeId)}!**`,
           dataStructure: {
             type: "queue",
             items: queue.getContents().map((item) => ({ id: item.to })),
@@ -91,9 +92,9 @@ function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
     }
 
     // Build trace message
-    let message = `**Visiting node ${nodeId}**`;
+    let message = `**Visiting node ${nid(nodeId)}**`;
     if (addedToQueue.length > 0) {
-      message += `, added **${addedToQueue.join(", ")}** to queue`;
+      message += `, added **${addedToQueue.map(nid).join(", ")}** to queue`;
     }
 
     // Yield the visit step with trace

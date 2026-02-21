@@ -7,6 +7,7 @@
  */
 
 import { CycleDetectionIcon } from "../icons";
+import { nid } from "../traceHelpers";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
@@ -91,7 +92,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
       type: StepType.VISIT,
       edge: { from: parentId, to: nodeId },
       trace: {
-        message: `**Exploring node ${nodeId}**. Recursion depth: ${recursionStack.length}`,
+        message: `**Exploring node ${nid(nodeId)}**. Recursion depth: ${recursionStack.length}`,
         dataStructure: {
           type: "recursion-stack",
           items: getStackState(),
@@ -124,7 +125,7 @@ function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
           type: StepType.VISIT,
           edge: { from: nodeId, to: neighborId },
           trace: {
-            message: `**Cycle detected!** Back edge **${nodeId}→${neighborId}** found\nNode **${neighborId}** is in recursion stack`,
+            message: `**Cycle detected!** Back edge **${nid(nodeId)}→${nid(neighborId)}** found\nNode **${nid(neighborId)}** is in recursion stack`,
             dataStructure: {
               type: "recursion-stack",
               items: getStackState(),

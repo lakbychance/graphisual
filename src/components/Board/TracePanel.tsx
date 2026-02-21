@@ -1,14 +1,23 @@
+import { useCallback } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/button";
 import { GrainTexture } from "../ui/grain-texture";
 import { DataStructureVis } from "./DataStructureVis";
 import type { StepTrace } from "../../algorithms/types";
 import * as m from "motion/react-m";
+import { useGraphStore } from "../../store/graphStore";
+import { useShallow } from "zustand/shallow";
 
-// Parse **bold** markers and newlines in text and return React nodes
-const parseTrace = (text: string): React.ReactNode => {
+// Parse **bold** markers and newlines in text and return React nodes.
+// Resolves {n:X} node ID placeholders to custom labels before parsing.
+const parseTrace = (text: string, getNodeLabel?: (id: number) => string): React.ReactNode => {
+  // Resolve node ID placeholders emitted by algorithm adapters via nid()
+  const processed = text.replace(/\{n:(\d+)\}/g, (_, id) =>
+    getNodeLabel ? getNodeLabel(parseInt(id, 10)) : id
+  );
+
   // Split by newlines first
-  const lines = text.split("\n");
+  const lines = processed.split("\n");
 
   return lines.map((line, lineIndex) => {
     // Parse bold markers within each line
@@ -34,6 +43,13 @@ interface TracePanelProps {
 }
 
 export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
+  const nodes = useGraphStore(useShallow((state) => state.data.nodes));
+
+  const getNodeLabel = useCallback(
+    (id: number) => nodes.find((n) => n.id === id)?.label || String(id),
+    [nodes]
+  );
+
   return (
     <m.div
       layout='preserve-aspect'
@@ -63,13 +79,13 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
 
         {/* Trace message */}
         <div className="text-sm text-[var(--color-text-muted)] relative z-10">
-          {trace?.message ? parseTrace(trace.message) : "Starting algorithm..."}
+          {trace?.message ? parseTrace(trace.message, getNodeLabel) : "Starting algorithm..."}
         </div>
 
         {/* Data structure visualization */}
         {trace?.dataStructure && (
           <div className="relative z-10 pt-1 border-t border-[var(--color-divider)]">
-            <DataStructureVis dataStructure={trace.dataStructure} />
+            <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
           </div>
         )}
       </div>

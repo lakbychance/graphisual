@@ -52,10 +52,12 @@ const ProcessingBox = ({
   id,
   value,
   layoutId,
+  getNodeLabel,
 }: {
   id: number;
   value?: number;
   layoutId: string;
+  getNodeLabel: (id: number) => string;
 }) => (
   <m.div
     key={id}
@@ -69,11 +71,11 @@ const ProcessingBox = ({
   >
     {value !== undefined ? (
       <>
-        <span>{id}</span>
+        <span>{getNodeLabel(id)}</span>
         <span className="text-[10px] opacity-75">d={value}</span>
       </>
     ) : (
-      id
+      getNodeLabel(id)
     )}
   </m.div>
 );
@@ -85,12 +87,14 @@ const AnimatedItem = ({
   hasRing,
   isJustAdded,
   showValue,
+  getNodeLabel,
 }: {
   item: { id: number; value?: number };
   layoutId: string;
   hasRing: boolean;
   isJustAdded: boolean;
   showValue: boolean;
+  getNodeLabel: (id: number) => string;
 }) => (
   <m.div
     key={item.id}
@@ -108,11 +112,11 @@ const AnimatedItem = ({
   >
     {showValue && item.value !== undefined ? (
       <>
-        <span>{item.id}</span>
+        <span>{getNodeLabel(item.id)}</span>
         <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
       </>
     ) : (
-      item.id
+      getNodeLabel(item.id)
     )}
   </m.div>
 );
@@ -123,11 +127,13 @@ const ItemBox = ({
   value,
   hasRing,
   isJustAdded,
+  getNodeLabel,
 }: {
   id: number;
   value?: number;
   hasRing?: boolean;
   isJustAdded?: boolean;
+  getNodeLabel: (id: number) => string;
 }) => (
   <div
     className={cn(
@@ -140,20 +146,22 @@ const ItemBox = ({
   >
     {value !== undefined ? (
       <>
-        <span>{id}</span>
+        <span>{getNodeLabel(id)}</span>
         <span className="text-[10px] text-[var(--color-text-muted)]">d={value}</span>
       </>
     ) : (
-      id
+      getNodeLabel(id)
     )}
   </div>
 );
 
 interface DataStructureVisProps {
   dataStructure: DataStructureState;
+  /** Resolves a node ID to its display label. Falls back to the numeric ID string. */
+  getNodeLabel?: (id: number) => string;
 }
 
-export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
+export const DataStructureVis = ({ dataStructure, getNodeLabel = String }: DataStructureVisProps) => {
   const { items, processing, justAdded } = dataStructure;
   const justAddedSet = useMemo(() => new Set(justAdded || []), [justAdded]);
 
@@ -171,6 +179,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                 <ProcessingBox
                   id={processing.id}
                   layoutId={`queue-item-${processing.id}`}
+                  getNodeLabel={getNodeLabel}
                 />
               )}
             </AnimatePresence>
@@ -191,6 +200,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                       hasRing={index === 0}
                       isJustAdded={justAddedSet.has(item.id)}
                       showValue={false}
+                      getNodeLabel={getNodeLabel}
                     />
                   ))}
                 </div>
@@ -217,6 +227,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                 <ProcessingBox
                   id={processing.id}
                   layoutId={`stack-item-${processing.id}`}
+                  getNodeLabel={getNodeLabel}
                 />
               )}
             </AnimatePresence>
@@ -238,6 +249,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                       hasRing={index === visibleItems.length - 1}
                       isJustAdded={justAddedSet.has(item.id)}
                       showValue={false}
+                      getNodeLabel={getNodeLabel}
                     />
                   ))}
                 </div>
@@ -264,6 +276,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                   id={processing.id}
                   value={processing.value}
                   layoutId={`pq-item-${processing.id}`}
+                  getNodeLabel={getNodeLabel}
                 />
               )}
             </AnimatePresence>
@@ -284,6 +297,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                       hasRing={index === 0}
                       isJustAdded={justAddedSet.has(item.id)}
                       showValue={true}
+                      getNodeLabel={getNodeLabel}
                     />
                   ))}
                 </div>
@@ -307,7 +321,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
           <div className="flex items-center h-6">
             {processing && (
               <div className={cn(styles.itemBase, styles.itemProcessing)}>
-                {processing.id}
+                {getNodeLabel(processing.id)}
               </div>
             )}
           </div>
@@ -334,7 +348,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                         animate={{ opacity: 1, scale: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.95, x: 10 }}
                       >
-                        {item.id}
+                        {getNodeLabel(item.id)}
                       </m.div>
                     ))}
                   </AnimatePresence>
@@ -358,7 +372,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
             <DSLabel>Updated:</DSLabel>
             <div className="flex items-center">
               <div className={cn(styles.itemBase, styles.itemProcessing, styles.itemWithValue)}>
-                <span>{processing.id}</span>
+                <span>{getNodeLabel(processing.id)}</span>
                 <span className="text-[10px] opacity-75">d={processing.value}</span>
               </div>
             </div>
@@ -375,6 +389,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
                   id={item.id}
                   value={item.value}
                   isJustAdded={justAddedSet.has(item.id)}
+                  getNodeLabel={getNodeLabel}
                 />
               ))}
               <OverflowIndicator count={hiddenCount} />
@@ -393,7 +408,7 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
           key={item.id}
           className={cn(styles.itemBase, "bg-[var(--color-paper)] text-[var(--color-text)]")}
         >
-          {item.id}
+          {getNodeLabel(item.id)}
           {item.value !== undefined && `:${item.value}`}
         </div>
       ))}
