@@ -622,7 +622,7 @@ export const useGraphStore = create<GraphStore>()(
         updateNodeLabel: autoHistory((nodeId: number, label: string) => {
           get().clearVisualization();
           const { data } = get();
-          const trimmed = label.trim().slice(0, 5);
+          const trimmed = label.trim().replace(/\*/g, '').slice(0, 5);
           const newNodes = data.nodes.map((n) =>
             n.id === nodeId ? { ...n, label: trimmed || undefined } : n
           );

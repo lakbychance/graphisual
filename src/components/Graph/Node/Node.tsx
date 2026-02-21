@@ -184,6 +184,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const handleDoubleClick = useCallback(
     (event: React.MouseEvent) => {
       if (!isDesktop || isVisualizing || isAlgorithmSelected) return;
+      event.preventDefault();
       event.stopPropagation();
       onLabelEdit(nodeId);
     },
