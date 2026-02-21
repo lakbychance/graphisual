@@ -6,7 +6,6 @@ import { VitePWA } from "vite-plugin-pwa";
 export function pwaPlugin() {
   return VitePWA({
     registerType: "autoUpdate",
-    injectRegister: "script-defer",
     includeAssets: ["favicon.png", "apple-touch-icon.png"],
     manifest: {
       name: "Graphisual",
