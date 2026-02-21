@@ -7,16 +7,16 @@ import { GrainTexture } from "../ui/grain-texture";
 const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 const modKey = isMac ? '⌘' : 'Ctrl';
 
-// Render key string with properly sized ⌘ symbol
-const renderKeys = (keys: string) => {
-  if (!keys.includes('⌘')) return keys;
+const KeyParts = ({ keys }: { keys: string }) => {
+  if (!keys.includes('⌘')) return <>{keys}</>;
 
-  const parts = keys.split('⌘');
+  const [before, ...rest] = keys.split('⌘');
   return (
     <span className="grid grid-flow-col items-center">
-      {parts.map((part, i) => (
-        <span key={i} className="contents">
-          {i > 0 && <span>⌘</span>}
+      {before && <span>{before}</span>}
+      {rest.map((part) => (
+        <span key={part} className="contents">
+          <span>⌘</span>
           <span>{part}</span>
         </span>
       ))}
@@ -103,7 +103,7 @@ export const KeyboardShortcuts = () => {
                         {shortcut.description}
                       </span>
                       <kbd className="px-1.5 py-0.5 flex font-sans items-center rounded bg-[var(--color-paper)] text-[var(--color-text)] text-[10px]">
-                        {renderKeys(shortcut.keys)}
+                        <KeyParts keys={shortcut.keys} />
                       </kbd>
                     </div>
                   ))}

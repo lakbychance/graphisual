@@ -388,9 +388,9 @@ export const DataStructureVis = ({ dataStructure }: DataStructureVisProps) => {
   // Default fallback
   return (
     <div className="flex items-center gap-1 flex-wrap">
-      {items.map((item, index) => (
+      {items.map((item) => (
         <div
-          key={`${item.id}-${index}`}
+          key={item.id}
           className={cn(styles.itemBase, "bg-[var(--color-paper)] text-[var(--color-text)]")}
         >
           {item.id}

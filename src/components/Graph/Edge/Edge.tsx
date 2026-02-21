@@ -5,6 +5,29 @@ import { cn } from "@/lib/utils";
 import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
 import { EDGE } from "../../../constants/graph";
 
+const WeightLabel = ({ centerX, centerY, weight }: { centerX: number; centerY: number; weight: number }) => (
+  <g>
+    <rect
+      x={centerX - 12}
+      y={centerY - 10}
+      width={24}
+      height={20}
+      fill="var(--color-paper)"
+      rx={4}
+    />
+    <text
+      className="pointer-events-none select-none font-semibold text-sm [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
+      style={{ fill: 'var(--color-text)' }}
+      x={centerX}
+      y={centerY}
+      textAnchor="middle"
+      dominantBaseline="central"
+    >
+      {weight}
+    </text>
+  </g>
+);
+
 export interface EdgeProps {
   edge: GraphEdge;
   sourceNodeId: number;
@@ -94,33 +117,6 @@ export const Edge = memo(function Edge({
     return edge.type === "directed" ? 2 : 2.5;
   };
 
-  const renderWeightLabel = (centerX: number, centerY: number) => {
-    if (edge.weight === undefined || edge.weight === EDGE.DEFAULT_WEIGHT) return null;
-
-    return (
-      <g>
-        <rect
-          x={centerX - 12}
-          y={centerY - 10}
-          width={24}
-          height={20}
-          fill="var(--color-paper)"
-          rx={4}
-        />
-        <text
-          className="pointer-events-none select-none font-semibold text-sm [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
-          style={{ fill: 'var(--color-text)' }}
-          x={centerX}
-          y={centerY}
-          textAnchor="middle"
-          dominantBaseline="central"
-        >
-          {edge.weight}
-        </text>
-      </g>
-    );
-  };
-
   if (edge.type === "directed") {
     // Calculate actual center of quadratic bezier curve at t=0.5
     // Q(0.5) = (P0 + 2*P1 + P2) / 4
@@ -159,7 +155,9 @@ export const Edge = memo(function Edge({
           )}
           markerEnd={`url(#${arrowMarkerId})`}
         />
-        {renderWeightLabel(centerX, centerY)}
+        {edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT && (
+          <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} />
+        )}
       </g>
     );
   }
@@ -199,7 +197,9 @@ export const Edge = memo(function Edge({
           isFocused && "edge-focused"
         )}
       />
-      {renderWeightLabel(centerX, centerY)}
+      {edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT && (
+        <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} />
+      )}
     </g>
   );
 });

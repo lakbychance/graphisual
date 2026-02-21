@@ -59,66 +59,52 @@ export const GraphRenderer = ({
     []
   );
 
-  const renderGraph = () => {
-    switch (renderMode) {
-      case '3d':
-        return (
-          <m.div
-            key="3d"
-            className="absolute inset-0"
-            initial={{ opacity: 0, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, filter: 'blur(8px)' }}
-            transition={{ duration: 0.15 }}
-          >
-            <ErrorBoundary FallbackComponent={Graph3DErrorFallback}>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
-                    Loading 3D…
-                  </div>
-                }
-              >
-                <Graph3D ref={graph3DRef} />
-              </Suspense>
-            </ErrorBoundary>
-          </m.div>
-        );
-
-      case 'canvas':
-        return (
-          <m.div
-            key="canvas"
-            className="absolute inset-0"
-            initial={{ opacity: 0, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, filter: 'blur(8px)' }}
-            transition={{ duration: 0.15 }}
-          >
-            <CanvasGraph ref={canvasGraphRef} />
-          </m.div>
-        );
-
-      case 'svg':
-      default:
-        return (
-          <m.div
-            key="svg"
-            className="absolute inset-0"
-            initial={{ opacity: 0, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, filter: 'blur(8px)' }}
-            transition={{ duration: 0.15 }}
-          >
-            <Graph ref={graphRef} />
-          </m.div>
-        );
-    }
-  };
-
   return (
     <AnimatePresence mode="wait">
-      {renderGraph()}
+      {renderMode === '3d' ? (
+        <m.div
+          key="3d"
+          className="absolute inset-0"
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 0.15 }}
+        >
+          <ErrorBoundary FallbackComponent={Graph3DErrorFallback}>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+                  Loading 3D…
+                </div>
+              }
+            >
+              <Graph3D ref={graph3DRef} />
+            </Suspense>
+          </ErrorBoundary>
+        </m.div>
+      ) : renderMode === 'canvas' ? (
+        <m.div
+          key="canvas"
+          className="absolute inset-0"
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 0.15 }}
+        >
+          <CanvasGraph ref={canvasGraphRef} />
+        </m.div>
+      ) : (
+        <m.div
+          key="svg"
+          className="absolute inset-0"
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 0.15 }}
+        >
+          <Graph ref={graphRef} />
+        </m.div>
+      )}
     </AnimatePresence>
   );
 };
