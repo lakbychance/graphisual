@@ -23,6 +23,7 @@ import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useCanvasColorState } from "../../hooks/useCanvasColorState";
 import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
+import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { EdgePopup } from "../Graph/EdgePopup";
 import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 import { getCSSVar } from "../../utils/cssVariables";
@@ -38,8 +39,10 @@ import {
   applyViewportTransform,
   resetTransform,
   worldToScreen,
+  screenToWorld,
   type ViewportState,
 } from "./ViewportTransform";
+import { hitTestNodes } from "./HitTesting";
 
 export interface CanvasGraphHandle {
   getCanvasElement: () => HTMLCanvasElement | null;
@@ -114,12 +117,30 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
     visualizationState === VisualizationState.RUNNING;
 
-  // Convert world coordinates to screen coordinates (for edge popup positioning)
+  // Convert world coordinates to screen coordinates (for popup positioning)
   const worldToScreenCoords = useCallback((worldX: number, worldY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     return worldToScreen(worldX, worldY, canvas, { zoom, pan, width: canvas.clientWidth, height: canvas.clientHeight });
   }, [zoom, pan]);
+
+  // Node label editing
+  const { handleLabelEdit, labelPopupElement } = useNodeLabelEdit({
+    nodes,
+    nodeToScreenCoords: worldToScreenCoords,
+    selectNode,
+    onCloseFocus: () => canvasRef.current?.focus(),
+  });
+
+  const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || isVisualizing || currentAlgorithm) return;
+    const world = screenToWorld(e.clientX, e.clientY, canvas, { zoom, pan });
+    const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+    if (hitNode) {
+      handleLabelEdit(hitNode.id);
+    }
+  }, [isVisualizing, currentAlgorithm, zoom, pan, nodes, stackingOrder, handleLabelEdit]);
 
   // Track canvas size - triggers re-render when canvas resizes
   const canvasSize = useElementDimensions(canvasRef);
@@ -301,6 +322,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     onAlgorithmNodeSelect: handleNodeClick,
     isAlgorithmSelected: !!currentAlgorithm,
     isVisualizing,
+    onLabelEdit: handleLabelEdit,
   });
 
   // Edge popup handlers
@@ -330,10 +352,14 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
         onPointerUp={handlePointerUp}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onDoubleClick={handleDoubleClick}
         onKeyDown={handleCanvasKeyDown}
         onBlur={handleCanvasBlur}
         aria-label="Graph canvas"
       />
+
+      {/* Node label popup */}
+      {labelPopupElement}
 
       {/* Edge popup - same as SVG version */}
       {selectedEdge && createPortal(

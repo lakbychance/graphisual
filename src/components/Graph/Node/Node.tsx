@@ -7,6 +7,7 @@ import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE } from "../../../constant
 import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
+import { useIsDesktop } from "../../../hooks/useMediaQuery";
 
 export interface NodeProps {
   nodeId: number;
@@ -23,6 +24,7 @@ export interface NodeProps {
   onNodeSelect: (nodeId: number | null) => void;
   screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
   isGestureActive: () => boolean;
+  onLabelEdit: (nodeId: number) => void;
 }
 
 
@@ -37,6 +39,7 @@ export const Node = memo(function Node(props: NodeProps) {
     onNodeSelect,
     screenToSvgCoords,
     isGestureActive,
+    onLabelEdit,
   } = props;
 
   // Subscribe to THIS node's data only
@@ -57,6 +60,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
+  const isDesktop = useIsDesktop();
 
   // Track hover state for connectors and algorithm mode zoom effect
   const handleMouseEnter = useCallback(() => {
@@ -164,6 +168,15 @@ export const Node = memo(function Node(props: NodeProps) {
     [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront]
   );
 
+  const handleDoubleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (!isDesktop || isVisualizing || isAlgorithmSelected) return;
+      event.stopPropagation();
+      onLabelEdit(nodeId);
+    },
+    [isDesktop, isVisualizing, isAlgorithmSelected, onLabelEdit, nodeId]
+  );
+
   // Early return if node not found - after all hooks
   if (!node) return null;
 
@@ -197,6 +210,7 @@ export const Node = memo(function Node(props: NodeProps) {
     <m.g
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onDoubleClick={handleDoubleClick}
       initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={prefersReducedMotion ? { duration: 0 } : {
@@ -290,14 +304,14 @@ export const Node = memo(function Node(props: NodeProps) {
         </>
       )}
 
-      {/* Node label */}
+      {/* Node label - hidden while editing to avoid overlap with portal input */}
       <text
         className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
         style={{ fill: 'var(--color-text)' }}
         x={node.x}
         y={node.y}
       >
-        {node.id}
+        {node.label || node.id}
       </text>
     </m.g>
   );

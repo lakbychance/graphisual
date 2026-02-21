@@ -36,6 +36,7 @@ export interface GraphNode {
   y: number;
   r: number;
   id: number;
+  label?: string;
 }
 
 /**

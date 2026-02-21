@@ -243,7 +243,7 @@ function drawNodeLabel(
   ctx.fillStyle = getCSSVar('--color-text');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(node.id.toString(), node.x, node.y);
+  ctx.fillText(node.label || node.id.toString(), node.x, node.y);
   ctx.restore();
 }
 

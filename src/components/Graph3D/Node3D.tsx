@@ -42,6 +42,7 @@ interface Node3DProps {
   isClickable?: boolean;
   introOpacity: number;
   introZOffset: number;
+  label?: string;
 }
 
 // Shared diagonal texture cache - keyed by color to support theme changes
@@ -94,7 +95,7 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
   return texture;
 }
 
-export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false, introOpacity, introZOffset }: Node3DProps) {
+export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false, introOpacity, introZOffset, label }: Node3DProps) {
 
   // Get visualization state using derived selector
   const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
@@ -268,7 +269,7 @@ export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isCl
           anchorY="middle"
           fillOpacity={introOpacity}
         >
-          {String(nodeId)}
+          {label || String(nodeId)}
         </Text>
       </group>
     </group>

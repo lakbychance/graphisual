@@ -16,6 +16,7 @@ interface UseGraphKeyboardNavigationOptions {
   onAlgorithmNodeSelect?: (nodeId: number) => void;
   isAlgorithmSelected?: boolean;
   isVisualizing?: boolean;
+  onLabelEdit?: (nodeId: number) => void;
 }
 
 export function useGraphKeyboardNavigation({
@@ -26,6 +27,7 @@ export function useGraphKeyboardNavigation({
   onAlgorithmNodeSelect,
   isAlgorithmSelected = false,
   isVisualizing = false,
+  onLabelEdit,
 }: UseGraphKeyboardNavigationOptions) {
   // Keyboard navigation is desktop only
   const isDesktop = useIsDesktop();
@@ -108,6 +110,13 @@ export function useGraphKeyboardNavigation({
       return;
     }
 
+    // === Enter key: edit node label (when node selected, no edge focused, no algorithm) ===
+    if (e.key === 'Enter' && selectedNodeId !== null && !focusedEdge && !isAlgorithmSelected && !isVisualizing && onLabelEdit) {
+      e.preventDefault();
+      onLabelEdit(selectedNodeId);
+      return;
+    }
+
     // === Escape key: clear edge focus ===
     if (e.key === 'Escape' && focusedEdge) {
       e.preventDefault();
@@ -150,7 +159,7 @@ export function useGraphKeyboardNavigation({
         selectNode(nextNode.id);
       }
     }
-  }, [isDesktop, isInStepMode, selectedNodeId, selectedNodeIds, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect]);
+  }, [isDesktop, isInStepMode, selectedNodeId, selectedNodeIds, orderedNodeIds, nodes, edges, focusedEdge, selectNode, setFocusedEdge, clearFocusedEdge, selectEdgeAction, svgToScreenCoords, isAlgorithmSelected, isVisualizing, onAlgorithmNodeSelect, onLabelEdit]);
 
   // Handle blur - deselect node and clear edge focus when focus leaves the graph
   // But don't clear if focus is moving to the edge popup

@@ -6,6 +6,7 @@ import { ZOOM } from "../../constants/ui";
 import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
 import { useGraphStore } from "../../store/graphStore";
+import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
@@ -35,6 +36,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const orderedNodeIds = useGraphStore(
     useShallow((state) => [...state.data.stackingOrder])
   );
+  const nodes = useGraphStore(useShallow((state) => state.data.nodes));
   const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
   const selectedEdge = useGraphStore((state) => state.selection.edge);
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
@@ -195,6 +197,14 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     }
   }, [currentAlgorithm, isVisualizing, handleNodeClick, hasSelectedNodes, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, isBoxSelecting, setVisualizationAlgorithm]);
 
+  // Node label editing
+  const { handleLabelEdit, labelPopupElement } = useNodeLabelEdit({
+    nodes,
+    nodeToScreenCoords: svgToScreenCoords,
+    selectNode,
+    onCloseFocus: () => graph.current?.focus(),
+  });
+
   // Check if we're in step mode (manual visualization with steps)
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
     visualizationState === VisualizationState.RUNNING;
@@ -212,6 +222,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     onAlgorithmNodeSelect: handleNodeClick,
     isAlgorithmSelected: !!currentAlgorithm,
     isVisualizing,
+    onLabelEdit: handleLabelEdit,
   });
 
   // Hide content until viewBox is ready to prevent flicker on mount
@@ -265,6 +276,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
             onNodeSelect={selectNode}
             screenToSvgCoords={screenToSvgCoords}
             isGestureActive={isGestureActive}
+            onLabelEdit={handleLabelEdit}
           />
         ))}
 
@@ -303,6 +315,9 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         />,
         document.body
       )}
+
+      {/* Node label popup */}
+      {labelPopupElement}
     </div>
   );
 }
