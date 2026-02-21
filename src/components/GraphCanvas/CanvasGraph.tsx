@@ -23,50 +23,25 @@ import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useCanvasColorState } from "../../hooks/useCanvasColorState";
 import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
+import { useCanvasRenderLoop } from "../../hooks/useCanvasRenderLoop";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { EdgePopup } from "../Graph/EdgePopup";
 import { VisualizationMode, VisualizationState } from "../../constants/visualization";
-import { getCSSVar } from "../../utils/cssVariables";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 
 // Renderers
-import { drawGrid } from "./renderers/gridRenderer";
-import { drawNode, drawConnectors, invalidateCrosshatchCache } from "./renderers/nodeRenderer";
-import { drawEdge, drawPreviewEdge, drawSelectionBox } from "./renderers/edgeRenderer";
+import { invalidateCrosshatchCache } from "./renderers/nodeRenderer";
 
 // Utilities
 import {
-  applyViewportTransform,
-  resetTransform,
   worldToScreen,
   screenToWorld,
-  type ViewportState,
 } from "./ViewportTransform";
 import { hitTestNodesBody } from "./HitTesting";
 
 export interface CanvasGraphHandle {
   getCanvasElement: () => HTMLCanvasElement | null;
-}
-
-/**
- * Check if an edge is hovered, accounting for undirected edges.
- * For undirected edges, both directions should show hover state
- * since they're rendered as two separate edges in the store.
- */
-function isEdgeHovered(
-  nodeId: number,
-  edge: { to: number; type: string },
-  hoveredEdge: { sourceNodeId: number; toNodeId: number } | null
-): boolean {
-  if (!hoveredEdge) return false;
-  if (hoveredEdge.sourceNodeId === nodeId && hoveredEdge.toNodeId === edge.to) {
-    return true;
-  }
-  if (edge.type === 'undirected') {
-    return hoveredEdge.sourceNodeId === edge.to && hoveredEdge.toNodeId === nodeId;
-  }
-  return false;
 }
 
 export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
@@ -211,82 +186,8 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     handleNodeClick,
   });
 
-  // Render loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-
-    if (width === 0 || height === 0) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const actualViewport: ViewportState = { zoom, pan, width, height };
-
-    ctx.fillStyle = getCSSVar('--color-paper');
-    ctx.fillRect(0, 0, width, height);
-
-    applyViewportTransform(ctx, actualViewport, dpr);
-    drawGrid(ctx, actualViewport);
-
-    // Draw edges
-    const orderedNodeIds = [...stackingOrder];
-    for (const nodeId of orderedNodeIds) {
-      const nodeEdges = edges.get(nodeId);
-      if (nodeEdges) {
-        for (const edge of nodeEdges) {
-          const isHovered = isEdgeHovered(nodeId, edge, hoveredEdge);
-          drawEdge(ctx, edge, {
-            colorState: getEdgeColorState(nodeId, edge.to),
-            isFocused: isEdgeFocused(nodeId, edge.to) || isHovered,
-          });
-        }
-      }
-    }
-
-    // Draw preview edge
-    if (previewEdge) {
-      drawPreviewEdge(ctx, previewEdge.startX, previewEdge.startY, previewEdge.endX, previewEdge.endY);
-    }
-
-    // Draw nodes
-    for (const nodeId of orderedNodeIds) {
-      const node = nodes.find(n => n.id === nodeId);
-      if (node) {
-        const isSelected = selectedNodeIds.has(nodeId);
-        const isHovered = hoveredNodeId === nodeId;
-        const isEdgeDragSourceNode = edgeDragSource === nodeId;
-        const isEdgeDragTargetNode = edgeDragTarget === nodeId;
-
-        drawNode(ctx, node, {
-          isSelected,
-          isHovered: hoveredBodyNodeId === nodeId && !!currentAlgorithm && !isVisualizing,
-          colorState: getNodeColorState(nodeId),
-          isEdgeCreateSource: isEdgeDragSourceNode,
-          isEdgeCreateTarget: isEdgeDragTargetNode,
-        });
-
-        if (isHovered && !isVisualizing && !currentAlgorithm && !edgeDragSource) {
-          drawConnectors(ctx, node, true);
-        }
-      }
-    }
-
-    // Draw selection box
-    if (selectionBox) {
-      drawSelectionBox(ctx, selectionBox.startX, selectionBox.startY, selectionBox.currentX, selectionBox.currentY);
-    }
-
-    resetTransform(ctx);
-  }, [
+  useCanvasRenderLoop({
+    canvasRef,
     canvasSize,
     zoom,
     pan,
@@ -299,15 +200,15 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     hoveredEdge,
     edgeDragSource,
     edgeDragTarget,
+    previewEdge,
+    selectionBox,
     getNodeColorState,
     getEdgeColorState,
     isEdgeFocused,
-    previewEdge,
-    selectionBox,
     currentAlgorithm,
     isVisualizing,
     theme,
-  ]);
+  });
 
   // Keyboard navigation
   const closeEdgePopup = useCallback(() => {

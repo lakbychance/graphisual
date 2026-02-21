@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, type RefObject, useMemo } from "react";
 import type { GraphNode, GraphEdge } from "../components/Graph/types";
 import { screenToWorld } from "../components/GraphCanvas/ViewportTransform";
 import { hitTestNodes, hitTestNodesBody, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
+import type { HoveredEdge, PreviewEdge, SelectionBox } from "../components/GraphCanvas/types";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
@@ -71,15 +72,15 @@ export function useCanvasInteractions({
 }: UseCanvasInteractionsProps) {
   // Drag state
   const [dragState, setDragState] = useState<DragState>({ type: 'none', startX: 0, startY: 0, startWorldX: 0, startWorldY: 0 });
-  const [previewEdge, setPreviewEdge] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
-  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const [previewEdge, setPreviewEdge] = useState<PreviewEdge | null>(null);
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [edgeDragSource, setEdgeDragSource] = useState<number | null>(null);
   const [edgeDragTarget, setEdgeDragTarget] = useState<number | null>(null);
 
   // Hover state
   const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
   const [hoveredBodyNodeId, setHoveredBodyNodeId] = useState<number | null>(null);
-  const [hoveredEdge, setHoveredEdge] = useState<{ sourceNodeId: number; toNodeId: number } | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<HoveredEdge | null>(null);
 
   const dragStateRef = useRef(dragState);
   dragStateRef.current = dragState;
