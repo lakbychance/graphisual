@@ -1081,6 +1081,28 @@ export const selectIsStepComplete = (state: GraphStore) =>
 export const selectIsAutoPlaying = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isAutoPlaying : false;
 
+// Action enabled selectors — each component subscribes only to what it renders
+export const selectCanUndo = (state: GraphStore) =>
+  state.canUndo() && state.visualization.state !== VisualizationState.RUNNING;
+export const selectCanRedo = (state: GraphStore) =>
+  state.canRedo() && state.visualization.state !== VisualizationState.RUNNING;
+export const selectCanDeleteSelectedNodes = (state: GraphStore) =>
+  state.selection.nodeIds.size > 0 && state.visualization.state !== VisualizationState.RUNNING;
+export const selectIsInStepMode = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0;
+export const selectCanStepForward = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0 &&
+  !state.visualization.step.isComplete;
+export const selectCanStepBackward = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0 &&
+  state.visualization.step.index > 0;
+
 // Helper selector to check if a reverse edge exists (curried for use with useGraphStore)
 export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (state: GraphStore): boolean => {
   const targetEdges = state.data.edges.get(toNodeId) || [];
