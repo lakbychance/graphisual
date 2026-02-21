@@ -132,6 +132,17 @@ export function hitTestNodes(
 }
 
 /**
+ * Hit test a single node using only the visible body radius (no hit area padding).
+ */
+export function hitTestNodeBody(
+  worldX: number,
+  worldY: number,
+  node: GraphNode
+): boolean {
+  return pointInCircle(worldX, worldY, node.x, node.y, node.r);
+}
+
+/**
  * Hit test nodes using only the visible node radius (no hit area padding).
  * Use this for interactions that should not fire on the invisible extended hit area,
  * e.g. double-click to edit label.
@@ -146,12 +157,8 @@ export function hitTestNodesBody(
   for (let i = orderedIds.length - 1; i >= 0; i--) {
     const nodeId = orderedIds[i];
     const node = nodes.find(n => n.id === nodeId);
-    if (node) {
-      const dx = worldX - node.x;
-      const dy = worldY - node.y;
-      if (dx * dx + dy * dy <= node.r * node.r) {
-        return node;
-      }
+    if (node && hitTestNodeBody(worldX, worldY, node)) {
+      return node;
     }
   }
   return null;

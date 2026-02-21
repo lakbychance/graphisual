@@ -188,21 +188,22 @@ export function useCanvasInteractions({
     }
 
     // Connector check: connectors live in the hit-area ring (outside body, inside extended radius).
-    // The hovered node is tracked via the full hit test in handleMouseMove, so we can look it up here.
-    if (!isVisualizing && !currentAlgorithm && hoveredNodeIdRef.current !== null) {
-      const hoveredNode = nodes.find(n => n.id === hoveredNodeIdRef.current);
-      if (hoveredNode) {
-        const connectorHit = hitTestConnectors(world.x, world.y, hoveredNode);
+    // Use a fresh full-radius hit test rather than hoveredNodeIdRef, which may be stale if
+    // pointer-down fires without a preceding mousemove (e.g. fast pointer entry from outside).
+    if (!isVisualizing && !currentAlgorithm) {
+      const hitNodeFull = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+      if (hitNodeFull) {
+        const connectorHit = hitTestConnectors(world.x, world.y, hitNodeFull);
         if (connectorHit) {
           setDragState({
             type: 'edge-create',
             startX: e.clientX,
             startY: e.clientY,
-            startWorldX: hoveredNode.x,
-            startWorldY: hoveredNode.y,
-            connectorNodeId: hoveredNode.id,
+            startWorldX: hitNodeFull.x,
+            startWorldY: hitNodeFull.y,
+            connectorNodeId: hitNodeFull.id,
           });
-          setEdgeDragSource(hoveredNode.id);
+          setEdgeDragSource(hitNodeFull.id);
           isDraggingRef.current = false;
           canvas.setPointerCapture(e.pointerId);
           return;
@@ -375,7 +376,7 @@ export function useCanvasInteractions({
     // Handle click (no drag)
     if (!isDraggingRef.current) {
       const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
-      const hitNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
+      const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
 
       if (state.type === 'pending-node' && state.nodeId !== undefined) {
         const isSelected = selectedNodeIds.has(state.nodeId);

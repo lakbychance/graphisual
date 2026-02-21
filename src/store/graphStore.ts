@@ -620,6 +620,7 @@ export const useGraphStore = create<GraphStore>()(
         }),
 
         updateNodeLabel: autoHistory((nodeId: number, label: string) => {
+          get().clearVisualization();
           const { data } = get();
           const trimmed = label.trim().slice(0, 5);
           const newNodes = data.nodes.map((n) =>

@@ -60,6 +60,7 @@ export function useNodeLabelEdit({
           const anchor = nodeToScreenCoords(node.x, node.y);
           return createPortal(
             <NodeLabelPopup
+              key={editingNodeId}
               anchorPosition={anchor}
               nodeId={editingNodeId}
               currentLabel={node.label}

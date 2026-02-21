@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { GrainTexture } from "../ui/grain-texture";
 import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
 
@@ -29,15 +29,21 @@ export const NodeLabelPopup = ({
     return () => clearTimeout(timer);
   }, []);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setTimeout(onClose, 150);
-  };
+  // Delay calling onClose until after the exit animation, with cleanup on unmount
+  useEffect(() => {
+    if (isOpen) return;
+    const timer = setTimeout(onClose, 150);
+    return () => clearTimeout(timer);
+  }, [isOpen, onClose]);
 
-  const handleConfirm = () => {
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
     onConfirm(inputRef.current?.value ?? '');
     handleClose();
-  };
+  }, [onConfirm, handleClose]);
 
   return (
     <Popover modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>

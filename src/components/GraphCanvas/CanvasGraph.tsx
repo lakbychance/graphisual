@@ -28,6 +28,7 @@ import { EdgePopup } from "../Graph/EdgePopup";
 import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 import { getCSSVar } from "../../utils/cssVariables";
 import { useSettingsStore } from "../../store/settingsStore";
+import { useIsDesktop } from "../../hooks/useMediaQuery";
 
 // Renderers
 import { drawGrid } from "./renderers/gridRenderer";
@@ -112,6 +113,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   // Visualization hooks
   const { handleNodeClick } = useAlgorithmNodeClick();
   const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
+  const isDesktop = useIsDesktop();
   useStepThroughVisualization();
 
   const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
@@ -134,13 +136,13 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
 
   const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas || isVisualizing || currentAlgorithm) return;
+    if (!canvas || !isDesktop || isVisualizing || currentAlgorithm) return;
     const world = screenToWorld(e.clientX, e.clientY, canvas, { zoom, pan });
     const hitNode = hitTestNodesBody(world.x, world.y, nodes, stackingOrder);
     if (hitNode) {
       handleLabelEdit(hitNode.id);
     }
-  }, [isVisualizing, currentAlgorithm, zoom, pan, nodes, stackingOrder, handleLabelEdit]);
+  }, [isDesktop, isVisualizing, currentAlgorithm, zoom, pan, nodes, stackingOrder, handleLabelEdit]);
 
   // Track canvas size - triggers re-render when canvas resizes
   const canvasSize = useElementDimensions(canvasRef);
