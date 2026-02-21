@@ -221,6 +221,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     <div className="relative flex-1 w-full h-full flex flex-col">
       <svg
         ref={graph}
+        role="application"
         tabIndex={-1}
         className="flex-1 w-full h-full cursor-crosshair focus:outline-none"
         style={{ visibility: isReady ? 'visible' : 'hidden' }}
