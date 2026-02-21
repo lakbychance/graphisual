@@ -35,6 +35,7 @@ interface StepState {
   index: number;
   history: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }>;
   isComplete: boolean;
+  isAutoPlaying: boolean;
 }
 
 // Base visualization properties (shared by both modes)
@@ -143,6 +144,8 @@ interface GraphActions {
   stepBackward: () => void;
   jumpToStep: (index: number) => void;
   resetStepThrough: () => void;
+  startAutoPlay: () => void;
+  stopAutoPlay: () => void;
 
   // === Computed ===
   canUndo: () => boolean;
@@ -851,7 +854,7 @@ export const useGraphStore = create<GraphStore>()(
               visualization: {
                 ...visualization,
                 mode: VisualizationMode.MANUAL,
-                step: { index: -1, history: [], isComplete: false },
+                step: { index: -1, history: [], isComplete: false, isAutoPlaying: false },
               } as ManualVisualization,
             });
           } else {
@@ -949,7 +952,7 @@ export const useGraphStore = create<GraphStore>()(
               ...visualization,
               mode: VisualizationMode.MANUAL,
               state: VisualizationState.RUNNING,
-              step: { index: -1, history: steps, isComplete: false },
+              step: { index: -1, history: steps, isComplete: false, isAutoPlaying: false },
             } as ManualVisualization,
           });
         },
@@ -961,13 +964,16 @@ export const useGraphStore = create<GraphStore>()(
           const { step } = visualization;
           const nextIndex = step.index + 1;
           if (nextIndex < step.history.length) {
+            const isComplete = nextIndex === step.history.length - 1;
             set({
               visualization: {
                 ...visualization,
                 step: {
                   ...step,
                   index: nextIndex,
-                  isComplete: nextIndex === step.history.length - 1,
+                  isComplete,
+                  // Stop auto-play atomically when the last step is reached
+                  isAutoPlaying: isComplete ? false : step.isAutoPlaying,
                 },
               } as ManualVisualization,
             });
@@ -1024,9 +1030,32 @@ export const useGraphStore = create<GraphStore>()(
               speed,
               mode,
               ...(mode === VisualizationMode.MANUAL && {
-                step: { index: -1, history: [], isComplete: false },
+                step: { index: -1, history: [], isComplete: false, isAutoPlaying: false },
               }),
             } as Visualization,
+          });
+        },
+
+        startAutoPlay: () => {
+          const { visualization } = get();
+          if (visualization.mode !== VisualizationMode.MANUAL) return;
+          if (visualization.step.isComplete) return;
+          set({
+            visualization: {
+              ...visualization,
+              step: { ...visualization.step, isAutoPlaying: true },
+            } as ManualVisualization,
+          });
+        },
+
+        stopAutoPlay: () => {
+          const { visualization } = get();
+          if (visualization.mode !== VisualizationMode.MANUAL) return;
+          set({
+            visualization: {
+              ...visualization,
+              step: { ...visualization.step, isAutoPlaying: false },
+            } as ManualVisualization,
           });
         },
       };
@@ -1049,6 +1078,30 @@ export const selectStepHistory = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.history : EMPTY_STEP_HISTORY;
 export const selectIsStepComplete = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isComplete : false;
+export const selectIsAutoPlaying = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isAutoPlaying : false;
+
+// Action enabled selectors — each component subscribes only to what it renders
+export const selectCanUndo = (state: GraphStore) =>
+  state.canUndo() && state.visualization.state !== VisualizationState.RUNNING;
+export const selectCanRedo = (state: GraphStore) =>
+  state.canRedo() && state.visualization.state !== VisualizationState.RUNNING;
+export const selectCanDeleteSelectedNodes = (state: GraphStore) =>
+  state.selection.nodeIds.size > 0 && state.visualization.state !== VisualizationState.RUNNING;
+export const selectIsInStepMode = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0;
+export const selectCanStepForward = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0 &&
+  !state.visualization.step.isComplete;
+export const selectCanStepBackward = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.MANUAL &&
+  state.visualization.state === VisualizationState.RUNNING &&
+  state.visualization.step.history.length > 0 &&
+  state.visualization.step.index > 0;
 
 // Helper selector to check if a reverse edge exists (curried for use with useGraphStore)
 export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (state: GraphStore): boolean => {

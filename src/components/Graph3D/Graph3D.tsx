@@ -17,15 +17,6 @@ import { useResolvedTheme } from "../../hooks/useResolvedTheme";
 import { GRID_COLORS, LIGHT_COLORS } from "./theme3D";
 import { useIntroAnimation, easeOutCubic } from "./introAnimation";
 
-// Component to enable local clipping on the renderer
-function ClippingSetup() {
-  const { gl } = useThree();
-  useEffect(() => {
-    gl.localClippingEnabled = true;
-  }, [gl]);
-  return null;
-}
-
 // Camera FOV in degrees
 const CAMERA_FOV = 45;
 
@@ -376,11 +367,10 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
     >
       {isReady && (
         <Canvas
-          gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+          gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true, localClippingEnabled: true }}
           dpr={[1, 2]}
           onPointerMissed={handlePointerMissed}
         >
-          <ClippingSetup />
           <CanvasCapture onReady={handleCanvasReady} />
           <PerspectiveCamera
             makeDefault

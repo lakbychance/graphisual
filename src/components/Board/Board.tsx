@@ -1,224 +1,83 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { AlgorithmPicker } from "../ui/algorithm-picker";
-import { GraphGenerator } from "../ui/graph-generator";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Undo2, Redo2, Trash2, Download, FileCode, Image, Box, Feather, Zap } from "lucide-react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../../store/graphStore";
+import { Undo2, Redo2 } from "lucide-react";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsAutoPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
+import { useAutoPlay } from "../../hooks/useAutoPlay";
 import { TIMING } from "../../constants/ui";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
-import { SPEED_LEVELS, VisualizationState, VisualizationMode } from "../../constants/visualization";
+import { VisualizationState } from "../../constants/visualization";
 import { GrainTexture } from "../ui/grain-texture";
-import { exportSvg } from "../../utils/export/exportSvg";
-import { exportPng } from "../../utils/export/exportPng";
-import { export3DPng } from "../../utils/export/export3DPng";
-import { exportCanvasPng } from "../../utils/export/exportCanvasPng";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "../ui/select";
 
-// Extracted components
+import { MainToolbar } from "./MainToolbar";
+import { MobileControls } from "./MobileControls";
 import { ThemeSelector } from "./ThemeSelector";
 import { AlgorithmHint } from "./AlgorithmHint";
 import { StepControls } from "./StepControls";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
-import { SpeedControl } from "./SpeedControl";
-import { ModeToggle } from "./ModeToggle";
 import { ZoomControls } from "./ZoomControls";
 import { TracePanel } from "./TracePanel";
 import { TraceToggle } from "./TraceToggle";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { Toolbar, ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
+import { Toolbar, ToolbarButton } from "../ui/toolbar";
 
 export const Board = () => {
-  // Get state from store
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const visualizationState = useGraphStore((state) => state.visualization.state);
   const visualizationInput = useGraphStore((state) => state.visualization.input);
   const hasNodes = useGraphStore((state) => state.data.nodes.length > 0);
-  const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
-  const zoom = useGraphStore((state) => state.viewport.zoom);
-  const visualizationMode = useGraphStore((state) => state.visualization.mode);
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
-  const isStepComplete = useGraphStore(selectIsStepComplete);
-  // Local UI state for trace panel visibility
+  const isPlaying = useGraphStore(selectIsAutoPlaying);
+  const canUndo = useGraphStore(selectCanUndo);
+  const canRedo = useGraphStore(selectCanRedo);
+  const isInStepMode = useGraphStore(selectIsInStepMode);
+  const canStepForward = useGraphStore(selectCanStepForward);
+  const canStepBackward = useGraphStore(selectCanStepBackward);
+
   const [tracePanelVisible, setTracePanelVisible] = useState(true);
 
-  // Derive boolean for simpler component logic
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
 
-  // Theme state (from separate settings store - persists across graph resets)
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
-
-  // Render mode state
   const renderMode = useSettingsStore((state) => state.renderMode);
-  const setRenderMode = useSettingsStore((state) => state.setRenderMode);
-  const is3DMode = renderMode === '3d';
+  const is3DMode = renderMode === "3d";
 
-  // Actions from store
-  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
-  const setVisualizationSpeed = useGraphStore((state) => state.setVisualizationSpeed);
-  const resetGraph = useGraphStore((state) => state.resetGraph);
-  const setVisualizationMode = useGraphStore((state) => state.setVisualizationMode);
-
-  // Auto-play state for step mode
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playIntervalRef = useRef<number | null>(null);
-
-  // Ref to access GraphRenderer for export
   const graphRendererRef = useRef<GraphRendererHandle>(null);
 
-  // Centralized actions from useGraphActions hook
-  const { actions, handleKeyDown } = useGraphActions({
-    playState: { isPlaying, setIsPlaying, playIntervalRef }
-  });
-
-  // Register keyboard shortcuts
-  useGraphKeyboardShortcuts(handleKeyDown);
-
-  // Track if we're on desktop for responsive dropdown alignment
-  const isDesktop = useIsDesktop();
-
-  // Clear play interval on unmount or when visualization ends
-  useEffect(() => {
-    return () => {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Stop auto-play when step mode visualization ends
-  useEffect(() => {
-    if (!isVisualizing || visualizationMode !== VisualizationMode.MANUAL) {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-    }
-  }, [isVisualizing, visualizationMode]);
-
-  // Stop auto-play when we reach the end
-  useEffect(() => {
-    if (isStepComplete && isPlaying) {
-      if (playIntervalRef.current !== null) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      setIsPlaying(false);
-    }
-  }, [isStepComplete, isPlaying]);
-
-  const handleAlgoChange = (algoId: string) => {
-    const algo = algorithmRegistry.get(algoId);
-    if (!algo) return;
-
-    setVisualizationAlgorithm({
-      key: algoId,
-      text: algo.metadata.name,
-      data: algo.metadata.type,
-    });
-  };
-
-  // Auto-select algorithm and generate graph from URL query param (e.g. /?algorithm=dijkstra)
+  useAutoPlay();
   useAlgorithmFromUrl();
 
-  const handleReset = () => {
-    resetGraph();
-  };
+  const execute = useGraphActions();
+  useGraphKeyboardShortcuts(execute.handleKeyDown);
 
-  // Speed control handlers
-  const currentSpeedIndex = SPEED_LEVELS.findIndex(l => l.ms === visualizationSpeed);
-  const currentSpeedMultiplier = currentSpeedIndex >= 0
-    ? SPEED_LEVELS[currentSpeedIndex].multiplier
-    : '1x';
+  const isDesktop = useIsDesktop();
 
-  const handleIncreaseSpeed = () => {
-    if (currentSpeedIndex < SPEED_LEVELS.length - 1) {
-      setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex + 1].ms);
-    }
-  };
-
-  const handleDecreaseSpeed = () => {
-    if (currentSpeedIndex > 0) {
-      setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex - 1].ms);
-    }
-  };
-
-  // Export SVG handler (2D only)
-  const handleExportSvg = useCallback(async () => {
-    const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
-    if (svgElement) {
-      await exportSvg(svgElement, { includeGrid: true, filename: 'graph.svg' });
-    }
-  }, []);
-
-  // Export PNG handler (2D only)
-  const handleExport2DPng = useCallback(async () => {
-    const currentRenderMode = useSettingsStore.getState().renderMode;
-    if (currentRenderMode === 'canvas') {
-      const canvasElement = graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement();
-      if (canvasElement) {
-        await exportCanvasPng(canvasElement, { filename: 'graph.png' });
-      }
-    } else {
-      const svgElement = graphRendererRef.current?.getGraphRef()?.getSvgElement();
-      if (svgElement) {
-        await exportPng(svgElement, { includeGrid: true, filename: 'graph.png' });
-      }
-    }
-  }, []);
-
-  // Export PNG handler (3D only)
-  const handleExport3DPng = useCallback(async () => {
-    const canvas = graphRendererRef.current?.getGraph3DRef()?.getCanvas();
-    if (canvas) {
-      await export3DPng(canvas, { filename: 'graph-3d.png' });
-    }
-  }, []);
-
-  // Determine if we should show step mode controls
-  const isInStepMode = visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0;
-
-  // Get algorithm hint text
   const getAlgorithmHintText = () => {
-    const algo = algorithmRegistry.get(visualizationAlgorithm?.key || '');
+    const algo = algorithmRegistry.get(visualizationAlgorithm?.key || "");
     const hints = algo?.metadata.inputStepHints || [];
     if (visualizationInput?.startNodeId !== -1 && visualizationInput?.endNodeId === -1) {
-      return hints[1] || '';
+      return hints[1] || "";
     }
-    return hints[0] || '';
+    return hints[0] || "";
   };
 
-  // Handle skip link - focus graph and select topmost node
   const handleSkipToGraph = useCallback(() => {
     const { data, selectNode } = useGraphStore.getState();
     const orderedNodeIds = [...data.stackingOrder];
     if (orderedNodeIds.length > 0) {
       const topmostNodeId = orderedNodeIds[orderedNodeIds.length - 1];
       selectNode(topmostNodeId);
-      // Focus the appropriate graph element based on render mode
-      const renderMode = useSettingsStore.getState().renderMode;
-      if (renderMode === 'canvas') {
+      const currentRenderMode = useSettingsStore.getState().renderMode;
+      if (currentRenderMode === "canvas") {
         graphRendererRef.current?.getCanvasGraphRef()?.getCanvasElement()?.focus();
       } else {
         graphRendererRef.current?.getGraphRef()?.getSvgElement()?.focus();
@@ -242,227 +101,17 @@ export const Board = () => {
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
         <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
-          {/* Mobile: Floating Undo/Redo/Delete - aligned to right edge of toolbar */}
-          <div className="flex justify-between">
-            <div className="z-40 gap-2">
-              {/* Zoom controls group - Mobile only */}
-              <Toolbar aria-label="Zoom controls" className="md:hidden relative flex items-center gap-2 p-2 rounded-md backdrop-blur-sm">
-                <ZoomControls
-                  zoom={zoom}
-                  onZoomIn={actions.zoomIn.execute}
-                  onZoomOut={actions.zoomOut.execute}
-                  onZoomReset={actions.resetZoom.execute}
-                />
-              </Toolbar>
-            </div>
-            <Toolbar aria-label="Edit controls" className="flex md:hidden items-center gap-2 p-2 rounded-md backdrop-blur-sm">
-              <ToolbarButton asChild>
-                <Button
-                  onClick={actions.undo.execute}
-                  disabled={!actions.undo.enabled}
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Undo"
-                >
-                  <Undo2 size={16} className={cn(actions.undo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                </Button>
-              </ToolbarButton>
-              <ToolbarButton asChild>
-                <Button
-                  onClick={actions.redo.execute}
-                  disabled={!actions.redo.enabled}
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Redo"
-                >
-                  <Redo2 size={16} className={cn(actions.redo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
-                </Button>
-              </ToolbarButton>
-              <ToolbarSeparator className="h-5 mx-0.5" />
-              <ToolbarButton asChild>
-                <Button
-                  onClick={actions.deleteSelectedNodes.execute}
-                  disabled={!actions.deleteSelectedNodes.enabled}
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Delete selected nodes"
-                >
-                  <Trash2 size={16} className={cn(actions.deleteSelectedNodes.enabled ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
-                </Button>
-              </ToolbarButton>
-            </Toolbar>
-          </div>
-
-          {/* Main toolbar */}
-          <Toolbar aria-label="Graph controls" className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
-            <GrainTexture baseFrequency={3} className="rounded-md" />
-
-            {/* Mode toggle */}
-            <ModeToggle
-              mode={visualizationMode}
-              onModeChange={setVisualizationMode}
-              disabled={isVisualizing}
+          {!isDesktop && (
+            <MobileControls
+              onUndo={execute.undo}
+              onRedo={execute.redo}
+              onDeleteSelectedNodes={execute.deleteSelectedNodes}
+              onZoomIn={execute.zoomIn}
+              onZoomOut={execute.zoomOut}
+              onZoomReset={execute.resetZoom}
             />
-
-            {/* Algorithm picker */}
-            <AlgorithmPicker
-              selectedAlgo={visualizationAlgorithm}
-              onSelect={handleAlgoChange}
-              disabled={isVisualizing || !hasNodes}
-            />
-
-            {/* Graph Generator */}
-            <ToolbarSeparator />
-            <GraphGenerator disabled={isVisualizing} />
-
-            {/* Speed control - Desktop only */}
-            {isDesktop && (
-              <SpeedControl
-                speedMultiplier={currentSpeedMultiplier}
-                disabled={isVisualizing}
-                canDecrease={currentSpeedIndex > 0}
-                canIncrease={currentSpeedIndex < SPEED_LEVELS.length - 1}
-                onDecrease={handleDecreaseSpeed}
-                onIncrease={handleIncreaseSpeed}
-              />
-            )}
-
-            <ToolbarSeparator />
-
-            {/* Last toolbar items - wrapped for consistent gap */}
-            <div className="flex items-center gap-1 md:gap-2">
-              {/* Render Mode Selector - Desktop only */}
-              <Select value={renderMode} onValueChange={(value) => setRenderMode(value as 'svg' | 'canvas' | '3d')} disabled={isVisualizing}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToolbarButton asChild>
-                      <SelectTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="z-10 hidden lg:inline-flex"
-                          disabled={isVisualizing}
-                          aria-label="View mode"
-                        >
-                          {renderMode === '3d' ? (
-                            <Box size={16} className="text-[var(--color-text)]" />
-                          ) : renderMode === 'canvas' ? (
-                            <Zap size={16} className="text-[var(--color-text)]" />
-                          ) : (
-                            <Feather size={16} className="text-[var(--color-text)]" />
-                          )}
-                        </Button>
-                      </SelectTrigger>
-                    </ToolbarButton>
-                  </TooltipTrigger>
-                  <TooltipContent>View mode</TooltipContent>
-                </Tooltip>
-                <SelectContent align="center" sideOffset={8}>
-                  <SelectItem value="svg">
-                    <div className="flex items-center">
-                      <Feather className="h-4 w-4 mr-2" />
-                      <div className="flex flex-col">
-                        <span>Standard</span>
-                        <span className="text-xs opacity-70">Smooth animations</span>
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="canvas">
-                    <div className="flex items-center">
-                      <Zap className="h-4 w-4 mr-2" />
-                      <div className="flex flex-col">
-                        <span>Performance</span>
-                        <span className="text-xs opacity-70">For large graphs</span>
-                      </div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="3d">
-                    <div className="flex items-center">
-                      <Box className="h-4 w-4 mr-2" />
-                      <div className="flex flex-col">
-                        <span>3D</span>
-                        <span className="text-xs opacity-70">View only</span>
-                      </div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Export - direct button in 3D mode, dropdown in 2D mode */}
-              {is3DMode ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ToolbarButton asChild>
-                      <Button
-                        onClick={handleExport3DPng}
-                        disabled={isVisualizing || !hasNodes}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="z-10"
-                        aria-label="Export PNG"
-                      >
-                        <Download className="h-4 w-4 text-[var(--color-text)]" />
-                      </Button>
-                    </ToolbarButton>
-                  </TooltipTrigger>
-                  <TooltipContent>Export PNG</TooltipContent>
-                </Tooltip>
-              ) : (
-                <DropdownMenu>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <ToolbarButton asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            disabled={isVisualizing || !hasNodes}
-                            variant="ghost"
-                            size="icon-sm"
-                            className="z-10"
-                            aria-label="Export"
-                          >
-                            <Download className="h-4 w-4 text-[var(--color-text)]" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </ToolbarButton>
-                    </TooltipTrigger>
-                    <TooltipContent>Export</TooltipContent>
-                  </Tooltip>
-                  <DropdownMenuContent align="center" sideOffset={8}>
-                    {renderMode === 'svg' && (
-                      <DropdownMenuItem onClick={handleExportSvg}>
-                        <FileCode className="h-4 w-4 mr-2" />
-                        Export as SVG
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={handleExport2DPng}>
-                      <Image className="h-4 w-4 mr-2" />
-                      Export as PNG
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-              {/* Reset button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <ToolbarButton asChild>
-                    <Button
-                      onClick={handleReset}
-                      disabled={isVisualizing}
-                      variant="ghost"
-                      size="icon-sm"
-                      className="z-10"
-                      aria-label="Reset Graph"
-                    >
-                      <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
-                    </Button>
-                  </ToolbarButton>
-                </TooltipTrigger>
-                <TooltipContent>Reset Graph</TooltipContent>
-              </Tooltip>
-            </div>
-          </Toolbar>
-
+          )}
+          <MainToolbar graphRendererRef={graphRendererRef} />
         </div>
 
         {/* Step controls - fixed position, top on mobile, below toolbar on desktop */}
@@ -480,14 +129,14 @@ export const Board = () => {
                 stepIndex={stepIndex}
                 totalSteps={stepHistory.length}
                 isPlaying={isPlaying}
-                canStepBackward={actions.stepBackward.enabled}
-                canStepForward={actions.stepForward.enabled}
-                onJumpToStart={actions.jumpToStart.execute}
-                onStepBackward={actions.stepBackward.execute}
-                onStepForward={actions.stepForward.execute}
-                onJumpToEnd={actions.jumpToEnd.execute}
-                onTogglePlay={actions.togglePlay.execute}
-                onStop={actions.stopVisualization.execute}
+                canStepBackward={canStepBackward}
+                canStepForward={canStepForward}
+                onJumpToStart={execute.jumpToStart}
+                onStepBackward={execute.stepBackward}
+                onStepForward={execute.stepForward}
+                onJumpToEnd={execute.jumpToEnd}
+                onTogglePlay={execute.togglePlay}
+                onStop={execute.stopVisualization}
               />
             </m.div>
           )}
@@ -503,7 +152,7 @@ export const Board = () => {
           )}
         </AnimatePresence>
 
-        {/* Full-screen Graph with crossfade transition */}
+        {/* Full-screen Graph */}
         {/* DOM order: After toolbar/step controls for natural tab order */}
         <div className="absolute inset-0 touch-action-manipulation">
           <GraphRenderer ref={graphRendererRef} />
@@ -518,32 +167,29 @@ export const Board = () => {
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
-          {/* Zoom controls group */}
           <Toolbar aria-label="Zoom controls" className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <ZoomControls
-              zoom={zoom}
-              onZoomIn={actions.zoomIn.execute}
-              onZoomOut={actions.zoomOut.execute}
-              onZoomReset={actions.resetZoom.execute}
+              onZoomIn={execute.zoomIn}
+              onZoomOut={execute.zoomOut}
+              onZoomReset={execute.resetZoom}
             />
           </Toolbar>
 
-          {/* Undo/Redo controls group - with grainy texture */}
           <Toolbar aria-label="History controls" className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <Tooltip>
               <TooltipTrigger asChild>
                 <ToolbarButton asChild>
                   <Button
-                    onClick={actions.undo.execute}
-                    disabled={!actions.undo.enabled}
+                    onClick={execute.undo}
+                    disabled={!canUndo}
                     variant="ghost"
                     size="icon-sm"
                     className="relative z-10"
                     aria-label="Undo"
                   >
-                    <Undo2 size={16} className={cn(actions.undo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    <Undo2 size={16} className={cn(canUndo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>
@@ -554,14 +200,14 @@ export const Board = () => {
               <TooltipTrigger asChild>
                 <ToolbarButton asChild>
                   <Button
-                    onClick={actions.redo.execute}
-                    disabled={!actions.redo.enabled}
+                    onClick={execute.redo}
+                    disabled={!canRedo}
                     variant="ghost"
                     size="icon-sm"
                     className="relative z-10"
                     aria-label="Redo"
                   >
-                    <Redo2 size={16} className={cn(actions.redo.enabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    <Redo2 size={16} className={cn(canRedo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>
@@ -572,13 +218,11 @@ export const Board = () => {
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
         <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
-          {/* Trace toggle - Desktop only, visible when panel is collapsed during step mode */}
           <AnimatePresence>
             {isInStepMode && !tracePanelVisible && (
               <TraceToggle onExpand={() => setTracePanelVisible(true)} />
             )}
           </AnimatePresence>
-          {/* Keyboard shortcuts - Desktop only */}
           <div className="hidden md:block">
             <KeyboardShortcuts />
           </div>
@@ -588,7 +232,6 @@ export const Board = () => {
             alignDropdown={isDesktop ? "end" : "start"}
           />
         </div>
-
       </main>
     </TooltipProvider>
   );

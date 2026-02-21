@@ -4,15 +4,17 @@ import { ToolbarButton } from "../ui/toolbar";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZOOM } from "../../constants/ui";
+import { useGraphStore } from "../../store/graphStore";
 
 interface ZoomControlsProps {
-  zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
 }
 
-export const ZoomControls = ({ zoom, onZoomIn, onZoomOut, onZoomReset }: ZoomControlsProps) => {
+export const ZoomControls = ({ onZoomIn, onZoomOut, onZoomReset }: ZoomControlsProps) => {
+  const zoom = useGraphStore((state) => state.viewport.zoom);
+
   return (
     <>
       <Tooltip>

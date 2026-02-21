@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, RefObject } from "react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsStepComplete } from "../store/graphStore";
+import { useCallback, useEffect } from "react";
+import { useGraphStore } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
 import { isElementInPopup } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
 import { VisualizationState, VisualizationMode } from "../constants/visualization";
+
+// ---------------------------------------------------------------------------
+// Shortcut config — static, lives outside the hook, never recreated
+// ---------------------------------------------------------------------------
 
 interface ShortcutConfig {
   key: string | string[];
@@ -12,344 +16,226 @@ interface ShortcutConfig {
   preventDefault?: boolean;
 }
 
-interface GraphAction {
-  execute: () => void;
-  enabled: boolean;
-  shortcut?: ShortcutConfig;
-}
+const SHORTCUTS: Record<string, ShortcutConfig> = {
+  undo:                { key: "z",                       modKey: true, shiftKey: false, preventDefault: true },
+  redo:                { key: ["z", "y"],                modKey: true, shiftKey: true,  preventDefault: true },
+  deleteSelectedNodes: { key: ["Delete", "Backspace"],                                  preventDefault: true },
+  zoomIn:              { key: ["+", "="],                modKey: true,                  preventDefault: true },
+  zoomOut:             { key: "-",                       modKey: true,                  preventDefault: true },
+  stepForward:         { key: ["ArrowRight", "l", "L"],                                 preventDefault: true },
+  stepBackward:        { key: ["ArrowLeft",  "h", "H"],                                 preventDefault: true },
+  jumpToStart:         { key: "Home",                                                    preventDefault: true },
+  jumpToEnd:           { key: "End",                                                     preventDefault: true },
+  togglePlay:          { key: " ",                                                       preventDefault: true },
+};
 
-interface PlayState {
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  playIntervalRef: RefObject<number | null>;
-}
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
-interface UseGraphActionsOptions {
-  playState?: PlayState;
-}
+export function useGraphActions() {
+  // All execute functions read from getState() at call time.
+  // Deps are [] so they are stable for the lifetime of the component.
 
-export function useGraphActions(options: UseGraphActionsOptions = {}): {
-  actions: Record<string, GraphAction>;
-  handleKeyDown: (e: KeyboardEvent) => void;
-} {
-  const { playState } = options;
+  const undo = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (!s.canUndo() || s.visualization.state === VisualizationState.RUNNING) return;
+    s.undo();
+  }, []);
 
-  // Store selectors
-  const zoom = useGraphStore((state) => state.viewport.zoom);
-  const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
-  const canUndo = useGraphStore((state) => state.canUndo());
-  const canRedo = useGraphStore((state) => state.canRedo());
-  const visualizationState = useGraphStore((state) => state.visualization.state);
-  const visualizationMode = useGraphStore((state) => state.visualization.mode);
-  const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
-  const stepIndex = useGraphStore(selectStepIndex);
-  const stepHistory = useGraphStore(selectStepHistory);
-  const isStepComplete = useGraphStore(selectIsStepComplete);
-  const visualizationSpeed = useGraphStore((state) => state.visualization.speed);
+  const redo = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (!s.canRedo() || s.visualization.state === VisualizationState.RUNNING) return;
+    s.redo();
+  }, []);
 
-  // Derived state for algorithm selection
-  const isAlgorithmSelected = visualizationAlgorithm?.key != null && visualizationAlgorithm.key !== 'select';
+  const deleteSelectedNodes = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.selection.nodeIds.size === 0 || s.visualization.state === VisualizationState.RUNNING) return;
+    s.deleteNodes(Array.from(s.selection.nodeIds));
+  }, []);
 
-  // Derived state
-  const isVisualizing = visualizationState === VisualizationState.RUNNING;
-  const isInStepMode = visualizationMode === VisualizationMode.MANUAL && isVisualizing && stepHistory.length > 0;
+  const zoomIn = useCallback(() => {
+    const s = useGraphStore.getState();
+    s.setViewportZoom(Math.min(s.viewport.zoom + ZOOM.STEP, ZOOM.MAX));
+  }, []);
 
-  // Store actions
-  const undo = useGraphStore((state) => state.undo);
-  const redo = useGraphStore((state) => state.redo);
-  const deleteNodes = useGraphStore((state) => state.deleteNodes);
-  const selectNode = useGraphStore((state) => state.selectNode);
-  const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
-  const setViewportPan = useGraphStore((state) => state.setViewportPan);
-  const stepForward = useGraphStore((state) => state.stepForward);
-  const stepBackward = useGraphStore((state) => state.stepBackward);
-  const jumpToStep = useGraphStore((state) => state.jumpToStep);
-  const resetStepThrough = useGraphStore((state) => state.resetStepThrough);
-  const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
+  const zoomOut = useCallback(() => {
+    const s = useGraphStore.getState();
+    s.setViewportZoom(Math.max(s.viewport.zoom - ZOOM.STEP, ZOOM.MIN));
+  }, []);
 
-  // Stable refs for play state to avoid recreating callbacks
-  const playStateRef = useRef(playState);
-  playStateRef.current = playState;
+  const resetZoom = useCallback(() => {
+    const s = useGraphStore.getState();
+    s.setViewportZoom(1);
+    s.setViewportPan(0, 0);
+  }, []);
 
-  // Action executors
-  const executeUndo = useCallback(() => {
-    if (canUndo && !isVisualizing) {
-      undo();
-    }
-  }, [canUndo, isVisualizing, undo]);
+  const deselect = useCallback(() => {
+    const s = useGraphStore.getState();
+    const { visualization, selectNode } = s;
+    const isInStepMode =
+      visualization.mode === VisualizationMode.MANUAL &&
+      visualization.state === VisualizationState.RUNNING &&
+      visualization.step.history.length > 0;
+    if (!isInStepMode) selectNode(null);
+  }, []);
 
-  const executeRedo = useCallback(() => {
-    if (canRedo && !isVisualizing) {
-      redo();
-    }
-  }, [canRedo, isVisualizing, redo]);
-
-  const executeDeleteSelectedNodes = useCallback(() => {
-    if (hasSelectedNodes && !isVisualizing) {
-      // Get current selection from store and delete all at once
-      const nodeIds = Array.from(useGraphStore.getState().selection.nodeIds);
-      deleteNodes(nodeIds);
-    }
-  }, [hasSelectedNodes, isVisualizing, deleteNodes]);
-
-  const executeZoomIn = useCallback(() => {
-    setViewportZoom(Math.min(zoom + ZOOM.STEP, ZOOM.MAX));
-  }, [zoom, setViewportZoom]);
-
-  const executeZoomOut = useCallback(() => {
-    setViewportZoom(Math.max(zoom - ZOOM.STEP, ZOOM.MIN));
-  }, [zoom, setViewportZoom]);
-
-  const executeResetZoom = useCallback(() => {
-    setViewportZoom(1);
-    setViewportPan(0, 0);
-  }, [setViewportZoom, setViewportPan]);
-
-  const executeDeselect = useCallback(() => {
-    if (!isInStepMode) {
-      selectNode(null);
-    }
-  }, [isInStepMode, selectNode]);
-
-  const executeClearAlgorithm = useCallback(() => {
-    if (isAlgorithmSelected && !isVisualizing) {
+  const clearAlgorithm = useCallback(() => {
+    const s = useGraphStore.getState();
+    const { visualization, setVisualizationAlgorithm } = s;
+    const isSelected = visualization.algorithm?.key != null && visualization.algorithm.key !== "select";
+    if (isSelected && visualization.state !== VisualizationState.RUNNING) {
       setVisualizationAlgorithm(undefined);
     }
-  }, [isAlgorithmSelected, isVisualizing, setVisualizationAlgorithm]);
+  }, []);
 
-  const executeStepForward = useCallback(() => {
-    if (isInStepMode && !isStepComplete) {
-      stepForward();
+  const stepForward = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
+    if (s.visualization.state !== VisualizationState.RUNNING) return;
+    if (s.visualization.step.history.length === 0 || s.visualization.step.isComplete) return;
+    s.stopAutoPlay();
+    s.stepForward();
+  }, []);
+
+  const stepBackward = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
+    if (s.visualization.state !== VisualizationState.RUNNING) return;
+    if (s.visualization.step.history.length === 0 || s.visualization.step.index <= 0) return;
+    s.stopAutoPlay();
+    s.stepBackward();
+  }, []);
+
+  const jumpToStart = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
+    if (s.visualization.state !== VisualizationState.RUNNING) return;
+    if (s.visualization.step.history.length === 0 || s.visualization.step.index <= 0) return;
+    s.stopAutoPlay();
+    s.jumpToStep(0);
+  }, []);
+
+  const jumpToEnd = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
+    if (s.visualization.state !== VisualizationState.RUNNING) return;
+    if (s.visualization.step.history.length === 0 || s.visualization.step.isComplete) return;
+    s.stopAutoPlay();
+    s.jumpToStep(s.visualization.step.history.length - 1);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    const s = useGraphStore.getState();
+    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
+    if (s.visualization.state !== VisualizationState.RUNNING) return;
+    if (s.visualization.step.history.length === 0) return;
+    if (s.visualization.step.isAutoPlaying) {
+      s.stopAutoPlay();
+    } else if (!s.visualization.step.isComplete) {
+      s.startAutoPlay();
     }
-  }, [isInStepMode, isStepComplete, stepForward]);
+  }, []);
 
-  const executeStepBackward = useCallback(() => {
-    if (isInStepMode && stepIndex > 0) {
-      stepBackward();
+  const stopVisualization = useCallback(() => {
+    const s = useGraphStore.getState();
+    s.resetStepThrough();
+    s.resetVisualization();
+    s.clearVisualization();
+  }, []);
+
+  // -------------------------------------------------------------------------
+  // Keyboard handler — stable with [] deps because all execute fns are stable
+  // -------------------------------------------------------------------------
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.key === "Escape" && isElementInPopup(e.target as Element)) return;
+
+    const { visualization } = useGraphStore.getState();
+    const isVisualizing = visualization.state === VisualizationState.RUNNING;
+    const isInStepMode =
+      visualization.mode === VisualizationMode.MANUAL &&
+      isVisualizing &&
+      visualization.step.history.length > 0;
+    const isAlgorithmSelected =
+      visualization.algorithm?.key != null && visualization.algorithm.key !== "select";
+
+    // Escape: priority — step mode > algorithm > deselect
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (isInStepMode) stopVisualization();
+      else if (isAlgorithmSelected && !isVisualizing) clearAlgorithm();
+      else deselect();
+      return;
     }
-  }, [isInStepMode, stepIndex, stepBackward]);
 
-  const executeJumpToStart = useCallback(() => {
-    if (isInStepMode && stepIndex > 0) {
-      jumpToStep(0);
-    }
-  }, [isInStepMode, stepIndex, jumpToStep]);
+    const entries: Array<{
+      fn: () => void;
+      shortcut: ShortcutConfig;
+      stepModeOnly?: boolean;
+      isRedo?: boolean;
+    }> = [
+      { fn: undo,                shortcut: SHORTCUTS.undo },
+      { fn: redo,                shortcut: SHORTCUTS.redo,           isRedo: true },
+      { fn: deleteSelectedNodes, shortcut: SHORTCUTS.deleteSelectedNodes },
+      { fn: zoomIn,              shortcut: SHORTCUTS.zoomIn },
+      { fn: zoomOut,             shortcut: SHORTCUTS.zoomOut },
+      { fn: stepForward,         shortcut: SHORTCUTS.stepForward,    stepModeOnly: true },
+      { fn: stepBackward,        shortcut: SHORTCUTS.stepBackward,   stepModeOnly: true },
+      { fn: jumpToStart,         shortcut: SHORTCUTS.jumpToStart,    stepModeOnly: true },
+      { fn: jumpToEnd,           shortcut: SHORTCUTS.jumpToEnd,      stepModeOnly: true },
+      { fn: togglePlay,          shortcut: SHORTCUTS.togglePlay,     stepModeOnly: true },
+    ];
 
-  const executeJumpToEnd = useCallback(() => {
-    if (isInStepMode && !isStepComplete) {
-      jumpToStep(stepHistory.length - 1);
-    }
-  }, [isInStepMode, isStepComplete, stepHistory.length, jumpToStep]);
+    for (const { fn, shortcut, stepModeOnly, isRedo } of entries) {
+      // Step-mode-only shortcuts don't fire outside step mode
+      if (stepModeOnly && !isInStepMode) continue;
 
-  const executeTogglePlay = useCallback(() => {
-    const ps = playStateRef.current;
-    if (!ps || !isInStepMode) return;
+      const { key, modKey, shiftKey, preventDefault } = shortcut;
+      const keys = Array.isArray(key) ? key : [key];
+      if (!keys.includes(e.key)) continue;
+      if (modKey && !isModKey(e)) continue;
+      if (modKey === false && isModKey(e)) continue;
 
-    if (ps.isPlaying) {
-      // Pause
-      if (ps.playIntervalRef.current !== null) {
-        clearInterval(ps.playIntervalRef.current);
-        ps.playIntervalRef.current = null;
-      }
-      ps.setIsPlaying(false);
-    } else if (!isStepComplete) {
-      // Play
-      ps.setIsPlaying(true);
-      ps.playIntervalRef.current = window.setInterval(() => {
-        const state = useGraphStore.getState();
-        const vis = state.visualization;
-        const stepComplete = vis.mode === VisualizationMode.MANUAL ? vis.step.isComplete : false;
-        const stepIdx = vis.mode === VisualizationMode.MANUAL ? vis.step.index : -1;
-        const stepHist = vis.mode === VisualizationMode.MANUAL ? vis.step.history : [];
-        if (stepComplete || stepIdx >= stepHist.length - 1) {
-          if (ps.playIntervalRef.current !== null) {
-            clearInterval(ps.playIntervalRef.current);
-            ps.playIntervalRef.current = null;
-          }
-          ps.setIsPlaying(false);
-          return;
-        }
-        state.stepForward();
-      }, visualizationSpeed);
-    }
-  }, [isInStepMode, isStepComplete, visualizationSpeed]);
-
-  const executeStopVisualization = useCallback(() => {
-    const ps = playStateRef.current;
-    if (ps && ps.playIntervalRef.current !== null) {
-      clearInterval(ps.playIntervalRef.current);
-      ps.playIntervalRef.current = null;
-    }
-    if (ps) {
-      ps.setIsPlaying(false);
-    }
-    resetStepThrough();
-    const { resetVisualization, clearVisualization } = useGraphStore.getState();
-    resetVisualization();
-    clearVisualization();
-  }, [resetStepThrough]);
-
-  // Define all actions with their shortcuts
-  const actions: Record<string, GraphAction> = ({
-    undo: {
-      execute: executeUndo,
-      enabled: canUndo && !isVisualizing,
-      shortcut: { key: "z", modKey: true, shiftKey: false, preventDefault: true },
-    },
-    redo: {
-      execute: executeRedo,
-      enabled: canRedo && !isVisualizing,
-      shortcut: { key: ["z", "y"], modKey: true, shiftKey: true, preventDefault: true },
-    },
-    deleteSelectedNodes: {
-      execute: executeDeleteSelectedNodes,
-      enabled: hasSelectedNodes && !isVisualizing,
-      shortcut: { key: ["Delete", "Backspace"], preventDefault: true },
-    },
-    zoomIn: {
-      execute: executeZoomIn,
-      enabled: zoom < ZOOM.MAX,
-      shortcut: { key: ["+", "="], modKey: true, preventDefault: true },
-    },
-    zoomOut: {
-      execute: executeZoomOut,
-      enabled: zoom > ZOOM.MIN,
-      shortcut: { key: "-", modKey: true, preventDefault: true },
-    },
-    resetZoom: {
-      execute: executeResetZoom,
-      enabled: true,
-    },
-    deselect: {
-      execute: executeDeselect,
-      enabled: !isInStepMode && !isAlgorithmSelected,
-      shortcut: { key: "Escape" },
-    },
-    clearAlgorithm: {
-      execute: executeClearAlgorithm,
-      enabled: isAlgorithmSelected && !isVisualizing,
-      shortcut: { key: "Escape" },
-    },
-    stepForward: {
-      execute: executeStepForward,
-      enabled: isInStepMode && !isStepComplete,
-      shortcut: { key: ["ArrowRight", "l", "L"], preventDefault: true },
-    },
-    stepBackward: {
-      execute: executeStepBackward,
-      enabled: isInStepMode && stepIndex > 0,
-      shortcut: { key: ["ArrowLeft", "h", "H"], preventDefault: true },
-    },
-    jumpToStart: {
-      execute: executeJumpToStart,
-      enabled: isInStepMode && stepIndex > 0,
-      shortcut: { key: "Home", preventDefault: true },
-    },
-    jumpToEnd: {
-      execute: executeJumpToEnd,
-      enabled: isInStepMode && !isStepComplete,
-      shortcut: { key: "End", preventDefault: true },
-    },
-    togglePlay: {
-      execute: executeTogglePlay,
-      enabled: isInStepMode && (playState?.isPlaying || !isStepComplete),
-      shortcut: { key: " ", preventDefault: true },
-    },
-    stopVisualization: {
-      execute: executeStopVisualization,
-      enabled: isInStepMode,
-      shortcut: { key: "Escape", preventDefault: true },
-    },
-  });
-
-  // Keyboard handler
-  const handleKeyDown =
-    (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
+      // Redo: Cmd+Shift+Z or Cmd+Y
+      if (isRedo) {
+        if (!(e.key === "z" && e.shiftKey) && e.key !== "y") continue;
+      } else {
+        if (shiftKey === true && !e.shiftKey) continue;
+        if (shiftKey === false && e.shiftKey) continue;
       }
 
-      // Ignore Escape if focus is inside a popup (dropdown, popover, dialog)
-      if (e.key === "Escape" && isElementInPopup(e.target as Element)) {
-        return;
-      }
-
-      // Check each action for matching shortcut
-      for (const [actionName, action] of Object.entries(actions)) {
-        if (!action.shortcut) continue;
-
-        const { key, modKey, shiftKey, preventDefault } = action.shortcut;
-        const keys = Array.isArray(key) ? key : [key];
-
-        // Check if the key matches
-        if (!keys.includes(e.key)) continue;
-
-        // Check modifier key requirements
-        if (modKey && !isModKey(e)) continue;
-        if (modKey === false && isModKey(e)) continue;
-
-        // Check shift key requirements
-        // Special handling for redo: Cmd+Shift+Z or Cmd+Y
-        if (actionName === "redo") {
-          const isShiftZ = e.key === "z" && e.shiftKey;
-          const isY = e.key === "y";
-          if (!isShiftZ && !isY) continue;
-        } else {
-          if (shiftKey === true && !e.shiftKey) continue;
-          if (shiftKey === false && e.shiftKey) continue;
-        }
-
-        // Handle Escape specially - priority: step mode > algorithm selected > deselect
-        if (e.key === "Escape") {
-          if (isInStepMode) {
-            if (preventDefault) e.preventDefault();
-            actions.stopVisualization.execute();
-            return;
-          } else if (isAlgorithmSelected && !isVisualizing) {
-            if (preventDefault) e.preventDefault();
-            actions.clearAlgorithm.execute();
-            return;
-          } else {
-            if (preventDefault) e.preventDefault();
-            actions.deselect.execute();
-            return;
-          }
-        }
-
-        // Step mode shortcuts only work in step mode
-        const stepModeActions = [
-          "stepForward",
-          "stepBackward",
-          "jumpToStart",
-          "jumpToEnd",
-          "togglePlay",
-          "stopVisualization",
-        ];
-        if (stepModeActions.includes(actionName) && !isInStepMode) continue;
-
-        // Non-step-mode shortcuts (undo, redo, delete, zoom) shouldn't work during step mode
-        const normalActions = ["undo", "redo", "deleteSelectedNodes"];
-        if (normalActions.includes(actionName) && isInStepMode) continue;
-
-        // Execute the action if enabled
-        if (action.enabled) {
-          if (preventDefault) e.preventDefault();
-          action.execute();
-          return;
-        } else if (preventDefault) {
-          // Still prevent default for disabled actions to avoid browser behavior
-          e.preventDefault();
-          return;
-        }
-      }
+      if (preventDefault) e.preventDefault();
+      fn();
+      return;
     }
-  return { actions, handleKeyDown };
+  }, [undo, redo, deleteSelectedNodes, zoomIn, zoomOut, stepForward, stepBackward, jumpToStart, jumpToEnd, togglePlay, stopVisualization, clearAlgorithm, deselect]);
+
+  return {
+    undo,
+    redo,
+    deleteSelectedNodes,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    deselect,
+    clearAlgorithm,
+    stepForward,
+    stepBackward,
+    jumpToStart,
+    jumpToEnd,
+    togglePlay,
+    stopVisualization,
+    handleKeyDown,
+  };
 }
 
 /**
- * Hook to register keyboard shortcuts for graph actions.
- * Call this once in the component tree (e.g., in Board.tsx).
+ * Registers the keyboard listener for graph actions.
+ * Call this exactly once at the top of the component tree (Board.tsx).
+ * handleKeyDown is stable, so the listener is registered once and never torn down.
  */
 export function useGraphKeyboardShortcuts(handleKeyDown: (e: KeyboardEvent) => void): void {
   useEffect(() => {
