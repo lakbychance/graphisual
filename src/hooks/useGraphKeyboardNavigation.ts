@@ -120,6 +120,8 @@ export function useGraphKeyboardNavigation({
     // === Escape key: clear edge focus ===
     if (e.key === 'Escape' && focusedEdge) {
       e.preventDefault();
+      // Prevent document-level Escape shortcuts from also deselecting the node.
+      e.stopPropagation();
       clearFocusedEdge();
       return;
     }
