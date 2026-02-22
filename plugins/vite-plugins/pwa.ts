@@ -36,7 +36,12 @@ export function pwaPlugin() {
     workbox: {
       globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,ttf}"],
       globIgnores: ["**/logo.png", "algorithm/**/*.html"],
-      navigateFallbackDenylist: [/^\/algorithm\//, /\/sitemap\.xml$/, /\/robots\.txt$/],
+      navigateFallbackDenylist: [
+        /^\/algorithm\//,
+        /^\/algorithms\//,
+        /\/sitemap\.xml$/,
+        /\/robots\.txt$/,
+      ],
     },
   });
 }
