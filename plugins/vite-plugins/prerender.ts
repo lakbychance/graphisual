@@ -156,7 +156,7 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
         logLevel: "silent",
       });
 
-      // Inline critical CSS — no external stylesheet needed for static pages
+      // Inline critical CSS but keep stylesheet links for full utility coverage.
       const beasties = new Beasties({ path: outDir, inlineFonts: true });
 
       let count = 0;
@@ -177,9 +177,7 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
             options: parsedOptions,
           });
 
-          const optimizedHtml = (await beasties.process(html))
-            .replace(/<link[^<>]*rel="(?:stylesheet|preload)"[^<>]*as="style"[^<>]*>/g, "")
-            .replace(/<link[^<>]*rel="stylesheet"[^<>]*>/g, "");
+          const optimizedHtml = await beasties.process(html);
 
           const htmlPath = path.resolve(outDir, `${key}.html`);
           fs.mkdirSync(path.dirname(htmlPath), { recursive: true });

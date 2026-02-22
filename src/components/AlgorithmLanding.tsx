@@ -83,11 +83,11 @@ export function AlgorithmLanding({
         </div>
 
         {/* How it works */}
-        <section className="mb-14">
-          <h2 className="text-2xl font-semibold mb-4">
+        <section className="mb-16">
+          <h2 className="text-2xl font-semibold mb-6">
             How It Works
           </h2>
-          <div className="space-y-4 text-[var(--color-text-muted)] leading-relaxed">
+          <div className="space-y-5 text-[var(--color-text-muted)] leading-relaxed">
             {howItWorks.description.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
@@ -110,7 +110,7 @@ export function AlgorithmLanding({
         </section>
 
         {/* Key properties */}
-        <section className="mb-14">
+        <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-6">Key Properties</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {properties.map((prop) => (
@@ -121,7 +121,7 @@ export function AlgorithmLanding({
 
         {/* Use cases */}
         <section className="mb-16">
-          <h2 className="text-2xl font-semibold mb-4">Common Use Cases</h2>
+          <h2 className="text-2xl font-semibold mb-6">Common Use Cases</h2>
           <ul className="space-y-3 text-[var(--color-text-muted)]">
             {cases.map((uc) => (
               <CaseItem key={uc.text} icon={uc.icon} text={uc.text} />
