@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/algorithms/(.*)",
+      "destination": "/algorithm/$1",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/algorithm/(.*)",
