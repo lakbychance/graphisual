@@ -4,15 +4,15 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  title: "BFS Visualizer — Breadth-First Search | Graphisual",
-  description: "Visualize Breadth-First Search step by step. Build a graph, pick a starting node, and watch BFS explore every reachable node level by level.",
-  ogDescription: "Visualize Breadth-First Search step by step. Build a graph and watch BFS explore nodes level by level.",
+  title: "BFS Visualizer – Interactive Breadth-First Search | Graphisual",
+  description: "Free interactive BFS visualizer. Build your own graph, set a start node, and watch Breadth-First Search explore every level — no signup needed.",
+  ogDescription: "Free interactive BFS visualizer. Build your own graph and watch Breadth-First Search explore nodes level by level — no signup needed.",
   canonical: `${BASE_URL}/algorithm/bfs`,
   ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "BFS Visualizer",
-    title: "BFS Visualizer — Breadth-First Search | Graphisual",
-    description: "Visualize Breadth-First Search step by step. Build a graph, pick a starting node, and watch BFS explore every reachable node level by level.",
+    title: "BFS Visualizer – Interactive Breadth-First Search | Graphisual",
+    description: "Free interactive BFS visualizer. Build your own graph, set a start node, and watch Breadth-First Search explore every level — no signup needed.",
     url: `${BASE_URL}/algorithm/bfs`,
     aboutName: "Breadth-first search",
     aboutDescription: "A graph traversal algorithm that explores all neighbors of a node before moving to the next level, visiting nodes in order of distance from the source.",
@@ -23,6 +23,7 @@ export const meta = {
       { question: "What is the time complexity of BFS?", answer: "BFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. Each vertex and edge is processed exactly once." },
       { question: "What is the difference between BFS and DFS?", answer: "BFS explores all neighbors at the current depth before going deeper (level by level), while DFS dives as deep as possible along each branch before backtracking. BFS uses a queue; DFS uses a stack." },
       { question: "Does BFS find the shortest path?", answer: "Yes, in unweighted graphs. Since BFS visits nodes in order of distance from the source, the first time it reaches any node is via the shortest path. For weighted graphs, use Dijkstra's algorithm instead." },
+      { question: "Which algorithm was reinvented by Edward F. Moore in 1959?", answer: "Breadth-First Search (BFS). Edward F. Moore independently developed BFS in 1959 while working on maze-solving and shortest-path problems. BFS had been described earlier by Konrad Zuse in 1945. Moore's formulation is the version commonly taught today — exploring all neighbors before advancing to the next level." },
     ],
   }),
 };
@@ -64,6 +65,7 @@ export default function BfsPage() {
         { question: "What is the time complexity of BFS?", answer: "BFS runs in O(V + E) time, where V is the number of vertices and E is the number of edges. Each vertex and edge is processed exactly once." },
         { question: "What is the difference between BFS and DFS?", answer: "BFS explores all neighbors at the current depth before going deeper (level by level), while DFS dives as deep as possible along each branch before backtracking. BFS uses a queue; DFS uses a stack." },
         { question: "Does BFS find the shortest path?", answer: "Yes, in unweighted graphs. Since BFS visits nodes in order of distance from the source, the first time it reaches any node is via the shortest path. For weighted graphs, use Dijkstra's algorithm instead." },
+        { question: "Which algorithm was reinvented by Edward F. Moore in 1959?", answer: "Breadth-First Search (BFS). Edward F. Moore independently developed BFS in 1959 while working on maze-solving and shortest-path problems. BFS had been described earlier by Konrad Zuse in 1945. Moore's formulation is the version commonly taught today — exploring all neighbors before advancing to the next level." },
       ]}
     />
   );
