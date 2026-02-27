@@ -41,6 +41,7 @@ export function pwaPlugin() {
         /^\/algorithms\//,
         /\/sitemap\.xml$/,
         /\/robots\.txt$/,
+        /\/llms\.txt$/,
       ],
     },
   });

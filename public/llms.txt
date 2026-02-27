@@ -1,0 +1,31 @@
+# Graphisual
+
+> Graphisual is a free, open-source interactive graph editor and algorithm visualizer. Users draw custom graphs on a canvas and watch algorithms execute step-by-step with real-time data structure traces. Available as an installable PWA at https://graphisual.app.
+
+Graphisual supports 8 graph algorithms across traversal, pathfinding, and minimum spanning tree categories. Each algorithm runs as a generator-based step-through with adjustable speed (0.5x–4x) or manual stepping. A live trace panel shows queues, stacks, priority queues, and distance tables as they change. Graphs can be rendered in SVG, Canvas (for large graphs), or 3D (Three.js).
+
+## Graph Editor
+
+- [Interactive Editor](https://graphisual.app/): Full-screen canvas for creating, editing, and visualizing graphs with undo/redo, keyboard shortcuts, and graph templates (path, cycle, complete, star, binary tree, grid, DAG, weighted random)
+
+## Traversal Algorithms
+
+- [Breadth-First Search (BFS)](https://graphisual.app/algorithm/bfs): Layer-by-layer graph traversal using a queue, with real-time queue trace visualization
+- [Depth-First Search (DFS)](https://graphisual.app/algorithm/dfs): Recursive graph traversal using a stack, with recursion stack trace visualization
+- [Cycle Detection](https://graphisual.app/algorithm/cycle-detection): Detects cycles in directed and undirected graphs using DFS coloring
+
+## Pathfinding Algorithms
+
+- [Dijkstra's Algorithm](https://graphisual.app/algorithm/dijkstra): Finds shortest paths from a source node using a priority queue, works with non-negative edge weights
+- [Bellman-Ford Algorithm](https://graphisual.app/algorithm/bellman-ford): Finds shortest paths supporting negative edge weights and detects negative-weight cycles
+- [BFS Pathfinding](https://graphisual.app/algorithm/bfs-pathfinding): Finds shortest path in unweighted graphs using breadth-first search
+- [DFS Pathfinding](https://graphisual.app/algorithm/dfs-pathfinding): Finds a path between two nodes using depth-first search
+
+## Minimum Spanning Tree
+
+- [Prim's Algorithm](https://graphisual.app/algorithm/prims): Builds a minimum spanning tree by greedily adding the cheapest edge from the growing tree
+
+## Optional
+
+- [Sitemap](https://graphisual.app/sitemap.xml): XML sitemap of all pages
+- [GitHub Repository](https://github.com/lakbychance/graphisual): Source code, MIT licensed

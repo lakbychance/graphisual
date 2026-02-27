@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://graphisual.app/sitemap.xml
+Llms-txt: https://graphisual.app/llms.txt
