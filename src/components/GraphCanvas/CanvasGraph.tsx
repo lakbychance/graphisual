@@ -20,6 +20,7 @@ import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualiza
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
+import { useScrollPan } from "../../hooks/useScrollPan";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useCanvasColorState } from "../../hooks/useCanvasColorState";
 import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
@@ -129,11 +130,19 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
 
   // --- Custom hooks ---
 
-  // Zoom (wheel + pinch-to-zoom)
+  // Pinch-to-zoom and trackpad pinch zoom
   useGestureZoom({
     elementRef: canvasRef,
     zoom: zoomTarget,
     setZoom: setViewportZoom,
+    pan: panTarget,
+    setPan: setViewportPan,
+  });
+
+  // Two-finger scroll / mouse wheel → pan
+  useScrollPan({
+    elementRef: canvasRef,
+    zoom: zoomTarget,
     pan: panTarget,
     setPan: setViewportPan,
   });

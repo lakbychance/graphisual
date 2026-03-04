@@ -115,30 +115,23 @@ export function useGestureZoom({
     // === Wheel handler (trackpad pinch) ===
 
     const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return; // Non-pinch scroll handled by useScrollPan
+
       e.preventDefault();
 
-      if (e.ctrlKey) {
-        // Trackpad pinch-to-zoom or Ctrl+scroll wheel
-        const zoomSensitivity = 0.01;
-        const zoomDelta = -e.deltaY * zoomSensitivity;
-        const currentZoom = zoomRef.current;
-        const newZoom = Math.min(maxZoom, Math.max(minZoom, currentZoom + zoomDelta));
+      // Trackpad pinch-to-zoom or Ctrl+scroll wheel
+      const zoomSensitivity = 0.01;
+      const zoomDelta = -e.deltaY * zoomSensitivity;
+      const currentZoom = zoomRef.current;
+      const newZoom = Math.min(maxZoom, Math.max(minZoom, currentZoom + zoomDelta));
 
-        if (newZoom === currentZoom) return;
+      if (newZoom === currentZoom) return;
 
-        const rect = el.getBoundingClientRect();
-        const cursorX = e.clientX - rect.left;
-        const cursorY = e.clientY - rect.top;
+      const rect = el.getBoundingClientRect();
+      const cursorX = e.clientX - rect.left;
+      const cursorY = e.clientY - rect.top;
 
-        zoomAtPoint(newZoom, cursorX, cursorY);
-      } else {
-        // Two-finger scroll on trackpad or regular scroll wheel → pan
-        const panSensitivity = 1 / zoomRef.current;
-        setPan(
-          panRef.current.x - e.deltaX * panSensitivity,
-          panRef.current.y - e.deltaY * panSensitivity
-        );
-      }
+      zoomAtPoint(newZoom, cursorX, cursorY);
     };
 
     // Attach all event listeners

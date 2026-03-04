@@ -9,6 +9,7 @@ import { useGraphStore } from "../../store/graphStore";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
+import { useScrollPan } from "../../hooks/useScrollPan";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useSVGCanvasPan } from "../../hooks/useSVGCanvasPan";
 import { useBoxSelection } from "../../hooks/useBoxSelection";
@@ -112,7 +113,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // Apply step-through visualization when stepIndex changes
   useStepThroughVisualization();
 
-  // Enable pinch-to-zoom, trackpad zoom, and mouse wheel zoom
+  // Enable pinch-to-zoom and trackpad pinch zoom
   const { isGestureActive } = useGestureZoom({
     elementRef: graph,
     zoom: zoomTarget,
@@ -121,6 +122,14 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     setPan: setViewportPan,
     minZoom: ZOOM.MIN,
     maxZoom: ZOOM.MAX,
+  });
+
+  // Two-finger scroll / mouse wheel → pan
+  useScrollPan({
+    elementRef: graph,
+    zoom: zoomTarget,
+    pan: panTarget,
+    setPan: setViewportPan,
   });
 
   // Canvas panning hook
