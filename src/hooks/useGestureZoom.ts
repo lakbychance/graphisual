@@ -117,20 +117,28 @@ export function useGestureZoom({
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
 
-      // Calculate zoom change (deltaY is negative when zooming in)
-      const zoomSensitivity = 0.01;
-      const zoomDelta = -e.deltaY * zoomSensitivity;
-      const currentZoom = zoomRef.current;
-      const newZoom = Math.min(maxZoom, Math.max(minZoom, currentZoom + zoomDelta));
+      if (e.ctrlKey) {
+        // Trackpad pinch-to-zoom or Ctrl+scroll wheel
+        const zoomSensitivity = 0.01;
+        const zoomDelta = -e.deltaY * zoomSensitivity;
+        const currentZoom = zoomRef.current;
+        const newZoom = Math.min(maxZoom, Math.max(minZoom, currentZoom + zoomDelta));
 
-      if (newZoom === currentZoom) return;
+        if (newZoom === currentZoom) return;
 
-      // Calculate focal point (cursor position relative to element)
-      const rect = el.getBoundingClientRect();
-      const cursorX = e.clientX - rect.left;
-      const cursorY = e.clientY - rect.top;
+        const rect = el.getBoundingClientRect();
+        const cursorX = e.clientX - rect.left;
+        const cursorY = e.clientY - rect.top;
 
-      zoomAtPoint(newZoom, cursorX, cursorY);
+        zoomAtPoint(newZoom, cursorX, cursorY);
+      } else {
+        // Two-finger scroll on trackpad or regular scroll wheel → pan
+        const panSensitivity = 1 / zoomRef.current;
+        setPan(
+          panRef.current.x - e.deltaX * panSensitivity,
+          panRef.current.y - e.deltaY * panSensitivity
+        );
+      }
     };
 
     // Attach all event listeners

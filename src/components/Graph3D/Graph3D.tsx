@@ -69,7 +69,7 @@ function CameraController({
   onPanChange: (x: number, y: number) => void;
   onIntroProgress: (progress: number) => void;
 }) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControlsRef | null>(null);
 
   // Track when we last updated the store from 3D to avoid sync-back within a window
@@ -211,6 +211,41 @@ function CameraController({
       pendingUpdate.current = requestAnimationFrame(doUpdate);
     }
   }, [camera, onZoomChange, onPanChange, baseCameraDistance]);
+
+  // Custom wheel handler: ctrlKey (pinch) = zoom, otherwise = pan
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleWheel = (e: WheelEvent) => {
+      if (!controlsRef.current) return;
+
+      if (e.ctrlKey) {
+        // Pinch-to-zoom or Ctrl+scroll — let OrbitControls handle it
+        return;
+      }
+
+      // Two-finger scroll → pan the camera
+      e.preventDefault();
+      e.stopPropagation();
+
+      const controls = controlsRef.current;
+      const panSensitivity = 1 / zoom;
+
+      // Pan the controls target (and camera follows)
+      const target = controls.target;
+      target.x += e.deltaX * panSensitivity;
+      target.y -= e.deltaY * panSensitivity;
+
+      // Move camera by the same amount to keep distance
+      camera.position.x += e.deltaX * panSensitivity;
+      camera.position.y -= e.deltaY * panSensitivity;
+
+      controls.update();
+    };
+
+    // Use capture phase to intercept before OrbitControls
+    canvas.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    return () => canvas.removeEventListener("wheel", handleWheel, { capture: true });
+  }, [gl, camera, zoom]);
 
   // Min/max distance based on zoom limits
   const minDistance = baseCameraDistance / ZOOM.MAX;
