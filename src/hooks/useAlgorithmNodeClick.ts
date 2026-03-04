@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useVisualizationExecution } from "./useVisualizationExecution";
 import { AlgorithmType } from "../algorithms";
+import { useAppHaptics } from "./useAppHaptics";
 
 /**
  * Return type for the useAlgorithmNodeClick hook.
@@ -21,6 +22,7 @@ export interface UseAlgorithmNodeClickReturn {
  * Call in Graph.tsx and Graph3D.tsx to get consistent click handling.
  */
 export function useAlgorithmNodeClick(): UseAlgorithmNodeClickReturn {
+  const haptics = useAppHaptics();
   const {
     runAlgorithm,
     currentAlgorithm,
@@ -38,16 +40,19 @@ export function useAlgorithmNodeClick(): UseAlgorithmNodeClickReturn {
       if (!visualizationInput) {
         // First click: set start node
         setVisualizationInput({ startNodeId: nodeId, endNodeId: -1 });
+        haptics.light();
       } else {
         // Second click: set end node and run algorithm
         setVisualizationInput({ ...visualizationInput, endNodeId: nodeId });
+        haptics.light();
         runAlgorithm(visualizationInput.startNodeId, nodeId);
       }
     } else {
       // Traversal/Tree algorithms: single click runs the algorithm
+      haptics.light();
       runAlgorithm(nodeId);
     }
-  }, [currentAlgorithm, isVisualizing, visualizationInput, setVisualizationInput, runAlgorithm]);
+  }, [currentAlgorithm, isVisualizing, visualizationInput, setVisualizationInput, runAlgorithm, haptics]);
 
   const isWaitingForEndNode = !!visualizationInput && visualizationInput.endNodeId === -1;
 

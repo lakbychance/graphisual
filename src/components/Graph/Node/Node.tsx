@@ -8,6 +8,7 @@ import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { useIsDesktop } from "../../../hooks/useMediaQuery";
+import { useAppHaptics } from "../../../hooks/useAppHaptics";
 
 export interface NodeProps {
   nodeId: number;
@@ -62,6 +63,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
+  const haptics = useAppHaptics();
 
   // Group-level hover (hit area + body) — used for connector visibility
   const handleMouseEnter = useCallback(() => {
@@ -138,6 +140,7 @@ export const Node = memo(function Node(props: NodeProps) {
               // If dragging an unselected node, select only that node
               if (!isSelected) {
                 onNodeSelect(nodeId);
+                haptics.light();
               }
             }
             // Set cursor to move while dragging
@@ -170,7 +173,12 @@ export const Node = memo(function Node(props: NodeProps) {
 
         // If not dragging and not pinching, toggle node selection (single click)
         if (!isDragging.current && !isGestureActive()) {
-          onNodeSelect(isSelected ? null : nodeId);
+          if (isSelected) {
+            onNodeSelect(null);
+          } else {
+            onNodeSelect(nodeId);
+            haptics.light();
+          }
         }
         isDragging.current = false;
       };
@@ -178,7 +186,7 @@ export const Node = memo(function Node(props: NodeProps) {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront]
+    [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront, haptics]
   );
 
   const handleDoubleClick = useCallback(

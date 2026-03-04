@@ -2,12 +2,14 @@ import { useCallback } from "react";
 import { GraphEdge } from "../components/Graph/types";
 import { type EdgeType } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
+import { useAppHaptics } from "./useAppHaptics";
 
 interface UseEdgeSelectionProps {
   isVisualizing: boolean;
 }
 
 export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
+  const haptics = useAppHaptics();
   // Subscribe to store actions
   const selectEdgeAction = useGraphStore((state) => state.selectEdge);
   const clearEdgeSelection = useGraphStore((state) => state.clearEdgeSelection);
@@ -31,8 +33,9 @@ export function useEdgeSelection({ isVisualizing }: UseEdgeSelectionProps) {
       selectNode(null);
       clearFocusedEdge();
       selectEdgeAction(edge, fromNode, clickPosition);
+      haptics.light();
     },
-    [isVisualizing, selectNode, clearFocusedEdge, selectEdgeAction]
+    [isVisualizing, selectNode, clearFocusedEdge, selectEdgeAction, haptics]
   );
 
   const closeEdgePopup = useCallback(() => {

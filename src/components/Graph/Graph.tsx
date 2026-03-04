@@ -20,6 +20,7 @@ import { useVisualizationExecution } from "../../hooks/useVisualizationExecution
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
+import { useAppHaptics } from "../../hooks/useAppHaptics";
 import { useShallow } from "zustand/shallow";
 import { CanvasDefs } from "./defs/CanvasDefs";
 import { NodeDefs } from "./defs/NodeDefs";
@@ -33,6 +34,7 @@ export interface GraphHandle {
 }
 
 export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
+  const haptics = useAppHaptics();
   // Subscribe to stacking order for rendering - determines z-order of nodes
   const orderedNodeIds = useGraphStore(
     useShallow((state) => [...state.data.stackingOrder])
@@ -203,8 +205,9 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     if (!isNode && !hasSelectedNodes && !isDraggingEdge.current && !isDraggingCanvas.current && !isBoxSelecting.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
       addNode(x, y);
+      haptics.medium();
     }
-  }, [currentAlgorithm, isVisualizing, handleNodeClick, hasSelectedNodes, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, isBoxSelecting, setVisualizationAlgorithm]);
+  }, [currentAlgorithm, isVisualizing, handleNodeClick, hasSelectedNodes, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, isBoxSelecting, setVisualizationAlgorithm, haptics]);
 
   // Node label editing
   const { handleLabelEdit, labelPopupElement } = useNodeLabelEdit({

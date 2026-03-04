@@ -381,7 +381,11 @@ export function useCanvasInteractions({
 
       if (state.type === 'pending-node' && state.nodeId !== undefined) {
         const isSelected = selectedNodeIds.has(state.nodeId);
-        selectNode(isSelected ? null : state.nodeId);
+        if (isSelected) {
+          selectNode(null);
+        } else {
+          selectNode(state.nodeId);
+        }
       } else if (state.type === 'pending-pan' && !hitNode) {
         if (currentAlgorithm && !isVisualizing) {
           setVisualizationAlgorithm(undefined);

@@ -8,6 +8,7 @@ import { EDGE_TYPE, type EdgeType } from "../constants/graph";
 import { animateSequence, AnimationController } from "../utils/animation/animateSequence";
 import { applyVisualizationStep } from "../utils/visualization/applyVisualizationStep";
 import { GraphEdge } from "../components/Graph/types";
+import { useAppHaptics } from "./useAppHaptics";
 
 /**
  * Return type for the useVisualizationExecution hook.
@@ -34,6 +35,7 @@ export interface UseVisualizationExecutionReturn {
  * Use runAlgorithm in click handlers to start visualization.
  */
 export function useVisualizationExecution(): UseVisualizationExecutionReturn {
+  const haptics = useAppHaptics();
   // Get state from store
   const nodes = useGraphStore((state) => state.data.nodes);
   const edges = useGraphStore((state) => state.data.edges);
@@ -164,6 +166,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
 
       if (result.error) {
         toast.error(result.error);
+        haptics.error();
         setVisualizationInput(null);
         resetVisualization();
         return;
@@ -186,6 +189,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
 
     if (result.error) {
       toast.error(result.error);
+      haptics.error();
       setVisualizationInput(null);
       resetVisualization();
       return;
@@ -198,7 +202,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     const resultEdges = result.resultEdges ? convertToVisualizationEdges(result.resultEdges) : [];
     const resultStepType = result.resultStepType ?? StepType.RESULT;
     visualizeTraversedEdges(visitedEdges, resultEdges, resultStepType);
-  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough, selectNode]);
+  }, [currentAlgorithm, nodes, edges, visualizationAlgorithm, visualizationMode, convertToAlgorithmInput, convertToVisualizationEdges, visualizeTraversedEdges, setVisualizationInput, resetVisualization, initStepThrough, selectNode, haptics]);
 
   return {
     runAlgorithm,
