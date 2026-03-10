@@ -688,14 +688,13 @@ export const useGraphStore = create<GraphStore>()(
           );
         },
 
-        resetGraph: () => {
+        resetGraph: autoHistory(() => {
           const { visualization } = get();
-          useGraphHistoryStore.getState().clear();
           set({
             ...initialState,
             visualization: { ...initialVisualization, speed: visualization.speed }, // Preserve speed setting
           });
-        },
+        }),
 
         // ========================================
         // Selection Actions
