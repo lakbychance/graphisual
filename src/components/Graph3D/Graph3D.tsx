@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle, type ComponentRef } from "react";
+import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle, type ComponentRef, Suspense } from "react";
 import type { Ref } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid, Environment } from "@react-three/drei";
@@ -445,7 +445,9 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
           />
 
           {/* Environment map for subtle reflections */}
-          <Environment preset="city" environmentIntensity={0.3} />
+          <Suspense fallback={null}>
+            <Environment preset="city" environmentIntensity={0.3} />
+          </Suspense>
 
           {/* Grid - fixed at origin (large enough to cover any view) */}
           <Grid
