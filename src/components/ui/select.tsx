@@ -33,13 +33,13 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-[var(--color-surface)] p-1 text-[var(--color-text)] shadow-[var(--shadow-premium)]",
+        "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-(--color-surface) p-1 text-(--color-text) shadow-(--shadow-premium)",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
       )}
       position={position}
@@ -49,7 +49,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           "space-y-1",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+          "h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)"
         )}
       >
         {children}
@@ -66,7 +66,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors focus:bg-[var(--color-interactive-hover)] focus:text-[var(--color-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-[var(--color-text)] data-[state=checked]:bg-[var(--color-accent-form)] data-[state=checked]:text-white data-[state=checked]:focus:bg-[var(--color-accent-form)] data-[state=checked]:focus:text-white",
+      "relative flex cursor-default select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors focus:bg-(--color-interactive-hover) focus:text-(--color-text) data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-(--color-text) data-[state=checked]:bg-(--color-accent-form) data-[state=checked]:text-white data-[state=checked]:focus:bg-(--color-accent-form) data-[state=checked]:focus:text-white",
       className
     )}
     {...props}

@@ -26,7 +26,7 @@ export const TraceToggle = ({ onExpand }: TraceToggleProps) => {
             className="relative"
           >
             <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
-            <Waypoints size={20} className="text-[var(--color-text-muted)]" />
+            <Waypoints size={20} className="text-(--color-text-muted)" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Show trace</TooltipContent>

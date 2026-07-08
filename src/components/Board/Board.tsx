@@ -96,7 +96,7 @@ export const Board = () => {
         )}
 
         {/* Background color */}
-        <div className="absolute inset-0 pointer-events-none bg-[var(--color-paper)]" />
+        <div className="absolute inset-0 pointer-events-none bg-(--color-paper)" />
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
@@ -167,7 +167,7 @@ export const Board = () => {
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
         <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
-          <Toolbar aria-label="Zoom controls" className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
+          <Toolbar aria-label="Zoom controls" className="relative flex items-center gap-2 p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <ZoomControls
               onZoomIn={execute.zoomIn}
@@ -176,7 +176,7 @@ export const Board = () => {
             />
           </Toolbar>
 
-          <Toolbar aria-label="History controls" className="relative flex items-center gap-2 p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
+          <Toolbar aria-label="History controls" className="relative flex items-center gap-2 p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
             <GrainTexture baseFrequency={4.2} className="rounded-md" />
             <Tooltip>
               <TooltipTrigger asChild>
@@ -189,7 +189,7 @@ export const Board = () => {
                     className="relative z-10"
                     aria-label="Undo"
                   >
-                    <Undo2 size={16} className={cn(canUndo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    <Undo2 size={16} className={cn(canUndo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>
@@ -207,7 +207,7 @@ export const Board = () => {
                     className="relative z-10"
                     aria-label="Redo"
                   >
-                    <Redo2 size={16} className={cn(canRedo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                    <Redo2 size={16} className={cn(canRedo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
                   </Button>
                 </ToolbarButton>
               </TooltipTrigger>

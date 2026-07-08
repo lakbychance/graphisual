@@ -24,7 +24,7 @@ function DropdownMenuSubTrigger({ className, inset, children, ref, ...props }: D
         <DropdownMenuPrimitive.SubTrigger
             ref={ref}
             className={cn(
-                "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-[var(--color-surface-hover)] data-[state=open]:bg-[var(--color-surface-hover)] text-[var(--color-text)]",
+                "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-(--color-surface-hover) data-[state=open]:bg-(--color-surface-hover) text-(--color-text)",
                 inset && "pl-8",
                 className
             )}
@@ -44,7 +44,7 @@ function DropdownMenuSubContent({ className, ref, ...props }: DropdownMenuSubCon
         <DropdownMenuPrimitive.SubContent
             ref={ref}
             className={cn(
-                "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-[var(--color-surface)] p-1 text-[var(--color-text)] shadow-[var(--shadow-premium)]",
+                "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-(--color-surface) p-1 text-(--color-text) shadow-(--shadow-premium)",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -67,7 +67,7 @@ function DropdownMenuContent({ className, sideOffset = 4, ref, ...props }: Dropd
                 ref={ref}
                 sideOffset={sideOffset}
                 className={cn(
-                    "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-[var(--color-surface)] p-1 text-[var(--color-text)] shadow-[var(--shadow-premium)]",
+                    "z-50 min-w-[8rem] overflow-hidden rounded-lg border-0 bg-(--color-surface) p-1 text-(--color-text) shadow-(--shadow-premium)",
                     "data-[state=open]:animate-in data-[state=closed]:animate-out",
                     "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                     "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -90,7 +90,7 @@ function DropdownMenuItem({ className, inset, ref, ...props }: DropdownMenuItemP
         <DropdownMenuPrimitive.Item
             ref={ref}
             className={cn(
-                "relative flex cursor-default select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors focus:bg-[var(--color-interactive-hover)] focus:text-[var(--color-text)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-[var(--color-text)]",
+                "relative flex cursor-default select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors focus:bg-(--color-interactive-hover) focus:text-(--color-text) data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-(--color-text)",
                 inset && "pl-8",
                 className
             )}
@@ -109,7 +109,7 @@ function DropdownMenuLabel({ className, inset, ref, ...props }: DropdownMenuLabe
         <DropdownMenuPrimitive.Label
             ref={ref}
             className={cn(
-                "px-2 py-1.5 text-sm font-semibold text-[var(--color-text-muted)]",
+                "px-2 py-1.5 text-sm font-semibold text-(--color-text-muted)",
                 inset && "pl-8",
                 className
             )}
@@ -126,7 +126,7 @@ function DropdownMenuSeparator({ className, ref, ...props }: DropdownMenuSeparat
     return (
         <DropdownMenuPrimitive.Separator
             ref={ref}
-            className={cn("-mx-1 my-1 h-px bg-[var(--color-paper)]", className)}
+            className={cn("-mx-1 my-1 h-px bg-(--color-paper)", className)}
             {...props}
         />
     )

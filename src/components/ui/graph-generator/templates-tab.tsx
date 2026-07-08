@@ -211,8 +211,8 @@ export const TemplatesTab = ({ onGenerate }: TemplatesTabProps) => {
     <div className="grid grid-cols-3 gap-3">
       {templates.map((template) => (
         <CardButton key={template.id} onClick={() => onGenerate(template.generate())}>
-          <template.icon className="w-10 h-10 text-[var(--color-text-muted)]" />
-          <span className="font-semibold text-xs text-[var(--color-text)]">
+          <template.icon className="w-10 h-10 text-(--color-text-muted)" />
+          <span className="font-semibold text-xs text-(--color-text)">
             {template.name}
           </span>
         </CardButton>

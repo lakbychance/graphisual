@@ -35,7 +35,7 @@ const ToolbarSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToolbarPrimitive.Separator
     ref={ref}
-    className={cn("w-px h-6 mx-1 md:mx-2 bg-[var(--color-divider)]", className)}
+    className={cn("w-px h-6 mx-1 md:mx-2 bg-(--color-divider)", className)}
     {...props}
   />
 ));
@@ -48,7 +48,7 @@ const ToolbarToggleGroup = React.forwardRef<
   <ToolbarPrimitive.ToggleGroup
     ref={ref}
     className={cn(
-      "flex p-0.5 h-8 items-center gap-2 bg-[var(--color-paper)] shadow-[var(--shadow-pressed)] rounded-lg",
+      "flex p-0.5 h-8 items-center gap-2 bg-(--color-paper) shadow-(--shadow-pressed) rounded-lg",
       className
     )}
     {...props}
@@ -65,8 +65,8 @@ const ToolbarToggleItem = React.forwardRef<
     className={cn(
       "flex-1 h-7 flex items-center justify-center cursor-pointer rounded-md",
       "focus-ring-animated",
-      "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-      "data-[state=on]:bg-[var(--color-surface)] data-[state=on]:text-[var(--color-text)] data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
+      "bg-transparent text-(--color-text-muted) hover:text-(--color-text)",
+      "data-[state=on]:bg-(--color-surface) data-[state=on]:text-(--color-text) data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
       "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none",
       className
     )}

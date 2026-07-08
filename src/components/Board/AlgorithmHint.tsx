@@ -30,7 +30,7 @@ export const AlgorithmHint = ({ text, algorithmName }: AlgorithmHintProps) => {
         {/* Content layer - persists for width animation */}
         <m.div
           transition={{ duration: prefersReducedMotion ? 0 : 0.6, type: 'spring', bounce: 0.4 }}
-          className="relative rounded-md text-sm text-center bg-[var(--color-surface)] text-[var(--color-text)] overflow-hidden flex justify-center"
+          className="relative rounded-md text-sm text-center bg-(--color-surface) text-(--color-text) overflow-hidden flex justify-center"
         >
           <AnimatePresence mode='popLayout' initial={false}>
             <m.span

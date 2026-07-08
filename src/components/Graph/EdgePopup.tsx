@@ -86,8 +86,8 @@ export const EdgePopup = ({
   const toggleButtonClass = (isActive: boolean, isDisabled?: boolean) => cn(
     "w-8 h-8 flex items-center justify-center rounded-md cursor-pointer focus-ring-animated",
     isActive
-      ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-raised),var(--highlight-edge)]"
-      : "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+      ? "bg-(--color-surface) text-(--color-text) shadow-[var(--shadow-raised),var(--highlight-edge)]"
+      : "bg-transparent text-(--color-text-muted) hover:text-(--color-text)",
     isDisabled && "opacity-50 cursor-not-allowed"
   );
 
@@ -149,7 +149,7 @@ export const EdgePopup = ({
             <div
               role="group"
               aria-label="Edge type"
-              className="flex p-0.5 gap-2 bg-[var(--color-paper)] shadow-[var(--shadow-etched)] rounded-lg"
+              className="flex p-0.5 gap-2 bg-(--color-paper) shadow-(--shadow-etched) rounded-lg"
             >
               {hasHover ? (
                 <Tooltip>
@@ -172,7 +172,7 @@ export const EdgePopup = ({
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-[var(--color-divider)]" />
+            <div className="w-px h-6 bg-(--color-divider)" />
 
             {/* Weight section */}
             <Stepper
@@ -198,7 +198,7 @@ export const EdgePopup = ({
             </Stepper>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-[var(--color-divider)]" />
+            <div className="w-px h-6 bg-(--color-divider)" />
 
             {/* Actions section */}
             {type === EDGE_TYPE.DIRECTED && (
@@ -222,7 +222,7 @@ export const EdgePopup = ({
                   onClick={handleDelete}
                   variant="default"
                   size="icon-sm"
-                  className="text-[var(--color-error)]"
+                  className="text-(--color-error)"
                   aria-label="Delete edge"
                 >
                   <Trash2 className="w-4 h-4" />

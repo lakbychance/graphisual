@@ -4,12 +4,12 @@ import { cn } from "../../lib/utils"
 import { GrainTexture } from "./grain-texture"
 
 const cardButtonVariants = cva(
-  "relative flex flex-col items-center gap-1 p-2.5  duration-100 overflow-hidden bg-[var(--color-surface)] shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated",
+  "relative flex flex-col items-center gap-1 p-2.5  duration-100 overflow-hidden bg-(--color-surface) shadow-[var(--shadow-raised),var(--highlight-edge)] focus-ring-animated",
   {
     variants: {
       selected: {
-        true: "ring-2 ring-[var(--color-accent-form)]",
-        false: "hover:ring-2 hover:ring-[var(--color-text-muted)]",
+        true: "ring-2 ring-(--color-accent-form)",
+        false: "hover:ring-2 hover:ring-(--color-text-muted)",
       },
       rounded: {
         sm: "rounded-md",

@@ -40,11 +40,11 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
         rounded="md"
         className="p-3 w-full"
       >
-        <Icon className="w-6 h-6 text-[var(--color-text-muted)]" />
-        <span className="font-semibold text-sm text-[var(--color-text)]">
+        <Icon className="w-6 h-6 text-(--color-text-muted)" />
+        <span className="font-semibold text-sm text-(--color-text)">
           {metadata.name}
         </span>
-        <span className="text-xs text-[var(--color-text-muted)] text-center leading-tight">
+        <span className="text-xs text-(--color-text-muted) text-center leading-tight">
           {metadata.tagline}
         </span>
       </CardButton>
@@ -52,7 +52,7 @@ const AlgorithmCard = ({ algorithm, selected, onClick }: AlgorithmCardProps) => 
         <TooltipTrigger asChild>
           <a
             href={`/algorithm/${metadata.id}`}
-            className="focus-ring-animated absolute top-1.5 right-1.5 z-20 p-1 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            className="focus-ring-animated absolute top-1.5 right-1.5 z-20 p-1 rounded-md text-(--color-text-muted) hover:text-(--color-text)"
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -24,7 +24,7 @@ const parseTrace = (text: string, getNodeLabel?: (id: number) => string): React.
     const parts = line.split(/(\*\*[^*]+\*\*)/g);
     const parsedLine = parts.map((part, partIndex) => {
       if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={partIndex} className="font-semibold text-[var(--color-text)]">{part.slice(2, -2)}</strong>;
+        return <strong key={partIndex} className="font-semibold text-(--color-text)">{part.slice(2, -2)}</strong>;
       }
       return part;
     });
@@ -62,7 +62,7 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
       <div
         role="region"
         aria-label="Algorithm trace"
-        className="relative flex flex-col gap-2 p-3 pr-10 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)] min-w-[280px] max-w-[500px]"
+        className="relative flex flex-col gap-2 p-3 pr-10 rounded-md bg-(--color-surface) shadow-(--shadow-premium) min-w-[280px] max-w-[500px]"
       >
         <GrainTexture baseFrequency={4.2} className="rounded-md" />
 
@@ -74,17 +74,17 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
           className="absolute top-2 right-2 z-10"
           aria-label="Hide trace panel"
         >
-          <X size={14} className="text-[var(--color-text-muted)]" />
+          <X size={14} className="text-(--color-text-muted)" />
         </Button>
 
         {/* Trace message */}
-        <div className="text-sm text-[var(--color-text-muted)] relative z-10">
+        <div className="text-sm text-(--color-text-muted) relative z-10">
           {trace?.message ? parseTrace(trace.message, getNodeLabel) : "Starting algorithm..."}
         </div>
 
         {/* Data structure visualization */}
         {trace?.dataStructure && (
-          <div className="relative z-10 pt-1 border-t border-[var(--color-divider)]">
+          <div className="relative z-10 pt-1 border-t border-(--color-divider)">
             <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
           </div>
         )}

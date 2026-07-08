@@ -38,7 +38,7 @@ export const SpeedControl = ({
                 className="z-10"
                 aria-label="Decrease speed"
               >
-                <Minus className={cn("h-3 w-3", canDecrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                <Minus className={cn("h-3 w-3", canDecrease && !disabled ? "text-(--color-text)" : "text-(--color-text-muted)")} />
               </Button>
             </ToolbarButton>
           </TooltipTrigger>
@@ -47,7 +47,7 @@ export const SpeedControl = ({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-xs min-w-[32px] text-center cursor-help text-[var(--color-text)]">
+            <span className="text-xs min-w-[32px] text-center cursor-help text-(--color-text)">
               {speedMultiplier}
             </span>
           </TooltipTrigger>
@@ -65,7 +65,7 @@ export const SpeedControl = ({
                 className="z-10"
                 aria-label="Increase speed"
               >
-                <Plus className={cn("h-3 w-3", canIncrease && !disabled ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+                <Plus className={cn("h-3 w-3", canIncrease && !disabled ? "text-(--color-text)" : "text-(--color-text-muted)")} />
               </Button>
             </ToolbarButton>
           </TooltipTrigger>

@@ -70,7 +70,7 @@ export const KeyboardShortcuts = () => {
               className="relative"
             >
               <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
-              <Keyboard size={20} className="text-[var(--color-text-muted)]" />
+              <Keyboard size={20} className="text-(--color-text-muted)" />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -84,13 +84,13 @@ export const KeyboardShortcuts = () => {
       >
         <GrainTexture baseFrequency={4.2} className="rounded-lg" />
         <div className="relative p-3">
-          <h3 className="font-semibold text-sm text-[var(--color-text)] mb-3">
+          <h3 className="font-semibold text-sm text-(--color-text) mb-3">
             Keyboard Shortcuts
           </h3>
           <div className="space-y-3">
             {shortcutGroups.map((group) => (
               <div key={group.title}>
-                <h4 className="text-xs font-semibold text-[var(--color-text)] mb-1.5">
+                <h4 className="text-xs font-semibold text-(--color-text) mb-1.5">
                   {group.title}
                 </h4>
                 <div className="space-y-1.5">
@@ -99,10 +99,10 @@ export const KeyboardShortcuts = () => {
                       key={shortcut.description}
                       className="flex items-center justify-between text-xs"
                     >
-                      <span className="text-[var(--color-text-muted)]">
+                      <span className="text-(--color-text-muted)">
                         {shortcut.description}
                       </span>
-                      <kbd className="px-1.5 py-0.5 flex font-sans items-center rounded bg-[var(--color-paper)] text-[var(--color-text)] text-[10px]">
+                      <kbd className="px-1.5 py-0.5 flex font-sans items-center rounded bg-(--color-paper) text-(--color-text) text-[10px]">
                         <KeyParts keys={shortcut.keys} />
                       </kbd>
                     </div>

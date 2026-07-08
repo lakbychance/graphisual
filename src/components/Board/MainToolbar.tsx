@@ -100,7 +100,7 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
   }, [graphRendererRef]);
 
   return (
-    <Toolbar aria-label="Graph controls" className="flex items-center relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]">
+    <Toolbar aria-label="Graph controls" className="flex items-center relative p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
       <GrainTexture baseFrequency={3} className="rounded-md" />
 
       <ModeToggle
@@ -146,11 +146,11 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
                     aria-label="View mode"
                   >
                     {renderMode === "3d" ? (
-                      <Box size={16} className="text-[var(--color-text)]" />
+                      <Box size={16} className="text-(--color-text)" />
                     ) : renderMode === "canvas" ? (
-                      <Zap size={16} className="text-[var(--color-text)]" />
+                      <Zap size={16} className="text-(--color-text)" />
                     ) : (
-                      <Feather size={16} className="text-[var(--color-text)]" />
+                      <Feather size={16} className="text-(--color-text)" />
                     )}
                   </Button>
                 </SelectTrigger>
@@ -202,7 +202,7 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
                   className="z-10"
                   aria-label="Export PNG"
                 >
-                  <Download className="h-4 w-4 text-[var(--color-text)]" />
+                  <Download className="h-4 w-4 text-(--color-text)" />
                 </Button>
               </ToolbarButton>
             </TooltipTrigger>
@@ -221,7 +221,7 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
                       className="z-10"
                       aria-label="Export"
                     >
-                      <Download className="h-4 w-4 text-[var(--color-text)]" />
+                      <Download className="h-4 w-4 text-(--color-text)" />
                     </Button>
                   </DropdownMenuTrigger>
                 </ToolbarButton>
@@ -255,7 +255,7 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
                 className="z-10"
                 aria-label="Reset Graph"
               >
-                <RotateCcw className="h-4 w-4 text-[var(--color-error)]" />
+                <RotateCcw className="h-4 w-4 text-(--color-error)" />
               </Button>
             </ToolbarButton>
           </TooltipTrigger>

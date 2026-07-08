@@ -15,7 +15,7 @@ function Checkbox({ className, ref, ...props }: CheckboxProps) {
         "peer h-5 w-5 shrink-0 rounded-md cursor-pointer",
         " duration-150 focus-ring-animated",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "bg-[var(--color-paper)] shadow-[var(--shadow-etched)]",
+        "bg-(--color-paper) shadow-(--shadow-etched)",
         className
       )}
       {...props}
@@ -23,7 +23,7 @@ function Checkbox({ className, ref, ...props }: CheckboxProps) {
       <CheckboxPrimitive.Indicator
         className={cn(
           "flex items-center justify-center h-full w-full rounded-md shadow-control",
-          "bg-[var(--color-accent-form)]"
+          "bg-(--color-accent-form)"
         )}
       >
         <Check className="h-3 w-3 text-white" strokeWidth={3} />

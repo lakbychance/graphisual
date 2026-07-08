@@ -37,7 +37,7 @@ export const StepControls = ({
     <div
       role="group"
       aria-label="Step controls"
-      className="flex justify-around items-center gap-1 md:gap-2 relative p-2 rounded-md bg-[var(--color-surface)] shadow-[var(--shadow-premium)]"
+      className="flex justify-around items-center gap-1 md:gap-2 relative p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)"
     >
       <GrainTexture baseFrequency={3} className="rounded-md" />
 
@@ -52,7 +52,7 @@ export const StepControls = ({
             className="z-10"
             aria-label="Jump to start"
           >
-            <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <SkipBack className={cn("h-4 w-4", canStepBackward ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Jump to Start</TooltipContent>
@@ -69,14 +69,14 @@ export const StepControls = ({
             className="z-10"
             aria-label="Previous step"
           >
-            <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <ChevronLeft className={cn("h-4 w-4", canStepBackward ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Previous Step</TooltipContent>
       </Tooltip>
 
       {/* Step counter */}
-      <span className="text-xs md:text-sm px-2 min-w-12 whitespace-nowrap text-center text-[var(--color-text)]">
+      <span className="text-xs md:text-sm px-2 min-w-12 whitespace-nowrap text-center text-(--color-text)">
         {stepIndex + 1} / {totalSteps}
       </span>
 
@@ -91,7 +91,7 @@ export const StepControls = ({
             className="z-10"
             aria-label="Next step"
           >
-            <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <ChevronRight className={cn("h-4 w-4", canStepForward ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Next Step</TooltipContent>
@@ -108,7 +108,7 @@ export const StepControls = ({
             className="z-10"
             aria-label="Jump to end"
           >
-            <SkipForward className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <SkipForward className={cn("h-4 w-4", canStepForward ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Jump to End</TooltipContent>
@@ -126,9 +126,9 @@ export const StepControls = ({
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
-              <Pause className="h-4 w-4 text-[var(--color-text)]" />
+              <Pause className="h-4 w-4 text-(--color-text)" />
             ) : (
-              <Play className={cn("h-4 w-4", canStepForward ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+              <Play className={cn("h-4 w-4", canStepForward ? "text-(--color-text)" : "text-(--color-text-muted)")} />
             )}
           </Button>
         </TooltipTrigger>
@@ -136,7 +136,7 @@ export const StepControls = ({
       </Tooltip>
 
       {/* Divider */}
-      <div className="w-px h-6 mx-1 bg-[var(--color-divider)]" />
+      <div className="w-px h-6 mx-1 bg-(--color-divider)" />
 
       {/* Stop/Done button */}
       <Tooltip>
@@ -145,7 +145,7 @@ export const StepControls = ({
             onClick={onStop}
             variant="ghost"
             size="sm"
-            className="z-10 text-sm text-[var(--color-error)]"
+            className="z-10 text-sm text-(--color-error)"
           >
             Done
           </Button>

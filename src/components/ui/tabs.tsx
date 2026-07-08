@@ -14,8 +14,8 @@ function TabsList({ className, ref, ...props }: TabsListProps) {
       ref={ref}
       className={cn(
         "flex items-center gap-2 p-1 rounded-lg",
-        "bg-[var(--color-paper)]",
-        "shadow-[var(--shadow-pressed)]",
+        "bg-(--color-paper)",
+        "shadow-(--shadow-pressed)",
         className
       )}
       {...props}
@@ -34,12 +34,12 @@ function TabsTrigger({ className, ref, ...props }: TabsTriggerProps) {
       className={cn(
         "flex-1 px-3 py-1.5 text-sm rounded-md",
         " duration-150",
-        "text-[var(--color-text-muted)]",
-        "hover:text-[var(--color-text)]",
+        "text-(--color-text-muted)",
+        "hover:text-(--color-text)",
         "focus-ring-animated",
         "disabled:pointer-events-none disabled:opacity-50",
-        "data-[state=active]:bg-[var(--color-surface)]",
-        "data-[state=active]:text-[var(--color-text)]",
+        "data-[state=active]:bg-(--color-surface)",
+        "data-[state=active]:text-(--color-text)",
         "data-[state=active]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
         className
       )}

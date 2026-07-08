@@ -48,7 +48,7 @@ export function AlgorithmLanding({
   faq,
 }: AlgorithmPageProps) {
   return (
-    <div data-theme="dark" className="relative min-h-screen bg-[var(--color-paper)] text-[var(--color-text)] font-[var(--font-sans)]">
+    <div data-theme="dark" className="relative min-h-screen bg-(--color-paper) text-(--color-text) font-(--font-sans)">
       <GrainTexture baseFrequency={3} />
 
       {/* Nav */}
@@ -67,7 +67,7 @@ export function AlgorithmLanding({
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
             {title}
           </h1>
-          <p className="text-lg text-[var(--color-text-muted)] leading-relaxed">
+          <p className="text-lg text-(--color-text-muted) leading-relaxed">
             {subtitle}
           </p>
         </header>
@@ -87,7 +87,7 @@ export function AlgorithmLanding({
           <h2 className="text-2xl font-semibold mb-6">
             How It Works
           </h2>
-          <div className="space-y-5 text-[var(--color-text-muted)] leading-relaxed">
+          <div className="space-y-5 text-(--color-text-muted) leading-relaxed">
             {howItWorks.description.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
@@ -95,11 +95,11 @@ export function AlgorithmLanding({
               {howItWorks.steps.map((step, i, arr) => (
                 <li key={step} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-divider)] text-xs font-semibold text-[var(--color-text)] shrink-0">
+                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-(--color-surface-hover) border border-(--color-divider) text-xs font-semibold text-(--color-text) shrink-0">
                       {i + 1}
                     </span>
                     {i < arr.length - 1 && (
-                      <span className="w-px flex-1 bg-[var(--color-divider)]" />
+                      <span className="w-px flex-1 bg-(--color-divider)" />
                     )}
                   </div>
                   <p className="pt-1 pb-5 text-sm leading-relaxed">{step}</p>
@@ -122,7 +122,7 @@ export function AlgorithmLanding({
         {/* Use cases */}
         <section className="mb-16">
           <h2 className="text-2xl font-semibold mb-6">Common Use Cases</h2>
-          <ul className="space-y-3 text-[var(--color-text-muted)]">
+          <ul className="space-y-3 text-(--color-text-muted)">
             {cases.map((uc) => (
               <CaseItem key={uc.text} icon={uc.icon} text={uc.text} />
             ))}
@@ -136,7 +136,7 @@ export function AlgorithmLanding({
             {faq.map((item) => (
               <div key={item.question}>
                 <dt className="font-semibold mb-2">{item.question}</dt>
-                <dd className="text-[var(--color-text-muted)] leading-relaxed">
+                <dd className="text-(--color-text-muted) leading-relaxed">
                   {item.answer}
                 </dd>
               </div>
@@ -145,8 +145,8 @@ export function AlgorithmLanding({
         </section>
 
         {/* Bottom CTA */}
-        <div className="border-t border-[var(--color-divider)] pt-10">
-          <p className="text-[var(--color-text-muted)] mb-4">
+        <div className="border-t border-(--color-divider) pt-10">
+          <p className="text-(--color-text-muted) mb-4">
             Ready to see it in action?
           </p>
           <Button variant="outline" size="lg" asChild>
@@ -159,7 +159,7 @@ export function AlgorithmLanding({
       </main>
 
       {/* Footer */}
-      <footer className="relative border-t border-[var(--color-divider)]">
+      <footer className="relative border-t border-(--color-divider)">
         <div className="max-w-3xl mx-auto px-6 py-8">
           {/* Explore More Algorithms */}
           <nav className="mb-8">
@@ -171,7 +171,7 @@ export function AlgorithmLanding({
                   <li key={a.id}>
                     <a
                       href={`/algorithm/${a.id}`}
-                      className="focus-ring-animated inline-block px-3 py-1.5 text-sm rounded-md bg-[var(--color-surface-hover)] border border-[var(--color-divider)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      className="focus-ring-animated inline-block px-3 py-1.5 text-sm rounded-md bg-(--color-surface-hover) border border-(--color-divider) text-(--color-text-muted) hover:text-(--color-text)"
                     >
                       {a.name}
                     </a>
@@ -180,10 +180,10 @@ export function AlgorithmLanding({
             </ul>
           </nav>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[var(--color-text-muted)] border-t border-[var(--color-divider)] pt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-(--color-text-muted) border-t border-(--color-divider) pt-6">
             <a
               href="/"
-              className="focus-ring-animated inline-flex items-center gap-2 rounded-md hover:text-[var(--color-text)]"
+              className="focus-ring-animated inline-flex items-center gap-2 rounded-md hover:text-(--color-text)"
             >
               <span className="font-semibold">Graphisual</span>
             </a>
@@ -205,12 +205,12 @@ function PropertyCard({
   description: string;
 }) {
   return (
-    <div className="p-4 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-divider)]">
+    <div className="p-4 rounded-lg bg-(--color-surface-hover) border border-(--color-divider)">
       <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-4 h-4 text-[var(--color-text-muted)]" />
+        <Icon className="w-4 h-4 text-(--color-text-muted)" />
         <h3 className="font-semibold text-sm">{title}</h3>
       </div>
-      <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+      <p className="text-sm text-(--color-text-muted) leading-relaxed">
         {description}
       </p>
     </div>
@@ -226,7 +226,7 @@ function CaseItem({
 }) {
   return (
     <li className="flex items-start gap-3">
-      <Icon className="w-4 h-4 mt-1 shrink-0 text-[var(--color-text-muted)]" />
+      <Icon className="w-4 h-4 mt-1 shrink-0 text-(--color-text-muted)" />
       <span>{text}</span>
     </li>
   );

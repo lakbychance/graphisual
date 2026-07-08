@@ -22,10 +22,10 @@ function Slider({ className, variant = "default", ref, ...props }: SliderProps) 
         >
             {/* Etched groove track */}
             <SliderPrimitive.Track
-                className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-[var(--color-paper)] shadow-[var(--shadow-etched)]"
+                className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-(--color-paper) shadow-(--shadow-etched)"
             >
                 <SliderPrimitive.Range
-                    className="absolute h-full rounded-full bg-[var(--color-slider-range)]"
+                    className="absolute h-full rounded-full bg-(--color-slider-range)"
                 />
             </SliderPrimitive.Track>
             {/* Raised grip thumb - vintage rectangular slider with grip lines */}
@@ -34,7 +34,7 @@ function Slider({ className, variant = "default", ref, ...props }: SliderProps) 
                     "relative flex items-center justify-center gap-1 rounded-md transition-transform duration-100 focus-ring-animated disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing shadow-control",
                     isAccent
                         ? "h-4 w-6 hover:scale-110 active:scale-95 bg-accent-control"
-                        : "h-4 w-6 bg-[var(--color-surface)]"
+                        : "h-4 w-6 bg-(--color-surface)"
                 )}
             >
                 {/* Grip lines */}

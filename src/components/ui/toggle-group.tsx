@@ -10,8 +10,8 @@ const toggleGroupVariants = cva(
   {
     variants: {
       variant: {
-        pressed: "bg-[var(--color-paper)] shadow-[var(--shadow-pressed)] rounded-lg",
-        etched: "bg-[var(--color-paper)] shadow-[var(--shadow-etched)] rounded-lg",
+        pressed: "bg-(--color-paper) shadow-(--shadow-pressed) rounded-lg",
+        etched: "bg-(--color-paper) shadow-(--shadow-etched) rounded-lg",
       },
     },
     defaultVariants: {
@@ -55,8 +55,8 @@ function RadixToggleGroupItem({ className, rounded = "sm", children, ref, ...pro
       className={cn(
         "flex-1 py-1.5 flex items-center justify-center cursor-pointer",
         "focus-ring-animated",
-        "bg-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-        "data-[state=on]:bg-[var(--color-surface)] data-[state=on]:text-[var(--color-text)] data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
+        "bg-transparent text-(--color-text-muted) hover:text-(--color-text)",
+        "data-[state=on]:bg-(--color-surface) data-[state=on]:text-(--color-text) data-[state=on]:shadow-[var(--shadow-raised),var(--highlight-edge)]",
         "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none",
         roundedClass,
         className

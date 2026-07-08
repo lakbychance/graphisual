@@ -398,7 +398,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-[var(--color-paper)]"
+      className="w-full h-full bg-(--color-paper)"
     >
       {isReady && (
         <Canvas

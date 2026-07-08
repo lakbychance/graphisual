@@ -13,12 +13,12 @@ const recursionTransition = { type: "spring", duration: 0.6, bounce: 0.1 } as co
 // Shared styles
 const styles = {
   itemBase: "px-2.5 py-1 rounded text-xs font-mono",
-  itemDefault: "bg-[var(--color-paper)] text-[var(--color-text)] border border-[var(--color-divider)]",
-  itemProcessing: "bg-[var(--color-accent-form)] text-white shadow-[var(--shadow-control)]",
-  itemRing: "ring-2 ring-[var(--color-accent-form)]",
-  itemJustAdded: "bg-[var(--color-accent-form)]/10 border-[var(--color-accent-form)]",
+  itemDefault: "bg-(--color-paper) text-(--color-text) border border-(--color-divider)",
+  itemProcessing: "bg-(--color-accent-form) text-white shadow-(--shadow-control)",
+  itemRing: "ring-2 ring-(--color-accent-form)",
+  itemJustAdded: "bg-(--color-accent-form)/10 border-(--color-accent-form)",
   itemWithValue: "text-center flex flex-col leading-tight",
-  label: "text-xs text-[var(--color-text-muted)]",
+  label: "text-xs text-(--color-text-muted)",
   grid: "grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 items-center",
 };
 
@@ -37,14 +37,14 @@ const DSLabel = ({ children }: { children: React.ReactNode }) => (
 // Shared overflow indicator
 const OverflowIndicator = ({ count }: { count: number }) =>
   count > 0 ? (
-    <span className="text-xs text-[var(--color-text-muted)] ml-0.5">
+    <span className="text-xs text-(--color-text-muted) ml-0.5">
       +{count} more
     </span>
   ) : null;
 
 // Shared empty state
 const EmptyState = () => (
-  <span className="text-xs text-[var(--color-text-muted)] italic">empty</span>
+  <span className="text-xs text-(--color-text-muted) italic">empty</span>
 );
 
 // Processing box with layout animation
@@ -113,7 +113,7 @@ const AnimatedItem = ({
     {showValue && item.value !== undefined ? (
       <>
         <span>{getNodeLabel(item.id)}</span>
-        <span className="text-[10px] text-[var(--color-text-muted)]">d={item.value}</span>
+        <span className="text-[10px] text-(--color-text-muted)">d={item.value}</span>
       </>
     ) : (
       getNodeLabel(item.id)
@@ -147,7 +147,7 @@ const ItemBox = ({
     {value !== undefined ? (
       <>
         <span>{getNodeLabel(id)}</span>
-        <span className="text-[10px] text-[var(--color-text-muted)]">d={value}</span>
+        <span className="text-[10px] text-(--color-text-muted)">d={value}</span>
       </>
     ) : (
       getNodeLabel(id)
@@ -406,7 +406,7 @@ export const DataStructureVis = ({ dataStructure, getNodeLabel = String }: DataS
       {items.map((item) => (
         <div
           key={item.id}
-          className={cn(styles.itemBase, "bg-[var(--color-paper)] text-[var(--color-text)]")}
+          className={cn(styles.itemBase, "bg-(--color-paper) text-(--color-text)")}
         >
           {getNodeLabel(item.id)}
           {item.value !== undefined && `:${item.value}`}

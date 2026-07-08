@@ -19,9 +19,9 @@ function Graph3DErrorFallback() {
   const setRenderMode = useSettingsStore((state) => state.setRenderMode);
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
-      <AlertTriangle className="w-12 h-12 text-[var(--color-error)]" />
+      <AlertTriangle className="w-12 h-12 text-(--color-error)" />
       <h2 className="text-lg font-semibold">3D rendering failed</h2>
-      <p className="text-sm text-[var(--color-text-muted)]">
+      <p className="text-sm text-(--color-text-muted)">
         There was a problem with the 3D view
       </p>
       <Button onClick={() => setRenderMode('svg')} variant="secondary">
@@ -73,7 +73,7 @@ export const GraphRenderer = ({
           <ErrorBoundary FallbackComponent={Graph3DErrorFallback}>
             <Suspense
               fallback={
-                <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
+                <div className="flex items-center justify-center h-full text-(--color-text-muted)">
                   Loading 3D…
                 </div>
               }

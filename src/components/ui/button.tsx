@@ -11,28 +11,28 @@ const buttonVariants = cva(
             variant: {
                 // Default: raised surface button
                 default:
-                    "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)]",
+                    "bg-(--color-surface) text-(--color-text) shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-(--color-surface-hover) active:shadow-(--shadow-pressed) active:bg-(--color-paper)",
                 // Primary/accent: colored raised button
                 primary:
-                    "bg-[var(--color-accent)] text-white font-semibold shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-[var(--color-accent-pressed)] active:shadow-[var(--shadow-pressed)]",
+                    "bg-(--color-accent) text-white font-semibold shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-(--color-accent-pressed) active:shadow-(--shadow-pressed)",
                 // Destructive: error colored
                 destructive:
-                    "bg-[var(--color-error)] text-white font-semibold shadow-[var(--shadow-raised),var(--highlight-edge)] hover:brightness-95 active:shadow-[var(--shadow-pressed)]",
+                    "bg-(--color-error) text-white font-semibold shadow-[var(--shadow-raised),var(--highlight-edge)] hover:brightness-95 active:shadow-(--shadow-pressed)",
                 // Secondary: subtle raised
                 secondary:
-                    "bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)]",
+                    "bg-(--color-surface) text-(--color-text-muted) shadow-[var(--shadow-raised),var(--highlight-edge)] hover:bg-(--color-surface-hover) active:shadow-(--shadow-pressed)",
                 // Outline: transparent with accent border, tinted fill on hover
                 outline:
-                    "bg-transparent text-[var(--color-accent)] font-semibold border border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 active:bg-[var(--color-accent)]/15",
+                    "bg-transparent text-(--color-accent) font-semibold border border-(--color-accent) hover:bg-(--color-accent)/10 active:bg-(--color-accent)/15",
                 // Ghost: no elevation until hover
                 ghost:
-                    "bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:shadow-[var(--shadow-raised),var(--highlight-edge)] active:shadow-[var(--shadow-pressed)]",
+                    "bg-transparent text-(--color-text-muted) hover:bg-(--color-surface) hover:shadow-[var(--shadow-raised),var(--highlight-edge)] active:shadow-(--shadow-pressed)",
                 // Link: text only
                 link:
-                    "bg-transparent text-[var(--color-accent)] underline-offset-4 hover:underline",
+                    "bg-transparent text-(--color-accent) underline-offset-4 hover:underline",
                 // Skip link: hidden until focused, for accessibility skip navigation
                 skipLink:
-                    "sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:h-10 focus:px-5 focus:py-2 focus:rounded-lg focus:bg-[var(--color-surface)] focus:text-[var(--color-text)] focus:shadow-[var(--shadow-raised),var(--highlight-edge)]",
+                    "sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:h-10 focus:px-5 focus:py-2 focus:rounded-lg focus:bg-(--color-surface) focus:text-(--color-text) focus:shadow-[var(--shadow-raised),var(--highlight-edge)]",
             },
             size: {
                 default: "h-10 px-5 py-2 rounded-lg",

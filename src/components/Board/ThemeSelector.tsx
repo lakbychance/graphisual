@@ -27,7 +27,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
           className="relative"
         >
           <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
-          <ThemeIcon size={24} className="text-[var(--color-text-muted)]" />
+          <ThemeIcon size={24} className="text-(--color-text-muted)" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={alignDropdown} sideOffset={8} className="w-40">
@@ -38,7 +38,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
         >
           <Sun className="h-4 w-4" />
           <span className="flex-1">Light</span>
-          {theme === THEME.LIGHT && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+          {theme === THEME.LIGHT && <Check className="h-4 w-4 text-(--color-accent)" />}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme(THEME.DARK)}
@@ -46,7 +46,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
         >
           <Moon className="h-4 w-4" />
           <span className="flex-1">Dark</span>
-          {theme === THEME.DARK && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+          {theme === THEME.DARK && <Check className="h-4 w-4 text-(--color-accent)" />}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme(THEME.BLUEPRINT)}
@@ -54,7 +54,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
         >
           <Ruler className="h-4 w-4" />
           <span className="flex-1">Blueprint</span>
-          {theme === THEME.BLUEPRINT && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+          {theme === THEME.BLUEPRINT && <Check className="h-4 w-4 text-(--color-accent)" />}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme(THEME.SYSTEM)}
@@ -62,7 +62,7 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
         >
           <Monitor className="h-4 w-4" />
           <span className="flex-1">System</span>
-          {theme === THEME.SYSTEM && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
+          {theme === THEME.SYSTEM && <Check className="h-4 w-4 text-(--color-accent)" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

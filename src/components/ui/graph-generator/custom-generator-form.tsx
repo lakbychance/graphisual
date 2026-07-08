@@ -56,7 +56,7 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <span className="text-xs text-[var(--color-text-muted)]">Layout</span>
+        <span className="text-xs text-(--color-text-muted)">Layout</span>
         <RadixToggleGroup
           type="single"
           value={form.layout}
@@ -78,8 +78,8 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
 
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="text-[var(--color-text-muted)]">Nodes</span>
-          <span className="text-[var(--color-text)]">{form.nodeCount}</span>
+          <span className="text-(--color-text-muted)">Nodes</span>
+          <span className="text-(--color-text)">{form.nodeCount}</span>
         </div>
         <Slider
           variant="accent"
@@ -93,8 +93,8 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
 
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="text-[var(--color-text-muted)]">Edge Density</span>
-          <span className="text-[var(--color-text)]">{Math.round(form.edgeDensity * 100)}%</span>
+          <span className="text-(--color-text-muted)">Edge Density</span>
+          <span className="text-(--color-text)">{Math.round(form.edgeDensity * 100)}%</span>
         </div>
         <Slider
           variant="accent"
@@ -113,7 +113,7 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
             checked={form.isDirected}
             onCheckedChange={(checked) => set("isDirected", checked === true)}
           />
-          <span className="text-xs text-[var(--color-text)]">
+          <span className="text-xs text-(--color-text)">
             Directed
           </span>
         </label>
@@ -123,7 +123,7 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
             checked={form.isWeighted}
             onCheckedChange={(checked) => set("isWeighted", checked === true)}
           />
-          <span className="text-xs text-[var(--color-text)]">
+          <span className="text-xs text-(--color-text)">
             Weighted
           </span>
         </label>
@@ -132,7 +132,7 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
       {form.isWeighted && (
         <div className="flex gap-3">
           <div className="flex-1 space-y-1">
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-xs text-(--color-text-muted)">
               Min Weight
             </p>
             <StepperInput
@@ -143,7 +143,7 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
             />
           </div>
           <div className="flex-1 space-y-1">
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-xs text-(--color-text-muted)">
               Max Weight
             </p>
             <StepperInput

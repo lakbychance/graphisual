@@ -26,7 +26,7 @@ const useStepper = () => {
 // === Variants ===
 
 const stepperButtonVariants = cva(
-  "w-8 h-8 flex items-center justify-center text-base  duration-100 focus-ring-animated text-[var(--color-text-muted)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] active:shadow-[var(--shadow-pressed)] active:bg-[var(--color-paper)] shadow-[var(--shadow-raised),var(--highlight-edge)]",
+  "w-8 h-8 flex items-center justify-center text-base  duration-100 focus-ring-animated text-(--color-text-muted) bg-(--color-surface) hover:bg-(--color-surface-hover) active:shadow-(--shadow-pressed) active:bg-(--color-paper) shadow-[var(--shadow-raised),var(--highlight-edge)]",
   {
     variants: {
       rounded: {
@@ -61,7 +61,7 @@ function Stepper({ value, onChange, min = 0, max = 999, step = 1, onEnter, class
         ref={ref}
         className={cn(
           "flex items-center rounded-lg",
-          "bg-[var(--color-paper)] shadow-[var(--shadow-etched)]",
+          "bg-(--color-paper) shadow-(--shadow-etched)",
           className
         )}
         {...props}
@@ -166,7 +166,7 @@ function StepperField({ className, ref, ...props }: StepperFieldProps) {
       autoComplete="off"
       className={cn(
         "flex-1 h-8 text-center font-medium",
-        "focus-ring-animated-inset bg-transparent text-[var(--color-text)]",
+        "focus-ring-animated-inset bg-transparent text-(--color-text)",
         "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
         className
       )}

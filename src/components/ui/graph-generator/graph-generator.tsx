@@ -47,7 +47,7 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
         sideOffset={12}
       >
         <Tabs defaultValue="templates">
-          <div className="p-2 border-b border-[var(--color-divider)]">
+          <div className="p-2 border-b border-(--color-divider)">
             <TabsList>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="custom">Custom</TabsTrigger>

@@ -28,7 +28,7 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onZoomReset }: ZoomControlsP
               className="relative z-10"
               aria-label="Zoom out"
             >
-              <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+              <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-(--color-text)" : "text-(--color-text-muted)")} />
             </Button>
           </ToolbarButton>
         </TooltipTrigger>
@@ -63,7 +63,7 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onZoomReset }: ZoomControlsP
               className="relative z-10"
               aria-label="Zoom in"
             >
-              <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+              <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-(--color-text)" : "text-(--color-text-muted)")} />
             </Button>
           </ToolbarButton>
         </TooltipTrigger>

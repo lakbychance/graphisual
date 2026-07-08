@@ -29,18 +29,18 @@ export function MobileControls({ onUndo, onRedo, onDeleteSelectedNodes, onZoomIn
       <Toolbar aria-label="Edit controls" className="flex items-center gap-2 p-2 rounded-md backdrop-blur-sm">
         <ToolbarButton asChild>
           <Button onClick={onUndo} disabled={!canUndo} variant="ghost" size="icon-sm" aria-label="Undo">
-            <Undo2 size={16} className={cn(canUndo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <Undo2 size={16} className={cn(canUndo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </ToolbarButton>
         <ToolbarButton asChild>
           <Button onClick={onRedo} disabled={!canRedo} variant="ghost" size="icon-sm" aria-label="Redo">
-            <Redo2 size={16} className={cn(canRedo ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]")} />
+            <Redo2 size={16} className={cn(canRedo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
           </Button>
         </ToolbarButton>
         <ToolbarSeparator className="h-5 mx-0.5" />
         <ToolbarButton asChild>
           <Button onClick={onDeleteSelectedNodes} disabled={!canDeleteSelectedNodes} variant="ghost" size="icon-sm" aria-label="Delete selected nodes">
-            <Trash2 size={16} className={cn(canDeleteSelectedNodes ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]")} />
+            <Trash2 size={16} className={cn(canDeleteSelectedNodes ? "text-(--color-error)" : "text-(--color-text-muted)")} />
           </Button>
         </ToolbarButton>
       </Toolbar>
