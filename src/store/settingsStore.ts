@@ -8,7 +8,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { THEME, type Theme } from "../constants/theme";
+import { THEME, type Theme } from "@/theme/constants";
 import { STORE_NAME } from "../constants/store";
 
 export type RenderMode = 'svg' | 'canvas' | '3d';

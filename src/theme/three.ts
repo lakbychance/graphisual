@@ -5,8 +5,8 @@
  * Organized by component and theme for easy maintenance.
  */
 
-import type { ResolvedTheme } from "../../hooks/useResolvedTheme";
-import type { GradientColors } from "../../utils/cssVariables";
+import type { ResolvedTheme } from "./constants";
+import type { GradientColors } from "./css-variables";
 
 // =============================================================================
 // Node Colors - Override-based configuration

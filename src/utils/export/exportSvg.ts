@@ -3,56 +3,13 @@
  * Exports the graph as a standalone SVG with all styles embedded
  */
 
+import { getThemeSnapshot } from "@/theme/css-variables";
+
 export interface ExportSvgOptions {
   /** Include the grid background in export (default: true) */
   includeGrid?: boolean;
   /** Filename for the downloaded SVG (default: 'graph.svg') */
   filename?: string;
-}
-
-/**
- * Collect all CSS variable names declared in stylesheets
- * This scans :root rules for custom property declarations (--*)
- */
-function collectDeclaredCSSVariables(): Set<string> {
-  const variables = new Set<string>();
-
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules) {
-        // Check :root rules where CSS variables are typically declared
-        if (rule instanceof CSSStyleRule && rule.selectorText === ':root') {
-          for (const prop of rule.style) {
-            if (prop.startsWith('--')) {
-              variables.add(prop);
-            }
-          }
-        }
-      }
-    } catch {
-      // Cross-origin stylesheets will throw - skip them
-    }
-  }
-
-  return variables;
-}
-
-/**
- * Get computed values for all declared CSS variables
- */
-function getComputedCSSVariables(): Record<string, string> {
-  const varNames = collectDeclaredCSSVariables();
-  const styles = getComputedStyle(document.documentElement);
-  const values: Record<string, string> = {};
-
-  for (const varName of varNames) {
-    const value = styles.getPropertyValue(varName).trim();
-    if (value) {
-      values[varName] = value;
-    }
-  }
-
-  return values;
 }
 
 /**
@@ -461,8 +418,8 @@ export async function prepareSvgForExport(
 ): Promise<SVGSVGElement> {
   const { includeGrid = true } = options;
 
-  // 1. Get computed CSS values from current theme (dynamically discovered from :root)
-  const cssValues = getComputedCSSVariables();
+  // 1. Get computed CSS values for the current theme (all declared tokens)
+  const cssValues = getThemeSnapshot();
 
   // 2. Deep clone the SVG element
   const clone = svgElement.cloneNode(true) as SVGSVGElement;

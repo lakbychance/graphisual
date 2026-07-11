@@ -148,6 +148,62 @@ export function getUIColors() {
   };
 }
 
+// ============================================================================
+// Theme Snapshot (for export inlining)
+// ============================================================================
+
+/**
+ * Collect all CSS custom-property names declared anywhere in the app's
+ * stylesheets — both the base `:root` block and every `[data-theme="..."]`
+ * override block. Auto-discovering (no hand-maintained registry), so newly
+ * added tokens are picked up automatically.
+ */
+function collectDeclaredTokenNames(): Set<string> {
+  const names = new Set<string>();
+
+  for (const sheet of document.styleSheets) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      // Cross-origin stylesheets throw on access - skip them.
+      continue;
+    }
+
+    for (const rule of rules) {
+      if (!(rule instanceof CSSStyleRule)) continue;
+      // Tokens live in `:root` and `[data-theme="..."]` blocks. Walking both
+      // means override-only tokens are captured too, not just `:root` defaults.
+      const selector = rule.selectorText;
+      if (selector === ':root' || selector.startsWith('[data-theme')) {
+        for (const prop of rule.style) {
+          if (prop.startsWith('--')) names.add(prop);
+        }
+      }
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Resolve every declared theme token to its computed literal value for the
+ * currently active theme. This is the single source of truth for export
+ * inlining (SVG/PNG), where `var(--token)` references must become concrete
+ * hex/rgba values. Uncached - export is infrequent and needs live values.
+ */
+export function getThemeSnapshot(): Record<string, string> {
+  const styles = getComputedStyle(document.documentElement);
+  const snapshot: Record<string, string> = {};
+
+  for (const name of collectDeclaredTokenNames()) {
+    const value = styles.getPropertyValue(name).trim();
+    if (value) snapshot[name] = value;
+  }
+
+  return snapshot;
+}
+
 /**
  * Get node stroke color based on visualization state.
  * Matches 2D node stroke behavior.

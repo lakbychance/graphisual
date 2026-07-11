@@ -1,0 +1,367 @@
+/**
+ * Theme tokens — the single source of truth for every colour, shadow, gradient
+ * and dimension used across the app (UI, SVG graph, Canvas, Three.js, export).
+ *
+ * `:root` holds the light-theme defaults. Each `[data-theme="..."]` block
+ * overrides them; `data-theme` on <html> (set by useApplyTheme) selects one.
+ * To add a theme: copy a block, change the selector, and adjust values.
+ */
+
+:root {
+  /* Fonts */
+  --font-sans: "Outfit", system-ui, sans-serif;
+
+  /* === PHYSICAL SURFACE PALETTE === */
+
+  /* Paper background - warm, textured feel */
+  --color-paper: #e5e0d8;
+
+  /* Surface - light like nodes */
+  --color-surface: #f1eee9;
+  --color-surface-hover: #f8f6f2;
+
+  /* Text */
+  --color-text: #2a2520;
+  --color-text-muted: #5a544c;
+
+  /* Single accent - only one visible at a time */
+  --color-accent: #4aaa4a;
+  --color-accent-pressed: #3a943a;
+  --color-error: #d96850;
+
+  /* Node state tints (used for strokes) */
+  --color-tint-visited: #5a9a5a;
+  --color-tint-path: #b08030;
+  --color-tint-start: #4090b8;
+  --color-tint-end: #c06048;
+  --color-tint-cycle: #d86850;
+
+  /* === SHADOW SYSTEM (Flat Paper Aesthetic) === */
+
+  --shadow-raised:
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
+
+  --shadow-raised-lg:
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2),
+    0px 3px 2px rgba(50, 45, 40, 0.03);
+
+  --highlight-edge:
+    inset 0px 1px 0px rgba(255, 255, 255, 0.5);
+
+  --shadow-pressed:
+    inset 0px 2px 4px rgba(50, 45, 40, 0.15);
+
+  --shadow-etched:
+    inset 0px 1px 3px rgba(50, 45, 40, 0.12);
+
+  --shadow-premium:
+    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
+
+  /* Node gradient colors - flat for minimal 2D look */
+  --gradient-default-start: #e8e3db;
+  --gradient-default-mid: #e8e3db;
+  --gradient-default-end: #e8e3db;
+
+  --gradient-visited-start: #a0d4a0;
+  --gradient-visited-mid: #a0d4a0;
+  --gradient-visited-end: #a0d4a0;
+
+  --gradient-path-start: #e4c890;
+  --gradient-path-mid: #e4c890;
+  --gradient-path-end: #e4c890;
+
+  --gradient-start-start: #90c8e0;
+  --gradient-start-mid: #90c8e0;
+  --gradient-start-end: #90c8e0;
+
+  --gradient-end-start: #e4a088;
+  --gradient-end-mid: #e4a088;
+  --gradient-end-end: #e4a088;
+
+  --gradient-cycle-start: #e8a090;
+  --gradient-cycle-mid: #e8a090;
+  --gradient-cycle-end: #e8a090;
+
+  /* Edge colors */
+  --color-edge-default: rgba(50, 45, 40, 0.45);
+  --color-edge-traversal: #4a9a4a;
+  --color-edge-path: #b89040;
+  --color-edge-cycle: #d86850;
+
+  /* Arrow colors (slightly darker than edges for differentiation) */
+  --color-arrow-traversal: #429242;
+  --color-arrow-path: #a88038;
+  --color-arrow-cycle: #c85840;
+
+  /* Node drop shadow - none for flat design */
+  --node-shadow-color: transparent;
+
+  /* Node stroke */
+  --color-node-stroke: #8a847a;
+
+  /* Interactive states (for hover on items) */
+  --color-interactive-hover: rgba(50, 45, 40, 0.12);
+  --color-slider-range: rgba(50, 45, 40, 0.22);
+
+  /* Divider */
+  --color-divider: rgba(50, 45, 40, 0.18);
+
+  /* Form control accent (warm orange) */
+  --color-accent-form: #d86840;
+  --color-accent-form-glow: rgba(224, 120, 80, 0.4);
+
+  /* Graph paper grid */
+  --color-grid-line: rgba(50, 45, 40, 0.08);
+  --color-grid-line-major: rgba(50, 45, 40, 0.15);
+
+  /* Grain texture opacity */
+  --grain-opacity: 0.15;
+
+  /* Focus ring animation */
+  --focus-ring-width: 3px;
+  --focus-ring-active-width: 6px;
+  --focus-ring-duration: 600ms;
+
+  /* Edge focus stroke animation */
+  --edge-stroke-width: 2px;
+  --edge-stroke-focused-width: 3px;
+  --edge-stroke-active-width: 5px;
+}
+
+/* === DARK THEME === */
+[data-theme="dark"] {
+  /* Paper background - dark, subtle warmth */
+  --color-paper: #1a1a1e;
+
+  /* Molded surface material - slightly lighter than paper */
+  --color-surface: #242428;
+  --color-surface-hover: #2e2e32;
+
+  /* Text */
+  --color-text: #e8e6e3;
+  --color-text-muted: #9a9590;
+
+  /* Accent colors (slightly brighter for dark bg) */
+  --color-accent: #6bc96b;
+  --color-accent-pressed: #5ab85a;
+  --color-error: #e07b5a;
+
+  /* Node state tints (more saturated for dark bg) */
+  --color-tint-visited: rgba(107, 201, 107, 0.3);
+  --color-tint-path: rgba(230, 162, 60, 0.35);
+  --color-tint-start: rgba(93, 173, 226, 0.35);
+  --color-tint-end: rgba(224, 123, 90, 0.35);
+  --color-tint-cycle: rgba(216, 104, 80, 0.4);
+
+  /* === SHADOW SYSTEM (adjusted for dark mode) === */
+
+  /* Raised elements - soft shadows on dark */
+  --shadow-raised:
+    2px 2px 4px rgba(0, 0, 0, 0.4),
+    1px 1px 2px rgba(0, 0, 0, 0.25);
+
+  --shadow-raised-lg:
+    3px 3px 6px rgba(0, 0, 0, 0.45),
+    2px 2px 3px rgba(0, 0, 0, 0.3);
+
+  /* Inner highlight - subtle edge catch */
+  --highlight-edge:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.08);
+
+  /* Pressed/inset */
+  --shadow-pressed:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+
+  /* Etched groove */
+  --shadow-etched:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.25),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.04);
+
+  /* Premium shadow - layered depth with subtle shine */
+  --shadow-premium:
+    inset 0px 2px 4px 0px rgba(255, 255, 255, 0.08),
+    0px 0.75px 0.75px -0.75px rgba(0, 0, 0, 0.5),
+    0px 2px 2px -1.5px rgba(0, 0, 0, 0.48),
+    0px 4.4px 4.4px -2.25px rgba(0, 0, 0, 0.45),
+    0px 9.8px 9.8px -3px rgba(0, 0, 0, 0.4),
+    0px 25px 25px -3.75px rgba(0, 0, 0, 0.2),
+    0px 0px 0px 1px rgba(255, 255, 255, 0.1);
+
+  /* Node gradient colors (darker versions) */
+  --gradient-default-start: #3a3a3e;
+  --gradient-default-mid: #2e2e32;
+  --gradient-default-end: #242428;
+
+  --gradient-visited-start: #2a4a2a;
+  --gradient-visited-mid: #234823;
+  --gradient-visited-end: #1c3c1c;
+
+  --gradient-path-start: #4a3a20;
+  --gradient-path-mid: #3d3018;
+  --gradient-path-end: #302610;
+
+  --gradient-start-start: #204050;
+  --gradient-start-mid: #183848;
+  --gradient-start-end: #102838;
+
+  --gradient-end-start: #503020;
+  --gradient-end-mid: #482818;
+  --gradient-end-end: #382010;
+
+  --gradient-cycle-start: #503028;
+  --gradient-cycle-mid: #482420;
+  --gradient-cycle-end: #381c18;
+
+  /* Edge colors (brighter for dark bg) */
+  --color-edge-default: rgba(180, 175, 165, 0.4);
+  --color-edge-traversal: #7ac97a;
+  --color-edge-path: #d4b070;
+  --color-edge-cycle: #e88870;
+
+  /* Arrow colors (darker than edges for differentiation) */
+  --color-arrow-traversal: #5aa95a;
+  --color-arrow-path: #b49050;
+  --color-arrow-cycle: #c86850;
+
+  /* Node drop shadow */
+  --node-shadow-color: rgba(0, 0, 0, 0.5);
+
+  /* Node stroke */
+  --color-node-stroke: #9a9590;
+
+  /* Interactive states (brighter for dark bg) */
+  --color-interactive-hover: rgba(255, 255, 255, 0.1);
+  --color-slider-range: rgba(255, 255, 255, 0.2);
+
+  /* Divider - more visible on dark surfaces */
+  --color-divider: rgba(255, 255, 255, 0.15);
+
+  /* Form control accent (brighter warm orange for dark mode) */
+  --color-accent-form: #e88060;
+  --color-accent-form-glow: rgba(232, 128, 96, 0.5);
+
+  /* Graph paper grid */
+  --color-grid-line: rgba(255, 255, 255, 0.06);
+  --color-grid-line-major: rgba(255, 255, 255, 0.12);
+
+  /* Grain texture opacity (lighter grain on dark paper) */
+  --grain-opacity: 0.1;
+}
+
+/* === BLUEPRINT THEME === */
+[data-theme="blueprint"] {
+  /* Classic blueprint cobalt blue */
+  --color-paper: #1a5490;
+
+  /* Surface - deep cobalt, cohesive with paper */
+  --color-surface: #1f5c98;
+  --color-surface-hover: #2568a8;
+
+  /* Text - white chalk on blueprint */
+  --color-text: #ffffff;
+  --color-text-muted: #c8e0f0;
+
+  /* Accent - light cyan for visibility */
+  --color-accent: #90d8f0;
+  --color-accent-pressed: #70c0e0;
+  --color-error: #ff8070;
+
+  /* Node tints - marking colors */
+  --color-tint-visited: rgba(100, 220, 200, 0.4);
+  --color-tint-path: rgba(255, 200, 80, 0.4);
+  --color-tint-start: rgba(100, 220, 150, 0.4);
+  --color-tint-end: rgba(255, 120, 110, 0.4);
+  --color-tint-cycle: rgba(255, 100, 90, 0.45);
+
+  /* Shadows - balanced for steel blue surfaces */
+  --shadow-raised:
+    2px 2px 4px rgba(10, 40, 70, 0.4),
+    1px 1px 2px rgba(10, 40, 70, 0.25);
+
+  --shadow-raised-lg:
+    3px 3px 6px rgba(10, 40, 70, 0.45),
+    2px 2px 3px rgba(10, 40, 70, 0.3);
+
+  --highlight-edge:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.18);
+
+  --shadow-pressed:
+    inset 2px 2px 4px rgba(10, 40, 70, 0.35),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.1);
+
+  --shadow-etched:
+    inset 1px 1px 2px rgba(10, 40, 70, 0.3),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.12);
+
+  /* Premium shadow - balanced depth */
+  --shadow-premium:
+    inset 0px 1px 2px 0px rgba(255, 255, 255, 0.3),
+    3px 3px 4px rgba(10, 40, 70, 0.22),
+    8px 8px 6px rgba(10, 40, 70, 0.16),
+    0px 0px 10px rgba(10, 40, 70, 0.25);
+
+  /* Node gradients - blueprint palette */
+  /* Default: blueprint blue */
+  --gradient-default-start: #3878b0;
+  --gradient-default-mid: #2a6498;
+  --gradient-default-end: #1c5080;
+
+  /* Visited: distinct cyan/teal - clearly different hue */
+  --gradient-visited-start: #38a0a0;
+  --gradient-visited-mid: #288888;
+  --gradient-visited-end: #1c7070;
+
+  /* Path: warm amber highlight */
+  --gradient-path-start: #b89040;
+  --gradient-path-mid: #a07830;
+  --gradient-path-end: #886020;
+
+  /* Start: vivid green */
+  --gradient-start-start: #38a070;
+  --gradient-start-mid: #288858;
+  --gradient-start-end: #1c7048;
+
+  /* End: coral marker */
+  --gradient-end-start: #b85858;
+  --gradient-end-mid: #a04848;
+  --gradient-end-end: #883838;
+
+  /* Cycle: distinct coral/red */
+  --gradient-cycle-start: #c85858;
+  --gradient-cycle-mid: #b04848;
+  --gradient-cycle-end: #983838;
+
+  /* Edge colors - white blueprint lines */
+  --color-edge-default: rgba(200, 225, 245, 0.5);
+  --color-edge-traversal: #60d8c8;
+  --color-edge-path: #f0c050;
+  --color-edge-cycle: #ff8070;
+
+  /* Arrow colors (darker than edges for differentiation) */
+  --color-arrow-traversal: #40b8a8;
+  --color-arrow-path: #d0a030;
+  --color-arrow-cycle: #e06050;
+
+  /* Node shadow & stroke */
+  --node-shadow-color: rgba(10, 40, 70, 0.4);
+  --color-node-stroke: #5090c0;
+
+  /* Interactive states */
+  --color-interactive-hover: rgba(255, 255, 255, 0.15);
+  --color-slider-range: rgba(144, 216, 240, 0.35);
+
+  /* Divider */
+  --color-divider: rgba(200, 224, 240, 0.25);
+
+  /* Form accent - warm amber */
+  --color-accent-form: #f0b040;
+  --color-accent-form-glow: rgba(240, 176, 64, 0.45);
+
+  /* Grid - white blueprint lines */
+  --color-grid-line: rgba(200, 225, 245, 0.12);
+  --color-grid-line-major: rgba(200, 225, 245, 0.25);
+
+  /* Light grain */
+  --grain-opacity: 0.1;
+}

@@ -3,6 +3,8 @@
  * Captures WebGL canvas as PNG with proper background
  */
 
+import { getCSSVar } from "@/theme/css-variables";
+
 export interface Export3DPngOptions {
   /** Filename for the downloaded PNG (default: 'graph-3d.png') */
   filename?: string;
@@ -16,8 +18,7 @@ export interface Export3DPngOptions {
  * Get the current paper background color from CSS custom properties
  */
 function getPaperColor(): string {
-  const style = getComputedStyle(document.documentElement);
-  return style.getPropertyValue('--color-paper').trim() || '#f5f3ef';
+  return getCSSVar('--color-paper') || '#f5f3ef';
 }
 
 /**

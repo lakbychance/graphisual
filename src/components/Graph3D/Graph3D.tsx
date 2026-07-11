@@ -13,8 +13,7 @@ import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
-import { useResolvedTheme } from "../../hooks/useResolvedTheme";
-import { GRID_COLORS, LIGHT_COLORS } from "./theme3D";
+import { useResolvedTheme, GRID_COLORS, LIGHT_COLORS } from "@/theme";
 import { useIntroAnimation, easeOutCubic } from "./introAnimation";
 
 // Camera FOV in degrees

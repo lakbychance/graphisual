@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { NodeColorState, EdgeColorState } from "../utils/cssVariables";
+import type { NodeColorState, EdgeColorState } from "@/theme";
 import type { NodeVisualizationFlags, EdgeVisualizationFlags, GraphEdge } from "../components/Graph/types";
 
 interface UseCanvasColorStateProps {

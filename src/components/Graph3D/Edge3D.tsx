@@ -1,12 +1,10 @@
 import { useMemo, useEffect } from "react";
 import { Cone, Text } from "@react-three/drei";
 import { useGraphStore, selectEdgeVisState } from "../../store/graphStore";
-import { useResolvedTheme } from "../../hooks/useResolvedTheme";
+import { useResolvedTheme, getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors, EDGE_COLORS, EDGE_EMISSIVE_OFF } from "@/theme";
 import { Vector3, Euler, Quaternion, QuadraticBezierCurve3, TubeGeometry, LineCurve3 } from "three";
 import { NODE, EDGE } from "../../constants/graph";
 import { FONT_URL } from "../../constants/ui";
-import { getEdgeColor, getEdgeArrowColor, getEdgeLineWidth, getUIColors } from "../../utils/cssVariables";
-import { EDGE_COLORS, EDGE_EMISSIVE_OFF } from "./theme3D";
 
 interface Edge3DProps {
   fromId: number;

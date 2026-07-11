@@ -4,12 +4,12 @@
  */
 
 import type { GraphNode } from "../../Graph/types";
-import type { NodeColorState } from "../../../utils/cssVariables";
 import {
+  type NodeColorState,
   getNodeGradientColors,
   getNodeStrokeColor,
   getCSSVar,
-} from "../../../utils/cssVariables";
+} from "@/theme";
 import { NODE_STROKE } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 

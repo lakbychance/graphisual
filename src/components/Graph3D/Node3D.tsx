@@ -1,13 +1,11 @@
 import { useMemo, useState, useCallback } from "react";
 import { Text } from "@react-three/drei";
 import { useGraphStore, selectNodeVisState } from "../../store/graphStore";
-import { useResolvedTheme } from "../../hooks/useResolvedTheme";
+import { useResolvedTheme, getNodeGradientColors, getUIColors, getNode3DColors, NODE_GEOMETRY } from "@/theme";
 import { NODE } from "../../constants/graph";
 import { FONT_URL } from "../../constants/ui";
-import { getNodeGradientColors, getUIColors } from "../../utils/cssVariables";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
-import { getNode3DColors, NODE_GEOMETRY } from "./theme3D";
 import { introClippingPlanes } from "./introAnimation";
 
 // Shared geometries - created once and reused across all nodes

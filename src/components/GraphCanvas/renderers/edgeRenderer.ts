@@ -4,8 +4,7 @@
  */
 
 import type { GraphEdge } from "../../Graph/types";
-import type { EdgeColorState } from "../../../utils/cssVariables";
-import { getEdgeColor, getCSSVar } from "../../../utils/cssVariables";
+import { type EdgeColorState, getEdgeColor, getCSSVar } from "@/theme";
 import { EDGE } from "../../../constants/graph";
 import { getControlPoint } from "../../../utils/geometry/calc";
 

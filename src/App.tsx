@@ -1,12 +1,12 @@
 import { LazyMotion, domMax } from "motion/react";
 import { Board } from "./components/Board/Board";
 import { Toaster } from "sonner";
-import { useTheme } from "./hooks/useTheme";
+import { useApplyTheme } from "@/theme";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   // Initialize theme system (applies data-theme attribute to document)
-  useTheme();
+  useApplyTheme();
 
   return (
     <LazyMotion features={domMax} strict>

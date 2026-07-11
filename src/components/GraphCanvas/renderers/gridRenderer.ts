@@ -3,7 +3,7 @@
  * Matches the SVG GridBackground pattern with minor and major lines.
  */
 
-import { getCSSVar } from "../../../utils/cssVariables";
+import { getCSSVar } from "@/theme";
 import type { ViewportState } from "../ViewportTransform";
 
 const GRID_MINOR = 24;  // Minor grid spacing (matches SVG)

@@ -1,8 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import type { GraphEdge, GraphNode } from "../components/Graph/types";
 import type { HoveredEdge, PreviewEdge, SelectionBox } from "../components/GraphCanvas/types";
-import type { EdgeColorState, NodeColorState } from "../utils/cssVariables";
-import { getCSSVar } from "../utils/cssVariables";
+import { type EdgeColorState, type NodeColorState, getCSSVar } from "@/theme";
 import { applyViewportTransform, resetTransform } from "../components/GraphCanvas/ViewportTransform";
 import { drawGrid } from "../components/GraphCanvas/renderers/gridRenderer";
 import { drawNode, drawConnectors } from "../components/GraphCanvas/renderers/nodeRenderer";

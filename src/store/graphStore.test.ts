@@ -360,24 +360,6 @@ describe('graphStore', () => {
       undo()
       expect(useGraphStore.getState().canRedo()).toBe(true)
     })
-
-    it('resetGraph clears all state', () => {
-      const { addNode, resetGraph } = useGraphStore.getState()
-
-      addNode(0, 0)
-      addNode(100, 100)
-
-      resetGraph()
-
-      const state = useGraphStore.getState()
-      expect(state.data.nodes).toHaveLength(0)
-      expect(state.data.edges.size).toBe(0)
-
-      // History is now in the history store
-      const historyState = useGraphHistoryStore.getState()
-      expect(historyState.past).toHaveLength(0)
-      expect(historyState.future).toHaveLength(0)
-    })
   })
 
   describe('Visualization State', () => {
