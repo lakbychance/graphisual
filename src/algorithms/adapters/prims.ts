@@ -168,6 +168,7 @@ const primsAdapter: AlgorithmAdapter = {
 
     if (hasDirectedEdge) {
       return {
+        steps: [],
         visitedEdges: [],
         error: "MST requires an undirected graph. Found directed edges.",
       };
@@ -181,12 +182,13 @@ const primsAdapter: AlgorithmAdapter = {
     // Check if all nodes are included (graph is connected)
     if (visitedEdges.length !== nodes.length) {
       return {
+        steps,
         visitedEdges: [],
         error: "Graph is not connected. MST requires a connected graph.",
       };
     }
 
-    return { visitedEdges };
+    return { steps, visitedEdges };
   },
 };
 

@@ -5,9 +5,8 @@ import { NodeEdges } from "./NodeEdges";
 import { ZOOM } from "../../constants/ui";
 import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
-import { useGraphStore } from "../../store/graphStore";
+import { useGraphStore, selectIsInStepMode } from "../../store/graphStore";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
-import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
 import { useScrollPan } from "../../hooks/useScrollPan";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
@@ -27,7 +26,6 @@ import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
-import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 
 export interface GraphHandle {
   getSvgElement: () => SVGSVGElement | null;
@@ -44,8 +42,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const selectedEdge = useGraphStore((state) => state.selection.edge);
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
   const panTarget = useGraphStore((state) => state.viewport.pan);
-  const visualizationMode = useGraphStore((state) => state.visualization.mode);
-  const visualizationState = useGraphStore((state) => state.visualization.state);
+  const isInStepMode = useGraphStore(selectIsInStepMode);
 
   // Animated viewport values (spring-smoothed)
   const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
@@ -111,9 +108,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     const screenPoint = point.matrixTransform(ctm);
     return { x: screenPoint.x, y: screenPoint.y };
   }, []);
-
-  // Apply step-through visualization when stepIndex changes
-  useStepThroughVisualization();
 
   // Enable pinch-to-zoom and trackpad pinch zoom
   const { isGestureActive } = useGestureZoom({
@@ -216,10 +210,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
     selectNode,
     onCloseFocus: () => graph.current?.focus(),
   });
-
-  // Check if we're in step mode (manual visualization with steps)
-  const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
-    visualizationState === VisualizationState.RUNNING;
 
   // Keyboard navigation hook
   const {

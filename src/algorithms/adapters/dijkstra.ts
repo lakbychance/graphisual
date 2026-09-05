@@ -252,7 +252,7 @@ const dijkstraAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     // Validate end node
     if (input.endNodeId === undefined) {
-      return { visitedEdges: [], error: "End node is required for pathfinding." };
+      return { steps: [], visitedEdges: [], error: "End node is required for pathfinding." };
     }
 
     const steps = [...dijkstraGenerator(input)];
@@ -265,12 +265,13 @@ const dijkstraAdapter: AlgorithmAdapter = {
 
     if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {
       return {
+        steps,
         visitedEdges,
         error: "Path is not possible for the given vertices.",
       };
     }
 
-    return { visitedEdges, resultEdges };
+    return { steps, visitedEdges, resultEdges };
   },
 };
 

@@ -91,6 +91,7 @@ const dfsAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     const steps = [...dfsGenerator(input)];
     return {
+      steps,
       visitedEdges: steps
         .filter((s) => s.type === StepType.VISIT)
         .map((s) => s.edge),

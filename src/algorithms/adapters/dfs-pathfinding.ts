@@ -159,7 +159,7 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     // Validate end node
     if (input.endNodeId === undefined) {
-      return { visitedEdges: [], error: "End node is required for pathfinding." };
+      return { steps: [], visitedEdges: [], error: "End node is required for pathfinding." };
     }
 
     const steps = [...dfsPathfindingGenerator(input)];
@@ -172,12 +172,13 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
 
     if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {
       return {
+        steps,
         visitedEdges,
         error: "No path found between the selected nodes.",
       };
     }
 
-    return { visitedEdges, resultEdges };
+    return { steps, visitedEdges, resultEdges };
   },
 };
 

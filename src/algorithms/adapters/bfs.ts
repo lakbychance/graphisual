@@ -91,6 +91,7 @@ const bfsAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     const steps = [...bfsGenerator(input)];
     return {
+      steps,
       visitedEdges: steps
         .filter((s) => s.type === StepType.VISIT)
         .map((s) => s.edge),

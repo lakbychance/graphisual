@@ -1,9 +1,9 @@
 import { useCallback, useEffect } from "react";
-import { useGraphStore } from "../store/graphStore";
+import { useGraphStore, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
 import { isElementInPopup } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
-import { VisualizationState, VisualizationMode } from "../constants/visualization";
+import { VisualizationState } from "../constants/visualization";
 
 // ---------------------------------------------------------------------------
 // Shortcut config — static, lives outside the hook, never recreated
@@ -73,12 +73,7 @@ export function useGraphActions() {
 
   const deselect = useCallback(() => {
     const s = useGraphStore.getState();
-    const { visualization, selectNode } = s;
-    const isInStepMode =
-      visualization.mode === VisualizationMode.MANUAL &&
-      visualization.state === VisualizationState.RUNNING &&
-      visualization.step.history.length > 0;
-    if (!isInStepMode) selectNode(null);
+    if (!selectIsInStepMode(s)) s.selectNode(null);
   }, []);
 
   const clearAlgorithm = useCallback(() => {
@@ -90,59 +85,49 @@ export function useGraphActions() {
     }
   }, []);
 
+  // Manual stepping always pauses playback first
   const stepForward = useCallback(() => {
     const s = useGraphStore.getState();
-    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
-    if (s.visualization.state !== VisualizationState.RUNNING) return;
-    if (s.visualization.step.history.length === 0 || s.visualization.step.isComplete) return;
+    if (!selectCanStepForward(s)) return;
     s.stopAutoPlay();
     s.stepForward();
   }, []);
 
   const stepBackward = useCallback(() => {
     const s = useGraphStore.getState();
-    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
-    if (s.visualization.state !== VisualizationState.RUNNING) return;
-    if (s.visualization.step.history.length === 0 || s.visualization.step.index <= 0) return;
+    if (!selectCanStepBackward(s)) return;
     s.stopAutoPlay();
     s.stepBackward();
   }, []);
 
   const jumpToStart = useCallback(() => {
     const s = useGraphStore.getState();
-    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
-    if (s.visualization.state !== VisualizationState.RUNNING) return;
-    if (s.visualization.step.history.length === 0 || s.visualization.step.index <= 0) return;
+    if (!selectCanStepBackward(s)) return;
     s.stopAutoPlay();
     s.jumpToStep(0);
   }, []);
 
   const jumpToEnd = useCallback(() => {
     const s = useGraphStore.getState();
-    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
-    if (s.visualization.state !== VisualizationState.RUNNING) return;
-    if (s.visualization.step.history.length === 0 || s.visualization.step.isComplete) return;
+    if (!selectCanStepForward(s)) return;
     s.stopAutoPlay();
     s.jumpToStep(s.visualization.step.history.length - 1);
   }, []);
 
   const togglePlay = useCallback(() => {
     const s = useGraphStore.getState();
-    if (s.visualization.mode !== VisualizationMode.MANUAL) return;
-    if (s.visualization.state !== VisualizationState.RUNNING) return;
-    if (s.visualization.step.history.length === 0) return;
+    if (!selectIsInStepMode(s)) return;
     if (s.visualization.step.isAutoPlaying) {
       s.stopAutoPlay();
-    } else if (!s.visualization.step.isComplete) {
+    } else if (selectCanStepForward(s)) {
       s.startAutoPlay();
     }
   }, []);
 
   const stopVisualization = useCallback(() => {
     const s = useGraphStore.getState();
-    s.resetStepThrough();
-    s.resetVisualization();
     s.clearVisualization();
+    s.resetVisualization();
   }, []);
 
   // -------------------------------------------------------------------------
@@ -153,12 +138,10 @@ export function useGraphActions() {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.key === "Escape" && isElementInPopup(e.target as Element)) return;
 
-    const { visualization } = useGraphStore.getState();
+    const s = useGraphStore.getState();
+    const { visualization } = s;
     const isVisualizing = visualization.state === VisualizationState.RUNNING;
-    const isInStepMode =
-      visualization.mode === VisualizationMode.MANUAL &&
-      isVisualizing &&
-      visualization.step.history.length > 0;
+    const isInStepMode = selectIsInStepMode(s);
     const isAlgorithmSelected =
       visualization.algorithm?.key != null && visualization.algorithm.key !== "select";
 

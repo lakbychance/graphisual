@@ -29,6 +29,15 @@ export interface EdgeVisualizationFlags {
 }
 
 /**
+ * Which nodes/edges are currently highlighted by a visualization.
+ * Edge key format: "fromId-toId"
+ */
+export interface VisualizationTrace {
+  nodes: Map<number, NodeVisualizationFlags>;
+  edges: Map<string, EdgeVisualizationFlags>;
+}
+
+/**
  * Node in the graph (core structural/positional data only).
  */
 export interface GraphNode {

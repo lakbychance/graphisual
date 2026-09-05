@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { NodeColorState, EdgeColorState } from "@/theme";
 import type { NodeVisualizationFlags, EdgeVisualizationFlags, GraphEdge } from "../components/Graph/types";
+import { resolveNodeVisState } from "../utils/visualization/nodeVisState";
 
 interface UseCanvasColorStateProps {
   visualizationInput: { startNodeId: number; endNodeId: number } | null;
@@ -18,15 +19,9 @@ export function useCanvasColorState({
   focusedEdge,
   edges,
 }: UseCanvasColorStateProps) {
-  const getNodeColorState = useCallback((nodeId: number): NodeColorState => {
-    if (visualizationInput?.startNodeId === nodeId) return 'start';
-    if (visualizationInput?.endNodeId === nodeId) return 'end';
-    const flags = visualizationTrace.nodes.get(nodeId);
-    if (flags?.isInCycle) return 'cycle';
-    if (flags?.isInShortestPath) return 'path';
-    if (flags?.isVisited) return 'visited';
-    return 'default';
-  }, [visualizationInput, visualizationTrace.nodes]);
+  const getNodeColorState = useCallback((nodeId: number): NodeColorState =>
+    resolveNodeVisState(nodeId, visualizationTrace.nodes.get(nodeId), visualizationInput),
+  [visualizationInput, visualizationTrace.nodes]);
 
   const getEdgeColorState = useCallback((fromId: number, toId: number): EdgeColorState => {
     const flags = visualizationTrace.edges.get(`${fromId}-${toId}`);

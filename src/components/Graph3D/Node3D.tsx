@@ -34,8 +34,6 @@ function getSharedGeometries() {
 interface Node3DProps {
   nodeId: number;
   position: [number, number, number];
-  startNodeId: number | null;
-  endNodeId: number | null;
   onClick?: (nodeId: number) => void;
   isClickable?: boolean;
   introOpacity: number;
@@ -93,10 +91,10 @@ function getDiagonalTexture(lineColor: string, lineOpacity: number = 0.25): THRE
   return texture;
 }
 
-export function Node3D({ nodeId, position, startNodeId, endNodeId, onClick, isClickable = false, introOpacity, introZOffset, label }: Node3DProps) {
+export function Node3D({ nodeId, position, onClick, isClickable = false, introOpacity, introZOffset, label }: Node3DProps) {
 
   // Get visualization state using derived selector
-  const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
+  const visState = useGraphStore(selectNodeVisState(nodeId));
 
   // Get resolved theme with convenience booleans
   const { theme, isDark: isDarkTheme, isLight: isLightTheme, isBlueprint: isBlueprintTheme } = useResolvedTheme();

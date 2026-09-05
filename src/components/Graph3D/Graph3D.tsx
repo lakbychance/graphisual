@@ -11,7 +11,6 @@ import { Edge3D } from "./Edge3D";
 import { ZOOM } from "../../constants/ui";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
-import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useResolvedTheme, GRID_COLORS, LIGHT_COLORS } from "@/theme";
 import { useIntroAnimation, easeOutCubic } from "./introAnimation";
@@ -304,10 +303,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
   const { handleNodeClick } = useAlgorithmNodeClick();
 
   // Visualization execution hook - only need currentAlgorithm and isVisualizing for isClickable check
-  const { currentAlgorithm, isVisualizing, visualizationInput } = useVisualizationExecution();
-
-  // Apply step-through visualization when stepIndex changes
-  useStepThroughVisualization();
+  const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
 
   // Viewport state from store (shared with 2D view)
   const zoom = useGraphStore((state) => state.viewport.zoom);
@@ -390,9 +386,6 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
 
     return list;
   }, [edges, nodes]);
-
-  const startNodeId = visualizationInput?.startNodeId ?? null;
-  const endNodeId = visualizationInput?.endNodeId ?? null;
 
   return (
     <div
@@ -486,8 +479,6 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
               key={node.id}
               nodeId={node.id}
               position={[node.x, -node.y, 0]}
-              startNodeId={startNodeId}
-              endNodeId={endNodeId}
               onClick={handleNodeClick}
               isClickable={!!currentAlgorithm && !isVisualizing}
               introOpacity={introAnimation.opacity}

@@ -124,10 +124,13 @@ export type AlgorithmGenerator = Generator<AlgorithmStep, void, undefined>;
 
 /**
  * Result returned by algorithm execution.
- * The core visualization system handles rendering based on this data.
+ * The visualization plays `steps` and refuses to start on `error`; the edge lists
+ * summarise the outcome for tests and programmatic use.
  */
 export interface AlgorithmResult {
-  /** Edges visited in order (for traversal animation) */
+  /** Every step the run produced, in order (empty if the run could not start) */
+  steps: AlgorithmStep[];
+  /** Edges visited in order */
   visitedEdges: EdgeRef[];
   /** Final result edges (shortest path, MST edges, etc.) - optional */
   resultEdges?: EdgeRef[];
@@ -178,12 +181,17 @@ export interface AlgorithmMetadata {
  *     id: 'my-algo',
  *     name: 'My Algorithm',
  *     type: AlgorithmType.TRAVERSAL,
- *     description: 'Click a node to start.',
+ *     tagline: 'Explore every node',
+ *     icon: MyIcon,
+ *     inputStepHints: ['Select a start node'],
+ *   },
+ *   generator: function* (input) {
+ *     yield { type: StepType.VISIT, edge: { from: -1, to: input.startNodeId } };
+ *     // ... yield one step per highlighted edge ...
  *   },
  *   execute: (input) => {
- *     const visitedEdges: EdgeRef[] = [];
- *     // ... algorithm logic ...
- *     return { visitedEdges };
+ *     const steps = [...myAdapter.generator(input)];
+ *     return { steps, visitedEdges: steps.map((s) => s.edge) };
  *   },
  * };
  *
@@ -193,8 +201,8 @@ export interface AlgorithmMetadata {
 export interface AlgorithmAdapter {
   /** Metadata for registration and UI */
   metadata: AlgorithmMetadata;
-  /** The algorithm execution function (synchronous, returns all results at once) */
+  /** Yields the visualization steps in order. `execute` is built on top of this. */
+  generator: (input: AlgorithmInput) => AlgorithmGenerator;
+  /** Runs the algorithm once and returns its steps plus validation (`error`). */
   execute: (input: AlgorithmInput) => AlgorithmResult;
-  /** Optional generator for step-through mode (yields one step at a time) */
-  generator?: (input: AlgorithmInput) => AlgorithmGenerator;
 }

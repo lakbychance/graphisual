@@ -1,48 +1,34 @@
-import { useEffect, useRef } from "react";
-import { useGraphStore, selectIsAutoPlaying } from "../store/graphStore";
+import { useEffect } from "react";
+import { useGraphStore, selectIsPlaying } from "../store/graphStore";
 import { VisualizationMode } from "../constants/visualization";
 
 /**
- * Owns the auto-play interval for step-through mode.
+ * Advances the current run one step per `speed` ms while it is playing.
  *
- * Reacts to `isAutoPlaying` in the store: starts the interval when true,
- * cancels it (via effect cleanup) when false. Any store action that sets
- * `isAutoPlaying: false` — stepForward reaching the last step, stopAutoPlay,
- * resetStepThrough — automatically cancels the interval with no extra code.
+ * Auto mode plays from the moment the run starts; manual mode plays while the user
+ * has pressed Play. This is the only place the two modes behave differently: when the
+ * last step is on screen, auto mode ends the run and manual mode simply stops.
  */
 export function useAutoPlay(): void {
-  const isAutoPlaying = useGraphStore(selectIsAutoPlaying);
-  const intervalRef = useRef<number | null>(null);
+  const isPlaying = useGraphStore(selectIsPlaying);
 
   useEffect(() => {
-    if (!isAutoPlaying) {
-      return;
-    }
+    if (!isPlaying) return;
 
     const speed = useGraphStore.getState().visualization.speed;
+    const id = window.setInterval(() => {
+      const store = useGraphStore.getState();
+      const { mode, step } = store.visualization;
 
-    intervalRef.current = window.setInterval(() => {
-      const { visualization, stepForward, stopAutoPlay } = useGraphStore.getState();
-
-      if (visualization.mode !== VisualizationMode.MANUAL) {
-        stopAutoPlay();
-        return;
+      if (step.index < step.history.length - 1) {
+        store.stepForward();
+      } else if (mode === VisualizationMode.AUTO) {
+        store.finishVisualization();
+      } else {
+        store.stopAutoPlay();
       }
-
-      const { step } = visualization;
-      if (step.isComplete || step.index >= step.history.length - 1) {
-        stopAutoPlay();
-        return;
-      }
-
-      stepForward();
     }, speed);
 
-    return () => {
-      if (intervalRef.current !== null) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isAutoPlaying]);
+    return () => clearInterval(id);
+  }, [isPlaying]);
 }

@@ -12,11 +12,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useShallow } from "zustand/shallow";
-import { useGraphStore } from "../../store/graphStore";
+import { useGraphStore, selectIsInStepMode } from "../../store/graphStore";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
-import { useStepThroughVisualization } from "../../hooks/useStepThroughVisualization";
 import { useNodeActions } from "../../hooks/useNodeActions";
 import { useGraphKeyboardNavigation } from "../../hooks/useGraphKeyboardNavigation";
 import { useGestureZoom } from "../../hooks/useGestureZoom";
@@ -27,7 +26,6 @@ import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
 import { useCanvasRenderLoop } from "../../hooks/useCanvasRenderLoop";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { EdgePopup } from "../Graph/EdgePopup";
-import { VisualizationMode, VisualizationState } from "../../constants/visualization";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 
@@ -58,8 +56,6 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const focusedEdge = useGraphStore((state) => state.selection.focusedEdge);
   const visualizationInput = useGraphStore((state) => state.visualization.input);
   const visualizationTrace = useGraphStore((state) => state.visualization.trace);
-  const visualizationMode = useGraphStore((state) => state.visualization.mode);
-  const visualizationState = useGraphStore((state) => state.visualization.state);
 
   // Viewport state
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
@@ -90,10 +86,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const { handleNodeClick } = useAlgorithmNodeClick();
   const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
   const isDesktop = useIsDesktop();
-  useStepThroughVisualization();
-
-  const isInStepMode = visualizationMode === VisualizationMode.MANUAL &&
-    visualizationState === VisualizationState.RUNNING;
+  const isInStepMode = useGraphStore(selectIsInStepMode);
 
   // Convert world coordinates to screen coordinates (for popup positioning)
   const worldToScreenCoords = useCallback((worldX: number, worldY: number) => {

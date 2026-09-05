@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGraphStore } from './graphStore'
 import { useGraphHistoryStore } from './graphHistoryStore'
-import { VisualizationState, VisualizationMode } from '../constants/visualization'
+import { VisualizationState, VisualizationMode, StepType } from '../constants/visualization'
+import type { AlgorithmStep } from '../algorithms/types'
 
 // Reset store before each test
 beforeEach(() => {
@@ -26,6 +27,7 @@ beforeEach(() => {
       input: null,
       speed: 400,
       mode: VisualizationMode.AUTO,
+      step: { index: -1, history: [], isAutoPlaying: false },
     },
     selection: {
       nodeIds: new Set<number>(),
@@ -383,17 +385,18 @@ describe('graphStore', () => {
       expect(useGraphStore.getState().visualization.input).toBe(null)
     })
 
-    it('setVisualizationState updates state', () => {
-      const { setVisualizationState } = useGraphStore.getState()
+    it('setVisualizationAlgorithm after a finished run clears the old highlights', () => {
+      const { startVisualization, jumpToStep, finishVisualization, setVisualizationAlgorithm } = useGraphStore.getState()
+      startVisualization([{ type: StepType.VISIT, edge: { from: -1, to: 1 } }])
+      jumpToStep(0)
+      finishVisualization()
+      expect(useGraphStore.getState().visualization.trace.nodes.size).toBe(1)
 
-      setVisualizationState(VisualizationState.RUNNING)
-      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.RUNNING)
+      setVisualizationAlgorithm({ key: 'bfs', text: 'BFS' })
 
-      setVisualizationState(VisualizationState.DONE)
-      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.DONE)
-
-      setVisualizationState(VisualizationState.IDLE)
-      expect(useGraphStore.getState().visualization.state).toBe(VisualizationState.IDLE)
+      const { visualization } = useGraphStore.getState()
+      expect(visualization.trace.nodes.size).toBe(0)
+      expect(visualization.state).toBe(VisualizationState.IDLE)
     })
 
     it('resetVisualization resets to defaults', () => {
@@ -431,73 +434,156 @@ describe('graphStore', () => {
     })
   })
 
-  describe('Trace Maps', () => {
-    it('setTraceNode sets flags for a node', () => {
-      const { addNode, setTraceNode } = useGraphStore.getState()
-      addNode(100, 100)
-
-      setTraceNode(1, { isVisited: true })
-
-      const { visualization } = useGraphStore.getState()
-      expect(visualization.trace.nodes.get(1)?.isVisited).toBe(true)
-    })
-
-    it('setTraceEdge sets flags for an edge', () => {
-      const { addNode, addEdge, setTraceEdge } = useGraphStore.getState()
+  describe('Visualization Run', () => {
+    // Graph: 1 -> 2 (directed), 2 -- 3 (undirected)
+    const setupGraph = () => {
+      const { addNode, addEdge, updateEdgeType } = useGraphStore.getState()
       addNode(100, 100)
       addNode(200, 200)
-      const state = useGraphStore.getState()
-      addEdge(state.data.nodes[0], state.data.nodes[1])
+      addNode(300, 300)
+      const { nodes } = useGraphStore.getState().data
+      addEdge(nodes[0], nodes[1])
+      addEdge(nodes[1], nodes[2])
+      updateEdgeType(2, 3, 'undirected')
+    }
 
-      setTraceEdge(1, 2, { isUsedInTraversal: true })
+    const steps: AlgorithmStep[] = [
+      { type: StepType.VISIT, edge: { from: -1, to: 1 } },
+      { type: StepType.VISIT, edge: { from: 1, to: 2 } },
+      { type: StepType.VISIT, edge: { from: 2, to: 3 } },
+      { type: StepType.RESULT, edge: { from: 1, to: 2 } },
+    ]
+
+    it('startVisualization stores steps with nothing applied yet', () => {
+      setupGraph()
+      useGraphStore.getState().startVisualization(steps)
 
       const { visualization } = useGraphStore.getState()
-      expect(visualization.trace.edges.get('1-2')?.isUsedInTraversal).toBe(true)
+      expect(visualization.state).toBe(VisualizationState.RUNNING)
+      expect(visualization.step.index).toBe(-1)
+      expect(visualization.step.history).toBe(steps)
+      expect(visualization.trace.nodes.size).toBe(0)
     })
 
-    it('clearVisualization clears all trace state', () => {
-      const { addNode, setTraceNode, setTraceEdge, clearVisualization } = useGraphStore.getState()
-      addNode(100, 100)
-      addNode(200, 200)
+    it('stepForward highlights the target node and edge', () => {
+      setupGraph()
+      const { startVisualization, stepForward } = useGraphStore.getState()
+      startVisualization(steps)
 
-      setTraceNode(1, { isVisited: true })
-      setTraceNode(2, { isInShortestPath: true })
-      setTraceEdge(1, 2, { isUsedInTraversal: true })
+      stepForward()
+      expect(useGraphStore.getState().visualization.trace.nodes.get(1)?.isVisited).toBe(true)
+      expect(useGraphStore.getState().visualization.trace.edges.size).toBe(0) // root step has no edge
 
-      expect(useGraphStore.getState().visualization.trace.nodes.size).toBe(2)
-      expect(useGraphStore.getState().visualization.trace.edges.size).toBe(1)
+      stepForward()
+      const { trace } = useGraphStore.getState().visualization
+      expect(trace.nodes.get(2)?.isVisited).toBe(true)
+      expect(trace.edges.get('1-2')?.isUsedInTraversal).toBe(true)
+      expect(trace.edges.has('2-1')).toBe(false) // directed: no reverse
+    })
 
+    it('undirected edges are highlighted in both directions', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(2)
+
+      const { trace } = useGraphStore.getState().visualization
+      expect(trace.edges.get('2-3')?.isUsedInTraversal).toBe(true)
+      expect(trace.edges.get('3-2')?.isUsedInTraversal).toBe(true)
+    })
+
+    it('result steps add path flags on top of visited flags', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(3)
+
+      const { trace } = useGraphStore.getState().visualization
+      expect(trace.nodes.get(2)).toEqual({ isVisited: true, isInShortestPath: true })
+      expect(trace.edges.get('1-2')).toEqual({ isUsedInTraversal: true, isUsedInShortestPath: true })
+    })
+
+    it('stepBackward removes highlights again', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep, stepBackward } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(2)
+      stepBackward()
+
+      const { step, trace } = useGraphStore.getState().visualization
+      expect(step.index).toBe(1)
+      expect(trace.nodes.has(3)).toBe(false)
+      expect(trace.edges.has('2-3')).toBe(false)
+    })
+
+    it('stepForward stops at the last step and turns off auto-play there', () => {
+      setupGraph()
+      const { startVisualization, startAutoPlay, stepForward } = useGraphStore.getState()
+      startVisualization(steps)
+      startAutoPlay()
+      steps.forEach(() => stepForward())
+      stepForward()
+
+      const { step } = useGraphStore.getState().visualization
+      expect(step.index).toBe(steps.length - 1)
+      expect(step.isAutoPlaying).toBe(false)
+    })
+
+    it('jumpToStep clamps out-of-range indices to the history bounds', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep } = useGraphStore.getState()
+      startVisualization(steps)
+
+      jumpToStep(99)
+      expect(useGraphStore.getState().visualization.step.index).toBe(steps.length - 1)
+      expect(useGraphStore.getState().visualization.trace.nodes.size).toBe(3)
+
+      jumpToStep(-5)
+      expect(useGraphStore.getState().visualization.step.index).toBe(-1)
+      expect(useGraphStore.getState().visualization.trace.nodes.size).toBe(0)
+    })
+
+    it('finishVisualization ends the run but keeps highlights', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep, finishVisualization } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(3)
+      finishVisualization()
+
+      const { visualization } = useGraphStore.getState()
+      expect(visualization.state).toBe(VisualizationState.DONE)
+      expect(visualization.algorithm).toEqual({ key: 'select', text: 'Select Algorithm' })
+      expect(visualization.step.history).toHaveLength(0)
+      expect(visualization.trace.nodes.size).toBe(3)
+    })
+
+    it('clearVisualization removes highlights and step history', () => {
+      setupGraph()
+      const { startVisualization, jumpToStep, clearVisualization } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(3)
       clearVisualization()
 
-      const state = useGraphStore.getState()
-      expect(state.visualization.trace.nodes.size).toBe(0)
-      expect(state.visualization.trace.edges.size).toBe(0)
-      expect(state.visualization.state).toBe(VisualizationState.IDLE)
+      const { visualization } = useGraphStore.getState()
+      expect(visualization.state).toBe(VisualizationState.IDLE)
+      expect(visualization.step.history).toHaveLength(0)
+      expect(visualization.trace.nodes.size).toBe(0)
+      expect(visualization.trace.edges.size).toBe(0)
     })
 
-    it('trace maps are separate from graph data', () => {
-      const { addNode, addEdge, setTraceNode, setTraceEdge } = useGraphStore.getState()
-      addNode(100, 100)
-      addNode(200, 200)
-      const state = useGraphStore.getState()
-      addEdge(state.data.nodes[0], state.data.nodes[1])
-
-      // Get original references
+    it('highlights live in trace maps, not on graph data', () => {
+      setupGraph()
       const originalNode = useGraphStore.getState().data.nodes[0]
       const originalEdge = useGraphStore.getState().data.edges.get(1)?.[0]
 
-      // Set visualization flags
-      setTraceNode(1, { isVisited: true })
-      setTraceEdge(1, 2, { isUsedInTraversal: true })
+      const { startVisualization, jumpToStep } = useGraphStore.getState()
+      startVisualization(steps)
+      jumpToStep(3)
 
-      // Node and edge objects should be unchanged
-      const newState = useGraphStore.getState()
-      expect(newState.data.nodes[0]).toBe(originalNode)
-      expect(newState.data.edges.get(1)?.[0]).toBe(originalEdge)
-
-      // Visualization flags are in trace maps
-      expect(newState.visualization.trace.nodes.get(1)?.isVisited).toBe(true)
-      expect(newState.visualization.trace.edges.get('1-2')?.isUsedInTraversal).toBe(true)
+      const { data } = useGraphStore.getState()
+      expect(data.nodes[0]).toBe(originalNode)
+      expect(data.edges.get(1)?.[0]).toBe(originalEdge)
     })
   })
 })
+

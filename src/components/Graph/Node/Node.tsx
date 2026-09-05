@@ -9,6 +9,7 @@ import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { useIsDesktop } from "../../../hooks/useMediaQuery";
 import { useAppHaptics } from "../../../hooks/useAppHaptics";
+import { resolveNodeVisState } from "../../../utils/visualization/nodeVisState";
 
 export interface NodeProps {
   nodeId: number;
@@ -208,25 +209,14 @@ export const Node = memo(function Node(props: NodeProps) {
   // Hit area radius: node radius + padding for connectors and touch target
   const hitAreaRadius = node.r + NODE.HIT_AREA_PADDING;
 
-  // Determine node fill - using solid colors for smooth Framer Motion animation
-  const getNodeFill = () => {
-    if (visualizationInput?.startNodeId === node.id) return 'var(--gradient-start-mid)';
-    if (visualizationInput?.endNodeId === node.id) return 'var(--gradient-end-mid)';
-    if (visFlags?.isInCycle) return 'var(--gradient-cycle-mid)';
-    if (visFlags?.isInShortestPath) return 'var(--gradient-path-mid)';
-    if (visFlags?.isVisited) return 'var(--gradient-visited-mid)';
-    return 'var(--gradient-default-mid)';
-  };
+  const visState = resolveNodeVisState(node.id, visFlags, visualizationInput);
+
+  // Solid colors (not gradients) so Framer Motion can animate the fill smoothly
+  const getNodeFill = () => `var(--gradient-${visState}-mid)`;
 
   // Stroke color for non-selected states (selected state handled by Framer Motion animate)
-  const getNodeStroke = () => {
-    if (visualizationInput?.startNodeId === node.id) return "var(--color-tint-start)";
-    if (visualizationInput?.endNodeId === node.id) return "var(--color-tint-end)";
-    if (visFlags?.isInCycle) return "var(--color-tint-cycle)";
-    if (visFlags?.isInShortestPath) return "var(--color-tint-path)";
-    if (visFlags?.isVisited) return "var(--color-tint-visited)";
-    return "var(--color-node-stroke)";
-  };
+  const getNodeStroke = () =>
+    visState === 'default' ? "var(--color-node-stroke)" : `var(--color-tint-${visState})`;
 
   return (
     <m.g

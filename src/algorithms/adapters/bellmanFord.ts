@@ -211,7 +211,7 @@ const bellmanFordAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     // Validate end node
     if (input.endNodeId === undefined) {
-      return { visitedEdges: [], error: "End node is required for pathfinding." };
+      return { steps: [], visitedEdges: [], error: "End node is required for pathfinding." };
     }
 
     const steps = [...bellmanFordGenerator(input)];
@@ -224,12 +224,13 @@ const bellmanFordAdapter: AlgorithmAdapter = {
 
     if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {
       return {
+        steps,
         visitedEdges,
         error: "Path is not possible or negative cycle detected.",
       };
     }
 
-    return { visitedEdges, resultEdges };
+    return { steps, visitedEdges, resultEdges };
   },
 };
 

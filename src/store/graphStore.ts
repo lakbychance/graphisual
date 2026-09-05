@@ -9,11 +9,14 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, NodeVisualizationFlags, EdgeVisualizationFlags } from "../components/Graph/types";
+import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, VisualizationTrace } from "../components/Graph/types";
+import type { AlgorithmStep } from "../algorithms/types";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
+import { buildTrace, emptyTrace } from "../utils/visualization/buildTrace";
+import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
-import { VisualizationState, VisualizationMode, StepType } from "../constants/visualization";
+import { VisualizationState, VisualizationMode } from "../constants/visualization";
 import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
 
@@ -21,45 +24,23 @@ import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGr
 // Types
 // ============================================================================
 
-// Visualization trace - which nodes/edges are highlighted
-interface VisualizationTrace {
-  nodes: Map<number, NodeVisualizationFlags>;
-  edges: Map<string, EdgeVisualizationFlags>; // key: "fromId-toId"
-}
-
-// Import StepTrace type for step history
-import type { StepTrace } from "../algorithms/types";
-
-// Step-through state (only exists in manual mode)
+// The steps of the current run and how far through them we are.
+// `index` is -1 before the first step is applied. `trace` is always buildTrace(history[0..index]).
 interface StepState {
   index: number;
-  history: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }>;
-  isComplete: boolean;
+  history: AlgorithmStep[];
   isAutoPlaying: boolean;
 }
 
-// Base visualization properties (shared by both modes)
-interface VisualizationBase {
+interface Visualization {
   algorithm: SelectedOption | undefined;
   trace: VisualizationTrace;
   state: VisualizationState;
   input: { startNodeId: number; endNodeId: number } | null;
   speed: number;
-}
-
-// Auto mode - step state doesn't exist
-interface AutoVisualization extends VisualizationBase {
-  mode: VisualizationMode.AUTO;
-}
-
-// Manual mode - step state required
-interface ManualVisualization extends VisualizationBase {
-  mode: VisualizationMode.MANUAL;
+  mode: VisualizationMode;
   step: StepState;
 }
-
-// Discriminated union
-type Visualization = AutoVisualization | ManualVisualization;
 
 // Viewport state (zoom + pan)
 interface Viewport {
@@ -122,31 +103,30 @@ interface GraphActions {
   // === Multi-Node Movement ===
   moveNodes: (nodeIds: number[], deltaX: number, deltaY: number) => void;
 
-  // === Visualization Actions ===
+  // === Visualization Setup ===
   setVisualizationAlgorithm: (algo: SelectedOption | undefined) => void;
   setVisualizationInput: (input: { startNodeId: number; endNodeId: number } | null) => void;
-  setVisualizationState: (state: VisualizationState) => void;
   setVisualizationSpeed: (speed: number) => void;
   setVisualizationMode: (mode: VisualizationMode) => void;
+  /** Deselect the algorithm and forget the chosen start/end nodes. */
   resetVisualization: () => void;
-
-  // === Trace Actions (node/edge visualization) ===
-  setTraceNode: (nodeId: number, flags: NodeVisualizationFlags) => void;
-  setTraceEdge: (fromId: number, toId: number, flags: EdgeVisualizationFlags) => void;
+  /** Remove all highlights and step history; back to IDLE. */
   clearVisualization: () => void;
+
+  // === Visualization Run ===
+  /** Begin a run: store the steps, nothing applied yet (index -1). */
+  startVisualization: (steps: AlgorithmStep[]) => void;
+  /** End a run keeping its highlights on screen (auto mode completion). */
+  finishVisualization: () => void;
+  stepForward: () => void;
+  stepBackward: () => void;
+  jumpToStep: (index: number) => void;
+  startAutoPlay: () => void;
+  stopAutoPlay: () => void;
 
   // === UI Actions ===
   setViewportZoom: (zoom: number) => void;
   setViewportPan: (x: number, y: number) => void;
-
-  // === Step-Through Actions ===
-  initStepThrough: (steps: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }>) => void;
-  stepForward: () => void;
-  stepBackward: () => void;
-  jumpToStep: (index: number) => void;
-  resetStepThrough: () => void;
-  startAutoPlay: () => void;
-  stopAutoPlay: () => void;
 
   // === Computed ===
   canUndo: () => boolean;
@@ -170,16 +150,18 @@ const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
 // Initial State
 // ============================================================================
 
-const initialVisualization: AutoVisualization = {
-  algorithm: { key: 'select', text: 'Select Algorithm' },
-  trace: {
-    nodes: new Map(),
-    edges: new Map(),
-  },
+const NO_ALGORITHM: SelectedOption = { key: 'select', text: 'Select Algorithm' };
+
+const initialStep: StepState = { index: -1, history: [], isAutoPlaying: false };
+
+const initialVisualization: Visualization = {
+  algorithm: NO_ALGORITHM,
+  trace: emptyTrace(),
   state: VisualizationState.IDLE,
   input: null,
   speed: TIMING.DEFAULT_VISUALIZATION_SPEED,
   mode: VisualizationMode.AUTO,
+  step: initialStep,
 };
 
 const initialViewport: Viewport = {
@@ -222,6 +204,25 @@ export const useGraphStore = create<GraphStore>()(
         mutation: (...args: TArgs) => TReturn,
         debounceMs?: number
       ) => withGraphBatchedAutoHistory(get, mutation, debounceMs);
+
+      // Moves the run to `index` (clamped to -1..last) and derives the highlights for steps 0..index in one update.
+      const goToStep = (target: number) => {
+        const { visualization, data } = get();
+        const { step } = visualization;
+        const index = Math.max(-1, Math.min(target, step.history.length - 1));
+        set({
+          visualization: {
+            ...visualization,
+            trace: buildTrace(step.history.slice(0, index + 1), data.edges),
+            step: {
+              ...step,
+              index,
+              // Nothing left to play once the last step is on screen
+              isAutoPlaying: index >= step.history.length - 1 ? false : step.isAutoPlaying,
+            },
+          },
+        });
+      };
 
       return {
         ...initialState,
@@ -808,133 +809,100 @@ export const useGraphStore = create<GraphStore>()(
         }),
 
         // ========================================
-        // Visualization Actions
+        // Visualization Setup
         // ========================================
 
         setVisualizationAlgorithm: (algo) => {
           const { visualization } = get();
-
-          // Clear visualization if previous visualization was completed
-          if (visualization.state === VisualizationState.DONE && algo?.key && algo.key !== "select") {
-            set({
-              visualization: {
-                ...visualization,
-                algorithm: algo,
-                input: null,
-                trace: { nodes: new Map(), edges: new Map() },
-                state: VisualizationState.IDLE,
-              },
-            });
-          } else {
-            set({
-              visualization: {
-                ...visualization,
-                algorithm: algo,
-                input: null,
-              },
-            });
-          }
+          // Picking a new algorithm after a completed run clears the old highlights
+          const isDone = visualization.state === VisualizationState.DONE && algo?.key && algo.key !== "select";
+          set({
+            visualization: {
+              ...visualization,
+              algorithm: algo,
+              input: null,
+              ...(isDone && { trace: emptyTrace(), state: VisualizationState.IDLE }),
+            },
+          });
         },
 
         setVisualizationInput: (input) => {
-          const { visualization } = get();
-          set({
-            visualization: { ...visualization, input },
-          });
-        },
-
-        setVisualizationState: (state) => {
-          const { visualization } = get();
-          set({
-            visualization: { ...visualization, state },
-          });
+          set({ visualization: { ...get().visualization, input } });
         },
 
         setVisualizationSpeed: (speed) => {
-          const { visualization } = get();
-          set({
-            visualization: { ...visualization, speed },
-          });
+          set({ visualization: { ...get().visualization, speed } });
         },
 
         setVisualizationMode: (mode) => {
-          const { visualization } = get();
-          if (mode === VisualizationMode.MANUAL) {
-            set({
-              visualization: {
-                ...visualization,
-                mode: VisualizationMode.MANUAL,
-                step: { index: -1, history: [], isComplete: false, isAutoPlaying: false },
-              } as ManualVisualization,
-            });
-          } else {
-            // When switching to auto, remove step state
-            const { algorithm, trace, state, input, speed } = visualization;
-            set({
-              visualization: {
-                algorithm,
-                trace,
-                state,
-                input,
-                speed,
-                mode: VisualizationMode.AUTO,
-              } as AutoVisualization,
-            });
-          }
+          set({ visualization: { ...get().visualization, mode } });
         },
 
         resetVisualization: () => {
-          const { visualization } = get();
-          set({
-            visualization: {
-              ...visualization,
-              algorithm: { key: 'select', text: 'Select Algorithm' },
-              input: null,
-            },
-          });
-        },
-
-        // ========================================
-        // Trace Actions (node/edge visualization)
-        // ========================================
-
-        setTraceNode: (nodeId, flags) => {
-          const { visualization } = get();
-          const newNodes = new Map(visualization.trace.nodes);
-          const existing = newNodes.get(nodeId) || {};
-          newNodes.set(nodeId, { ...existing, ...flags });
-          set({
-            visualization: {
-              ...visualization,
-              trace: { ...visualization.trace, nodes: newNodes },
-            },
-          });
-        },
-
-        setTraceEdge: (fromId, toId, flags) => {
-          const { visualization } = get();
-          const key = `${fromId}-${toId}`;
-          const newEdges = new Map(visualization.trace.edges);
-          const existing = newEdges.get(key) || {};
-          newEdges.set(key, { ...existing, ...flags });
-          set({
-            visualization: {
-              ...visualization,
-              trace: { ...visualization.trace, edges: newEdges },
-            },
-          });
+          set({ visualization: { ...get().visualization, algorithm: NO_ALGORITHM, input: null } });
         },
 
         clearVisualization: () => {
-          const { visualization } = get();
           set({
             visualization: {
-              ...visualization,
-              trace: { nodes: new Map(), edges: new Map() },
+              ...get().visualization,
+              trace: emptyTrace(),
               state: VisualizationState.IDLE,
               input: null,
+              step: initialStep,
             },
           });
+        },
+
+        // ========================================
+        // Visualization Run
+        // ========================================
+
+        startVisualization: (steps) => {
+          set({
+            visualization: {
+              ...get().visualization,
+              trace: emptyTrace(),
+              state: VisualizationState.RUNNING,
+              step: { ...initialStep, history: steps },
+            },
+          });
+        },
+
+        finishVisualization: () => {
+          set({
+            visualization: {
+              ...get().visualization,
+              state: VisualizationState.DONE,
+              algorithm: NO_ALGORITHM,
+              input: null,
+              step: initialStep,
+            },
+          });
+        },
+
+        stepForward: () => {
+          const { step } = get().visualization;
+          if (step.index >= step.history.length - 1) return;
+          goToStep(step.index + 1);
+        },
+
+        stepBackward: () => {
+          const { step } = get().visualization;
+          if (step.index <= 0) return;
+          goToStep(step.index - 1);
+        },
+
+        jumpToStep: goToStep,
+
+        startAutoPlay: () => {
+          const { visualization } = get();
+          set({ visualization: { ...visualization, step: { ...visualization.step, isAutoPlaying: true } } });
+        },
+
+        stopAutoPlay: () => {
+          const { visualization } = get();
+          set({ visualization: { ...visualization, step: { ...visualization.step, isAutoPlaying: false } } });
         },
 
         // ========================================
@@ -950,124 +918,6 @@ export const useGraphStore = create<GraphStore>()(
           const { viewport } = get();
           set({ viewport: { ...viewport, pan: { x, y } } });
         },
-
-        // ========================================
-        // Step-Through Actions
-        // ========================================
-
-        initStepThrough: (steps) => {
-          const { visualization } = get();
-          set({
-            visualization: {
-              ...visualization,
-              mode: VisualizationMode.MANUAL,
-              state: VisualizationState.RUNNING,
-              step: { index: -1, history: steps, isComplete: false, isAutoPlaying: false },
-            } as ManualVisualization,
-          });
-        },
-
-        stepForward: () => {
-          const { visualization } = get();
-          if (visualization.mode !== VisualizationMode.MANUAL) return;
-
-          const { step } = visualization;
-          const nextIndex = step.index + 1;
-          if (nextIndex < step.history.length) {
-            const isComplete = nextIndex === step.history.length - 1;
-            set({
-              visualization: {
-                ...visualization,
-                step: {
-                  ...step,
-                  index: nextIndex,
-                  isComplete,
-                  // Stop auto-play atomically when the last step is reached
-                  isAutoPlaying: isComplete ? false : step.isAutoPlaying,
-                },
-              } as ManualVisualization,
-            });
-          }
-        },
-
-        stepBackward: () => {
-          const { visualization } = get();
-          if (visualization.mode !== VisualizationMode.MANUAL) return;
-
-          const { step } = visualization;
-          if (step.index > 0) {
-            set({
-              visualization: {
-                ...visualization,
-                step: {
-                  ...step,
-                  index: step.index - 1,
-                  isComplete: false,
-                },
-              } as ManualVisualization,
-            });
-          }
-        },
-
-        jumpToStep: (index) => {
-          const { visualization } = get();
-          if (visualization.mode !== VisualizationMode.MANUAL) return;
-
-          const { step } = visualization;
-          const clampedIndex = Math.max(-1, Math.min(index, step.history.length - 1));
-          set({
-            visualization: {
-              ...visualization,
-              step: {
-                ...step,
-                index: clampedIndex,
-                isComplete: clampedIndex === step.history.length - 1,
-              },
-            } as ManualVisualization,
-          });
-        },
-
-        resetStepThrough: () => {
-          const { visualization } = get();
-          // Clear visualization but preserve mode preference
-          const { algorithm, input, speed, mode } = visualization;
-          set({
-            visualization: {
-              algorithm,
-              trace: { nodes: new Map(), edges: new Map() },
-              state: VisualizationState.IDLE,
-              input,
-              speed,
-              mode,
-              ...(mode === VisualizationMode.MANUAL && {
-                step: { index: -1, history: [], isComplete: false, isAutoPlaying: false },
-              }),
-            } as Visualization,
-          });
-        },
-
-        startAutoPlay: () => {
-          const { visualization } = get();
-          if (visualization.mode !== VisualizationMode.MANUAL) return;
-          if (visualization.step.isComplete) return;
-          set({
-            visualization: {
-              ...visualization,
-              step: { ...visualization.step, isAutoPlaying: true },
-            } as ManualVisualization,
-          });
-        },
-
-        stopAutoPlay: () => {
-          const { visualization } = get();
-          if (visualization.mode !== VisualizationMode.MANUAL) return;
-          set({
-            visualization: {
-              ...visualization,
-              step: { ...visualization.step, isAutoPlaying: false },
-            } as ManualVisualization,
-          });
-        },
       };
     },
     { name: STORE_NAME.GRAPH }
@@ -1078,18 +928,14 @@ export const useGraphStore = create<GraphStore>()(
 // Selectors (for optimized re-renders)
 // ============================================================================
 
-// Stable empty array for selectors (prevents infinite re-renders)
-const EMPTY_STEP_HISTORY: Array<{ type: StepType; edge: { from: number; to: number }; trace?: StepTrace }> = [];
+export const selectStepIndex = (state: GraphStore) => state.visualization.step.index;
+export const selectStepHistory = (state: GraphStore) => state.visualization.step.history;
 
-// Step-through selectors (only available in manual mode)
-export const selectStepIndex = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.index : -1;
-export const selectStepHistory = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.history : EMPTY_STEP_HISTORY;
-export const selectIsStepComplete = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isComplete : false;
-export const selectIsAutoPlaying = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL ? state.visualization.step.isAutoPlaying : false;
+// Auto mode plays for the whole run; manual mode plays only while the user has pressed Play.
+export const selectIsPlaying = (state: GraphStore) =>
+  state.visualization.mode === VisualizationMode.AUTO
+    ? state.visualization.state === VisualizationState.RUNNING
+    : state.visualization.step.isAutoPlaying;
 
 // Action enabled selectors — each component subscribes only to what it renders
 export const selectCanUndo = (state: GraphStore) =>
@@ -1100,18 +946,11 @@ export const selectCanDeleteSelectedNodes = (state: GraphStore) =>
   state.selection.nodeIds.size > 0 && state.visualization.state !== VisualizationState.RUNNING;
 export const selectIsInStepMode = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL &&
-  state.visualization.state === VisualizationState.RUNNING &&
-  state.visualization.step.history.length > 0;
+  state.visualization.state === VisualizationState.RUNNING;
 export const selectCanStepForward = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL &&
-  state.visualization.state === VisualizationState.RUNNING &&
-  state.visualization.step.history.length > 0 &&
-  !state.visualization.step.isComplete;
+  selectIsInStepMode(state) && state.visualization.step.index < state.visualization.step.history.length - 1;
 export const selectCanStepBackward = (state: GraphStore) =>
-  state.visualization.mode === VisualizationMode.MANUAL &&
-  state.visualization.state === VisualizationState.RUNNING &&
-  state.visualization.step.history.length > 0 &&
-  state.visualization.step.index > 0;
+  selectIsInStepMode(state) && state.visualization.step.index > 0;
 
 // Helper selector to check if a reverse edge exists (curried for use with useGraphStore)
 export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (state: GraphStore): boolean => {
@@ -1123,25 +962,15 @@ export const selectHasReverseEdge = (fromNodeId: number, toNodeId: number) => (s
 // Derived Visualization State Selectors
 // ============================================================================
 
-// Node visualization state (discriminated union matching NodeColorState in cssVariables.ts)
-export type NodeVisState = 'start' | 'end' | 'path' | 'cycle' | 'visited' | 'default';
-
 /**
  * Selector factory for getting a node's visualization state.
  * Returns a function that can be passed to useGraphStore for optimal re-renders.
  *
- * Usage: const visState = useGraphStore(selectNodeVisState(nodeId, startNodeId, endNodeId));
+ * Usage: const visState = useGraphStore(selectNodeVisState(nodeId));
  */
-export const selectNodeVisState = (nodeId: number, startNodeId: number | null, endNodeId: number | null) =>
-  (state: GraphStore): NodeVisState => {
-    if (startNodeId === nodeId) return 'start';
-    if (endNodeId === nodeId) return 'end';
-    const flags = state.visualization.trace.nodes.get(nodeId);
-    if (flags?.isInCycle) return 'cycle';
-    if (flags?.isInShortestPath) return 'path';
-    if (flags?.isVisited) return 'visited';
-    return 'default';
-  };
+export const selectNodeVisState = (nodeId: number) =>
+  (state: GraphStore): NodeVisState =>
+    resolveNodeVisState(nodeId, state.visualization.trace.nodes.get(nodeId), state.visualization.input);
 
 // Edge visualization state (discriminated union matching EdgeColorState in cssVariables.ts)
 export type EdgeVisState = 'path' | 'cycle' | 'traversal' | 'default';

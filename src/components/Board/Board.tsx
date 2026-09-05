@@ -6,7 +6,7 @@ import { algorithmRegistry } from "../../algorithms";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { Undo2, Redo2 } from "lucide-react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsAutoPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
+import { useGraphStore, selectStepIndex, selectStepHistory, selectIsPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { useAutoPlay } from "../../hooks/useAutoPlay";
@@ -35,7 +35,7 @@ export const Board = () => {
   const hasNodes = useGraphStore((state) => state.data.nodes.length > 0);
   const stepIndex = useGraphStore(selectStepIndex);
   const stepHistory = useGraphStore(selectStepHistory);
-  const isPlaying = useGraphStore(selectIsAutoPlaying);
+  const isPlaying = useGraphStore(selectIsPlaying);
   const canUndo = useGraphStore(selectCanUndo);
   const canRedo = useGraphStore(selectCanRedo);
   const isInStepMode = useGraphStore(selectIsInStepMode);

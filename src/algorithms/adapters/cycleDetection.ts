@@ -201,12 +201,13 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
 
     if (cycleEdges.length === 0) {
       return {
+        steps,
         visitedEdges,
         error: "No cycle found in the graph.",
       };
     }
 
-    return { visitedEdges, resultEdges: cycleEdges, resultStepType: StepType.CYCLE };
+    return { steps, visitedEdges, resultEdges: cycleEdges, resultStepType: StepType.CYCLE };
   },
 };
 
