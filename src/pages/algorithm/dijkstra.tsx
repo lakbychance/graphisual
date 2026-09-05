@@ -5,14 +5,14 @@ import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
   title: "Dijkstra's Algorithm Visualizer | Graphisual",
-  description: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs, set source and destination nodes, and watch the algorithm find the optimal path interactively.",
-  ogDescription: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs and watch the algorithm find the optimal path.",
+  description: "Free Dijkstra's shortest path visualizer: draw a weighted graph, set source and destination nodes, and watch the optimal path emerge step by step.",
+  ogDescription: "Free Dijkstra's shortest path visualizer — draw a weighted graph and watch the optimal path emerge step by step.",
   canonical: `${BASE_URL}/algorithm/dijkstra`,
   ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "Dijkstra's Algorithm Visualizer",
     title: "Dijkstra's Algorithm Visualizer | Graphisual",
-    description: "Visualize Dijkstra's shortest path algorithm step by step. Draw weighted graphs, set source and destination nodes, and watch the algorithm find the optimal path interactively.",
+    description: "Free Dijkstra's shortest path visualizer: draw a weighted graph, set source and destination nodes, and watch the optimal path emerge step by step.",
     url: `${BASE_URL}/algorithm/dijkstra`,
     aboutName: "Dijkstra's algorithm",
     aboutDescription: "A greedy algorithm that finds the shortest path from a source node to all other nodes in a weighted graph with non-negative edge weights.",

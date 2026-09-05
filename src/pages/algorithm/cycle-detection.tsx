@@ -4,15 +4,15 @@ import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
-  title: "Cycle Detection Visualizer | Graphisual",
-  description: "Visualize cycle detection in graphs step by step. Build a graph and watch the algorithm identify circular paths using DFS-based back edge detection.",
-  ogDescription: "Visualize cycle detection in graphs step by step. Watch the algorithm identify circular paths using DFS.",
+  title: "Cycle Detection in Graphs — Explained & Visualized | Graphisual",
+  description: "How to detect a cycle in a directed or undirected graph: DFS, back edges, and O(V+E) explained step by step — then try it in a free interactive visualizer.",
+  ogDescription: "Cycle detection in directed and undirected graphs, explained and animated with DFS back-edge tracing.",
   canonical: `${BASE_URL}/algorithm/cycle-detection`,
   ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "Cycle Detection Visualizer",
-    title: "Cycle Detection Visualizer | Graphisual",
-    description: "Visualize cycle detection in graphs step by step. Build a graph and watch the algorithm identify circular paths using DFS-based back edge detection.",
+    title: "Cycle Detection in Graphs — Explained & Visualized | Graphisual",
+    description: "How to detect a cycle in a directed or undirected graph: DFS, back edges, and O(V+E) explained step by step — then try it in a free interactive visualizer.",
     url: `${BASE_URL}/algorithm/cycle-detection`,
     aboutName: "Cycle detection",
     aboutDescription: "Algorithms for detecting cycles in graphs, commonly using DFS with node coloring to identify back edges that indicate circular paths.",
@@ -23,6 +23,7 @@ export const meta = {
       { question: "How does DFS detect cycles?", answer: "DFS detects cycles using three-color marking. Nodes start as white (unvisited), turn gray (in progress) when first visited, and black (done) when fully processed. If DFS encounters a gray node, it means there's a back edge forming a cycle." },
       { question: "What is the difference between cycle detection in directed and undirected graphs?", answer: "In directed graphs, a cycle exists only when a back edge points to an ancestor in the DFS tree (a gray node). In undirected graphs, any edge to a visited node that isn't the direct parent indicates a cycle." },
       { question: "What is the time complexity of cycle detection?", answer: "DFS-based cycle detection runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge at most once." },
+      { question: "How do you detect a cycle in a directed graph?", answer: "Run a DFS and track each node as unvisited, in-progress, or visited. If the traversal reaches a node that is already in-progress on the current recursion path, that back edge means a cycle exists. This runs in O(V + E) time. Undirected graphs need a different check — any visited neighbour other than the parent — because every undirected edge is a trivial \"back edge\"." },
     ],
   }),
 };
@@ -31,8 +32,8 @@ export default function CycleDetectionPage() {
   return (
     <AlgorithmLanding
       algorithmId="cycle-detection"
-      title="Cycle Detection Visualizer"
-      subtitle="Visualize how cycle detection identifies loops in a graph. Build your own graph and watch the algorithm trace through nodes to find circular paths."
+      title="Cycle Detection in Graphs"
+      subtitle="Learn how DFS finds cycles in directed and undirected graphs by spotting back edges — then build your own graph and watch it happen step by step. Free, no signup."
       ctaText="Visualize Cycle Detection"
       howItWorks={{
         description: [
@@ -64,6 +65,7 @@ export default function CycleDetectionPage() {
         { question: "How does DFS detect cycles?", answer: "DFS detects cycles using three-color marking. Nodes start as white (unvisited), turn gray (in progress) when first visited, and black (done) when fully processed. If DFS encounters a gray node, it means there's a back edge forming a cycle." },
         { question: "What is the difference between cycle detection in directed and undirected graphs?", answer: "In directed graphs, a cycle exists only when a back edge points to an ancestor in the DFS tree (a gray node). In undirected graphs, any edge to a visited node that isn't the direct parent indicates a cycle." },
         { question: "What is the time complexity of cycle detection?", answer: "DFS-based cycle detection runs in O(V + E) time, where V is the number of vertices and E is the number of edges. It visits each vertex and edge at most once." },
+        { question: "How do you detect a cycle in a directed graph?", answer: "Run a DFS and track each node as unvisited, in-progress, or visited. If the traversal reaches a node that is already in-progress on the current recursion path, that back edge means a cycle exists. This runs in O(V + E) time. Undirected graphs need a different check — any visited neighbour other than the parent — because every undirected edge is a trivial \"back edge\"." },
       ]}
     />
   );
