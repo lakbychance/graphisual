@@ -59,7 +59,6 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
     setVisualizationAlgorithm({
       key: algoId,
       text: algo.metadata.name,
-      data: algo.metadata.type,
     });
   };
 

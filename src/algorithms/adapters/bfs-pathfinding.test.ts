@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import bfsPathfindingAdapter from './bfs-pathfinding'
 import { AlgorithmInput, StepType } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, resultEdges } from './__tests__/testUtils'
 
 describe('BFS Pathfinding Algorithm', () => {
   it('has correct metadata', () => {
@@ -28,11 +28,11 @@ describe('BFS Pathfinding Algorithm', () => {
 
     const result = bfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges).toHaveLength(3)
-    expect(result.resultEdges![0]).toEqual({ from: -1, to: 1 })
-    expect(result.resultEdges![1]).toEqual({ from: 1, to: 2 })
-    expect(result.resultEdges![2]).toEqual({ from: 2, to: 3 })
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result)).toHaveLength(3)
+    expect(resultEdges(result)[0]).toEqual({ from: -1, to: 1 })
+    expect(resultEdges(result)[1]).toEqual({ from: 1, to: 2 })
+    expect(resultEdges(result)[2]).toEqual({ from: 2, to: 3 })
   })
 
   it('finds shortest path when multiple paths exist', () => {
@@ -54,9 +54,9 @@ describe('BFS Pathfinding Algorithm', () => {
     const result = bfsPathfindingAdapter.execute(input)
 
     // BFS finds shortest path (by edge count): 1 -> 4 -> 5 (2 edges, not 3)
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
     // Path should be 1 -> 4 -> 5 (3 nodes including start marker)
-    expect(result.resultEdges!.length).toBeLessThanOrEqual(3)
+    expect(resultEdges(result).length).toBeLessThanOrEqual(3)
   })
 
   it('handles same start and end node', () => {
@@ -69,9 +69,9 @@ describe('BFS Pathfinding Algorithm', () => {
 
     const result = bfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges).toHaveLength(1)
-    expect(result.resultEdges![0]).toEqual({ from: -1, to: 1 })
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result)).toHaveLength(1)
+    expect(resultEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('returns error when no path exists', () => {
@@ -118,9 +118,9 @@ describe('BFS Pathfinding Algorithm', () => {
 
     const result = bfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
     // Path: 1 -> 2 -> 3 -> 4
-    expect(result.resultEdges!.length).toBe(4)
+    expect(resultEdges(result).length).toBe(4)
   })
 
   describe('generator', () => {
@@ -170,7 +170,7 @@ describe('BFS Pathfinding Algorithm', () => {
         .filter((s) => s.type === StepType.RESULT)
         .map((s) => s.edge)
 
-      expect(genResultSteps).toEqual(executeResult.resultEdges)
+      expect(genResultSteps).toEqual(resultEdges(executeResult))
     })
   })
 })

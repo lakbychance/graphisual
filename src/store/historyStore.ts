@@ -12,7 +12,6 @@ interface HistoryActions<T> {
   push: (snapshot: T) => void;
   undo: (getCurrent: () => T, apply: (snapshot: T) => void) => void;
   redo: (getCurrent: () => T, apply: (snapshot: T) => void) => void;
-  clear: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
 }
@@ -59,7 +58,6 @@ export function createHistoryStore<T>(options: HistoryOptions<T> = {}) {
           apply(next);
         },
 
-        clear: () => set({ past: [], future: [] }),
         canUndo: () => get().past.length > 0,
         canRedo: () => get().future.length > 0,
       }),

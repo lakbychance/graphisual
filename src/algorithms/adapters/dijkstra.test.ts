@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import dijkstraAdapter from './dijkstra'
 import { AlgorithmInput } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, resultEdges } from './__tests__/testUtils'
 
 describe('Dijkstra Algorithm', () => {
   it('has correct metadata', () => {
     expect(dijkstraAdapter.metadata.id).toBe('dijkstra')
     expect(dijkstraAdapter.metadata.name).toBe("Dijkstra's")
     expect(dijkstraAdapter.metadata.type).toBe('pathfinding')
-    expect(dijkstraAdapter.metadata.requirements?.weighted).toBe(true)
   })
 
   it('finds shortest path in a simple graph', () => {
@@ -26,10 +25,10 @@ describe('Dijkstra Algorithm', () => {
     const result = dijkstraAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
 
     // Path should be 1 -> 2 -> 3
-    const pathNodes = result.resultEdges!.map(e => e.to)
+    const pathNodes = resultEdges(result).map(e => e.to)
     expect(pathNodes).toEqual([1, 2, 3])
   })
 
@@ -52,7 +51,7 @@ describe('Dijkstra Algorithm', () => {
     const result = dijkstraAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    const pathNodes = result.resultEdges!.map(e => e.to)
+    const pathNodes = resultEdges(result).map(e => e.to)
     expect(pathNodes).toEqual([1, 2, 3])
   })
 
@@ -69,8 +68,8 @@ describe('Dijkstra Algorithm', () => {
     const result = dijkstraAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toHaveLength(1)
-    expect(result.resultEdges![0]).toEqual({ from: -1, to: 1 })
+    expect(resultEdges(result)).toHaveLength(1)
+    expect(resultEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('returns error when no path exists', () => {
@@ -118,7 +117,7 @@ describe('Dijkstra Algorithm', () => {
     const result = dijkstraAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    const pathNodes = result.resultEdges!.map(e => e.to)
+    const pathNodes = resultEdges(result).map(e => e.to)
     expect(pathNodes).toEqual([1, 2, 3])
   })
 
@@ -145,7 +144,7 @@ describe('Dijkstra Algorithm', () => {
 
     expect(result.error).toBeUndefined()
     // Shortest path: 1 -> 2 -> 4 (weight 3) vs 1 -> 3 -> 4 (weight 5)
-    const pathNodes = result.resultEdges!.map(e => e.to)
+    const pathNodes = resultEdges(result).map(e => e.to)
     expect(pathNodes).toEqual([1, 2, 4])
   })
 })

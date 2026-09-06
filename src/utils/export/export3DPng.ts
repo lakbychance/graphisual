@@ -5,7 +5,7 @@
 
 import { getCSSVar } from "@/theme/css-variables";
 
-export interface Export3DPngOptions {
+interface Export3DPngOptions {
   /** Filename for the downloaded PNG (default: 'graph-3d.png') */
   filename?: string;
   /** Scale factor for high-DPI export (default: 4) */

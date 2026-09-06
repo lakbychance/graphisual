@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import dfsPathfindingAdapter from './dfs-pathfinding'
 import { AlgorithmInput, StepType } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, resultEdges } from './__tests__/testUtils'
 
 describe('DFS Pathfinding Algorithm', () => {
   it('has correct metadata', () => {
@@ -28,11 +28,11 @@ describe('DFS Pathfinding Algorithm', () => {
 
     const result = dfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges).toHaveLength(3)
-    expect(result.resultEdges![0]).toEqual({ from: -1, to: 1 })
-    expect(result.resultEdges![1]).toEqual({ from: 1, to: 2 })
-    expect(result.resultEdges![2]).toEqual({ from: 2, to: 3 })
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result)).toHaveLength(3)
+    expect(resultEdges(result)[0]).toEqual({ from: -1, to: 1 })
+    expect(resultEdges(result)[1]).toEqual({ from: 1, to: 2 })
+    expect(resultEdges(result)[2]).toEqual({ from: 2, to: 3 })
   })
 
   it('finds a path when multiple paths exist (not necessarily shortest)', () => {
@@ -54,11 +54,11 @@ describe('DFS Pathfinding Algorithm', () => {
     const result = dfsPathfindingAdapter.execute(input)
 
     // DFS finds A path (may not be shortest)
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges!.length).toBeGreaterThan(0)
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result).length).toBeGreaterThan(0)
     // Verify it's a valid path from 1 to 5
-    expect(result.resultEdges![0].to).toBe(1)
-    expect(result.resultEdges![result.resultEdges!.length - 1].to).toBe(5)
+    expect(resultEdges(result)[0].to).toBe(1)
+    expect(resultEdges(result)[resultEdges(result).length - 1].to).toBe(5)
   })
 
   it('handles same start and end node', () => {
@@ -71,9 +71,9 @@ describe('DFS Pathfinding Algorithm', () => {
 
     const result = dfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges).toHaveLength(1)
-    expect(result.resultEdges![0]).toEqual({ from: -1, to: 1 })
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result)).toHaveLength(1)
+    expect(resultEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('returns error when no path exists', () => {
@@ -120,10 +120,10 @@ describe('DFS Pathfinding Algorithm', () => {
 
     const result = dfsPathfindingAdapter.execute(input)
 
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
     // Path should be found without infinite loop
-    expect(result.resultEdges!.length).toBeGreaterThan(0)
-    expect(result.resultEdges![result.resultEdges!.length - 1].to).toBe(4)
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result)[resultEdges(result).length - 1].to).toBe(4)
   })
 
   describe('generator', () => {
@@ -173,7 +173,7 @@ describe('DFS Pathfinding Algorithm', () => {
         .filter((s) => s.type === StepType.RESULT)
         .map((s) => s.edge)
 
-      expect(genResultSteps).toEqual(executeResult.resultEdges)
+      expect(genResultSteps).toEqual(resultEdges(executeResult))
     })
   })
 })

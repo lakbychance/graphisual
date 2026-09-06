@@ -191,23 +191,13 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
    */
   execute: (input: AlgorithmInput): AlgorithmResult => {
     const steps = [...cycleDetectionGenerator(input)];
-    const visitedEdges = steps
-      .filter((s) => s.type === StepType.VISIT)
-      .map((s) => s.edge);
-    // Cycle detection uses StepType.CYCLE for cycle edges
-    const cycleEdges = steps
-      .filter((s) => s.type === StepType.CYCLE)
-      .map((s) => s.edge);
+    const foundCycle = steps.some((s) => s.type === StepType.CYCLE);
 
-    if (cycleEdges.length === 0) {
-      return {
-        steps,
-        visitedEdges,
-        error: "No cycle found in the graph.",
-      };
+    if (!foundCycle) {
+      return { steps, error: "No cycle found in the graph." };
     }
 
-    return { steps, visitedEdges, resultEdges: cycleEdges, resultStepType: StepType.CYCLE };
+    return { steps };
   },
 };
 

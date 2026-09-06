@@ -177,7 +177,7 @@ function StepperField({ className, ref, ...props }: StepperFieldProps) {
 
 // === StepperInput (Backward Compatible Shorthand) ===
 
-export interface StepperInputProps {
+interface StepperInputProps {
   value: number
   onChange: (value: number) => void
   min?: number

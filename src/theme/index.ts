@@ -16,17 +16,15 @@
  * token or a new theme.
  */
 
-// Constants & types (single source of truth for THEME / ResolvedTheme)
-export { THEME, type Theme, type ResolvedTheme } from "./constants";
+// Constants & types (single source of truth for THEME)
+export { THEME, type Theme } from "./constants";
 
 // Hooks — useApplyTheme() once in App.tsx; useResolvedTheme() in consumers
 export { useApplyTheme, useResolvedTheme } from "./hooks";
 
-// JS resolution API (Canvas / Three.js / export)
+// JS resolution API (Canvas / Three.js). Export reads getThemeSnapshot() from ./css-variables directly.
 export {
   getCSSVar,
-  invalidateCSSVarCache,
-  getThemeSnapshot,
   getNodeGradientColors,
   getEdgeColor,
   getEdgeArrowColor,
@@ -35,7 +33,6 @@ export {
   getUIColors,
   type NodeColorState,
   type EdgeColorState,
-  type GradientColors,
 } from "./css-variables";
 
 // 3D colour overrides (Three.js render adapter)

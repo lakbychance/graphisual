@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import cycleDetectionAdapter from './cycleDetection'
 import { AlgorithmInput } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, resultEdges } from './__tests__/testUtils'
 
 describe('Cycle Detection Algorithm', () => {
   it('has correct metadata', () => {
@@ -25,8 +25,8 @@ describe('Cycle Detection Algorithm', () => {
     const result = cycleDetectionAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
-    expect(result.resultEdges!.length).toBeGreaterThan(0)
+    expect(resultEdges(result).length).toBeGreaterThan(0)
+    expect(resultEdges(result).length).toBeGreaterThan(0)
   })
 
   it('reports no cycle in acyclic directed graph', () => {
@@ -60,7 +60,7 @@ describe('Cycle Detection Algorithm', () => {
     const result = cycleDetectionAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
   })
 
   it('reports no cycle for undirected line graph', () => {
@@ -104,7 +104,7 @@ describe('Cycle Detection Algorithm', () => {
     const result = cycleDetectionAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
   })
 
   it('no false cycle in mixed graph with undirected edges', () => {
@@ -139,7 +139,7 @@ describe('Cycle Detection Algorithm', () => {
     const result = cycleDetectionAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
   })
 
   it('finds cycle in disconnected component', () => {
@@ -158,6 +158,6 @@ describe('Cycle Detection Algorithm', () => {
 
     // Should find cycle in 3-4 component
     expect(result.error).toBeUndefined()
-    expect(result.resultEdges).toBeDefined()
+    expect(resultEdges(result).length).toBeGreaterThan(0)
   })
 })

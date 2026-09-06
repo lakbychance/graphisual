@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import bfsAdapter from './bfs'
 import { AlgorithmInput } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, visitedEdges } from './__tests__/testUtils'
 
 describe('BFS Algorithm', () => {
   it('has correct metadata', () => {
@@ -23,10 +23,10 @@ describe('BFS Algorithm', () => {
 
     const result = bfsAdapter.execute(input)
 
-    expect(result.visitedEdges).toHaveLength(3)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
-    expect(result.visitedEdges[1]).toEqual({ from: 1, to: 2 })
-    expect(result.visitedEdges[2]).toEqual({ from: 2, to: 3 })
+    expect(visitedEdges(result)).toHaveLength(3)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)[1]).toEqual({ from: 1, to: 2 })
+    expect(visitedEdges(result)[2]).toEqual({ from: 2, to: 3 })
   })
 
   it('visits nodes in level order (breadth-first)', () => {
@@ -47,7 +47,7 @@ describe('BFS Algorithm', () => {
     }
 
     const result = bfsAdapter.execute(input)
-    const visitedOrder = result.visitedEdges.map(e => e.to)
+    const visitedOrder = visitedEdges(result).map(e => e.to)
 
     // BFS should visit: 1 first, then 2 and 3 (level 1), then 4 and 5 (level 2)
     expect(visitedOrder[0]).toBe(1)
@@ -64,8 +64,8 @@ describe('BFS Algorithm', () => {
 
     const result = bfsAdapter.execute(input)
 
-    expect(result.visitedEdges).toHaveLength(1)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)).toHaveLength(1)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('handles disconnected graphs (only visits reachable nodes)', () => {
@@ -80,7 +80,7 @@ describe('BFS Algorithm', () => {
     }
 
     const result = bfsAdapter.execute(input)
-    const visitedNodes = result.visitedEdges.map(e => e.to)
+    const visitedNodes = visitedEdges(result).map(e => e.to)
 
     expect(visitedNodes).toContain(1)
     expect(visitedNodes).toContain(2)
@@ -103,8 +103,8 @@ describe('BFS Algorithm', () => {
     const result = bfsAdapter.execute(input)
 
     // Should visit each node exactly once
-    expect(result.visitedEdges).toHaveLength(3)
-    const visitedNodes = result.visitedEdges.map(e => e.to)
+    expect(visitedEdges(result)).toHaveLength(3)
+    const visitedNodes = visitedEdges(result).map(e => e.to)
     expect(new Set(visitedNodes).size).toBe(3) // All unique
   })
 
@@ -118,8 +118,8 @@ describe('BFS Algorithm', () => {
     const result = bfsAdapter.execute(input)
 
     // Only start node is visited
-    expect(result.visitedEdges).toHaveLength(1)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)).toHaveLength(1)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   describe('generator', () => {
@@ -137,9 +137,9 @@ describe('BFS Algorithm', () => {
       const executeResult = bfsAdapter.execute(input)
       const generatorSteps = [...bfsAdapter.generator!(input)]
 
-      expect(generatorSteps.length).toBe(executeResult.visitedEdges.length)
+      expect(generatorSteps.length).toBe(visitedEdges(executeResult).length)
       generatorSteps.forEach((step, i) => {
-        expect(step.edge).toEqual(executeResult.visitedEdges[i])
+        expect(step.edge).toEqual(visitedEdges(executeResult)[i])
       })
     })
   })

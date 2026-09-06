@@ -8,7 +8,7 @@ import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface SunMoonIconHandle {
+interface SunMoonIconHandle {
     startAnimation: () => void;
     stopAnimation: () => void;
 }

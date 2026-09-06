@@ -42,14 +42,9 @@ export interface AlgorithmInput {
 
 /**
  * Simplified node information for algorithms.
- * Coordinates are optional but needed for heuristic-based algorithms (A*).
  */
 export interface NodeInfo {
   id: number;
-  /** X coordinate (optional, used by A* for heuristic) */
-  x?: number;
-  /** Y coordinate (optional, used by A* for heuristic) */
-  y?: number;
 }
 
 /**
@@ -124,18 +119,11 @@ export type AlgorithmGenerator = Generator<AlgorithmStep, void, undefined>;
 
 /**
  * Result returned by algorithm execution.
- * The visualization plays `steps` and refuses to start on `error`; the edge lists
- * summarise the outcome for tests and programmatic use.
+ * The visualization plays `steps` and refuses to start on `error`.
  */
 export interface AlgorithmResult {
   /** Every step the run produced, in order (empty if the run could not start) */
   steps: AlgorithmStep[];
-  /** Edges visited in order */
-  visitedEdges: EdgeRef[];
-  /** Final result edges (shortest path, MST edges, etc.) - optional */
-  resultEdges?: EdgeRef[];
-  /** Step type for result edges (defaults to RESULT if not specified, use CYCLE for cycle detection) */
-  resultStepType?: StepType;
   /** Error message if algorithm cannot run on this graph */
   error?: string;
 }
@@ -157,15 +145,6 @@ export interface AlgorithmMetadata {
   icon: React.ComponentType<{ className?: string }>;
   /** Hints shown for each input step (no full stops) */
   inputStepHints: string[];
-  /** Optional constraints that the graph must satisfy */
-  requirements?: {
-    /** Algorithm uses edge weights */
-    weighted?: boolean;
-    /** Algorithm only works on undirected graphs */
-    undirectedOnly?: boolean;
-    /** Algorithm requires a connected graph */
-    connectedOnly?: boolean;
-  };
 }
 
 /**
@@ -189,10 +168,7 @@ export interface AlgorithmMetadata {
  *     yield { type: StepType.VISIT, edge: { from: -1, to: input.startNodeId } };
  *     // ... yield one step per highlighted edge ...
  *   },
- *   execute: (input) => {
- *     const steps = [...myAdapter.generator(input)];
- *     return { steps, visitedEdges: steps.map((s) => s.edge) };
- *   },
+ *   execute: (input) => ({ steps: [...myAdapter.generator(input)] }),
  * };
  *
  * export default myAdapter;

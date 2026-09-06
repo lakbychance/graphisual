@@ -69,28 +69,6 @@ describe('graphStore', () => {
       expect(nodes.map((n: { id: number }) => n.id)).toEqual([1, 2, 3])
     })
 
-    it('deleteNode removes node and its edges', () => {
-      const { addNode, deleteNode } = useGraphStore.getState()
-
-      // Add two nodes
-      addNode(0, 0)
-      addNode(100, 100)
-
-      // Get state and add edge manually for testing
-      let state = useGraphStore.getState()
-      const fromNode = state.data.nodes[0]
-      const toNode = state.data.nodes[1]
-      state.addEdge(fromNode, toNode)
-
-      // Delete first node
-      deleteNode(1)
-
-      state = useGraphStore.getState()
-      expect(state.data.nodes).toHaveLength(1)
-      expect(state.data.nodes[0].id).toBe(2)
-      expect(state.data.edges.has(1)).toBe(false)
-    })
-
     it('selectNode updates selectedNodeIds', () => {
       const { addNode, selectNode } = useGraphStore.getState()
 
@@ -117,20 +95,6 @@ describe('graphStore', () => {
       expect(nodeIds.has(1)).toBe(true)
       expect(nodeIds.has(2)).toBe(true)
       expect(nodeIds.has(3)).toBe(true)
-    })
-
-    it('deselectAllNodes clears selection', () => {
-      const { addNode, selectNodes, deselectAllNodes } = useGraphStore.getState()
-
-      addNode(0, 0)
-      addNode(50, 50)
-      selectNodes([1, 2])
-
-      expect(useGraphStore.getState().selection.nodeIds.size).toBe(2)
-
-      deselectAllNodes()
-
-      expect(useGraphStore.getState().selection.nodeIds.size).toBe(0)
     })
 
     it('deleteNodes removes multiple nodes and their edges in single operation', () => {

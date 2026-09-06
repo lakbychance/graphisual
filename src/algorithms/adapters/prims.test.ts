@@ -7,15 +7,13 @@ const createUndirectedAdjacencyList = (
   nodeIds: number[],
   edges: Array<{ from: number; to: number; weight: number; type?: 'directed' | 'undirected' }>
 ) => createAdjacencyList(nodeIds, edges.map(e => ({ ...e, type: e.type ?? 'undirected' })))
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, visitedEdges } from './__tests__/testUtils'
 
 describe("Prim's MST Algorithm", () => {
   it('has correct metadata', () => {
     expect(primsAdapter.metadata.id).toBe('prims')
     expect(primsAdapter.metadata.name).toBe("Prim's MST")
     expect(primsAdapter.metadata.type).toBe('tree')
-    expect(primsAdapter.metadata.requirements?.undirectedOnly).toBe(true)
-    expect(primsAdapter.metadata.requirements?.connectedOnly).toBe(true)
   })
 
   it('finds MST for a simple triangle graph', () => {
@@ -35,7 +33,7 @@ describe("Prim's MST Algorithm", () => {
     const result = primsAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.visitedEdges).toHaveLength(3) // All nodes visited
+    expect(visitedEdges(result)).toHaveLength(3) // All nodes visited
   })
 
   it('handles a single node graph', () => {
@@ -48,8 +46,8 @@ describe("Prim's MST Algorithm", () => {
     const result = primsAdapter.execute(input)
 
     expect(result.error).toBeUndefined()
-    expect(result.visitedEdges).toHaveLength(1)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)).toHaveLength(1)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('returns error for directed edges', () => {
@@ -110,6 +108,6 @@ describe("Prim's MST Algorithm", () => {
 
     expect(result.error).toBeUndefined()
     // MST should include 4 nodes
-    expect(result.visitedEdges).toHaveLength(4)
+    expect(visitedEdges(result)).toHaveLength(4)
   })
 })

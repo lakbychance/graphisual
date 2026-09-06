@@ -8,7 +8,7 @@ import { type EdgeColorState, getEdgeColor, getCSSVar } from "@/theme";
 import { EDGE } from "../../../constants/graph";
 import { getControlPoint } from "../../../utils/geometry/calc";
 
-export interface EdgeRenderOptions {
+interface EdgeRenderOptions {
   colorState: EdgeColorState;
   isFocused: boolean;
 }
@@ -100,7 +100,7 @@ function drawWeightLabel(
 /**
  * Draw a directed edge (quadratic bezier with arrow).
  */
-export function drawDirectedEdge(
+function drawDirectedEdge(
   ctx: CanvasRenderingContext2D,
   edge: GraphEdge,
   options: EdgeRenderOptions
@@ -145,7 +145,7 @@ export function drawDirectedEdge(
 /**
  * Draw an undirected edge (straight line).
  */
-export function drawUndirectedEdge(
+function drawUndirectedEdge(
   ctx: CanvasRenderingContext2D,
   edge: GraphEdge,
   options: EdgeRenderOptions

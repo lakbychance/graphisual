@@ -139,10 +139,6 @@ const primsAdapter: AlgorithmAdapter = {
     tagline: "Build minimum spanning tree",
     icon: PrimsIcon,
     inputStepHints: ["Select a node"],
-    requirements: {
-      undirectedOnly: true,
-      connectedOnly: true,
-    },
   },
 
   /**
@@ -167,28 +163,18 @@ const primsAdapter: AlgorithmAdapter = {
     });
 
     if (hasDirectedEdge) {
-      return {
-        steps: [],
-        visitedEdges: [],
-        error: "MST requires an undirected graph. Found directed edges.",
-      };
+      return { steps: [], error: "MST requires an undirected graph. Found directed edges." };
     }
 
     const steps = [...primsGenerator(input)];
-    const visitedEdges = steps
-      .filter((s) => s.type === StepType.VISIT)
-      .map((s) => s.edge);
+    const visitedCount = steps.filter((s) => s.type === StepType.VISIT).length;
 
     // Check if all nodes are included (graph is connected)
-    if (visitedEdges.length !== nodes.length) {
-      return {
-        steps,
-        visitedEdges: [],
-        error: "Graph is not connected. MST requires a connected graph.",
-      };
+    if (visitedCount !== nodes.length) {
+      return { steps, error: "Graph is not connected. MST requires a connected graph." };
     }
 
-    return { steps, visitedEdges };
+    return { steps };
   },
 };
 

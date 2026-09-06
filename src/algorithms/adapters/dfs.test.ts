@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import dfsAdapter from './dfs'
 import { AlgorithmInput } from '../types'
-import { createAdjacencyList } from './__tests__/testUtils'
+import { createAdjacencyList, visitedEdges } from './__tests__/testUtils'
 
 describe('DFS Algorithm', () => {
   it('has correct metadata', () => {
@@ -23,10 +23,10 @@ describe('DFS Algorithm', () => {
 
     const result = dfsAdapter.execute(input)
 
-    expect(result.visitedEdges).toHaveLength(3)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
-    expect(result.visitedEdges[1]).toEqual({ from: 1, to: 2 })
-    expect(result.visitedEdges[2]).toEqual({ from: 2, to: 3 })
+    expect(visitedEdges(result)).toHaveLength(3)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)[1]).toEqual({ from: 1, to: 2 })
+    expect(visitedEdges(result)[2]).toEqual({ from: 2, to: 3 })
   })
 
   it('goes deep before going wide (depth-first)', () => {
@@ -46,7 +46,7 @@ describe('DFS Algorithm', () => {
     }
 
     const result = dfsAdapter.execute(input)
-    const visitedOrder = result.visitedEdges.map(e => e.to)
+    const visitedOrder = visitedEdges(result).map(e => e.to)
 
     // DFS should go deep: 1 -> 2 -> 4 before visiting 3
     expect(visitedOrder[0]).toBe(1)
@@ -63,8 +63,8 @@ describe('DFS Algorithm', () => {
 
     const result = dfsAdapter.execute(input)
 
-    expect(result.visitedEdges).toHaveLength(1)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)).toHaveLength(1)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 
   it('handles disconnected graphs (only visits reachable nodes)', () => {
@@ -79,7 +79,7 @@ describe('DFS Algorithm', () => {
     }
 
     const result = dfsAdapter.execute(input)
-    const visitedNodes = result.visitedEdges.map(e => e.to)
+    const visitedNodes = visitedEdges(result).map(e => e.to)
 
     expect(visitedNodes).toContain(1)
     expect(visitedNodes).toContain(2)
@@ -102,8 +102,8 @@ describe('DFS Algorithm', () => {
     const result = dfsAdapter.execute(input)
 
     // Should visit each node exactly once
-    expect(result.visitedEdges).toHaveLength(3)
-    const visitedNodes = result.visitedEdges.map(e => e.to)
+    expect(visitedEdges(result)).toHaveLength(3)
+    const visitedNodes = visitedEdges(result).map(e => e.to)
     expect(new Set(visitedNodes).size).toBe(3)
   })
 
@@ -116,7 +116,7 @@ describe('DFS Algorithm', () => {
 
     const result = dfsAdapter.execute(input)
 
-    expect(result.visitedEdges).toHaveLength(1)
-    expect(result.visitedEdges[0]).toEqual({ from: -1, to: 1 })
+    expect(visitedEdges(result)).toHaveLength(1)
+    expect(visitedEdges(result)[0]).toEqual({ from: -1, to: 1 })
   })
 })

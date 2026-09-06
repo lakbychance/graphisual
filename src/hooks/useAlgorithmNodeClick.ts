@@ -6,7 +6,7 @@ import { useAppHaptics } from "./useAppHaptics";
 /**
  * Return type for the useAlgorithmNodeClick hook.
  */
-export interface UseAlgorithmNodeClickReturn {
+interface UseAlgorithmNodeClickReturn {
   handleNodeClick: (nodeId: number) => void;
   isWaitingForEndNode: boolean;
 }

@@ -7,7 +7,7 @@ import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
 
-export interface DragState {
+interface DragState {
   type: 'none' | 'pending-pan' | 'pan' | 'pending-node' | 'node' | 'box-select' | 'edge-create';
   startX: number;
   startY: number;

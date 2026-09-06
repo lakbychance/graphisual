@@ -11,17 +11,15 @@ import { persist } from "zustand/middleware";
 import { THEME, type Theme } from "@/theme/constants";
 import { STORE_NAME } from "../constants/store";
 
-export type RenderMode = 'svg' | 'canvas' | '3d';
+type RenderMode = 'svg' | 'canvas' | '3d';
 
 interface SettingsState {
   theme: Theme;
-  is3DMode: boolean;
   renderMode: RenderMode;
 }
 
 interface SettingsActions {
   setTheme: (theme: Theme) => void;
-  setIs3DMode: (is3DMode: boolean) => void;
   setRenderMode: (mode: RenderMode) => void;
 }
 
@@ -32,20 +30,14 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       // State
       theme: THEME.SYSTEM,
-      is3DMode: false,
-      renderMode: 'svg' as RenderMode, // Default to SVG during migration
+      renderMode: 'svg' as RenderMode,
 
       // Actions
       setTheme: (theme) => {
         set({ theme });
       },
-      setIs3DMode: (is3DMode) => {
-        // Sync renderMode with is3DMode for backwards compatibility
-        set({ is3DMode, renderMode: is3DMode ? '3d' : 'svg' });
-      },
       setRenderMode: (renderMode) => {
-        // Sync is3DMode with renderMode for backwards compatibility
-        set({ renderMode, is3DMode: renderMode === '3d' });
+        set({ renderMode });
       },
     }),
     {

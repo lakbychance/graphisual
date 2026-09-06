@@ -24,7 +24,7 @@ const cardButtonVariants = cva(
   }
 )
 
-export interface CardButtonProps
+interface CardButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
   VariantProps<typeof cardButtonVariants> {
   showGrain?: boolean

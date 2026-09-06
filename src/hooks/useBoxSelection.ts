@@ -3,7 +3,7 @@ import { GraphNode } from "../components/Graph/types";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
 import { useGraphStore } from "../store/graphStore";
 
-export interface SelectionBox {
+interface SelectionBox {
   startX: number;
   startY: number;
   currentX: number;

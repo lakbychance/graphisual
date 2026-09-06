@@ -5,7 +5,7 @@
 
 import { prepareSvgForExport } from './exportSvg';
 
-export interface ExportPngOptions {
+interface ExportPngOptions {
   /** Include the grid background in export (default: true) */
   includeGrid?: boolean;
   /** Filename for the downloaded PNG (default: 'graph.png') */

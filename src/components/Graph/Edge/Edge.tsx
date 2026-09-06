@@ -28,7 +28,7 @@ const WeightLabel = ({ centerX, centerY, weight }: { centerX: number; centerY: n
   </g>
 );
 
-export interface EdgeProps {
+interface EdgeProps {
   edge: GraphEdge;
   sourceNodeId: number;
   isVisualizing: boolean;

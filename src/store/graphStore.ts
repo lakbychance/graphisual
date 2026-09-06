@@ -74,7 +74,6 @@ interface GraphActions {
   // === Graph Mutations ===
   addNode: (x: number, y: number) => void;
   moveNode: (nodeId: number, x: number, y: number) => void;
-  deleteNode: (nodeId: number) => void;
   deleteNodes: (nodeIds: number[]) => void;
   bringNodeToFront: (nodeId: number) => void;
   bringNodesToFront: (nodeIds: number[]) => void;
@@ -94,7 +93,6 @@ interface GraphActions {
   // === Selection Actions ===
   selectNode: (nodeId: number | null) => void;
   selectNodes: (nodeIds: number[]) => void;
-  deselectAllNodes: () => void;
   selectEdge: (edge: GraphEdge, sourceNode: GraphNode, clickPosition: { x: number; y: number }) => void;
   clearEdgeSelection: () => void;
   setFocusedEdge: (from: number, to: number) => void;
@@ -302,36 +300,6 @@ export const useGraphStore = create<GraphStore>()(
 
           set({
             data: { ...data, nodes: newNodes, edges: newEdges },
-          });
-        }),
-
-        deleteNode: autoHistory((nodeId: number) => {
-          get().clearVisualization();
-          const { data } = get();
-          const { nodes, edges, nodeCounter, stackingOrder } = data;
-
-          const newNodes = nodes.filter((n) => n.id !== nodeId);
-          const newEdges = new Map(edges);
-          newEdges.delete(nodeId);
-
-          // Only update edge arrays that actually have edges to the deleted node
-          edges.forEach((edgeList, nId) => {
-            if (edgeList && nId !== nodeId) {
-              const hasEdgeToDeleted = edgeList.some((edge) => edge.to === nodeId);
-              if (hasEdgeToDeleted) {
-                const filtered = edgeList.filter((edge) => edge.to !== nodeId);
-                newEdges.set(nId, filtered);
-              }
-            }
-          });
-
-          // Remove from stacking order
-          const newStackingOrder = new Set(stackingOrder);
-          newStackingOrder.delete(nodeId);
-
-          set({
-            data: { nodes: newNodes, edges: newEdges, nodeCounter, stackingOrder: newStackingOrder },
-            selection: { nodeIds: new Set<number>(), edge: null, focusedEdge: null },
           });
         }),
 
@@ -715,11 +683,6 @@ export const useGraphStore = create<GraphStore>()(
           set({ selection: { ...selection, nodeIds: new Set<number>(nodeIds), focusedEdge: null } });
         },
 
-        deselectAllNodes: () => {
-          const { selection } = get();
-          set({ selection: { ...selection, nodeIds: new Set<number>(), focusedEdge: null } });
-        },
-
         selectEdge: (edge, sourceNode, clickPosition) => {
           const { selection } = get();
           set({ selection: { ...selection, edge: { edge, sourceNode, clickPosition } } });
@@ -976,7 +939,7 @@ export const selectNodeVisState = (nodeId: number) =>
     resolveNodeVisState(nodeId, state.visualization.trace.nodes.get(nodeId), state.visualization.input);
 
 // Edge visualization state (discriminated union matching EdgeColorState in cssVariables.ts)
-export type EdgeVisState = 'path' | 'cycle' | 'traversal' | 'default';
+type EdgeVisState = 'path' | 'cycle' | 'traversal' | 'default';
 
 /**
  * Selector factory for getting an edge's visualization state.

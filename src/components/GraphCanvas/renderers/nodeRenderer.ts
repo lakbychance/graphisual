@@ -13,7 +13,7 @@ import {
 import { NODE_STROKE } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 
-export interface NodeRenderOptions {
+interface NodeRenderOptions {
   isSelected: boolean;
   isHovered: boolean;
   colorState: NodeColorState;

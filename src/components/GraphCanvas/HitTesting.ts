@@ -7,12 +7,6 @@ import type { GraphNode, GraphEdge } from "../Graph/types";
 import { NODE, EDGE } from "../../constants/graph";
 import { getControlPoint } from "../../utils/geometry/calc";
 
-export type HitResult =
-  | { type: 'node'; nodeId: number; node: GraphNode }
-  | { type: 'edge'; edge: GraphEdge; sourceNodeId: number }
-  | { type: 'connector'; nodeId: number; position: 'top' | 'right' | 'bottom' | 'left' }
-  | null;
-
 /**
  * Test if a point is inside a circle.
  */
@@ -97,7 +91,7 @@ function distanceToLineSegment(
 /**
  * Hit test a single node (including hit area padding).
  */
-export function hitTestNode(
+function hitTestNode(
   worldX: number,
   worldY: number,
   node: GraphNode
@@ -134,7 +128,7 @@ export function hitTestNodes(
 /**
  * Hit test a single node using only the visible body radius (no hit area padding).
  */
-export function hitTestNodeBody(
+function hitTestNodeBody(
   worldX: number,
   worldY: number,
   node: GraphNode
@@ -192,7 +186,7 @@ export function hitTestConnectors(
 /**
  * Hit test a single edge.
  */
-export function hitTestEdge(
+function hitTestEdge(
   worldX: number,
   worldY: number,
   edge: GraphEdge,

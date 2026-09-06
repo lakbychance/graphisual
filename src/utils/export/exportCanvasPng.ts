@@ -3,7 +3,7 @@
  * Directly exports the canvas element to PNG
  */
 
-export interface ExportCanvasPngOptions {
+interface ExportCanvasPngOptions {
   /** Filename for the downloaded PNG (default: 'graph.png') */
   filename?: string;
   /** Scale factor for high-DPI export (default: 2) */

@@ -5,7 +5,7 @@
 
 import { getThemeSnapshot } from "@/theme/css-variables";
 
-export interface ExportSvgOptions {
+interface ExportSvgOptions {
   /** Include the grid background in export (default: true) */
   includeGrid?: boolean;
   /** Filename for the downloaded SVG (default: 'graph.svg') */
@@ -399,7 +399,7 @@ function downloadSvg(svgString: string, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-export interface PrepareSvgOptions {
+interface PrepareSvgOptions {
   /** Include the grid background in export (default: true) */
   includeGrid?: boolean;
 }

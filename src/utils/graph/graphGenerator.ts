@@ -10,7 +10,7 @@ export interface GeneratedGraph {
 
 export type LayoutType = "circular" | "random" | "grid";
 
-export interface RandomGeneratorOptions {
+interface RandomGeneratorOptions {
   nodeCount: number;
   edgeDensity: number; // 0-1
   directed: boolean;

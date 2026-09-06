@@ -157,26 +157,17 @@ const bfsPathfindingAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     // Validate end node
     if (input.endNodeId === undefined) {
-      return { steps: [], visitedEdges: [], error: "End node is required for pathfinding." };
+      return { steps: [], error: "End node is required for pathfinding." };
     }
 
     const steps = [...bfsPathfindingGenerator(input)];
-    const visitedEdges = steps
-      .filter((s) => s.type === StepType.VISIT)
-      .map((s) => s.edge);
-    const resultEdges = steps
-      .filter((s) => s.type === StepType.RESULT)
-      .map((s) => s.edge);
+    const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
-    if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {
-      return {
-        steps,
-        visitedEdges,
-        error: "No path found between the selected nodes.",
-      };
+    if (!foundPath && input.startNodeId !== input.endNodeId) {
+      return { steps, error: "No path found between the selected nodes." };
     }
 
-    return { steps, visitedEdges, resultEdges };
+    return { steps };
   },
 };
 

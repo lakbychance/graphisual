@@ -1,12 +1,9 @@
-import { AlgorithmType } from "../../algorithms/types";
-
 /**
  * Selected option for dropdowns.
  */
 export interface SelectedOption {
   key: string;
   text: string;
-  data?: AlgorithmType;
 }
 
 /**

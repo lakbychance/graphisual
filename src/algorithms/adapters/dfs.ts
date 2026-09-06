@@ -88,15 +88,9 @@ const dfsAdapter: AlgorithmAdapter = {
   /**
    * Synchronous execution using generator internally.
    */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    const steps = [...dfsGenerator(input)];
-    return {
-      steps,
-      visitedEdges: steps
-        .filter((s) => s.type === StepType.VISIT)
-        .map((s) => s.edge),
-    };
-  },
+  execute: (input: AlgorithmInput): AlgorithmResult => ({
+    steps: [...dfsGenerator(input)],
+  }),
 };
 
 export default dfsAdapter;

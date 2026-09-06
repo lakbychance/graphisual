@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
  * @param query - CSS media query string (e.g., '(min-width: 768px)')
  * @returns boolean indicating if the query matches
  */
-export const useMediaQuery = (query: string): boolean => {
+const useMediaQuery = (query: string): boolean => {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {

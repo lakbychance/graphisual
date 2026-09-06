@@ -195,9 +195,6 @@ const bellmanFordAdapter: AlgorithmAdapter = {
     tagline: "Handle negative weights",
     icon: BellmanFordIcon,
     inputStepHints: ["Select the source node", "Now select the destination node"],
-    requirements: {
-      weighted: true,
-    },
   },
 
   /**
@@ -211,26 +208,17 @@ const bellmanFordAdapter: AlgorithmAdapter = {
   execute: (input: AlgorithmInput): AlgorithmResult => {
     // Validate end node
     if (input.endNodeId === undefined) {
-      return { steps: [], visitedEdges: [], error: "End node is required for pathfinding." };
+      return { steps: [], error: "End node is required for pathfinding." };
     }
 
     const steps = [...bellmanFordGenerator(input)];
-    const visitedEdges = steps
-      .filter((s) => s.type === StepType.VISIT)
-      .map((s) => s.edge);
-    const resultEdges = steps
-      .filter((s) => s.type === StepType.RESULT)
-      .map((s) => s.edge);
+    const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
-    if (resultEdges.length === 0 && input.startNodeId !== input.endNodeId) {
-      return {
-        steps,
-        visitedEdges,
-        error: "Path is not possible or negative cycle detected.",
-      };
+    if (!foundPath && input.startNodeId !== input.endNodeId) {
+      return { steps, error: "Path is not possible or negative cycle detected." };
     }
 
-    return { steps, visitedEdges, resultEdges };
+    return { steps };
   },
 };
 

@@ -38,7 +38,6 @@ export function useAlgorithmFromUrl() {
     setVisualizationAlgorithm({
       key: algorithmParam,
       text: algo.metadata.name,
-      data: algo.metadata.type,
     });
 
     setVisualizationMode(VisualizationMode.MANUAL);

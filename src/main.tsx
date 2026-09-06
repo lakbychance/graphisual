@@ -16,7 +16,7 @@ root.render(
     {window.PointerEvent ? (
       <App />
     ) : (
-      <div className="noMobileSupport">
+      <div className="h-dvh flex items-center justify-center p-6 text-center">
         <span>This App is not supported in your browser.</span>
       </div>
     )}

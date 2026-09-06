@@ -7,7 +7,7 @@ import { VisualizationState } from "../constants/visualization";
 import { type EdgeType } from "../constants/graph";
 import { useAppHaptics } from "./useAppHaptics";
 
-export interface UseVisualizationExecutionReturn {
+interface UseVisualizationExecutionReturn {
   runAlgorithm: (startNodeId: number, endNodeId?: number) => void;
   currentAlgorithm: AlgorithmAdapter | undefined;
   isVisualizing: boolean;
@@ -55,7 +55,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     });
     const input: AlgorithmInput = {
       adjacencyList,
-      nodes: data.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+      nodes: data.nodes.map((n) => ({ id: n.id })),
       startNodeId,
       endNodeId,
     };

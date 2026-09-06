@@ -88,15 +88,9 @@ const bfsAdapter: AlgorithmAdapter = {
    * Synchronous execution that returns all results at once.
    * Uses the generator internally to ensure consistency.
    */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    const steps = [...bfsGenerator(input)];
-    return {
-      steps,
-      visitedEdges: steps
-        .filter((s) => s.type === StepType.VISIT)
-        .map((s) => s.edge),
-    };
-  },
+  execute: (input: AlgorithmInput): AlgorithmResult => ({
+    steps: [...bfsGenerator(input)],
+  }),
 };
 
 export default bfsAdapter;

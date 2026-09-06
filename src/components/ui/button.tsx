@@ -50,7 +50,7 @@ const buttonVariants = cva(
     }
 )
 
-export interface ButtonProps
+interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "default" | "primary" | "destructive" | "secondary" | "outline" | "ghost" | "link" | "skipLink";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";

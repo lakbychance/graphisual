@@ -39,7 +39,3 @@ export const NODE_GRADIENT = {
   START: 'nodeGradientStart',
   END: 'nodeGradientEnd',
 } as const;
-
-export type NodeGradientId = typeof NODE_GRADIENT[keyof typeof NODE_GRADIENT];
-
-export const gradientUrl = (id: NodeGradientId): string => `url(#${id})`;
