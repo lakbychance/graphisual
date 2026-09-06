@@ -300,6 +300,46 @@ describe('graphStore', () => {
       expect(reverseEdges![0].to).toBe(1)
     })
 
+    it('reverseEdge flips a directed edge', () => {
+      const { addNode, addEdge, reverseEdge } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 100)
+
+      let state = useGraphStore.getState()
+      addEdge(state.data.nodes[0], state.data.nodes[1])
+
+      reverseEdge(1, 2)
+
+      state = useGraphStore.getState()
+      expect(state.data.edges.get(1)).toHaveLength(0)
+      const reversed = state.data.edges.get(2)
+      expect(reversed).toHaveLength(1)
+      expect(reversed![0].from).toBe(2)
+      expect(reversed![0].to).toBe(1)
+      expect(reversed![0].type).toBe('directed')
+    })
+
+    it('reverseEdge does not create a duplicate when the reverse edge already exists', () => {
+      const { addNode, addEdge, reverseEdge } = useGraphStore.getState()
+
+      addNode(0, 0)
+      addNode(100, 100)
+
+      let state = useGraphStore.getState()
+      const [a, b] = state.data.nodes
+      addEdge(a, b)
+      addEdge(b, a)
+
+      // Reversing 1->2 would produce a second 2->1; it must be rejected.
+      reverseEdge(1, 2)
+
+      state = useGraphStore.getState()
+      expect(state.data.edges.get(1)).toHaveLength(1)
+      expect(state.data.edges.get(2)).toHaveLength(1)
+      expect(state.data.edges.get(2)!.filter((e) => e.to === 1)).toHaveLength(1)
+    })
+
     it('deleteEdge removes edge', () => {
       const { addNode, addEdge, deleteEdge } = useGraphStore.getState()
 

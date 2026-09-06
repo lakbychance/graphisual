@@ -585,6 +585,10 @@ export const useGraphStore = create<GraphStore>()(
           const currentEdge = sourceEdges.find((e) => e.to === toNodeId);
           if (!currentEdge) return;
 
+          // Reversing would collide with an existing edge in the other direction
+          const targetEdges = edges.get(toNodeId) || [];
+          if (targetEdges.some((e) => e.to === fromNodeId)) return;
+
           // Only update affected edge arrays
           const newEdges = new Map(edges);
 
@@ -611,7 +615,6 @@ export const useGraphStore = create<GraphStore>()(
             weight: currentEdge.weight,
             type: EDGE_TYPE.DIRECTED,
           };
-          const targetEdges = edges.get(toNodeId) || [];
           newEdges.set(toNodeId, [...targetEdges, reversedEdge]);
 
           set({

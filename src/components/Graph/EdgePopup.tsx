@@ -200,8 +200,8 @@ export const EdgePopup = ({
             {/* Divider */}
             <div className="w-px h-6 bg-(--color-divider)" />
 
-            {/* Actions section */}
-            {type === EDGE_TYPE.DIRECTED && (
+            {/* Actions section — reversing is impossible if the opposite edge already exists */}
+            {type === EDGE_TYPE.DIRECTED && !hasReverseEdge && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
