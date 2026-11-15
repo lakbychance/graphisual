@@ -30,6 +30,9 @@
 
   body {
     background-color: var(--color-paper);
+    background-image: var(--canvas-texture);
+    background-size: var(--canvas-texture-size);
+    background-blend-mode: var(--canvas-blend);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

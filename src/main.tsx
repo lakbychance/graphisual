@@ -2,6 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./globals.css";
+import { installPressPhysics } from "./components/ui-sdk/press-physics";
+
+installPressPhysics();
 
 const rootElement = document.getElementById("root");
 

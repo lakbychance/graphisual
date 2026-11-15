@@ -8,13 +8,33 @@ Everything about how Graphisual is themed lives in this folder. Start here.
 single source of truth for every colour, gradient, shadow, and dimension — used by the React UI, the SVG
 graph, the Canvas renderer, the Three.js scene, and the export pipeline alike.
 
-`:root` holds the **light** defaults (Paper). `[data-theme="dark"]` is **Anodized** (dark machined
-instrument) and `[data-theme="blueprint"]` is **Blueprint** (cobalt drafting sheet); each block
-overrides the defaults. Besides the palette, every theme sets *derived* tokens (`--panel-*`,
-`--control-*`, `--well-*`, `--selected-*`, …) that the ui-sdk component layer
-([`components/ui-sdk/ui-sdk.css`](../components/ui-sdk/ui-sdk.css)) reads; the few things a token
-can't express (Blueprint's registration marks, Anodized's amber light bars) live in
-[`theme-utilities.css`](./theme-utilities.css). Each block also matches the theme playground's
+`:root` holds the **light** defaults (Paper: flat cotton stock, ink, emboss/deboss). `[data-theme="dark"]` is **Anodized**
+(matte graphite instrument, soft light, no ornament) and `[data-theme="blueprint"]` is **Blueprint** (flat linework, hatching, registration marks); each
+block overrides the defaults. Besides the palette, every theme describes its *material* through
+derived tokens that the ui-sdk component layer
+([`components/ui-sdk/ui-sdk.css`](../components/ui-sdk/ui-sdk.css)) reads: the key (`--control-*`:
+face, seat, wall, travel, lean), the cap inside a well (`--selected-*`), wells, plates (`--panel-*`),
+status lamps (`--led-*`), slider, switch, readouts and textures.
+
+Themes are sealed by construction: there are **no theme-scoped selectors** in the component layer.
+A look that needs an extra part (Blueprint's registration marks, Anodized's lamps) is a structural
+part in `ui-sdk.css` behind a token whose default is "off". Every derived token has a default on
+`:root, [data-skin]`, so a nested skin scope re-declares all of them and nothing from the page theme
+reaches into it. When adding a look, add a token with a neutral default; do not write
+`[data-theme="…"] .gs-*` rules.
+
+A key is two parts. The element is the **seat**: it never moves and draws what the cap stands on
+or in (wall, slot, cast shadow: `--control-seat`, `--control-seat-bg`). Its `::before` is the **cap**
+(`--control-bg`, `--control-face`), which drops by `--key-travel` when held so it covers the wall.
+Pointer position on a pressed key is measured by
+[`components/ui-sdk/press-physics.ts`](../components/ui-sdk/press-physics.ts), which sets
+`--press-x` / `--press-y` / `--key-skew` so the cap leans toward the finger and is shaded there; a
+theme sets `--key-lean` (px of height difference across the cap, `0` keeps it level).
+
+`:root` is also the Paper block, so anything Paper sets is inherited by the other themes unless they
+set it too. When a theme adds a key token, give the other `[data-theme]` blocks an explicit value.
+
+Each block also matches the theme playground's
 `[data-skin]` scope so `/theme-playground` can show all themes on one page. The active theme is selected by a single attribute on `<html>`:
 
 ```html
@@ -74,7 +94,7 @@ variables are the default, and it only stores the values that must differ for 3D
 | File | Role |
 |---|---|
 | `tokens.css` | All CSS variables, per theme (the values) |
-| `theme-utilities.css` | Theme-driven utility classes/keyframes (focus ring, edge focus) and per-theme decorations for the ui-sdk layer |
+| `theme-utilities.css` | Theme-driven utility classes/keyframes (focus ring, edge focus, canvas surface) |
 | `constants.ts` | `THEME` enum + `Theme` / `ResolvedTheme` types |
 | `css-variables.ts` | `getCSSVar` (cached), semantic colour helpers, `getThemeSnapshot()` |
 | `hooks.ts` | `useApplyTheme`, `useResolvedTheme` |

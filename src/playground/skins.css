@@ -58,7 +58,7 @@
     --tooltip-bg: #eef0f5;
     --tooltip-fg: #15171c;
     --thumb-bg: #e6e8ee;
-    --thumb-grip: rgba(21, 23, 28, 0.4);
+    --thumb-grip-color: rgba(21, 23, 28, 0.4);
     --kbd-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
     --value-font: var(--font-mono);
     --node-default: #2a2e37; --node-visited: #22513a; --node-path: #58451e; --node-start: #1f425c; --node-end: #5a3028;
@@ -115,7 +115,7 @@
     --tooltip-bg: #070a08;
     --tooltip-fg: var(--ph);
     --thumb-bg: var(--ph);
-    --thumb-grip: rgba(7, 10, 8, 0.65);
+    --thumb-grip-color: rgba(7, 10, 8, 0.65);
     --kbd-shadow: 0 0 0 1px rgba(138, 245, 168, 0.4);
     --card-hover-ring: rgba(138, 245, 168, 0.6);
     --menu-hover-bg: rgba(138, 245, 168, 0.14);

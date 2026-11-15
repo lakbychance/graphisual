@@ -81,102 +81,17 @@
 
 /* === CONTROL SHADOW - small raised accents (data-structure chips) === */
 .shadow-control {
-  box-shadow: var(--control-shadow);
+  box-shadow: var(--control-face);
 }
 
-/* =====================================================================
-   PER-THEME DECORATIONS for the ui-sdk component layer (gs-* classes).
-   Tokens carry most of each theme; these are the few things a token can't say.
-   Each rule also matches the playground's [data-skin] scopes.
-   ===================================================================== */
+/* Per-theme looks for the gs-* component layer are tokens, not rules: see the
+   "derived" section of each theme in tokens.css. Keeping them out of selectors
+   is what stops one theme from leaking into another. */
 
-/* --- Blueprint: registration marks, dashed pen lines, dimension arrows --- */
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  --m: var(--bp-ink-soft);
-  background:
-    linear-gradient(var(--m), var(--m)) 3px 3px / 7px 1px no-repeat,
-    linear-gradient(var(--m), var(--m)) 3px 3px / 1px 7px no-repeat,
-    linear-gradient(var(--m), var(--m)) calc(100% - 3px) 3px / 7px 1px no-repeat,
-    linear-gradient(var(--m), var(--m)) calc(100% - 3px) 3px / 1px 7px no-repeat,
-    linear-gradient(var(--m), var(--m)) 3px calc(100% - 3px) / 7px 1px no-repeat,
-    linear-gradient(var(--m), var(--m)) 3px calc(100% - 3px) / 1px 7px no-repeat,
-    linear-gradient(var(--m), var(--m)) calc(100% - 3px) calc(100% - 3px) / 7px 1px no-repeat,
-    linear-gradient(var(--m), var(--m)) calc(100% - 3px) calc(100% - 3px) / 1px 7px no-repeat;
+/* === CANVAS — the sheet everything lies on: theme colour plus its material map === */
+.canvas-surface {
+  background-color: var(--color-paper);
+  background-image: var(--canvas-texture);
+  background-size: var(--canvas-texture-size);
+  background-blend-mode: var(--canvas-blend);
 }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) :is(.gs-divider[data-orientation="vertical"], .gs-toolbar-separator) {
-  background: repeating-linear-gradient(180deg, var(--color-divider) 0 3px, transparent 3px 6px);
-}
-:is([data-theme="blueprint"], [data-skin="blueprint"]) :is(.gs-divider[data-orientation="horizontal"], .gs-menu-separator) {
-  background: repeating-linear-gradient(90deg, var(--color-divider) 0 3px, transparent 3px 6px);
-}
-:is([data-theme="blueprint"], [data-skin="blueprint"]) :is(.gs-toggle-group, .gs-segmented, .gs-tabs-list, .gs-stepper-group, .gs-switch, .gs-checkbox, .gs-input) {
-  box-shadow: none;
-  outline: 1px dashed var(--bp-ink-soft);
-  outline-offset: -1px;
-}
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-slider-track { box-shadow: 0 0 0 1px var(--bp-ink-soft); }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-slider-track::before,
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-slider-track::after {
-  content: "";
-  position: absolute;
-  top: -3px;
-  width: 1px;
-  height: 12px;
-  background: var(--bp-ink);
-}
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-slider-track::before { left: 0; }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-slider-track::after { right: 0; }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-button[data-variant="primary"] {
-  background: transparent;
-  color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent), inset 0 0 0 3px var(--color-paper), inset 0 0 0 4px var(--color-accent);
-}
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-button[data-variant="primary"]:hover { background: rgba(159, 224, 247, 0.1); }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-hint { box-shadow: 0 0 0 1px var(--bp-ink), inset 0 0 0 2px var(--focus-color); }
-:is([data-theme="blueprint"], [data-skin="blueprint"]) .gs-chip { box-shadow: 0 0 0 1px var(--bp-ink-soft); }
-
-/* --- Dark / Anodized: engraved legends, amber light bars, knurl, glow --- */
-:is([data-theme="dark"], [data-skin="anodized"]) :is(.gs-button, .gs-toggle, .gs-tab, .gs-segmented-item, .gs-label, .gs-menu-label, .gs-card-title) {
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.6);
-}
-:is([data-theme="dark"], [data-skin="anodized"]) :is(.gs-toggle, .gs-tab) { position: relative; }
-:is([data-theme="dark"], [data-skin="anodized"]) :is(.gs-toggle[data-pressed], .gs-tab[data-selected], .gs-segmented-indicator)::after,
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-card-button[data-selected]::after {
-  content: "";
-  position: absolute;
-  left: 22%;
-  right: 22%;
-  bottom: 3px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--amber);
-  box-shadow: 0 0 6px 1px var(--amber-glow);
-}
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-card-button[data-selected] { box-shadow: var(--control-shadow); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-card-button[data-selected]::after { left: 30%; right: 30%; bottom: 4px; }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-slider-indicator { box-shadow: 0 0 6px var(--amber-glow); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-slider-grip {
-  width: 14px;
-  height: 10px;
-  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.28) 0 1px, rgba(0, 0, 0, 0.5) 1px 2px, transparent 2px 3px);
-  background-size: 3px 100%;
-  border-radius: 1px;
-}
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-switch[data-checked] { box-shadow: var(--shadow-etched), 0 0 8px var(--amber-glow); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-checkbox-indicator { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 8px var(--amber-glow); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-button[data-variant="primary"] {
-  background: var(--accent-control-bg);
-  color: var(--accent-control-fg);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  box-shadow: var(--shadow-raised), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-button[data-variant="primary"]:hover { filter: brightness(1.06); background: var(--accent-control-bg); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-select-item[data-selected] { color: var(--color-text); background: var(--selected-bg); box-shadow: inset 2px 0 0 var(--amber); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-select-item[data-selected] .gs-menu-icon { color: var(--amber); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-menu-indicator { color: var(--amber); }
-:is([data-theme="dark"], [data-skin="anodized"]) .gs-chip[data-state="processing"] { text-shadow: none; }

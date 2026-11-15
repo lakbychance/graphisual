@@ -75,11 +75,14 @@
     justify-content: center;
     min-height: 200px;
     padding: 28px 20px;
+    background-color: var(--color-paper);
     background-image:
       linear-gradient(var(--color-grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
-    background-size: 20px 20px;
+      linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px),
+      var(--canvas-texture);
+    background-size: 20px 20px, 20px 20px, var(--canvas-texture-size);
     background-position: center;
+    background-blend-mode: normal, normal, var(--canvas-blend);
   }
   .pg-grid[data-wide] .pg-card-body { overflow-x: auto; justify-content: safe center; }
   .pg-card-note { margin: 0; padding: 8px 12px; font-size: 12px; color: var(--color-text-muted); border-top: 1px solid var(--color-divider); }
@@ -93,13 +96,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: var(--color-paper);
     background-image:
       linear-gradient(var(--color-grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px),
       linear-gradient(var(--color-grid-line-major) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-grid-line-major) 1px, transparent 1px);
-    background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+      linear-gradient(90deg, var(--color-grid-line-major) 1px, transparent 1px),
+      var(--canvas-texture);
+    background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px, var(--canvas-texture-size);
     background-position: center;
+    background-blend-mode: normal, normal, normal, normal, var(--canvas-blend);
   }
   .pg-stage-graph { width: min(520px, 90%); height: auto; }
   .pg-stage-top { position: absolute; top: 20px; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100% - 32px); }

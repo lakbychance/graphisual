@@ -40,7 +40,7 @@ export function CardButton({ selected, icon, title, subtitle, className, ...prop
       type="button"
       aria-pressed={selected}
       data-selected={selected || undefined}
-      className={cn("gs-card-button gs-panel", className)}
+      className={cn("gs-card-button", className)}
       {...props}
     >
       {icon && <span className="gs-card-icon" aria-hidden="true">{icon}</span>}

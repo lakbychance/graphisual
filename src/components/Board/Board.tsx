@@ -92,7 +92,7 @@ export const Board = () => {
         )}
 
         {/* Background color */}
-        <div className="absolute inset-0 pointer-events-none bg-(--color-paper)" />
+        <div className="absolute inset-0 pointer-events-none canvas-surface" />
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
