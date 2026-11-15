@@ -22,7 +22,16 @@ export function isElementInPopup(element: Element | null): boolean {
   return element.closest(POPUP_SELECTOR) !== null;
 }
 
-/** Whether any ui-sdk popup or tooltip is currently open anywhere on the page. */
+/**
+ * Whether any ui-sdk popup (popover, menu, select) is open anywhere on the
+ * page. Tooltips are excluded: one is showing whenever the pointer rests on a
+ * control, and it must not swallow the graph's Escape shortcut.
+ */
 export function isAnyPopupOpen(): boolean {
-  return document.querySelector('[data-slot][data-open]') !== null;
+  return document.querySelector('[data-slot][data-open]:not([data-slot^="tooltip"])') !== null;
+}
+
+/** Whether a ui-sdk tooltip is currently showing. */
+export function isTooltipOpen(): boolean {
+  return document.querySelector('[data-slot="tooltip-content"][data-open]') !== null;
 }

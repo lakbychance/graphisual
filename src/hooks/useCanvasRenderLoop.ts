@@ -92,6 +92,8 @@ export function useCanvasRenderLoop({
     ctx.fillRect(0, 0, width, height);
 
     applyViewportTransform(ctx, actualViewport, dpr);
+    // Same for every node this frame, so read it once instead of per node.
+    const pixelScale = Math.abs(ctx.getTransform().a);
     drawGrid(ctx, actualViewport);
 
     const orderedNodeIds = [...stackingOrder];
@@ -134,6 +136,7 @@ export function useCanvasRenderLoop({
         colorState: getNodeColorState(nodeId),
         isEdgeCreateSource: isEdgeDragSourceNode,
         isEdgeCreateTarget: isEdgeDragTargetNode,
+        pixelScale,
       });
 
       if (isHovered && !isVisualizing && !currentAlgorithm && !edgeDragSource) {

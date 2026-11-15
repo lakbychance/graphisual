@@ -8,7 +8,7 @@ Everything about how Graphisual is themed lives in this folder. Start here.
 single source of truth for every colour, gradient, shadow, and dimension — used by the React UI, the SVG
 graph, the Canvas renderer, the Three.js scene, and the export pipeline alike.
 
-`:root` holds the **light** defaults (Paper: flat cotton stock, ink, emboss/deboss). `[data-theme="dark"]` is **Anodized**
+`:root` holds the **light** defaults (Paper: flat cotton stock, ink, emboss/deboss). `[data-theme="dark"]` is **Tungsten**
 (matte graphite instrument, soft light, no ornament) and `[data-theme="blueprint"]` is **Blueprint** (flat linework, hatching, registration marks); each
 block overrides the defaults. Besides the palette, every theme describes its *material* through
 derived tokens that the ui-sdk component layer
@@ -17,7 +17,7 @@ face, seat, wall, travel, lean), the cap inside a well (`--selected-*`), wells, 
 status lamps (`--led-*`), slider, switch, readouts and textures.
 
 Themes are sealed by construction: there are **no theme-scoped selectors** in the component layer.
-A look that needs an extra part (Blueprint's registration marks, Anodized's lamps) is a structural
+A look that needs an extra part (Blueprint's registration marks, Tungsten's lamps) is a structural
 part in `ui-sdk.css` behind a token whose default is "off". Every derived token has a default on
 `:root, [data-skin]`, so a nested skin scope re-declares all of them and nothing from the page theme
 reaches into it. When adding a look, add a token with a neutral default; do not write

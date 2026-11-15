@@ -14,12 +14,26 @@ export type ButtonVariant =
 
 export type ButtonSize = "md" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
 
-export interface ButtonProps extends ComponentProps<typeof UIButton> {
+/** Tints the icon/label (used for destructive ghost actions like Reset). */
+export type ButtonTone = "default" | "danger" | "muted";
+
+export interface ButtonLook {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** Tints the icon/label (used for destructive ghost actions like Reset). */
-  tone?: "default" | "danger" | "muted";
+  tone?: ButtonTone;
 }
+
+/** The attributes `ui-sdk.css` styles a `.gs-button` by; shared with ToolbarButton. */
+export function buttonLook({ variant, size, tone }: ButtonLook, className?: unknown) {
+  return {
+    "data-variant": variant,
+    "data-size": size,
+    "data-tone": tone,
+    className: cn("gs-button", className as string),
+  };
+}
+
+export interface ButtonProps extends ComponentProps<typeof UIButton>, ButtonLook {}
 
 /**
  * Button — ui-sdk `Button` with graphisual's physical-surface variants.
@@ -36,13 +50,5 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  return (
-    <UIButton
-      data-variant={variant}
-      data-size={size}
-      data-tone={tone}
-      className={cn("gs-button", className as string)}
-      {...props}
-    />
-  );
+  return <UIButton {...buttonLook({ variant, size, tone }, className)} {...props} />;
 }

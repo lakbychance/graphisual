@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Keyboard, Monitor, Moon, Redo2, Ruler, Settings, Sun, Undo2, Waypoints, ZoomIn, ZoomOut } from "lucide-react";
+import { Bolt, Check, Keyboard, Monitor, Redo2, Ruler, Settings, StickyNote, Undo2, Waypoints, ZoomIn, ZoomOut, type LucideIcon } from "lucide-react";
 import {
   Button, Kbd, Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem,
   MenuTrigger, Popover, PopoverContent, PopoverTitle, PopoverTrigger, Toolbar, ToolbarButton, Tooltip, TooltipContent, TooltipTrigger,
@@ -36,9 +36,9 @@ export function HistoryControls() {
 }
 
 type ThemeChoice = "light" | "dark" | "blueprint" | "system";
-const THEMES: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
+const THEMES: { value: ThemeChoice; label: string; icon: LucideIcon }[] = [
+  { value: "light", label: "Paper", icon: StickyNote },
+  { value: "dark", label: "Tungsten", icon: Bolt },
   { value: "blueprint", label: "Blueprint", icon: Ruler },
   { value: "system", label: "System", icon: Monitor },
 ];

@@ -6,7 +6,7 @@ import {
 } from "@ui-sdk/react/toolbar";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import type { ButtonSize, ButtonVariant } from "./button";
+import { buttonLook, type ButtonLook } from "./button";
 
 export interface ToolbarProps extends ComponentProps<typeof UIToolbar> {
   /** `panel` draws the raised surface + texture; `bare` is just the focus group. */
@@ -24,11 +24,7 @@ export function Toolbar({ surface = "panel", className, ...props }: ToolbarProps
   );
 }
 
-export type ToolbarButtonProps = ComponentProps<typeof UIToolbarButton> & {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  tone?: "default" | "danger" | "muted";
-};
+export type ToolbarButtonProps = ComponentProps<typeof UIToolbarButton> & ButtonLook;
 
 /**
  * ToolbarButton — joins the toolbar's roving focus. Pass `render` to make it a
@@ -41,15 +37,7 @@ export function ToolbarButton({
   className,
   ...props
 }: ToolbarButtonProps) {
-  return (
-    <UIToolbarButton
-      data-variant={variant}
-      data-size={size}
-      data-tone={tone}
-      className={cn("gs-button", className as string)}
-      {...props}
-    />
-  );
+  return <UIToolbarButton {...buttonLook({ variant, size, tone }, className)} {...props} />;
 }
 
 export function ToolbarGroup({ className, ...props }: ComponentProps<typeof UIToolbarGroup>) {

@@ -2,7 +2,7 @@
  * Theme tokens — the single source of truth for every colour, shadow, gradient
  * and dimension used across the app (UI, SVG graph, Canvas, Three.js, export).
  *
- * `:root` holds the light theme (Paper). `[data-theme="dark"]` is Anodized and
+ * `:root` holds the light theme (Paper). `[data-theme="dark"]` is Tungsten and
  * `[data-theme="blueprint"]` is Blueprint; `data-theme` on <html> (set by
  * useApplyTheme) selects one. Each block is also exposed as a `[data-skin]`
  * scope so the theme playground can render several themes on one page.
@@ -745,12 +745,12 @@
   --sound-kit: paper;
 }
 
-/* === DARK = ANODIZED — a matte graphite instrument. Bead-blasted, not brushed:
+/* === DARK = TUNGSTEN — a matte graphite instrument. Bead-blasted, not brushed:
    smooth soft faces, keys that stand three pixels proud on a solid wall and
    throw a soft shadow, shallow wells, round caps, one amber lamp colour for
    anything that is on. Depth comes from light, never from ornament. === */
 [data-theme="dark"],
-[data-skin="anodized"] {
+[data-skin="tungsten"] {
   color-scheme: dark;
   --amber: #f2a33a;
   --amber-glow: rgba(242, 163, 58, 0.45);
@@ -1169,7 +1169,7 @@
   --popup-start-marks-opacity: 1;
   --popup-marks-delay: 0ms;
   --node-hatch-opacity: 0;           /* plain nodes: no ornament in this theme */
-  --sound-kit: anodized;
+  --sound-kit: tungsten;
 }
 
 /* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white

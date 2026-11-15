@@ -260,7 +260,7 @@ export const Node = memo(function Node(props: NodeProps) {
           strokeWidth: isSelected
             ? [NODE_STROKE.DEFAULT, NODE_STROKE.ACTIVE, NODE_STROKE.SELECTED]
             : restStroke,
-          r: isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r,
+          r: bodyR,
         }}
         transition={prefersReducedMotion ? { duration: 0 } : {
           fill: { duration: STROKE_ANIMATION.DURATION },
@@ -296,7 +296,7 @@ export const Node = memo(function Node(props: NodeProps) {
       <circle
         cx={node.x}
         cy={node.y}
-        r={isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r}
+        r={bodyR}
         fill="url(#crosshatch)"
         mask="url(#sphereMask)"
         className="pointer-events-none"

@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Ruler, Settings, Sun, Volume2, VolumeX } from "lucide-react";
+import { Bolt, Check, Monitor, Ruler, Settings, StickyNote, Volume2, VolumeX, type LucideIcon } from "lucide-react";
 import {
   Button, Menu, MenuCheckboxItem, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
@@ -11,9 +11,9 @@ interface ThemeSelectorProps {
   alignDropdown: "start" | "end";
 }
 
-const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: THEME.LIGHT, label: "Light", icon: Sun },
-  { value: THEME.DARK, label: "Dark", icon: Moon },
+const OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
+  { value: THEME.LIGHT, label: "Paper", icon: StickyNote },
+  { value: THEME.DARK, label: "Tungsten", icon: Bolt },
   { value: THEME.BLUEPRINT, label: "Blueprint", icon: Ruler },
   { value: THEME.SYSTEM, label: "System", icon: Monitor },
 ];

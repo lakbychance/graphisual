@@ -44,7 +44,7 @@ An interactive graph editor and algorithm visualizer. Draw graphs, run algorithm
 - `bundle-analyzer` — Generates bundle visualization (enabled with `ANALYZE=true`)
 - `react-scan` — Performance monitoring integration
 
-**UI layer** — Controls are built on [ui-sdk](https://ui-sdk.dev) (headless behaviours + ARIA) with a token-driven component stylesheet; three themes (Paper, Anodized, Blueprint) are pure token sets. `/theme-playground` renders every control in every theme side by side.
+**UI layer** — Controls are built on [ui-sdk](https://ui-sdk.dev) (headless behaviours + ARIA) with a token-driven component stylesheet; three themes (Paper, Tungsten, Blueprint) are pure token sets. `/theme-playground` renders every control in every theme side by side.
 
 **State Management** — Zustand stores for graph data, undo/redo history (snapshot-based), and persisted user settings (theme, render mode).
 

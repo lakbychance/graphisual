@@ -10,6 +10,7 @@ import {
 } from "@ui-sdk/react/select";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { CheckIcon } from "./check-icon";
 import { POPUP_CLEARANCE } from "./popup-clearance";
 
 export const Select = UISelect;
@@ -34,11 +35,7 @@ export function SelectItemIcon({ className, ...props }: ComponentProps<typeof UI
 export function SelectItemIndicator({ className, children, ...props }: ComponentProps<typeof UISelectItemIndicator>) {
   return (
     <UISelectItemIndicator className={cn("gs-menu-indicator", className as string)} {...props}>
-      {children ?? (
-        <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M2.5 6.5 5 9l4.5-6" />
-        </svg>
-      )}
+      {children ?? <CheckIcon />}
     </UISelectItemIndicator>
   );
 }

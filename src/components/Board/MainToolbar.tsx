@@ -11,7 +11,7 @@ import {
   SelectTrigger, SelectValueIcon, Toolbar, ToolbarButton, ToolbarGroup, ToolbarSeparator, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
 import { useGraphStore } from "../../store/graphStore";
-import { useSettingsStore } from "../../store/settingsStore";
+import { useSettingsStore, type RenderMode } from "../../store/settingsStore";
 import { SPEED_LEVELS, VisualizationState } from "../../constants/visualization";
 import { exportSvg } from "../../utils/export/exportSvg";
 import { exportPng } from "../../utils/export/exportPng";
@@ -19,8 +19,6 @@ import { export3DPng } from "../../utils/export/export3DPng";
 import { exportCanvasPng } from "../../utils/export/exportCanvasPng";
 import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
-
-type RenderMode = "svg" | "canvas" | "3d";
 
 const RENDER_MODES: { value: RenderMode; label: string; hint: string; icon: typeof Feather }[] = [
   { value: "svg", label: "Standard", hint: "Smooth animations", icon: Feather },

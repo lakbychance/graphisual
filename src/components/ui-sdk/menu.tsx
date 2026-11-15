@@ -15,6 +15,7 @@ import {
 } from "@ui-sdk/react/menu";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { CheckIcon } from "./check-icon";
 import { POPUP_CLEARANCE } from "./popup-clearance";
 
 export const Menu = UIMenu;
@@ -45,11 +46,7 @@ export function MenuItemIcon({ className, ...props }: ComponentProps<typeof UIMe
 export function MenuItemIndicator({ className, children, ...props }: ComponentProps<typeof UIMenuItemIndicator>) {
   return (
     <UIMenuItemIndicator className={cn("gs-menu-indicator", className as string)} {...props}>
-      {children ?? (
-        <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M2.5 6.5 5 9l4.5-6" />
-        </svg>
-      )}
+      {children ?? <CheckIcon />}
     </UIMenuItemIndicator>
   );
 }

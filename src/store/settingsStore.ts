@@ -11,7 +11,7 @@ import { persist } from "zustand/middleware";
 import { THEME, type Theme } from "@/theme/constants";
 import { STORE_NAME } from "../constants/store";
 
-type RenderMode = 'svg' | 'canvas' | '3d';
+export type RenderMode = 'svg' | 'canvas' | '3d';
 
 interface SettingsState {
   theme: Theme;

@@ -16,9 +16,11 @@ export { PopoverTrigger, PopoverClose, PopoverDescription };
 
 /** PopoverContent — raised panel with the skin's texture; animates via starting/ending styles. */
 export function PopoverContent({ className, sideOffset = 10, ...props }: ComponentProps<typeof UIPopoverContent>) {
+  // A popover anchored to a point (edge / node popups) has no toolbar plate to clear.
+  const clearance = props.anchor ? 0 : POPUP_CLEARANCE;
   return (
     <UIPopoverContent
-      sideOffset={Number(sideOffset) + POPUP_CLEARANCE}
+      sideOffset={Number(sideOffset) + clearance}
       className={cn("gs-popover gs-panel", className as string)}
       {...props}
     />

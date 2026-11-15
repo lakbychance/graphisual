@@ -21,6 +21,11 @@ interface NodeRenderOptions {
   opacity?: number; // For entrance animation
   isEdgeCreateSource?: boolean; // Highlight during edge creation drag
   isEdgeCreateTarget?: boolean; // Highlight when hovering as edge target
+  /**
+   * The canvas's pixel scale for this frame (device pixel ratio x zoom). It is
+   * the same for every node, so the render loop reads it once and passes it in.
+   */
+  pixelScale?: number;
 }
 
 // Cache for offscreen crosshatch pattern canvases
@@ -41,7 +46,8 @@ export function invalidateCrosshatchCache(): void {
 function drawCrosshatch(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
-  radius: number
+  radius: number,
+  pixelScale: number
 ): void {
   // Create cache key based on radius and text color (for theme changes)
   // A theme sets the hatch strength; 0 means plain nodes (SVG default is 0.25).
@@ -51,7 +57,7 @@ function drawCrosshatch(
   const color = getCSSVar('--color-text');
   // Rasterise at the canvas's real pixel scale (device pixel ratio x zoom) so the
   // lines stay as crisp as the SVG's; stepped to keep the cache small.
-  const density = Math.min(4, Math.max(1, Math.ceil(Math.abs(ctx.getTransform().a) * 2) / 2));
+  const density = Math.min(4, Math.max(1, Math.ceil(pixelScale * 2) / 2));
   const cacheKey = `${size}-${color}-${strength}-${density}`;
 
   let patternCanvas = crosshatchCache.get(cacheKey);
@@ -145,6 +151,7 @@ export function drawNode(
     opacity = 1,
     isEdgeCreateSource = false,
     isEdgeCreateTarget = false,
+    pixelScale = Math.abs(ctx.getTransform().a),
   } = options;
 
   // Apply animation transforms and hover scale
@@ -217,7 +224,7 @@ export function drawNode(
   }
 
   // Crosshatch overlay
-  drawCrosshatch(ctx, node, radius);
+  drawCrosshatch(ctx, node, radius, pixelScale);
 
   ctx.restore();
 

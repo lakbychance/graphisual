@@ -48,8 +48,10 @@ export function installPressPhysics(root: Document = document): void {
   let held: HTMLElement | null = null;
   let sounding: HTMLElement | null = null;
   let lastTick = 0;
+  let settleTimer = 0;
 
   const release = () => {
+    window.clearTimeout(settleTimer);
     if (!held) return;
     for (const prop of PROPS) held.style.removeProperty(prop);
     held = null;
@@ -88,7 +90,11 @@ export function installPressPhysics(root: Document = document): void {
   );
 
   // Let the release transition run from the leaned pose, then forget it.
-  const settle = () => window.setTimeout(release, 220);
+  // A new press calls release() first, which cancels a timer left by the last one.
+  const settle = () => {
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(release, 220);
+  };
   root.addEventListener(
     "pointerup",
     (event) => {

@@ -82,10 +82,11 @@ export const EdgePopup = ({
         aria-label="Edge controls"
         onKeyDown={(e) => {
           // Keep Escape/Enter from reaching the graph's own keyboard handlers.
-          if (e.key === "Escape" || e.key === "Enter") {
-            e.stopPropagation();
-            handleClose();
-          }
+          if (e.key !== "Escape" && e.key !== "Enter") return;
+          e.stopPropagation();
+          // Enter confirms and closes only from the weight field; on a toggle
+          // or button it just operates that control.
+          if (e.key === "Escape" || e.target instanceof HTMLInputElement) handleClose();
         }}
       >
         <div role="group" aria-label="Edge controls" className="flex items-center gap-2">

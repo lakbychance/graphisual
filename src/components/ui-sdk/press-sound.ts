@@ -2,12 +2,12 @@
  * Press sounds for the gs-* controls.
  *
  * Every sound is synthesised with Web Audio; there are no audio files. A theme
- * picks its kit with the `--sound-kit` token (`paper`, `anodized`, `blueprint`
+ * picks its kit with the `--sound-kit` token (`paper`, `tungsten`, `blueprint`
  * or `none`), read from the control that was touched, so a nested skin scope
  * sounds like itself and themes cannot leak into each other.
  *
  *   paper      soft, dry taps: a fingertip on card stock
- *   anodized   a damped mechanical click with a little body under it
+ *   tungsten   a damped mechanical click with a little body under it
  *   blueprint  a pen on the sheet: a hard tick, a short scratch for latches
  *
  * Four events are voiced: a key going down, a key coming back up, a latch
@@ -16,7 +16,7 @@
  */
 
 export type SoundEvent = "down" | "up" | "latch" | "tick";
-type Kit = "paper" | "anodized" | "blueprint";
+type Kit = "paper" | "tungsten" | "blueprint";
 
 const MASTER_GAIN = 0.32;
 
@@ -125,7 +125,7 @@ const KITS: Record<Kit, Record<SoundEvent, (ac: AudioContext) => void>> = {
     tick: (ac) => burst(ac, { filter: "bandpass", freq: 3200, q: 1.2, gain: 0.16, decay: 0.014 }),
   },
   // A damped key: a sharp contact click over a short low thump, and a lighter return.
-  anodized: {
+  tungsten: {
     down: (ac) => {
       burst(ac, { filter: "highpass", freq: 3200, gain: 0.34, decay: 0.012 });
       tone(ac, { type: "sine", freq: 170, to: 95, gain: 0.5, decay: 0.05 });

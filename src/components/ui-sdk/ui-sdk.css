@@ -4,7 +4,7 @@
  * This file is structure and physics only. It never names a theme: every
  * colour, shadow, wall height, travel distance and texture is a token from
  * src/theme/tokens.css, and each theme describes its own material there
- * (Paper = card stock, Anodized = machined aluminium, Blueprint = drafted
+ * (Paper = card stock, Tungsten = machined metal, Blueprint = drafted
  * linework). Because nothing here is theme-scoped, a theme cannot leak into
  * another one, including nested `[data-skin]` scopes in the playground.
  *

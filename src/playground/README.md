@@ -2,7 +2,7 @@
 
 `/theme-playground`, **local development only**: `App.tsx` swaps it in for `Board` on that path when
 `import.meta.env.DEV` is true, so production builds do not include it and the path is not served.
-Deep links: `?view=stage&skin=anodized`, `?skin=blueprint`.
+Deep links: `?view=stage&skin=tungsten`, `?skin=blueprint`.
 
 Every Graphisual control is rebuilt on [ui-sdk](https://ui-sdk.dev) (`@ui-sdk/react`,
 headless behaviours + ARIA, popups in the top layer, no portals) and rendered in
@@ -15,7 +15,7 @@ the app's three themes so the same component can be compared side by side.
 | Behaviour | `@ui-sdk/react/*` | focus, keyboard, ARIA, open/close, `data-*` state attributes |
 | Primitives | `src/components/ui-sdk/*.tsx` | thin wrappers that add `gs-*` classes and `data-variant` / `data-size` |
 | Component CSS | `src/components/ui-sdk/ui-sdk.css` | one stylesheet, styled from *derived tokens* (`--panel-bg`, `--control-shadow`, `--selected-bg`, …) |
-| Skins | `src/theme/tokens.css` (paper, anodized, blueprint = the live Light/Dark/Blueprint themes) ; `src/playground/skins.css` only gives a scope its background | `[data-skin="…"]` scopes that redefine the palette plus the derived tokens; every per-theme look is a derived token (no theme-scoped selectors), so skins cannot leak into each other |
+| Skins | `src/theme/tokens.css` (paper, tungsten, blueprint = the live Light/Dark/Blueprint themes) ; `src/playground/skins.css` only gives a scope its background | `[data-skin="…"]` scopes that redefine the palette plus the derived tokens; every per-theme look is a derived token (no theme-scoped selectors), so skins cannot leak into each other |
 | Recipes | `src/playground/recipes/*` | Graphisual composites (toolbar, step controls, trace panel, popups…) with mock state |
 | Stage | `src/playground/Stage.tsx` | the whole board chrome over a grid canvas with a steppable BFS |
 

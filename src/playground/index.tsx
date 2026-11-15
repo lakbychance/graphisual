@@ -79,7 +79,7 @@ function readParams() {
 export default function ThemePlayground() {
   const [initial] = useState(readParams);
   const [filter, setFilter] = useState<"all" | SkinId>(initial.skin ?? "all");
-  const [stageSkin, setStageSkin] = useState<SkinId>(initial.skin ?? "anodized");
+  const [stageSkin, setStageSkin] = useState<SkinId>(initial.skin ?? "tungsten");
   const skins = filter === "all" ? SKINS : SKINS.filter((s) => s.id === filter);
 
   return (
