@@ -174,8 +174,11 @@ function collectDeclaredTokenNames(): Set<string> {
       if (!(rule instanceof CSSStyleRule)) continue;
       // Tokens live in `:root` and `[data-theme="..."]` blocks. Walking both
       // means override-only tokens are captured too, not just `:root` defaults.
-      const selector = rule.selectorText;
-      if (selector === ':root' || selector.startsWith('[data-theme')) {
+      // Blocks may be grouped with playground skin scopes (`:root, [data-skin="paper"]`).
+      const isTokenBlock = rule.selectorText
+        .split(',')
+        .some((s) => s.trim() === ':root' || s.trim().startsWith('[data-theme'));
+      if (isTokenBlock) {
         for (const prop of rule.style) {
           if (prop.startsWith('--')) names.add(prop);
         }

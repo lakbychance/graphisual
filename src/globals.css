@@ -1,9 +1,14 @@
+/* ui-sdk injects a little behaviour CSS into this layer; declaring it first keeps our styles above it. */
+@layer ui-sdk;
+
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
 
 /* Theming engine — all tokens and theme-driven utilities. See src/theme/README.md */
 @import "./theme/tokens.css";
 @import "./theme/theme-utilities.css";
+
+/* ui-sdk component layer (gs-* classes) — behaviour from @ui-sdk/react, looks from the tokens above */
+@import "./components/ui-sdk/ui-sdk.css";
 
 /* Self-hosted Outfit font */
 @font-face {

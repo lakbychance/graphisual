@@ -1,4 +1,4 @@
-import { CardButton } from "../card-button";
+import { CardButton } from "@/components/ui-sdk";
 import {
   generatePath,
   generateCycle,
@@ -210,12 +210,14 @@ export const TemplatesTab = ({ onGenerate }: TemplatesTabProps) => {
   return (
     <div className="grid grid-cols-3 gap-3">
       {templates.map((template) => (
-        <CardButton key={template.id} onClick={() => onGenerate(template.generate())}>
-          <template.icon className="w-10 h-10 text-(--color-text-muted)" />
-          <span className="font-semibold text-xs text-(--color-text)">
-            {template.name}
-          </span>
-        </CardButton>
+        <CardButton
+          key={template.id}
+          data-icon="lg"
+          icon={<template.icon />}
+          title={template.name}
+          aria-label={`${template.name}: ${template.description}`}
+          onClick={() => onGenerate(template.generate())}
+        />
       ))}
     </div>
   );

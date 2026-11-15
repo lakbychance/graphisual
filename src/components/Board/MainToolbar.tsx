@@ -1,40 +1,41 @@
-import { useCallback, type RefObject } from "react";
+import { useCallback, useState, type RefObject } from "react";
+import { Box, Download, Feather, FileCode, Image, RotateCcw, Zap } from "lucide-react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { type GraphRendererHandle } from "../GraphRenderer";
 import { algorithmRegistry } from "../../algorithms";
 import { AlgorithmPicker } from "../ui/algorithm-picker";
 import { GraphGenerator } from "../ui/graph-generator";
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { RotateCcw, Download, FileCode, Image, Box, Feather, Zap } from "lucide-react";
+import { IconAction } from "../ui/icon-action";
+import {
+  Menu, MenuContent, MenuItem, MenuItemIcon, MenuTrigger, Select, SelectContent, SelectItem, SelectItemIcon, SelectItemIndicator,
+  SelectTrigger, SelectValueIcon, Toolbar, ToolbarButton, ToolbarGroup, ToolbarSeparator, Tooltip, TooltipContent, TooltipTrigger,
+} from "@/components/ui-sdk";
 import { useGraphStore } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { SPEED_LEVELS, VisualizationState } from "../../constants/visualization";
-import { GrainTexture } from "../ui/grain-texture";
 import { exportSvg } from "../../utils/export/exportSvg";
 import { exportPng } from "../../utils/export/exportPng";
 import { export3DPng } from "../../utils/export/export3DPng";
 import { exportCanvasPng } from "../../utils/export/exportCanvasPng";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "../ui/select";
 import { SpeedControl } from "./SpeedControl";
 import { ModeToggle } from "./ModeToggle";
-import { Toolbar, ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
+
+type RenderMode = "svg" | "canvas" | "3d";
+
+const RENDER_MODES: { value: RenderMode; label: string; hint: string; icon: typeof Feather }[] = [
+  { value: "svg", label: "Standard", hint: "Smooth animations", icon: Feather },
+  { value: "canvas", label: "Performance", hint: "For large graphs", icon: Zap },
+  { value: "3d", label: "3D", hint: "View only", icon: Box },
+];
 
 interface MainToolbarProps {
   graphRendererRef: RefObject<GraphRendererHandle | null>;
 }
 
+/**
+ * The main toolbar: one tab stop, arrow keys walk every control. Popover,
+ * select and menu triggers join the toolbar through `render`.
+ */
 export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const visualizationState = useGraphStore((state) => state.visualization.state);
@@ -52,29 +53,22 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
   const is3DMode = renderMode === "3d";
   const isDesktop = useIsDesktop();
+  const [exporting, setExporting] = useState(false);
 
   const handleAlgoChange = (algoId: string) => {
     const algo = algorithmRegistry.get(algoId);
     if (!algo) return;
-    setVisualizationAlgorithm({
-      key: algoId,
-      text: algo.metadata.name,
-    });
+    setVisualizationAlgorithm({ key: algoId, text: algo.metadata.name });
   };
 
   const currentSpeedIndex = SPEED_LEVELS.findIndex((l) => l.ms === visualizationSpeed);
   const currentSpeedMultiplier = currentSpeedIndex >= 0 ? SPEED_LEVELS[currentSpeedIndex].multiplier : "1x";
 
   const handleIncreaseSpeed = () => {
-    if (currentSpeedIndex < SPEED_LEVELS.length - 1) {
-      setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex + 1].ms);
-    }
+    if (currentSpeedIndex < SPEED_LEVELS.length - 1) setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex + 1].ms);
   };
-
   const handleDecreaseSpeed = () => {
-    if (currentSpeedIndex > 0) {
-      setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex - 1].ms);
-    }
+    if (currentSpeedIndex > 0) setVisualizationSpeed(SPEED_LEVELS[currentSpeedIndex - 1].ms);
   };
 
   const handleExportSvg = useCallback(async () => {
@@ -95,24 +89,26 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
 
   const handleExport3DPng = useCallback(async () => {
     const canvas = graphRendererRef.current?.getGraph3DRef()?.getCanvas();
-    if (canvas) await export3DPng(canvas, { filename: "graph-3d.png" });
+    if (!canvas) return;
+    setExporting(true);
+    try {
+      await export3DPng(canvas, { filename: "graph-3d.png" });
+    } finally {
+      setExporting(false);
+    }
   }, [graphRendererRef]);
 
+  // Menu actions return a promise so the chosen item shows as pending until the file is ready.
+  const handleExportAction = useCallback(
+    (value: string) => (value === "svg" ? handleExportSvg() : handleExport2DPng()),
+    [handleExportSvg, handleExport2DPng],
+  );
+
   return (
-    <Toolbar aria-label="Graph controls" className="flex items-center relative p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
-      <GrainTexture baseFrequency={3} className="rounded-md" />
+    <Toolbar aria-label="Graph controls">
+      <ModeToggle mode={visualizationMode} onModeChange={setVisualizationMode} disabled={isVisualizing} />
 
-      <ModeToggle
-        mode={visualizationMode}
-        onModeChange={setVisualizationMode}
-        disabled={isVisualizing}
-      />
-
-      <AlgorithmPicker
-        selectedAlgo={visualizationAlgorithm}
-        onSelect={handleAlgoChange}
-        disabled={isVisualizing || !hasNodes}
-      />
+      <AlgorithmPicker selectedAlgo={visualizationAlgorithm} onSelect={handleAlgoChange} disabled={isVisualizing || !hasNodes} />
 
       <ToolbarSeparator />
       <GraphGenerator disabled={isVisualizing} />
@@ -130,137 +126,61 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
 
       <ToolbarSeparator />
 
-      <div className="flex items-center gap-1 md:gap-2">
-        {/* Render Mode Selector - Desktop only */}
-        <Select value={renderMode} onValueChange={(value) => setRenderMode(value as "svg" | "canvas" | "3d")} disabled={isVisualizing}>
+      <ToolbarGroup aria-label="View and export" className="gap-1 md:gap-2">
+        {/* Render mode — desktop only */}
+        <Select value={renderMode} onValueChange={(value) => value && setRenderMode(value as RenderMode)} disabled={isVisualizing}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <ToolbarButton asChild>
-                <SelectTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="z-10 hidden lg:inline-flex"
-                    disabled={isVisualizing}
-                    aria-label="View mode"
-                  >
-                    {renderMode === "3d" ? (
-                      <Box size={16} className="text-(--color-text)" />
-                    ) : renderMode === "canvas" ? (
-                      <Zap size={16} className="text-(--color-text)" />
-                    ) : (
-                      <Feather size={16} className="text-(--color-text)" />
-                    )}
-                  </Button>
-                </SelectTrigger>
-              </ToolbarButton>
+            <TooltipTrigger render={<ToolbarButton render={<SelectTrigger />} aria-label="View mode" className="hidden lg:inline-flex" />}>
+              <SelectValueIcon />
             </TooltipTrigger>
             <TooltipContent>View mode</TooltipContent>
           </Tooltip>
-          <SelectContent align="center" sideOffset={8}>
-            <SelectItem value="svg">
-              <div className="flex items-center">
-                <Feather className="h-4 w-4 mr-2" />
-                <div className="flex flex-col">
-                  <span>Standard</span>
-                  <span className="text-xs opacity-70">Smooth animations</span>
-                </div>
-              </div>
-            </SelectItem>
-            <SelectItem value="canvas">
-              <div className="flex items-center">
-                <Zap className="h-4 w-4 mr-2" />
-                <div className="flex flex-col">
-                  <span>Performance</span>
-                  <span className="text-xs opacity-70">For large graphs</span>
-                </div>
-              </div>
-            </SelectItem>
-            <SelectItem value="3d">
-              <div className="flex items-center">
-                <Box className="h-4 w-4 mr-2" />
-                <div className="flex flex-col">
-                  <span>3D</span>
-                  <span className="text-xs opacity-70">View only</span>
-                </div>
-              </div>
-            </SelectItem>
+          <SelectContent align="center" sideOffset={10}>
+            {RENDER_MODES.map((mode) => (
+              <SelectItem key={mode.value} value={mode.value} label={mode.label}>
+                <SelectItemIcon><mode.icon aria-hidden="true" /></SelectItemIcon>
+                <span className="flex flex-col">
+                  <span>{mode.label}</span>
+                  <span className="gs-description">{mode.hint}</span>
+                </span>
+                <SelectItemIndicator />
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        {/* Export — direct button in 3D mode, dropdown in 2D mode */}
+        {/* Export — direct button in 3D mode, menu in 2D mode */}
         {is3DMode ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <ToolbarButton asChild>
-                <Button
-                  onClick={handleExport3DPng}
-                  disabled={isVisualizing || !hasNodes}
-                  variant="ghost"
-                  size="icon-sm"
-                  className="z-10"
-                  aria-label="Export PNG"
-                >
-                  <Download className="h-4 w-4 text-(--color-text)" />
-                </Button>
-              </ToolbarButton>
-            </TooltipTrigger>
-            <TooltipContent>Export PNG</TooltipContent>
-          </Tooltip>
+          <IconAction label="Export PNG" disabled={isVisualizing || !hasNodes || exporting} onClick={handleExport3DPng}>
+            <Download aria-hidden="true" />
+          </IconAction>
         ) : (
-          <DropdownMenu>
+          <Menu onAction={handleExportAction}>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <ToolbarButton asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      disabled={isVisualizing || !hasNodes}
-                      variant="ghost"
-                      size="icon-sm"
-                      className="z-10"
-                      aria-label="Export"
-                    >
-                      <Download className="h-4 w-4 text-(--color-text)" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </ToolbarButton>
+              <TooltipTrigger render={<ToolbarButton render={<MenuTrigger />} aria-label="Export" disabled={isVisualizing || !hasNodes} />}>
+                <Download aria-hidden="true" />
               </TooltipTrigger>
               <TooltipContent>Export</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="center" sideOffset={8}>
+            <MenuContent align="center" sideOffset={10}>
               {renderMode === "svg" && (
-                <DropdownMenuItem onClick={handleExportSvg}>
-                  <FileCode className="h-4 w-4 mr-2" />
+                <MenuItem value="svg">
+                  <MenuItemIcon><FileCode aria-hidden="true" /></MenuItemIcon>
                   Export as SVG
-                </DropdownMenuItem>
+                </MenuItem>
               )}
-              <DropdownMenuItem onClick={handleExport2DPng}>
-                <Image className="h-4 w-4 mr-2" />
+              <MenuItem value="png">
+                <MenuItemIcon><Image aria-hidden="true" /></MenuItemIcon>
                 Export as PNG
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </MenuItem>
+            </MenuContent>
+          </Menu>
         )}
 
-        {/* Reset */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <ToolbarButton asChild>
-              <Button
-                onClick={resetGraph}
-                disabled={isVisualizing}
-                variant="ghost"
-                size="icon-sm"
-                className="z-10"
-                aria-label="Reset Graph"
-              >
-                <RotateCcw className="h-4 w-4 text-(--color-error)" />
-              </Button>
-            </ToolbarButton>
-          </TooltipTrigger>
-          <TooltipContent>Reset Graph</TooltipContent>
-        </Tooltip>
-      </div>
+        <IconAction label="Reset graph" tone="danger" disabled={isVisualizing} onClick={resetGraph}>
+          <RotateCcw aria-hidden="true" />
+        </IconAction>
+      </ToolbarGroup>
     </Toolbar>
   );
 }

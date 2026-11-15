@@ -17,5 +17,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/theme-playground",
+      "destination": "/index.html"
+    }
   ]
 }

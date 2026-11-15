@@ -1,8 +1,6 @@
 import { Waypoints } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { Button } from "../ui/button";
-import { GrainTexture } from "../ui/grain-texture";
 import * as m from "motion/react-m";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
 
 interface TraceToggleProps {
   onExpand: () => void;
@@ -18,18 +16,10 @@ export const TraceToggle = ({ onExpand }: TraceToggleProps) => {
       className="hidden md:block"
     >
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            onClick={onExpand}
-            size="icon"
-            aria-label="Show algorithm trace"
-            className="relative"
-          >
-            <GrainTexture baseFrequency={4.2} className="rounded-lg overflow-hidden" />
-            <Waypoints size={20} className="text-(--color-text-muted)" />
-          </Button>
+        <TooltipTrigger render={<Button size="icon" aria-label="Show algorithm trace" onClick={onExpand} />}>
+          <Waypoints size={20} className="text-(--color-text-muted)" />
         </TooltipTrigger>
-        <TooltipContent>Show trace</TooltipContent>
+        <TooltipContent side="top">Show trace</TooltipContent>
       </Tooltip>
     </m.div>
   );

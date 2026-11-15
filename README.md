@@ -44,11 +44,13 @@ An interactive graph editor and algorithm visualizer. Draw graphs, run algorithm
 - `bundle-analyzer` — Generates bundle visualization (enabled with `ANALYZE=true`)
 - `react-scan` — Performance monitoring integration
 
+**UI layer** — Controls are built on [ui-sdk](https://ui-sdk.dev) (headless behaviours + ARIA) with a token-driven component stylesheet; three themes (Paper, Anodized, Blueprint) are pure token sets. `/theme-playground` renders every control in every theme side by side.
+
 **State Management** — Zustand stores for graph data, undo/redo history (snapshot-based), and persisted user settings (theme, render mode).
 
 ## Tech Stack
 
-React 19 · React Compiler · TypeScript · Vite · Zustand · Tailwind CSS v4 · Radix UI · Three.js · Zod
+React 19 · React Compiler · TypeScript · Vite · Zustand · Tailwind CSS v4 · ui-sdk · Three.js · Zod
 
 ## Getting Started
 

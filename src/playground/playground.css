@@ -1,0 +1,114 @@
+/* Playground shell. Reads the app's global theme tokens (html[data-theme]),
+   so the chrome follows the user's theme while the cards carry their skins. */
+@layer components {
+  .pg-root {
+    min-height: 100dvh;
+    background: var(--color-paper);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+  .pg-header { padding: 20px 24px 8px; }
+  .pg-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; max-width: 1480px; margin: 0 auto; }
+  .pg-title { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .pg-sub { font-size: 13px; color: var(--color-text-muted); }
+  .pg-sub a { color: var(--color-accent); text-decoration: none; }
+  .pg-sub a:hover { text-decoration: underline; }
+
+  .pg-tabs { max-width: 1480px; margin: 0 auto; padding: 0 24px 64px; gap: 0; }
+  .pg-controls { display: flex; align-items: center; gap: 16px; padding: 8px 0 16px; }
+  .pg-view { width: 240px; }
+  .pg-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
+  .pg-stage-blurb { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+  .pg-panel[data-starting-style] { translate: 0; }
+
+  .pg-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 900px) { .pg-layout { grid-template-columns: minmax(0, 1fr); } .pg-nav { display: none; } }
+  .pg-nav { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; }
+  .pg-nav a {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+  .pg-nav a:hover { color: var(--color-text); background: var(--color-interactive-hover); }
+
+  .pg-sections { display: flex; flex-direction: column; gap: 40px; min-width: 0; }
+  .pg-section { scroll-margin-top: 16px; }
+  .pg-section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin-bottom: 12px; }
+  .pg-section-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .pg-section-head p { margin: 0; font-size: 12px; color: var(--color-text-muted); }
+  .pg-section-head p span { font-weight: 600; color: var(--color-text); margin-right: 4px; }
+
+  .pg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .pg-grid[data-wide] { grid-template-columns: repeat(auto-fill, minmax(700px, 1fr)); }
+  .pg-grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 640px) { .pg-grid, .pg-grid[data-wide] { grid-template-columns: minmax(0, 1fr); } }
+
+  .pg-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: clip;
+    box-shadow: 0 0 0 1px var(--color-divider);
+  }
+  .pg-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    font-family: var(--font-label);
+    font-size: var(--label-size);
+    font-weight: var(--label-weight);
+    text-transform: var(--label-case);
+    letter-spacing: var(--label-tracking);
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .pg-swatches { display: inline-flex; gap: 3px; }
+  .pg-swatches i { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+  .pg-card-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 28px 20px;
+    background-image:
+      linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: center;
+  }
+  .pg-grid[data-wide] .pg-card-body { overflow-x: auto; justify-content: safe center; }
+  .pg-card-note { margin: 0; padding: 8px 12px; font-size: 12px; color: var(--color-text-muted); border-top: 1px solid var(--color-divider); }
+
+  /* stage */
+  .pg-stage-frame { border-radius: 14px; overflow: clip; box-shadow: 0 0 0 1px var(--color-divider); }
+  .pg-stage { position: relative; height: min(720px, 82dvh); min-height: 560px; overflow: hidden; }
+  .pg-stage-canvas {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-image:
+      linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px),
+      linear-gradient(var(--color-grid-line-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid-line-major) 1px, transparent 1px);
+    background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+    background-position: center;
+  }
+  .pg-stage-graph { width: min(520px, 90%); height: auto; }
+  .pg-stage-top { position: absolute; top: 20px; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100% - 32px); }
+  .pg-stage-bottom { position: absolute; bottom: 16px; left: 50%; translate: -50% 0; }
+  .pg-stage-bl { position: absolute; bottom: 16px; left: 16px; display: flex; gap: 8px; }
+  .pg-stage-br { position: absolute; bottom: 16px; right: 16px; display: flex; gap: 8px; align-items: center; }
+  .pg-stage-hint-wrap { position: absolute; top: 88px; left: 50%; translate: -50% 0; background: transparent; box-shadow: none; }
+  .pg-stage-hint-wrap::before { display: none; }
+  @media (max-width: 760px) {
+    .pg-stage-bottom, .pg-stage-bl { display: none; }
+  }
+}

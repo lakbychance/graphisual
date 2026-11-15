@@ -8,8 +8,14 @@ Everything about how Graphisual is themed lives in this folder. Start here.
 single source of truth for every colour, gradient, shadow, and dimension — used by the React UI, the SVG
 graph, the Canvas renderer, the Three.js scene, and the export pipeline alike.
 
-`:root` holds the **light** defaults. Each `[data-theme="dark"]` / `[data-theme="blueprint"]` block
-overrides them. The active theme is selected by a single attribute on `<html>`:
+`:root` holds the **light** defaults (Paper). `[data-theme="dark"]` is **Anodized** (dark machined
+instrument) and `[data-theme="blueprint"]` is **Blueprint** (cobalt drafting sheet); each block
+overrides the defaults. Besides the palette, every theme sets *derived* tokens (`--panel-*`,
+`--control-*`, `--well-*`, `--selected-*`, …) that the ui-sdk component layer
+([`components/ui-sdk/ui-sdk.css`](../components/ui-sdk/ui-sdk.css)) reads; the few things a token
+can't express (Blueprint's registration marks, Anodized's amber light bars) live in
+[`theme-utilities.css`](./theme-utilities.css). Each block also matches the theme playground's
+`[data-skin]` scope so `/theme-playground` can show all themes on one page. The active theme is selected by a single attribute on `<html>`:
 
 ```html
 <html data-theme="dark">
@@ -21,7 +27,7 @@ Everything else is just a way of *reading* those variables for a particular rend
 
 | Context | How it reads tokens | Example |
 |---|---|---|
-| **React UI** | Tailwind arbitrary utilities | `className="bg-(--color-paper) text-(--color-text)"` |
+| **React UI** | ui-sdk component layer (`gs-*` classes read derived tokens) and Tailwind arbitrary utilities | `<Button variant="primary">`, `className="bg-(--color-paper)"` |
 | **SVG graph** (`Node.tsx`, `Edge.tsx`, defs) | `var(--token)` in attributes | `fill="var(--gradient-visited-start)"` |
 | **Canvas 2D & Three.js** | JS accessors in [`css-variables.ts`](./css-variables.ts) | `getCSSVar('--color-grid-line')`, `getNodeGradientColors('visited')` |
 | **Export (SVG / PNG)** | `getThemeSnapshot()` inlines `var()` → literal | see [`utils/export/exportSvg.ts`](../utils/export/exportSvg.ts) |
@@ -68,7 +74,7 @@ variables are the default, and it only stores the values that must differ for 3D
 | File | Role |
 |---|---|
 | `tokens.css` | All CSS variables, per theme (the values) |
-| `theme-utilities.css` | Theme-driven utility classes/keyframes (focus ring, edge focus, control shadows) |
+| `theme-utilities.css` | Theme-driven utility classes/keyframes (focus ring, edge focus) and per-theme decorations for the ui-sdk layer |
 | `constants.ts` | `THEME` enum + `Theme` / `ResolvedTheme` types |
 | `css-variables.ts` | `getCSSVar` (cached), semantic colour helpers, `getThemeSnapshot()` |
 | `hooks.ts` | `useApplyTheme`, `useResolvedTheme` |

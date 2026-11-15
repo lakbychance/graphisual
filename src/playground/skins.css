@@ -1,0 +1,143 @@
+/**
+ * Theme playground skins.
+ *
+ * A skin is a `[data-skin="…"]` scope that redefines graphisual's colour /
+ * shadow tokens (the same names tokens.css uses) plus the derived control
+ * tokens from ui-sdk.css. Popups render in place (top layer, no portal), so
+ * everything inside a scope, including open menus and tooltips, inherits it.
+ *
+ * Five directions, each a different idea of what a graph tool can feel like:
+ *   paper     — warm flat paper, hairline rings, grain (graphisual today)
+ *   slate     — cool graphite pro-tool; borders and soft layered shadows
+ *   blueprint — cobalt drafting sheet; white hairlines, hatching, registration marks
+ *   phosphor  — CRT terminal; green phosphor glow, scanlines, inverted blocks
+ *   anodized  — dark machined instrument; bevels, knurl, amber illuminated bars
+ */
+
+@layer components {
+  [data-skin] {
+    background: var(--color-paper);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ========================================================================
+     SLATE — cool graphite, pro-tool. Depth from 1px borders and soft shadows,
+     no texture. Blue accent, tabular numerals.
+     ======================================================================== */
+  [data-skin="slate"] {
+    color-scheme: dark;
+    --color-paper: #15171c;
+    --color-surface: #1e2128;
+    --color-surface-hover: #262a33;
+    --color-text: #e6e8ee;
+    --color-text-muted: #8b919e;
+    --color-accent: #5b8def;
+    --color-accent-pressed: #4a7de0;
+    --color-error: #e5675a;
+    --color-accent-form: #5b8def;
+    --color-accent-form-glow: rgba(91, 141, 239, 0.4);
+    --color-divider: rgba(255, 255, 255, 0.09);
+    --color-interactive-hover: rgba(255, 255, 255, 0.06);
+    --color-slider-range: rgba(91, 141, 239, 0.55);
+    --color-grid-line: rgba(255, 255, 255, 0.045);
+    --color-grid-line-major: rgba(255, 255, 255, 0.09);
+    --shadow-raised: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-raised-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.45);
+    --highlight-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --shadow-pressed: inset 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --shadow-etched: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-premium: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+    --grain-opacity: 0;
+    --panel-texture: none;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px;
+    --selected-bg: #2c3140;
+    --selected-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --tooltip-bg: #eef0f5;
+    --tooltip-fg: #15171c;
+    --thumb-bg: #e6e8ee;
+    --thumb-grip: rgba(21, 23, 28, 0.4);
+    --kbd-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    --value-font: var(--font-mono);
+    --node-default: #2a2e37; --node-visited: #22513a; --node-path: #58451e; --node-start: #1f425c; --node-end: #5a3028;
+    --node-stroke: #5c6270; --edge-default: rgba(230, 232, 238, 0.3); --edge-traversal: #4cc38a; --edge-path: #e0b25a;
+  }
+  [data-skin="slate"] .gs-button[data-variant="primary"] { box-shadow: 0 0 0 1px rgba(91, 141, 239, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
+
+  /* ========================================================================
+     PHOSPHOR — CRT terminal. Green phosphor on near-black, scanlines across
+     every panel, selection is an inverted block, tooltips are bracketed.
+     ======================================================================== */
+  [data-skin="phosphor"] {
+    color-scheme: dark;
+    --ph: #8af5a8;
+    --ph-dim: #4f9a63;
+    --ph-glow: rgba(138, 245, 168, 0.35);
+    --color-paper: #070a08;
+    --color-surface: #0c110d;
+    --color-surface-hover: #111a13;
+    --color-text: var(--ph);
+    --color-text-muted: var(--ph-dim);
+    --color-accent: var(--ph);
+    --color-accent-pressed: #6fe08f;
+    --color-error: #ff7a5c;
+    --color-accent-form: #ffd36a;
+    --color-accent-form-glow: rgba(255, 211, 106, 0.4);
+    --color-divider: rgba(138, 245, 168, 0.25);
+    --color-interactive-hover: rgba(138, 245, 168, 0.1);
+    --color-slider-range: rgba(138, 245, 168, 0.45);
+    --color-grid-line: rgba(138, 245, 168, 0.06);
+    --color-grid-line-major: rgba(138, 245, 168, 0.13);
+    --shadow-raised: 0 0 0 1px rgba(138, 245, 168, 0.4);
+    --shadow-raised-lg: 0 0 0 1px rgba(138, 245, 168, 0.4), 0 0 14px -2px var(--ph-glow);
+    --highlight-edge: inset 0 0 0 0 transparent;
+    --shadow-pressed: inset 0 0 0 1px rgba(138, 245, 168, 0.7), inset 0 0 10px rgba(138, 245, 168, 0.2);
+    --shadow-etched: inset 0 0 0 1px rgba(138, 245, 168, 0.25);
+    --shadow-premium: 0 0 0 1px rgba(138, 245, 168, 0.5), 0 0 0 3px var(--color-paper), 0 0 28px -6px var(--ph-glow);
+    --panel-texture: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0 1px, transparent 1px 3px);
+    --panel-texture-opacity: 1;
+    --radius-xs: 2px; --radius-sm: 2px; --radius-md: 3px; --radius-lg: 4px;
+    --font-sans: var(--font-mono);
+    --font-label: var(--font-mono);
+    --label-case: uppercase;
+    --label-tracking: 0.06em;
+    --label-size: 10px;
+    --value-font: var(--font-mono);
+    --control-pressed-bg: #0e1a11;
+    --selected-bg: var(--ph);
+    --selected-fg: #070a08;
+    --selected-shadow: 0 0 10px var(--ph-glow);
+    --accent-control-bg: var(--ph);
+    --accent-control-fg: #070a08;
+    --indicator-bg: var(--ph);
+    --tooltip-bg: #070a08;
+    --tooltip-fg: var(--ph);
+    --thumb-bg: var(--ph);
+    --thumb-grip: rgba(7, 10, 8, 0.65);
+    --kbd-shadow: 0 0 0 1px rgba(138, 245, 168, 0.4);
+    --card-hover-ring: rgba(138, 245, 168, 0.6);
+    --menu-hover-bg: rgba(138, 245, 168, 0.14);
+    --focus-color: #ffd36a;
+    --node-default: #0f2a17; --node-visited: #1f6b3c; --node-path: #6b5a1f; --node-start: #1b5a63; --node-end: #6b2f24;
+    --node-stroke: #8af5a8; --edge-default: rgba(138, 245, 168, 0.4); --edge-traversal: #8af5a8; --edge-path: #ffd36a;
+    text-shadow: 0 0 6px var(--ph-glow);
+  }
+  [data-skin="phosphor"] :is([data-pressed], [data-selected], [data-checked], .gs-select-item[data-selected], .gs-chip[data-state="processing"]) { text-shadow: none; }
+  [data-skin="phosphor"] .gs-button:hover { box-shadow: 0 0 0 1px rgba(138, 245, 168, 0.75), 0 0 12px -2px var(--ph-glow); }
+  [data-skin="phosphor"] .gs-button[data-variant="ghost"]:hover { background: rgba(138, 245, 168, 0.08); }
+  [data-skin="phosphor"] .gs-button[data-variant="primary"] { color: #070a08; text-shadow: none; box-shadow: 0 0 14px -2px var(--ph-glow); }
+  [data-skin="phosphor"] .gs-tooltip { box-shadow: 0 0 0 1px rgba(138, 245, 168, 0.5); text-shadow: 0 0 6px var(--ph-glow); }
+  [data-skin="phosphor"] .gs-tooltip-arrow { display: none; }
+  [data-skin="phosphor"] .gs-tooltip::before { content: "[ "; opacity: 0.6; }
+  [data-skin="phosphor"] .gs-tooltip::after { content: " ]"; opacity: 0.6; }
+  [data-skin="phosphor"] .gs-input,
+  [data-skin="phosphor"] .gs-stepper-control { caret-color: var(--color-accent-form); }
+  @keyframes gs-phosphor-blink { 50% { opacity: 0; } }
+  [data-skin="phosphor"] .gs-hint::before { content: "> "; opacity: 0.7; }
+  [data-skin="phosphor"] .gs-hint::after { content: "_"; margin-left: 2px; animation: gs-phosphor-blink 1.1s steps(1) infinite; }
+  [data-skin="phosphor"] .gs-menu-item[data-highlighted]::before { content: ">"; position: absolute; left: 2px; opacity: 0.8; }
+  [data-skin="phosphor"] .gs-menu-item { padding-left: 14px; }
+
+}

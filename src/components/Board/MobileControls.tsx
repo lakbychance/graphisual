@@ -1,8 +1,7 @@
-import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { Undo2, Redo2, Trash2 } from "lucide-react";
+import { Redo2, Trash2, Undo2 } from "lucide-react";
+import { Toolbar, ToolbarSeparator } from "@/components/ui-sdk";
+import { IconAction } from "../ui/icon-action";
 import { useGraphStore, selectCanUndo, selectCanRedo, selectCanDeleteSelectedNodes } from "../../store/graphStore";
-import { Toolbar, ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import { ZoomControls } from "./ZoomControls";
 
 interface MobileControlsProps {
@@ -21,28 +20,16 @@ export function MobileControls({ onUndo, onRedo, onDeleteSelectedNodes, onZoomIn
 
   return (
     <div className="flex justify-between">
-      <div className="z-40 gap-2">
-        <Toolbar aria-label="Zoom controls" className="relative flex items-center gap-2 p-2 rounded-md backdrop-blur-sm">
-          <ZoomControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} onZoomReset={onZoomReset} />
-        </Toolbar>
-      </div>
-      <Toolbar aria-label="Edit controls" className="flex items-center gap-2 p-2 rounded-md backdrop-blur-sm">
-        <ToolbarButton asChild>
-          <Button onClick={onUndo} disabled={!canUndo} variant="ghost" size="icon-sm" aria-label="Undo">
-            <Undo2 size={16} className={cn(canUndo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-          </Button>
-        </ToolbarButton>
-        <ToolbarButton asChild>
-          <Button onClick={onRedo} disabled={!canRedo} variant="ghost" size="icon-sm" aria-label="Redo">
-            <Redo2 size={16} className={cn(canRedo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-          </Button>
-        </ToolbarButton>
+      <Toolbar surface="bare" aria-label="Zoom controls" className="z-40 gap-2 p-2 rounded-md backdrop-blur-sm">
+        <ZoomControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} onZoomReset={onZoomReset} />
+      </Toolbar>
+      <Toolbar surface="bare" aria-label="Edit controls" className="gap-2 p-2 rounded-md backdrop-blur-sm">
+        <IconAction label="Undo" side="top" disabled={!canUndo} onClick={onUndo}><Undo2 aria-hidden="true" /></IconAction>
+        <IconAction label="Redo" side="top" disabled={!canRedo} onClick={onRedo}><Redo2 aria-hidden="true" /></IconAction>
         <ToolbarSeparator className="h-5 mx-0.5" />
-        <ToolbarButton asChild>
-          <Button onClick={onDeleteSelectedNodes} disabled={!canDeleteSelectedNodes} variant="ghost" size="icon-sm" aria-label="Delete selected nodes">
-            <Trash2 size={16} className={cn(canDeleteSelectedNodes ? "text-(--color-error)" : "text-(--color-text-muted)")} />
-          </Button>
-        </ToolbarButton>
+        <IconAction label="Delete selected nodes" side="top" tone="danger" disabled={!canDeleteSelectedNodes} onClick={onDeleteSelectedNodes}>
+          <Trash2 aria-hidden="true" />
+        </IconAction>
       </Toolbar>
     </div>
   );

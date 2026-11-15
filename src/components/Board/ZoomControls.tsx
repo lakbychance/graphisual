@@ -1,8 +1,6 @@
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { ToolbarButton } from "../ui/toolbar";
 import { ZoomIn, ZoomOut } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ToolbarButton, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
+import { IconAction } from "../ui/icon-action";
 import { ZOOM } from "../../constants/ui";
 import { useGraphStore } from "../../store/graphStore";
 
@@ -17,58 +15,18 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onZoomReset }: ZoomControlsP
 
   return (
     <>
+      <IconAction label="Zoom out" side="top" disabled={zoom <= ZOOM.MIN} onClick={onZoomOut}>
+        <ZoomOut aria-hidden="true" />
+      </IconAction>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onZoomOut}
-              disabled={zoom <= ZOOM.MIN}
-              variant="ghost"
-              size="icon-sm"
-              className="relative z-10"
-              aria-label="Zoom out"
-            >
-              <ZoomOut className={cn("h-4 w-4", zoom > ZOOM.MIN ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-            </Button>
-          </ToolbarButton>
+        <TooltipTrigger render={<ToolbarButton size="icon-xs" className="min-w-10 gs-value" aria-label="Reset zoom" onClick={onZoomReset} />}>
+          {Math.round(zoom * 100)}%
         </TooltipTrigger>
-        <TooltipContent>Zoom Out</TooltipContent>
+        <TooltipContent side="top">Reset zoom</TooltipContent>
       </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onZoomReset}
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Reset zoom"
-              className="min-w-10 relative z-10"
-            >
-              {Math.round(zoom * 100)}%
-            </Button>
-          </ToolbarButton>
-        </TooltipTrigger>
-        <TooltipContent>Reset Zoom</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <ToolbarButton asChild>
-            <Button
-              onClick={onZoomIn}
-              disabled={zoom >= ZOOM.MAX}
-              variant="ghost"
-              size="icon-sm"
-              className="relative z-10"
-              aria-label="Zoom in"
-            >
-              <ZoomIn className={cn("h-4 w-4", zoom < ZOOM.MAX ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-            </Button>
-          </ToolbarButton>
-        </TooltipTrigger>
-        <TooltipContent>Zoom In</TooltipContent>
-      </Tooltip>
+      <IconAction label="Zoom in" side="top" disabled={zoom >= ZOOM.MAX} onClick={onZoomIn}>
+        <ZoomIn aria-hidden="true" />
+      </IconAction>
     </>
   );
 };

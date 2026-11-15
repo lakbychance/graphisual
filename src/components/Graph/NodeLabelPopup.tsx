@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { GrainTexture } from "../ui/grain-texture";
-import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
+import { useRef, useState } from "react";
+import { Input, Popover, PopoverContent } from "@/components/ui-sdk";
 
 interface NodeLabelPopupProps {
   anchorPosition: { x: number; y: number };
@@ -10,72 +9,44 @@ interface NodeLabelPopupProps {
   onClose: () => void;
 }
 
-export const NodeLabelPopup = ({
-  anchorPosition,
-  nodeId,
-  currentLabel,
-  onConfirm,
-  onClose,
-}: NodeLabelPopupProps) => {
+/** Rename a node: a single input anchored above it. Enter confirms, Escape cancels. */
+export const NodeLabelPopup = ({ anchorPosition, nodeId, currentLabel, onConfirm, onClose }: NodeLabelPopupProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus and select existing text on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
+  const handleClose = () => setIsOpen(false);
 
-  // Delay calling onClose until after the exit animation, with cleanup on unmount
-  useEffect(() => {
-    if (isOpen) return;
-    const timer = setTimeout(onClose, 150);
-    return () => clearTimeout(timer);
-  }, [isOpen, onClose]);
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-  }, []);
-
-  const handleConfirm = useCallback(() => {
-    onConfirm(inputRef.current?.value ?? '');
+  const handleConfirm = () => {
+    onConfirm(inputRef.current?.value ?? "");
     handleClose();
-  }, [onConfirm, handleClose]);
+  };
 
   return (
-    <Popover modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <PopoverAnchor asChild>
-        <div
-          style={{
-            position: "fixed",
-            left: anchorPosition.x,
-            top: anchorPosition.y,
-            width: 1,
-            height: 1,
-            pointerEvents: "none",
-          }}
-        />
-      </PopoverAnchor>
+    <Popover
+      modal
+      open={isOpen}
+      onOpenChange={(open) => !open && handleClose()}
+      onOpenChangeComplete={(open) => !open && onClose()}
+    >
       <PopoverContent
         side="top"
         sideOffset={12}
+        anchor={anchorPosition}
         className="p-2"
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        aria-label="Rename node"
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.stopPropagation(); handleConfirm(); }
           if (e.key === "Escape") { e.stopPropagation(); handleClose(); }
         }}
       >
-        <GrainTexture className="rounded-lg" />
-        <input
+        <Input
           ref={inputRef}
+          aria-label="Node label"
           defaultValue={currentLabel ?? ""}
           placeholder={String(nodeId)}
           maxLength={5}
-          className="focus-ring-animated-inset w-16 h-8 px-2 text-center text-sm font-bold rounded-md bg-(--color-paper) text-(--color-text) placeholder:text-(--color-text-muted) shadow-(--shadow-etched) outline-none"
+          onFocus={(e) => e.currentTarget.select()}
+          className="w-16 text-center text-sm font-bold"
         />
       </PopoverContent>
     </Popover>

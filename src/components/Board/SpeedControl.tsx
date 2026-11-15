@@ -1,8 +1,6 @@
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { ToolbarButton, ToolbarSeparator } from "../ui/toolbar";
 import { Minus, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ToolbarGroup, ToolbarSeparator, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
+import { IconAction } from "../ui/icon-action";
 
 interface SpeedControlProps {
   speedMultiplier: string;
@@ -13,65 +11,22 @@ interface SpeedControlProps {
   onIncrease: () => void;
 }
 
-export const SpeedControl = ({
-  speedMultiplier,
-  disabled,
-  canDecrease,
-  canIncrease,
-  onDecrease,
-  onIncrease,
-}: SpeedControlProps) => {
+export const SpeedControl = ({ speedMultiplier, disabled, canDecrease, canIncrease, onDecrease, onIncrease }: SpeedControlProps) => {
   return (
     <>
       <ToolbarSeparator />
-
-      {/* Speed control group */}
-      <div role="group" aria-label="Speed control" className="flex items-center gap-1">
+      <ToolbarGroup aria-label="Speed control" className="gap-1">
+        <IconAction label="Decrease speed" tip="Slower" size="icon-xs" disabled={disabled || !canDecrease} onClick={onDecrease}>
+          <Minus aria-hidden="true" />
+        </IconAction>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <ToolbarButton asChild>
-              <Button
-                onClick={onDecrease}
-                disabled={disabled || !canDecrease}
-                variant="ghost"
-                size="icon-xs"
-                className="z-10"
-                aria-label="Decrease speed"
-              >
-                <Minus className={cn("h-3 w-3", canDecrease && !disabled ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-              </Button>
-            </ToolbarButton>
-          </TooltipTrigger>
-          <TooltipContent>Slower</TooltipContent>
+          <TooltipTrigger render={<span className="gs-value text-xs min-w-8 text-center cursor-help" />}>{speedMultiplier}</TooltipTrigger>
+          <TooltipContent>Visualization speed</TooltipContent>
         </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="text-xs min-w-[32px] text-center cursor-help text-(--color-text)">
-              {speedMultiplier}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Visualization Speed</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <ToolbarButton asChild>
-              <Button
-                onClick={onIncrease}
-                disabled={disabled || !canIncrease}
-                variant="ghost"
-                size="icon-xs"
-                className="z-10"
-                aria-label="Increase speed"
-              >
-                <Plus className={cn("h-3 w-3", canIncrease && !disabled ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-              </Button>
-            </ToolbarButton>
-          </TooltipTrigger>
-          <TooltipContent>Faster</TooltipContent>
-        </Tooltip>
-      </div>
+        <IconAction label="Increase speed" tip="Faster" size="icon-xs" disabled={disabled || !canIncrease} onClick={onIncrease}>
+          <Plus aria-hidden="true" />
+        </IconAction>
+      </ToolbarGroup>
     </>
   );
 };
