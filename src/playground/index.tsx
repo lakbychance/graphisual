@@ -66,7 +66,7 @@ const SECTIONS: Section[] = [
 
 const SKIN_IDS = new Set<string>(SKINS.map((s) => s.id));
 
-/** `?view=stage&skin=phosphor` deep-links a view, so a specific skin can be shared or screenshotted. */
+/** `?view=stage&skin=blueprint` deep-links a view, so a specific skin can be shared or screenshotted. */
 function readParams() {
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const skin = params.get("skin");

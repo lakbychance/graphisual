@@ -204,6 +204,9 @@
   /* graph nodes */
   --node-hatch-opacity: 0.25;
 
+  /* which synthesised sound kit the controls use (see ui-sdk/press-sound.ts) */
+  --sound-kit: none;
+
   /* canvas */
   --canvas-texture: none;
   --canvas-texture-size: auto;
@@ -739,6 +742,7 @@
   --popup-start-marks-opacity: 1;
   --popup-marks-delay: 0ms;
   --node-hatch-opacity: 0.25;        /* pencil shading */
+  --sound-kit: paper;
 }
 
 /* === DARK = ANODIZED — a matte graphite instrument. Bead-blasted, not brushed:
@@ -1165,6 +1169,7 @@
   --popup-start-marks-opacity: 1;
   --popup-marks-delay: 0ms;
   --node-hatch-opacity: 0;           /* plain nodes: no ornament in this theme */
+  --sound-kit: anodized;
 }
 
 /* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white
@@ -1485,4 +1490,5 @@
   --popup-start-marks-opacity: 0;
   --popup-marks-delay: 150ms;
   --node-hatch-opacity: 0.32;        /* drafted hatch */
+  --sound-kit: blueprint;
 }

@@ -5,11 +5,14 @@ import { Toaster } from "sonner";
 import { useApplyTheme } from "@/theme";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
-// Dev/design surface: every control rebuilt on ui-sdk in several skins. Code-split so the
-// editor bundle never pays for it.
-const ThemePlayground = lazy(() => import("./playground"));
+// Dev/design surface: every control in each theme. Local development only:
+// `import.meta.env.DEV` is a build-time constant, so a production build drops
+// both the route and the playground's code.
+const ThemePlayground = import.meta.env.DEV ? lazy(() => import("./playground")) : null;
 const isPlayground =
-  typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/theme-playground";
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  window.location.pathname.replace(/\/+$/, "") === "/theme-playground";
 
 function App() {
   // Initialize theme system (applies data-theme attribute to document)
@@ -17,7 +20,7 @@ function App() {
 
   return (
     <LazyMotion features={domMax} strict>
-      {isPlayground ? (
+      {isPlayground && ThemePlayground ? (
         <Suspense fallback={null}>
           <ThemePlayground />
         </Suspense>

@@ -1,9 +1,9 @@
-import { Check, Monitor, Moon, Ruler, Sun } from "lucide-react";
-import { SunMoonIcon as ThemeIcon } from "../ui/icons/SunMoonIcon";
+import { Check, Monitor, Moon, Ruler, Settings, Sun, Volume2, VolumeX } from "lucide-react";
 import {
-  Button, Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem, MenuTrigger, Tooltip, TooltipContent, TooltipTrigger,
+  Button, Menu, MenuCheckboxItem, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuTrigger, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
 import { THEME, type Theme } from "@/theme";
+import { useSettingsStore } from "../../store/settingsStore";
 
 interface ThemeSelectorProps {
   theme: Theme;
@@ -18,15 +18,17 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: THEME.SYSTEM, label: "System", icon: Monitor },
 ];
 
-/** Theme menu: a radio group, so the active theme is announced as checked. */
+/** Settings menu: theme (a radio group, so the active theme is announced as checked) and sound. */
 export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorProps) => {
+  const soundEnabled = useSettingsStore((state) => state.soundEnabled);
+  const setSoundEnabled = useSettingsStore((state) => state.setSoundEnabled);
   return (
     <Menu>
       <Tooltip>
-        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings" />}>
-          <ThemeIcon size={20} className="text-(--color-text-muted)" />
+        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Settings" />}>
+          <Settings size={18} className="text-(--color-text-muted)" />
         </TooltipTrigger>
-        <TooltipContent side="top">Theme</TooltipContent>
+        <TooltipContent side="top">Settings</TooltipContent>
       </Tooltip>
       <MenuContent align={alignDropdown} sideOffset={8} className="w-44">
         <MenuGroup>
@@ -41,6 +43,12 @@ export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorP
             ))}
           </MenuRadioGroup>
         </MenuGroup>
+        <MenuSeparator />
+        <MenuCheckboxItem value="sound" checked={soundEnabled} onCheckedChange={setSoundEnabled}>
+          <MenuItemIcon>{soundEnabled ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}</MenuItemIcon>
+          Sound
+          <MenuItemIndicator><Check className="h-3.5 w-3.5" aria-hidden="true" /></MenuItemIndicator>
+        </MenuCheckboxItem>
       </MenuContent>
     </Menu>
   );

@@ -9,7 +9,7 @@ export { Checkbox } from "./checkbox";
 export { Tooltip, TooltipTrigger, TooltipContent } from "./tooltip";
 export { Popover, PopoverTrigger, PopoverContent, PopoverTitle, PopoverClose, PopoverDescription } from "./popover";
 export {
-  Menu, MenuTrigger, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuItemIcon,
+  Menu, MenuTrigger, MenuContent, MenuItem, MenuCheckboxItem, MenuRadioGroup, MenuRadioItem, MenuItemIcon,
   MenuItemIndicator, MenuGroup, MenuGroupLabel, MenuSeparator, MenuShortcut,
 } from "./menu";
 export {

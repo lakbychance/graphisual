@@ -1,4 +1,4 @@
-export type SkinId = "paper" | "slate" | "blueprint" | "phosphor" | "anodized";
+export type SkinId = "paper" | "blueprint" | "anodized";
 
 export interface Skin {
   id: SkinId;
@@ -18,25 +18,11 @@ export const SKINS: Skin[] = [
     swatches: ["#e5e0d8", "#f1eee9", "#2a2520", "#4aaa4a", "#d86840"],
   },
   {
-    id: "slate",
-    name: "Slate",
-    tagline: "Cool graphite pro-tool. Borders and soft layered shadows, no texture.",
-    recipe: "1px white-alpha borders, two-layer shadows, blue accent, tabular numerals.",
-    swatches: ["#15171c", "#1e2128", "#e6e8ee", "#5b8def", "#e5675a"],
-  },
-  {
     id: "blueprint",
     name: "Blueprint",
     tagline: "Cobalt drafting sheet. The app's Blueprint theme.",
     recipe: "Drafting sheet: inked rectangles with one offset line, hover sketches a hatch, pressing cross-hatches the face, construction-line ghost keys, dimension-line sliders, registration marks.",
     swatches: ["#1b4f8a", "#1f5894", "#f3f8fc", "#9fe0f7", "#ffd166"],
-  },
-  {
-    id: "phosphor",
-    name: "Phosphor",
-    tagline: "CRT terminal. Green phosphor on black, scanlines over every panel.",
-    recipe: "Glow text, inverted-block selection, bracketed tooltips, blinking caret, 2px corners, all mono.",
-    swatches: ["#070a08", "#0c110d", "#8af5a8", "#4f9a63", "#ffd36a"],
   },
   {
     id: "anodized",

@@ -1,5 +1,6 @@
 import {
   Menu as UIMenu,
+  MenuCheckboxItem as UIMenuCheckboxItem,
   MenuContent as UIMenuContent,
   MenuGroup,
   MenuGroupLabel as UIMenuGroupLabel,
@@ -29,6 +30,11 @@ export function MenuItem({ className, ...props }: ComponentProps<typeof UIMenuIt
 
 export function MenuRadioItem({ className, ...props }: ComponentProps<typeof UIMenuRadioItem>) {
   return <UIMenuRadioItem className={cn("gs-menu-item", className as string)} {...props} />;
+}
+
+/** A menu row that toggles a setting; shows the indicator while checked. */
+export function MenuCheckboxItem({ className, ...props }: ComponentProps<typeof UIMenuCheckboxItem>) {
+  return <UIMenuCheckboxItem className={cn("gs-menu-item", className as string)} {...props} />;
 }
 
 export function MenuItemIcon({ className, ...props }: ComponentProps<typeof UIMenuItemIcon>) {

@@ -3,8 +3,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./globals.css";
 import { installPressPhysics } from "./components/ui-sdk/press-physics";
+import { setPressSoundEnabled } from "./components/ui-sdk/press-sound";
+import { useSettingsStore } from "./store/settingsStore";
 
 installPressPhysics();
+// Keep the sound engine in step with the persisted setting.
+setPressSoundEnabled(useSettingsStore.getState().soundEnabled);
+useSettingsStore.subscribe((state) => setPressSoundEnabled(state.soundEnabled));
 
 const rootElement = document.getElementById("root");
 

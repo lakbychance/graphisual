@@ -1,4 +1,5 @@
 import { WebHaptics } from "web-haptics";
+import { playPressSound } from "./press-sound";
 
 /**
  * Press physics for the gs-* keys.
@@ -18,12 +19,17 @@ import { WebHaptics } from "web-haptics";
  * (0 keeps the cap level). Keyboard presses clear the values, so Enter / Space
  * push the key straight down.
  *
- * Touch presses also fire a short haptic tick where the device supports it.
+ * Touch presses also fire a short haptic tick where the device supports it,
+ * and every press, latch and slider detent is voiced by press-sound.ts in the
+ * theme's own sound kit.
  */
 
 const KEYS = ".gs-button, .gs-card-button, .gs-stepper-button";
 const LATCHES = ".gs-toggle, .gs-tab, .gs-segmented-item, .gs-switch, .gs-checkbox";
 const DISABLED = ':disabled, [data-disabled], [aria-disabled="true"]';
+const MENU_ROWS = ".gs-menu-item";
+/** Slider detents closer together than this are merged, so a fast drag purrs instead of buzzing. */
+const TICK_GAP_MS = 28;
 
 const PROPS = ["--press-x", "--press-y", "--key-skew"] as const;
 
@@ -40,6 +46,8 @@ export function installPressPhysics(root: Document = document): void {
 
   let haptics: WebHaptics | null = null;
   let held: HTMLElement | null = null;
+  let sounding: HTMLElement | null = null;
+  let lastTick = 0;
 
   const release = () => {
     if (!held) return;
@@ -61,6 +69,9 @@ export function installPressPhysics(root: Document = document): void {
         void haptics.trigger(key ? "light" : "selection");
       }
 
+      playPressSound(control, key ? "down" : "latch");
+      sounding = key ?? null;
+
       if (!key) return;
       release();
       const rect = key.getBoundingClientRect();
@@ -78,7 +89,52 @@ export function installPressPhysics(root: Document = document): void {
 
   // Let the release transition run from the leaned pose, then forget it.
   const settle = () => window.setTimeout(release, 220);
-  root.addEventListener("pointerup", settle, { capture: true, passive: true });
-  root.addEventListener("pointercancel", settle, { capture: true, passive: true });
-  root.addEventListener("keydown", release, { capture: true, passive: true });
+  root.addEventListener(
+    "pointerup",
+    (event) => {
+      if (sounding) playPressSound(sounding, "up");
+      else if (event.button === 0) {
+        // A menu row is chosen on release, so that is when it sounds.
+        const row = (event.target as Element | null)?.closest?.<HTMLElement>(MENU_ROWS);
+        if (row && !row.matches(DISABLED)) playPressSound(row, "latch");
+      }
+      sounding = null;
+      settle();
+    },
+    { capture: true, passive: true },
+  );
+  root.addEventListener(
+    "pointercancel",
+    () => {
+      sounding = null;
+      settle();
+    },
+    { capture: true, passive: true },
+  );
+  root.addEventListener(
+    "keydown",
+    (event) => {
+      release();
+      // Enter / Space operate a control from the keyboard: voice it once, not on auto-repeat.
+      if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
+      const target = event.target as Element | null;
+      const key = target?.closest?.<HTMLElement>(KEYS);
+      const control = key ?? target?.closest?.<HTMLElement>(`${LATCHES}, ${MENU_ROWS}`);
+      if (control && !control.matches(DISABLED)) playPressSound(control, key ? "down" : "latch");
+    },
+    { capture: true, passive: true },
+  );
+  // Each step of a slider is a detent, whether dragged or moved with the arrow keys.
+  root.addEventListener(
+    "input",
+    (event) => {
+      const slider = (event.target as Element | null)?.closest?.<HTMLElement>(".gs-slider");
+      if (!slider || slider.matches(DISABLED)) return;
+      const now = performance.now();
+      if (now - lastTick < TICK_GAP_MS) return;
+      lastTick = now;
+      playPressSound(slider, "tick");
+    },
+    { capture: true, passive: true },
+  );
 }

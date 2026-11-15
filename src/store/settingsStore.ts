@@ -16,11 +16,14 @@ type RenderMode = 'svg' | 'canvas' | '3d';
 interface SettingsState {
   theme: Theme;
   renderMode: RenderMode;
+  /** Synthesised press sounds for controls (each theme has its own kit). */
+  soundEnabled: boolean;
 }
 
 interface SettingsActions {
   setTheme: (theme: Theme) => void;
   setRenderMode: (mode: RenderMode) => void;
+  setSoundEnabled: (enabled: boolean) => void;
 }
 
 type SettingsStore = SettingsState & SettingsActions;
@@ -31,6 +34,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // State
       theme: THEME.SYSTEM,
       renderMode: 'svg' as RenderMode,
+      soundEnabled: true,
 
       // Actions
       setTheme: (theme) => {
@@ -38,6 +42,9 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       setRenderMode: (renderMode) => {
         set({ renderMode });
+      },
+      setSoundEnabled: (soundEnabled) => {
+        set({ soundEnabled });
       },
     }),
     {

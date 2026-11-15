@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Keyboard, Monitor, Moon, Redo2, Ruler, Sun, SunMoon, Undo2, Waypoints, ZoomIn, ZoomOut } from "lucide-react";
+import { Check, Keyboard, Monitor, Moon, Redo2, Ruler, Settings, Sun, Undo2, Waypoints, ZoomIn, ZoomOut } from "lucide-react";
 import {
   Button, Kbd, Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem,
   MenuTrigger, Popover, PopoverContent, PopoverTitle, PopoverTrigger, Toolbar, ToolbarButton, Tooltip, TooltipContent, TooltipTrigger,
@@ -49,10 +49,10 @@ export function ThemeMenu({ align = "end" }: { align?: "start" | "end" }) {
   return (
     <Menu>
       <Tooltip>
-        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings" />}>
-          <SunMoon className="h-5 w-5" aria-hidden="true" />
+        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Settings" />}>
+          <Settings className="h-[18px] w-[18px]" aria-hidden="true" />
         </TooltipTrigger>
-        <TooltipContent side="top">Theme</TooltipContent>
+        <TooltipContent side="top">Settings</TooltipContent>
       </Tooltip>
       <MenuContent side="top" align={align} sideOffset={10} className="w-44">
         <MenuGroup>
