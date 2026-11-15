@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Popover, PopoverContent } from "@/components/ui-sdk";
 
 interface NodeLabelPopupProps {
@@ -11,7 +11,12 @@ interface NodeLabelPopupProps {
 
 /** Rename a node: a single input anchored above it. Enter confirms, Escape cancels. */
 export const NodeLabelPopup = ({ anchorPosition, nodeId, currentLabel, onConfirm, onClose }: NodeLabelPopupProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  // Content rendered already-open gets no initial focus from ui-sdk, so mount
+  // closed and open on the next tick: it then focuses like a user-opened popup.
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    setIsOpen(true);
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => setIsOpen(false);

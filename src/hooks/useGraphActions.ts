@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useGraphStore, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
-import { isElementInPopup } from "../utils/dom";
+import { isAnyPopupOpen, isElementInPopup } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
 import { VisualizationState } from "../constants/visualization";
 
@@ -136,7 +136,9 @@ export function useGraphActions() {
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (e.key === "Escape" && isElementInPopup(e.target as Element)) return;
+    // An open popup/tooltip owns Escape: ui-sdk closes it from its own document
+    // listener, which skips events we have already prevented.
+    if (e.key === "Escape" && (isElementInPopup(e.target as Element) || isAnyPopupOpen())) return;
 
     const s = useGraphStore.getState();
     const { visualization } = s;

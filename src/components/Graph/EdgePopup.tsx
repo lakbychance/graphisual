@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeftRight, Minus, MoveRight, Trash2 } from "lucide-react";
 import {
   Button, Divider, Popover, PopoverContent, Stepper, Toggle, ToggleGroup, ToggleIcon, Tooltip, TooltipContent, TooltipTrigger,
@@ -33,7 +33,12 @@ export const EdgePopup = ({
 }: EdgePopupProps) => {
   const [weight, setWeight] = useState<number | null>(edge.weight ?? EDGE.DEFAULT_WEIGHT);
   const [type, setType] = useState<EdgeType>(edge.type as EdgeType);
-  const [isOpen, setIsOpen] = useState(true);
+  // Content rendered already-open gets no initial focus from ui-sdk, so mount
+  // closed and open on the next tick: it then focuses like a user-opened popup.
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    setIsOpen(true);
+  }, []);
 
   const hasReverseEdge = useGraphStore(selectHasReverseEdge(edge.from, edge.to));
   // Can only switch to undirected if: already undirected OR no reverse edge exists

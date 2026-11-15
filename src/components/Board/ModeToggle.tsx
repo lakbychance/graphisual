@@ -1,4 +1,4 @@
-import { SegmentedControl, SegmentedControlItem, Tooltip, TooltipContent, TooltipTrigger, ToolbarSeparator } from "@/components/ui-sdk";
+import { Toggle, ToggleGroup, Tooltip, TooltipContent, TooltipTrigger, ToolbarSeparator } from "@/components/ui-sdk";
 import { VisualizationMode } from "../../constants/visualization";
 
 interface ModeToggleProps {
@@ -7,25 +7,30 @@ interface ModeToggleProps {
   disabled: boolean;
 }
 
-/** Auto / Step mode switch: a segmented control whose raised indicator slides. */
+/**
+ * Auto / Step mode switch. A toggle group inside the toolbar joins its arrow-key
+ * navigation (arrows move focus, Space/Enter press) instead of adding a tab stop;
+ * `deselectable={false}` keeps one mode always on.
+ */
 export const ModeToggle = ({ mode, onModeChange, disabled }: ModeToggleProps) => {
   return (
     <>
-      <SegmentedControl
+      <ToggleGroup
         aria-label="Visualization mode"
-        value={mode}
-        onValueChange={(value) => value && onModeChange(value as VisualizationMode)}
+        value={[mode]}
+        deselectable={false}
+        onValueChange={([value]) => value && onModeChange(value as VisualizationMode)}
         disabled={disabled}
       >
         <Tooltip>
-          <TooltipTrigger render={<SegmentedControlItem value={VisualizationMode.AUTO} />}>Auto</TooltipTrigger>
+          <TooltipTrigger render={<Toggle value={VisualizationMode.AUTO} />}>Auto</TooltipTrigger>
           <TooltipContent>Runs visualization automatically</TooltipContent>
         </Tooltip>
         <Tooltip>
-          <TooltipTrigger render={<SegmentedControlItem value={VisualizationMode.MANUAL} />}>Step</TooltipTrigger>
+          <TooltipTrigger render={<Toggle value={VisualizationMode.MANUAL} />}>Step</TooltipTrigger>
           <TooltipContent>Control each step manually</TooltipContent>
         </Tooltip>
-      </SegmentedControl>
+      </ToggleGroup>
       <ToolbarSeparator />
     </>
   );
