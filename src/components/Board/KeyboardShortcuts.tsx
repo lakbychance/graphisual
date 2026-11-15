@@ -42,8 +42,8 @@ export const KeyboardShortcuts = () => {
   return (
     <Popover>
       <Tooltip>
-        <TooltipTrigger render={<Button render={<PopoverTrigger />} size="icon" aria-label="Keyboard shortcuts" />}>
-          <Keyboard size={20} className="text-(--color-text-muted)" />
+        <TooltipTrigger render={<Button render={<PopoverTrigger />} variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts" />}>
+          <Keyboard size={18} className="text-(--color-text-muted)" />
         </TooltipTrigger>
         <TooltipContent side="top">Keyboard shortcuts</TooltipContent>
       </Tooltip>

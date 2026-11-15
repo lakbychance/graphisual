@@ -31,6 +31,15 @@ Pointer position on a pressed key is measured by
 `--press-x` / `--press-y` / `--key-skew` so the cap leans toward the finger and is shaded there; a
 theme sets `--key-lean` (px of height difference across the cap, `0` keeps it level).
 
+Other tokens every theme should answer, because the component layer reads them on every control:
+`--latch-*` (hover and press on toggles, segments and tabs that are not on), `--disabled-*` (an opaque
+disabled look; left `initial` a control just fades), `--focus-*` (one thin ring everywhere),
+`--legend-*` (the face used for what is written on a control), `--accent-text` / `--danger-text`
+(accent colours dark or light enough to be read as text), and the hover / held tokens for the switch,
+checkbox, slider thumb and menu rows. Never give a derived token the value `inherit`: on a custom
+property that inherits the parent theme's value and leaks it into a nested skin. Use `initial` plus a
+`var(--token, fallback)` in the component layer instead.
+
 `:root` is also the Paper block, so anything Paper sets is inherited by the other themes unless they
 set it too. When a theme adds a key token, give the other `[data-theme]` blocks an explicit value.
 

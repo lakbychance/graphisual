@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { X } from "lucide-react";
 import * as m from "motion/react-m";
 import { useShallow } from "zustand/shallow";
-import { Button, Panel } from "@/components/ui-sdk";
+import { Button, Divider, Panel } from "@/components/ui-sdk";
 import { DataStructureVis } from "./DataStructureVis";
 import type { StepTrace } from "../../algorithms/types";
 import { useGraphStore } from "../../store/graphStore";
@@ -69,9 +69,12 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
         </div>
 
         {trace?.dataStructure && (
-          <div className="pt-1 border-t border-(--color-divider)">
-            <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
-          </div>
+          <>
+            <Divider orientation="horizontal" />
+            <div className="pt-1">
+              <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
+            </div>
+          </>
         )}
       </Panel>
     </m.div>

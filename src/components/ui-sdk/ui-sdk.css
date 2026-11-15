@@ -241,13 +241,21 @@
     text-decoration: none;
   }
   .gs-button :where(svg) { width: 16px; height: 16px; flex: none; filter: var(--control-icon-filter); }
+  /* Disabled: the key is still there but lies flush and unlit. A theme draws
+     that with the --disabled-* tokens; without them it falls back to a fade. */
   .gs-button[data-disabled],
   .gs-button:disabled,
-  .gs-button[aria-disabled="true"] {
-    opacity: 0.4;
+  .gs-button[aria-disabled="true"],
+  .gs-stepper-button[data-disabled] {
+    --_cap-bg: var(--disabled-bg, var(--control-bg));
+    --_cap-face: var(--disabled-face, var(--control-face));
+    box-shadow: var(--disabled-seat, var(--control-seat));
+    color: var(--disabled-fg, var(--control-fg));
+    text-shadow: none;
+    opacity: var(--disabled-opacity);
     cursor: not-allowed;
   }
-  .gs-button:is([data-disabled], [aria-disabled="true"]):hover { --_cap-bg: var(--control-bg); }
+  .gs-button:is([data-disabled], :disabled, [aria-disabled="true"]) :where(svg) { filter: none; }
   .gs-button[data-pending] { cursor: progress; }
   .gs-button[data-pending] > * { opacity: 0.25; }
   .gs-button[data-pending]::after {
@@ -303,25 +311,34 @@
     --key-press-shade: var(--primary-press-shade);
     font-weight: 600;
   }
-  /* Outline and link are drawn on the surface: no cap, nothing to travel. */
-  .gs-button:is([data-variant="outline"], [data-variant="link"]) {
+  /* Link is text on the surface: no cap, nothing to travel. */
+  .gs-button[data-variant="link"] {
     --key-wall-in: 0px;
     --key-travel: 0px;
     --key-travel-x: 0px;
     background: transparent;
-    color: var(--color-accent);
+    box-shadow: none;
+    color: var(--accent-text);
     text-shadow: none;
+    padding: 3px 5px;
+    height: auto;
+    border-radius: var(--radius-xs);
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
   }
-  .gs-button:is([data-variant="outline"], [data-variant="link"])::before { display: none; }
-  .gs-button[data-variant="outline"] {
-    box-shadow: inset 0 0 0 1px var(--color-accent);
-    font-weight: 600;
-    transition: background-color var(--dur-1) var(--ease-out), translate var(--dur-press) var(--ease-press);
+  .gs-button[data-variant="link"]::before { display: none; }
+  .gs-button[data-variant="link"]:hover { text-decoration: underline; }
+  .gs-button[data-variant="link"]:is(:active, [data-pressed]):not([data-disabled], :disabled) {
+    box-shadow: none;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
   }
-  .gs-button[data-variant="outline"]:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-  .gs-button[data-variant="outline"]:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); box-shadow: inset 0 0 0 1px var(--color-accent); translate: 0 1px; }
+  /* Outline: the low-profile key with its legend in the accent colour. */
+  .gs-button[data-variant="outline"]:not([data-disabled], :disabled, [aria-disabled="true"]) { color: var(--accent-text); }
+  .gs-button[data-variant="outline"] { font-weight: 600; }
   /* Ghost: the low-profile key. Same construction, shorter wall, shorter throw. */
   .gs-button[data-variant="ghost"],
+  .gs-button[data-variant="outline"],
   .gs-stepper-button {
     --control-bg: var(--ghost-bg);
     --control-hover-bg: var(--ghost-hover-bg);
@@ -336,13 +353,6 @@
     --key-travel-x: var(--ghost-travel-x);
     --key-lean: var(--ghost-lean);
   }
-  .gs-button[data-variant="link"] {
-    box-shadow: none;
-    padding: 0;
-    height: auto;
-    text-underline-offset: 4px;
-  }
-  .gs-button[data-variant="link"]:hover { text-decoration: underline; }
   .gs-button[data-variant="secondary"] { color: var(--color-text-muted); }
   .gs-button[data-variant="secondary"]:hover { color: var(--control-fg); }
   /* Skip link: visually hidden until it takes focus, then a raised key in the corner. */
@@ -363,7 +373,7 @@
     left: 16px;
     z-index: 100;
   }
-  .gs-button[data-tone="danger"] { color: var(--color-error); }
+  .gs-button[data-tone="danger"]:not([data-disabled], :disabled, [aria-disabled="true"]) { color: var(--danger-text); }
   .gs-button[data-tone="muted"] { color: var(--color-text-muted); }
 
   /* ---------- toolbar ---------- */
@@ -461,7 +471,7 @@
     transition-duration: var(--dur-press);
   }
   .gs-toggle[data-pressed]:active:not([data-disabled]) { box-shadow: var(--selected-pressed-shadow); }
-  .gs-toggle[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+  .gs-toggle[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
   .gs-toggle-icon { display: inline-flex; }
   .gs-toggle-icon > svg, .gs-toggle > svg { width: 16px; height: 16px; }
   .gs-toggle-group[data-orientation="vertical"] { flex-direction: column; }
@@ -526,7 +536,7 @@
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release);
+    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
   }
   .gs-segmented[data-size="md"] .gs-segmented-item { height: 32px; padding-inline: 14px; font-size: 13px; }
   .gs-segmented-item:hover { color: var(--control-fg); }
@@ -536,7 +546,7 @@
     translate: var(--selected-shift-x) var(--selected-shift-y);
     transition-duration: var(--dur-press);
   }
-  .gs-segmented-item[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+  .gs-segmented-item[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
   .gs-segmented-item > svg { width: 14px; height: 14px; }
 
   /* ---------- tabs ---------- */
@@ -576,14 +586,45 @@
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
-    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release);
+    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
   }
   .gs-tab:hover { color: var(--control-fg); }
   .gs-tab[data-selected] { color: var(--selected-fg); text-shadow: var(--selected-text-shadow); font-weight: 600; }
-  .gs-tab[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+  .gs-tab[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
   .gs-tabs-panel { outline: none; }
   .gs-tabs-panel[data-starting-style] { opacity: 0; translate: 0 4px; }
   .gs-tabs-panel { transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out); }
+
+  /* A latch that is not on still answers the finger: hover previews it, press dents it. */
+  .gs-toggle:not([data-pressed], [data-disabled]):hover,
+  .gs-segmented-item:not([data-checked], [data-disabled]):hover,
+  .gs-tab:not([data-selected], [data-disabled]):hover {
+    background: var(--latch-hover-bg);
+    box-shadow: var(--latch-hover-shadow);
+  }
+  .gs-toggle:not([data-pressed], [data-disabled]):active,
+  .gs-segmented-item:not([data-checked], [data-disabled]):active,
+  .gs-tab:not([data-selected], [data-disabled]):active {
+    background: var(--latch-pressed-bg);
+    box-shadow: var(--latch-pressed-shadow);
+  }
+
+  /* Legends: what is written on a control. Themes choose the face. */
+  .gs-button,
+  .gs-toggle,
+  .gs-segmented-item,
+  .gs-tab {
+    font-family: var(--legend-font);
+    text-transform: var(--legend-case);
+    letter-spacing: var(--legend-tracking);
+  }
+  .gs-button { font-size: calc(14px * var(--legend-scale)); }
+  .gs-button[data-size="sm"] { font-size: calc(12px * var(--legend-scale)); }
+  .gs-button[data-size="lg"] { font-size: calc(16px * var(--legend-scale)); }
+  .gs-toggle, .gs-segmented-item { font-size: calc(12px * var(--legend-scale)); }
+  .gs-tab,
+  .gs-toggle-group[data-size="md"] .gs-toggle,
+  .gs-segmented[data-size="md"] .gs-segmented-item { font-size: calc(13px * var(--legend-scale)); }
 
   /* ---------- slider: a cap riding in a groove ---------- */
   .gs-slider {
@@ -636,7 +677,7 @@
     top: 50%;
     width: var(--thumb-w);
     height: var(--thumb-h);
-    translate: -50% calc(-50% - var(--thumb-lift));
+    margin-top: calc(-1 * var(--thumb-lift));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -645,14 +686,14 @@
     box-shadow: var(--thumb-shadow);
     cursor: grab;
     transition:
-      translate var(--dur-release) var(--ease-release),
+      margin-top var(--dur-release) var(--ease-release),
       box-shadow var(--dur-release) var(--ease-release),
       filter var(--dur-1) var(--ease-out);
   }
-  .gs-slider-thumb:hover { filter: var(--thumb-hover-filter); }
+  .gs-slider-thumb:hover { filter: var(--thumb-hover-filter); box-shadow: var(--thumb-hover-shadow, var(--thumb-shadow)); }
   .gs-slider-thumb[data-dragging] {
     cursor: grabbing;
-    translate: -50% -50%;
+    margin-top: 0;
     box-shadow: var(--thumb-pressed-shadow);
     transition-duration: var(--dur-press);
   }
@@ -660,6 +701,7 @@
     --thumb-bg: var(--thumb-accent-bg);
     --thumb-shadow: var(--thumb-accent-shadow);
     --thumb-pressed-shadow: var(--thumb-accent-pressed-shadow);
+    --thumb-hover-shadow: var(--thumb-accent-hover-shadow, var(--thumb-accent-shadow));
     --thumb-grip: var(--thumb-accent-grip);
   }
   .gs-slider-grip {
@@ -719,8 +761,10 @@
     border-radius: var(--switch-thumb-radius);
     background: var(--switch-thumb-bg);
     box-shadow: var(--switch-thumb-shadow);
-    transition: translate var(--dur-3) var(--ease-detent), width var(--dur-1) var(--ease-out);
+    transition: translate var(--dur-3) var(--ease-detent), width var(--dur-1) var(--ease-out), top var(--dur-press) var(--ease-press), box-shadow var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
   }
+  .gs-switch:hover:not([data-disabled]) .gs-switch-thumb { background: var(--switch-thumb-hover-bg, var(--switch-thumb-bg)); box-shadow: var(--switch-thumb-hover-shadow, var(--switch-thumb-shadow)); }
+  .gs-switch:active:not([data-disabled]) .gs-switch-thumb { top: 3px; box-shadow: var(--switch-thumb-held-shadow, var(--switch-thumb-shadow)); }
   .gs-switch-thumb[data-checked] { translate: calc(var(--sw-w) - var(--sw-h)) 0; }
   /* Held: the thumb squashes toward its direction of travel before it throws. */
   .gs-switch:active:not([data-disabled]) .gs-switch-thumb { width: calc(var(--sw-h) - 2px); }
@@ -743,10 +787,16 @@
     box-shadow: var(--well-shadow);
     cursor: pointer;
     flex: none;
-    transition: translate var(--dur-release) var(--ease-release);
+    transition: translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
   }
-  .gs-checkbox:active:not([data-disabled]) { translate: 0 1px; transition-duration: var(--dur-press); }
-  .gs-checkbox[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+  .gs-checkbox:hover:not([data-disabled]) { background: var(--check-hover-bg, var(--well-bg)); box-shadow: var(--check-hover-shadow, var(--well-shadow)); }
+  .gs-checkbox:active:not([data-disabled]) { translate: 0 1px; box-shadow: var(--check-held-shadow, var(--well-shadow)); transition-duration: var(--dur-press); }
+  .gs-checkbox[data-disabled] { opacity: var(--disabled-latch-opacity); cursor: not-allowed; }
+  .gs-checkbox[data-disabled] .gs-checkbox-indicator {
+    background: var(--disabled-check-bg, var(--check-bg));
+    color: var(--disabled-check-fg, var(--check-fg));
+    box-shadow: var(--disabled-check-shadow, var(--check-shadow));
+  }
   .gs-checkbox-indicator {
     display: flex;
     align-items: center;
@@ -834,7 +884,7 @@
   /* ---------- menu / select list ---------- */
   .gs-menu {
     min-width: 176px;
-    padding: 4px;
+    padding: var(--menu-pad);
     outline: none;
     max-height: var(--available-height);
     overflow-y: auto;
@@ -857,6 +907,7 @@
     transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
   }
   .gs-menu-item[data-highlighted] { background: var(--menu-hover-bg); box-shadow: var(--menu-hover-shadow); }
+  .gs-menu-item:active:not([data-disabled]) { background: var(--menu-pressed-bg, var(--menu-hover-bg)); box-shadow: var(--menu-pressed-shadow, var(--menu-hover-shadow)); }
   .gs-menu-item[data-disabled] { opacity: 0.5; }
   .gs-menu-item[data-destructive] { color: var(--color-error); }
   .gs-menu-item[data-pending] { cursor: progress; opacity: 0.7; }
@@ -878,7 +929,7 @@
   .gs-menu-indicator {
     display: inline-flex;
     margin-left: auto;
-    color: var(--color-accent);
+    color: var(--accent-text);
   }
   .gs-menu-label {
     padding: 6px 8px 4px;
@@ -917,8 +968,7 @@
   }
   .gs-stepper-button > svg { width: 14px; height: 14px; }
   .gs-stepper-button:hover { color: var(--selected-fg); }
-  .gs-stepper-button[data-disabled] { opacity: 0.4; cursor: not-allowed; }
-  .gs-stepper-button[data-disabled]:hover { color: var(--color-text-muted); --_cap-bg: var(--control-bg); }
+  .gs-stepper-button[data-disabled]:hover { color: var(--disabled-fg, var(--color-text-muted)); }
   .gs-stepper-control {
     appearance: textfield;
     -moz-appearance: textfield;
@@ -1012,7 +1062,7 @@
     font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
-    outline: 2px solid var(--focus-color);
+    outline: 2px solid var(--hint-outline);
     outline-offset: -2px;
     animation: gs-hint-pulse 1.1s var(--ease-out);
   }

@@ -9,6 +9,8 @@ import {
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
+import { POPUP_CLEARANCE } from "./popup-clearance";
+
 export const Popover = UIPopover;
 export { PopoverTrigger, PopoverClose, PopoverDescription };
 
@@ -16,7 +18,7 @@ export { PopoverTrigger, PopoverClose, PopoverDescription };
 export function PopoverContent({ className, sideOffset = 10, ...props }: ComponentProps<typeof UIPopoverContent>) {
   return (
     <UIPopoverContent
-      sideOffset={sideOffset}
+      sideOffset={Number(sideOffset) + POPUP_CLEARANCE}
       className={cn("gs-popover gs-panel", className as string)}
       {...props}
     />

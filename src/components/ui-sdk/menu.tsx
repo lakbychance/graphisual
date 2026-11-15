@@ -14,12 +14,13 @@ import {
 } from "@ui-sdk/react/menu";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { POPUP_CLEARANCE } from "./popup-clearance";
 
 export const Menu = UIMenu;
 export { MenuTrigger, MenuGroup, MenuRadioGroup };
 
 export function MenuContent({ className, sideOffset = 8, ...props }: ComponentProps<typeof UIMenuContent>) {
-  return <UIMenuContent sideOffset={sideOffset} className={cn("gs-menu gs-panel", className as string)} {...props} />;
+  return <UIMenuContent sideOffset={Number(sideOffset) + POPUP_CLEARANCE} className={cn("gs-menu gs-panel", className as string)} {...props} />;
 }
 
 export function MenuItem({ className, ...props }: ComponentProps<typeof UIMenuItem>) {

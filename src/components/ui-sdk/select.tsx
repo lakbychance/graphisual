@@ -10,6 +10,7 @@ import {
 } from "@ui-sdk/react/select";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { POPUP_CLEARANCE } from "./popup-clearance";
 
 export const Select = UISelect;
 export { SelectValue, SelectValueIcon };
@@ -19,7 +20,7 @@ export function SelectTrigger({ className, ...props }: ComponentProps<typeof UIS
 }
 
 export function SelectContent({ className, sideOffset = 8, ...props }: ComponentProps<typeof UISelectContent>) {
-  return <UISelectContent sideOffset={sideOffset} className={cn("gs-menu gs-panel gs-select", className as string)} {...props} />;
+  return <UISelectContent sideOffset={Number(sideOffset) + POPUP_CLEARANCE} className={cn("gs-menu gs-panel gs-select", className as string)} {...props} />;
 }
 
 export function SelectItem({ className, ...props }: ComponentProps<typeof UISelectItem>) {

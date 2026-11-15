@@ -20,7 +20,7 @@ export interface TooltipContentProps extends Omit<ComponentProps<typeof UIToolti
 }
 
 /** TooltipContent — inverted chip that scales from `--transform-origin`. */
-export function TooltipContent({ arrow = true, className, children, sideOffset = 6, ...props }: TooltipContentProps) {
+export function TooltipContent({ arrow = true, className, children, sideOffset = 12, ...props }: TooltipContentProps) {
   return (
     <UITooltipContent sideOffset={sideOffset} className={cn("gs-tooltip", className as string)} {...props}>
       {children}

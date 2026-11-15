@@ -16,8 +16,8 @@ export const TraceToggle = ({ onExpand }: TraceToggleProps) => {
       className="hidden md:block"
     >
       <Tooltip>
-        <TooltipTrigger render={<Button size="icon" aria-label="Show algorithm trace" onClick={onExpand} />}>
-          <Waypoints size={20} className="text-(--color-text-muted)" />
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Show algorithm trace" onClick={onExpand} />}>
+          <Waypoints size={18} className="text-(--color-text-muted)" />
         </TooltipTrigger>
         <TooltipContent side="top">Show trace</TooltipContent>
       </Tooltip>

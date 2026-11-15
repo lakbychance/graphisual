@@ -22,8 +22,8 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorProps) => {
   return (
     <Menu>
-      <Button render={<MenuTrigger />} size="icon" aria-label="Theme settings">
-        <ThemeIcon size={24} className="text-(--color-text-muted)" />
+      <Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings">
+        <ThemeIcon size={20} className="text-(--color-text-muted)" />
       </Button>
       <MenuContent align={alignDropdown} sideOffset={8} className="w-44">
         <MenuGroup>

@@ -19,7 +19,7 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onZoomReset }: ZoomControlsP
         <ZoomOut aria-hidden="true" />
       </IconAction>
       <Tooltip>
-        <TooltipTrigger render={<ToolbarButton size="icon-xs" className="min-w-10 gs-value" aria-label="Reset zoom" onClick={onZoomReset} />}>
+        <TooltipTrigger render={<ToolbarButton size="icon-sm" className="min-w-11 gs-value text-xs" aria-label="Reset zoom" onClick={onZoomReset} />}>
           {Math.round(zoom * 100)}%
         </TooltipTrigger>
         <TooltipContent side="top">Reset zoom</TooltipContent>

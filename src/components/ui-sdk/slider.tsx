@@ -37,6 +37,8 @@ export function Slider({
   ...props
 }: SliderProps) {
   const tickCount = ticks ? Math.min(24, Math.round((max - min) / step)) : 0;
+  // Majors land on a regular interval that divides the scale evenly, so the last gap is never short.
+  const majorEvery = [5, 4, 3, 2].find((n) => tickCount % n === 0) ?? tickCount;
   return (
     <UISlider
       data-variant={variant}
@@ -56,7 +58,7 @@ export function Slider({
         {tickCount > 0 && (
           <span className="gs-slider-ticks" aria-hidden="true">
             {Array.from({ length: tickCount + 1 }, (_, i) => (
-              <span key={i} data-major={i % 5 === 0 || i === tickCount || undefined} />
+              <span key={i} data-major={i % majorEvery === 0 || undefined} />
             ))}
           </span>
         )}

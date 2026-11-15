@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger, Tabs, TabsList, TabsPanel, TabsTab, ToolbarButton } from "@/components/ui-sdk";
+import { Divider, Popover, PopoverContent, PopoverTrigger, Tabs, TabsList, TabsPanel, TabsTab, ToolbarButton } from "@/components/ui-sdk";
 import { useGraphStore } from "../../../store/graphStore";
 import { type GeneratedGraph } from "../../../utils/graph/graphGenerator";
 import { TemplatesTab } from "./templates-tab";
@@ -35,12 +35,13 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
       </ToolbarButton>
       <PopoverContent className="w-[300px] p-0" align="center" sideOffset={12} aria-label="Generate a graph">
         <Tabs defaultValue="templates" className="gap-0">
-          <div className="p-2 border-b border-(--color-divider)">
+          <div className="p-2">
             <TabsList aria-label="Generator mode">
               <TabsTab value="templates">Templates</TabsTab>
               <TabsTab value="custom">Custom</TabsTab>
             </TabsList>
           </div>
+          <Divider orientation="horizontal" />
           <div className="p-3">
             <TabsPanel value="templates">
               <TemplatesTab onGenerate={handleGenerate} />

@@ -162,7 +162,7 @@ export const Board = () => {
         </AnimatePresence>
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
-        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
+        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-3">
           <Toolbar aria-label="Zoom controls">
             <ZoomControls
               onZoomIn={execute.zoomIn}
@@ -182,7 +182,7 @@ export const Board = () => {
         </div>
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel">
           <AnimatePresence>
             {isInStepMode && !tracePanelVisible && (
               <TraceToggle onExpand={() => setTracePanelVisible(true)} />

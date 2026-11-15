@@ -144,12 +144,51 @@
   --dur-2: 160ms;
   --dur-3: 240ms;
 
-  /* focus */
+  /* focus: a thin ring with clear air round it */
   --focus-color: var(--color-accent-form);
-  --focus-width: var(--focus-ring-width);
-  --focus-active-width: var(--focus-ring-active-width);
-  --focus-duration: var(--focus-ring-duration);
-  --focus-offset: 2px;
+  --focus-width: 2px;
+  --focus-active-width: 4px;
+  --focus-duration: 280ms;
+  --focus-offset: 3px;
+
+  /* legends: what is written on a control */
+  --legend-font: var(--font-sans);
+  --legend-case: none;
+  --legend-tracking: normal;
+  --legend-scale: 1;
+
+  /* text in the accent / danger colour (may need to be darker than the fill colour) */
+  --accent-text: var(--color-accent);
+  --danger-text: var(--color-error);
+
+  /* disabled: `initial` means "no theme look, just fade" (see .gs-button[data-disabled]) */
+  --disabled-opacity: 0.4;
+  --disabled-latch-opacity: 0.5;
+  --disabled-bg: initial;
+  --disabled-face: initial;
+  --disabled-seat: initial;
+  --disabled-fg: initial;
+  --disabled-check-bg: initial;
+  --disabled-check-fg: initial;
+  --disabled-check-shadow: initial;
+
+  /* latches that are not on: hover preview and press dent */
+  --latch-hover-bg: transparent;
+  --latch-hover-shadow: none;
+  --latch-pressed-bg: transparent;
+  --latch-pressed-shadow: none;
+  --thumb-hover-shadow: initial;
+  --thumb-accent-hover-shadow: initial;
+  --switch-thumb-hover-bg: initial;
+  --switch-thumb-hover-shadow: initial;
+  --switch-thumb-held-shadow: initial;
+  --check-hover-bg: initial;
+  --check-hover-shadow: initial;
+  --check-held-shadow: initial;
+  --menu-pressed-bg: initial;
+  --menu-pressed-shadow: initial;
+  --menu-pad: 4px;
+  --hint-outline: var(--color-accent-form);
 
   /* canvas */
   --canvas-texture: none;
@@ -445,42 +484,42 @@
   --key-texture-blend: normal;
 
   /* Colour is ink: flat, matte, darker where it pooled at the edge. */
-  --primary-bg: #56b156;
-  --primary-hover-bg: #60ba60;
-  --primary-pressed-bg: #4aa24a;
+  --primary-bg: #2f8234;
+  --primary-hover-bg: #37893c;
+  --primary-pressed-bg: #27732c;
   --primary-face: 
-    inset 0 0 0 1px rgba(20, 90, 26, 0.22),
-    0 0 0 1px rgba(26, 96, 30, 0.6);
+    inset 0 0 0 1px rgba(10, 60, 16, 0.25),
+    0 0 0 1px rgba(16, 70, 22, 0.75);
   --primary-face-pressed:
     inset 0 1px 2px rgba(10, 60, 14, 0.4),
     inset 0 0 6px rgba(20, 90, 26, 0.18),
     0 0 0 1px rgba(26, 96, 30, 0.65);
   --primary-seat: 
-    0 1px 0 #3b8a3f,
-    0 1px 0 1px rgba(20, 70, 24, 0.4),
+    0 1px 0 #1f5c23,
+    0 1px 0 1px rgba(16, 60, 20, 0.45),
     0 2px 2px -1px hsl(var(--sh) / 0.12);
   --primary-seat-pressed: 
-    0 1px 0 #3b8a3f,
-    0 1px 0 1px rgba(20, 70, 24, 0.45);
+    0 1px 0 #1f5c23,
+    0 1px 0 1px rgba(16, 60, 20, 0.5);
   --primary-press-shade: rgba(10, 60, 14, 0.14);
   --primary-text-shadow: none;
-  --danger-bg: #de6e57;
-  --danger-hover-bg: #e57a64;
-  --danger-pressed-bg: #cf5f49;
+  --danger-bg: #c4472f;
+  --danger-hover-bg: #cc5038;
+  --danger-pressed-bg: #b33d26;
   --danger-face: 
-    inset 0 0 0 1px rgba(130, 40, 22, 0.22),
-    0 0 0 1px rgba(140, 48, 30, 0.6);
+    inset 0 0 0 1px rgba(100, 26, 10, 0.25),
+    0 0 0 1px rgba(110, 34, 18, 0.75);
   --danger-face-pressed:
     inset 0 1px 2px rgba(90, 24, 10, 0.4),
     inset 0 0 6px rgba(130, 40, 22, 0.18),
     0 0 0 1px rgba(140, 48, 30, 0.65);
   --danger-seat: 
-    0 1px 0 #b3513c,
-    0 1px 0 1px rgba(100, 34, 20, 0.4),
+    0 1px 0 #8e2f1d,
+    0 1px 0 1px rgba(90, 28, 14, 0.45),
     0 2px 2px -1px hsl(var(--sh) / 0.12);
   --danger-seat-pressed: 
-    0 1px 0 #b3513c,
-    0 1px 0 1px rgba(100, 34, 20, 0.45);
+    0 1px 0 #8e2f1d,
+    0 1px 0 1px rgba(90, 28, 14, 0.5);
 
   /* Ghost: a blind emboss. Same sheet, pushed up from behind; pressing debosses it. */
   --ghost-bg: #faf8f3;
@@ -535,7 +574,7 @@
     0 1px 1px hsl(var(--sh) / 0.12);
   --thumb-grip: repeating-linear-gradient(90deg, hsl(var(--sh) / 0.28) 0 1px, rgba(255, 255, 255, 0.95) 1px 2px, transparent 2px 4px) 0 0 / 12px 100%;
   --thumb-grip-w: 10px;
-  --thumb-accent-bg: #e0764e;
+  --thumb-accent-bg: #c2552c;
   --thumb-accent-shadow: 
     inset 0 0 0 1px rgba(130, 50, 20, 0.28),
     0 0 0 1px rgba(150, 60, 25, 0.6),
@@ -548,8 +587,8 @@
     0 1px 1px hsl(var(--sh) / 0.12);
   --thumb-accent-grip: repeating-linear-gradient(90deg, rgba(120, 45, 15, 0.45) 0 1px, rgba(255, 255, 255, 0.5) 1px 2px, transparent 2px 4px) 0 0 / 12px 100%;
 
-  --accent-control-bg: #e0764e;
-  --switch-on-bg: #e0764e;
+  --accent-control-bg: #c2552c;
+  --switch-on-bg: #c2552c;
   --switch-on-shadow:
     inset 0 1px 2px rgba(110, 40, 10, 0.5),
     inset 0 0 0 1px rgba(110, 40, 10, 0.2),
@@ -560,40 +599,93 @@
     0 0 0 1px hsl(var(--sh) / 0.2),
     0 1px 1px hsl(var(--sh) / 0.18);
   --switch-thumb-lift: 1px;
-  --check-bg: #e0764e;
+  --check-bg: #c2552c;
   --check-shadow:
     inset 0 0 0 1px rgba(130, 50, 20, 0.3),
     inset 0 0 4px rgba(130, 50, 20, 0.2);
   --check-glyph-filter: none;
 
   --input-bg: #e6e1d8;
-  --input-shadow:
-    inset 0 1px 2px hsl(var(--sh) / 0.24),
-    inset 0 0 0 1px hsl(var(--sh) / 0.07),
+  --input-shadow: 
+    inset 0 1px 2px hsl(var(--sh) / 0.22),
+    inset 0 0 0 1px hsl(var(--sh) / 0.16),
     0 1px 0 rgba(255, 255, 255, 0.9);
 
   --menu-hover-bg: hsl(var(--sh) / 0.07);
   --menu-hover-shadow: inset 0 1px 2px hsl(var(--sh) / 0.14), inset 0 0 0 1px hsl(var(--sh) / 0.05);
-  --select-selected-bg: #e0764e;
-  --select-selected-shadow: inset 0 0 0 1px rgba(130, 50, 20, 0.3), inset 0 0 5px rgba(130, 50, 20, 0.18);
-  --tooltip-bg: linear-gradient(180deg, #37322c, #2a2520);
+  --select-selected-bg: hsl(var(--sh) / 0.07);
+  --select-selected-shadow: inset 0 1px 2px hsl(var(--sh) / 0.14), inset 0 0 0 1px hsl(var(--sh) / 0.05);
+  --tooltip-bg: #2a2520;
   --tooltip-arrow-bg: #2a2520;
-  --tooltip-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 1px 2px hsl(var(--sh) / 0.4),
-    0 6px 10px -3px hsl(var(--sh) / 0.45);
+  --tooltip-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px hsl(var(--sh) / 0.35);
   --kbd-bg: linear-gradient(180deg, #fefdfa, #f2eee7);
   --kbd-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px hsl(var(--sh) / 0.18), 0 1px 0 var(--ply-2);
   --kbd-wall: 1px;
   --card-selected-icon: var(--color-accent-form);
   --chip-bg: #e6e1d8;
   --chip-shadow: inset 0 1px 1px hsl(var(--sh) / 0.18), inset 0 0 0 1px hsl(var(--sh) / 0.08), 0 1px 0 rgba(255, 255, 255, 0.9);
-  --chip-active-bg: #e0764e;
+  --chip-active-bg: #c2552c;
   --chip-active-shadow:
     inset 0 0 0 1px rgba(130, 50, 20, 0.3),
     0 0 0 1px rgba(150, 60, 25, 0.5),
     0 1px 0 #b05430;
   --chip-active-text-shadow: none;
+
+  /* --- audit pass: states, focus, contrast --- */
+  --tooltip-radius: 3px;
+  --select-selected-fg: var(--color-text);
+  --select-selected-mark: #c2552c;
+  --accent-text: #2c7a31;            /* green ink dark enough to read as text */
+  --danger-text: #b23f28;
+  --focus-color: #2a2520;            /* focus is a ruled ink line; orange stays "on" */
+  --hint-outline: var(--color-accent-form);
+  --card-selected-ring: 0 0 0 1.5px #c2552c;
+  --card-selected-icon: #c2552c;
+
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: #ece8e0;
+  --disabled-face: 0 0 0 1px hsl(var(--sh) / 0.1);
+  --disabled-seat: none;
+  --disabled-fg: #8b8479;
+  --disabled-check-bg: #d3cdc2;
+  --disabled-check-fg: #f7f4ee;
+  --disabled-check-shadow: inset 0 0 0 1px hsl(var(--sh) / 0.12);
+
+  /* Unlit latches: hover is a thumb smudge, press is a blind deboss. */
+  --latch-hover-bg: hsl(var(--sh) / 0.045);
+  --latch-hover-shadow: none;
+  --latch-pressed-bg: hsl(var(--sh) / 0.08);
+  --latch-pressed-shadow: inset 0 1px 2px hsl(var(--sh) / 0.2), inset 0 0 0 1px hsl(var(--sh) / 0.05);
+  --thumb-hover-shadow:
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.34),
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.16),
+    0 2px 3px -1px hsl(var(--sh) / 0.2);
+  --thumb-accent-hover-shadow:
+    inset 0 0 0 1px rgba(100, 36, 10, 0.35),
+    0 0 0 1px rgba(120, 44, 14, 0.8),
+    0 1px 0 #8d3a1a,
+    0 2px 3px -1px hsl(var(--sh) / 0.24);
+  --switch-thumb-hover-bg: #ffffff;
+  --switch-thumb-hover-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px hsl(var(--sh) / 0.32), 0 1px 2px hsl(var(--sh) / 0.24);
+  --switch-thumb-held-shadow: inset 0 1px 1px hsl(var(--sh) / 0.14), 0 0 0 1px hsl(var(--sh) / 0.3);
+  --check-hover-bg: #dad4c9;
+  --check-hover-shadow: inset 0 1px 2px hsl(var(--sh) / 0.3), inset 0 0 0 1px hsl(var(--sh) / 0.14), 0 1px 0 rgba(255, 255, 255, 0.9);
+  --check-held-shadow: inset 0 1px 3px hsl(var(--sh) / 0.4), inset 0 0 0 1px hsl(var(--sh) / 0.16);
+  --menu-pressed-bg: hsl(var(--sh) / 0.11);
+  --menu-pressed-shadow: inset 0 1px 3px hsl(var(--sh) / 0.22), inset 0 0 0 1px hsl(var(--sh) / 0.06);
+
+  /* Finishing: a printed rule under the slider, a ruled baseline under the stepper figure. */
+  --slider-ticks: flex;
+  --tick-color: hsl(var(--sh) / 0.3);
+  --tick-major-color: hsl(var(--sh) / 0.6);
+  --readout-shadow: inset 0 -1px 0 hsl(var(--sh) / 0.28);
+
+  /* Graph ink: dark enough to carry state without relying on hue alone. */
+  --color-node-stroke: #6c665c;
+  --color-edge-default: rgba(50, 45, 40, 0.62);
 }
 
 /* === DARK = ANODIZED — a matte graphite instrument. Bead-blasted, not brushed:
@@ -672,8 +764,8 @@
   /* derived — the matte instrument */
   --slot: #0e0f11;
   --lip: rgba(255, 255, 255, 0.06);
-  --edge: #131416;                               /* the wall of a key */
-  --ring: rgba(0, 0, 0, 0.55);                   /* hairline where a part meets the plate */
+  --edge: #202226;                               /* the wall of a key: the cap's own graphite, in shade */
+  --ring: rgba(0, 0, 0, 0.34);                   /* hairline where a part meets the plate */
   --radius-xs: 4px;
   --radius-sm: 7px;
   --radius-md: 9px;
@@ -740,16 +832,15 @@
     inset 0 1px 3px rgba(0, 0, 0, 0.18),
     0 0 0 1px var(--ring);
   --control-seat-bg: transparent;
-  --control-seat:
+  --control-seat: 
     0 3px 0 var(--edge),
-    0 3px 0 1px var(--ring),
-    0 4px 1px rgba(0, 0, 0, 0.35),
-    0 5.5px 3px rgba(0, 0, 0, 0.25),
+    0 3.5px 0 rgba(0, 0, 0, 0.5),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 3px rgba(0, 0, 0, 0.25),
     1px 8px 10px -3px rgba(0, 0, 0, 0.45);
-  --control-seat-pressed:
+  --control-seat-pressed: 
     0 3px 0 var(--edge),
-    0 3px 0 1px var(--ring),
-    0 4px 1px rgba(0, 0, 0, 0.35),
+    0 3.5px 0 rgba(0, 0, 0, 0.5),
     0.5px 6px 6px -2px rgba(0, 0, 0, 0.35);
   --control-text-shadow: none;
   --control-icon-filter: none;
@@ -774,17 +865,15 @@
     inset 0 1px 3px rgba(90, 45, 0, 0.3),
     0 0 0 1px rgba(70, 38, 0, 0.7);
   --primary-seat-bg: transparent;
-  --primary-seat:
+  --primary-seat: 
     0 3px 0 #a5670f,
-    0 3px 0 1px rgba(50, 26, 0, 0.75),
-    0 4px 1px rgba(0, 0, 0, 0.35),
-    0 7px 10px -3px rgba(242, 163, 58, 0.42),
-    0 13px 22px -8px rgba(242, 163, 58, 0.32);
-  --primary-seat-pressed:
+    0 3.5px 0 rgba(40, 20, 0, 0.7),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 7px -3px rgba(150, 90, 10, 0.5);
+  --primary-seat-pressed: 
     0 3px 0 #a5670f,
-    0 3px 0 1px rgba(50, 26, 0, 0.75),
-    0 4px 1px rgba(0, 0, 0, 0.35),
-    0 5px 8px -2px rgba(242, 163, 58, 0.3);
+    0 3.5px 0 rgba(40, 20, 0, 0.7),
+    0 5px 5px -2px rgba(150, 90, 10, 0.4);
   --primary-press-shade: rgba(110, 55, 0, 0.2);
   --primary-fg: #201405;
   --primary-text-shadow: none;
@@ -799,17 +888,15 @@
     inset 0 1px 3px rgba(80, 10, 0, 0.3),
     0 0 0 1px rgba(70, 10, 2, 0.7);
   --danger-seat-bg: transparent;
-  --danger-seat:
+  --danger-seat: 
     0 3px 0 #9c2c1e,
-    0 3px 0 1px rgba(50, 8, 2, 0.75),
-    0 4px 1px rgba(0, 0, 0, 0.35),
-    0 7px 10px -3px rgba(239, 90, 69, 0.38),
-    0 13px 22px -8px rgba(239, 90, 69, 0.28);
-  --danger-seat-pressed:
+    0 3.5px 0 rgba(40, 6, 0, 0.7),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 7px -3px rgba(150, 40, 26, 0.5);
+  --danger-seat-pressed: 
     0 3px 0 #9c2c1e,
-    0 3px 0 1px rgba(50, 8, 2, 0.75),
-    0 4px 1px rgba(0, 0, 0, 0.35),
-    0 5px 8px -2px rgba(239, 90, 69, 0.26);
+    0 3.5px 0 rgba(40, 6, 0, 0.7),
+    0 5px 5px -2px rgba(150, 40, 26, 0.4);
   --danger-fg: #230603;
 
   /* Ghost: the same key at two-thirds height, in the plate's own tone. */
@@ -824,15 +911,14 @@
     inset 0 1px 3px rgba(0, 0, 0, 0.18),
     0 0 0 1px var(--ring);
   --ghost-seat-bg: transparent;
-  --ghost-seat:
+  --ghost-seat: 
     0 2px 0 var(--edge),
-    0 2px 0 1px var(--ring),
-    0 3px 1px rgba(0, 0, 0, 0.3),
+    0 2.5px 0 rgba(0, 0, 0, 0.45),
+    0 3.5px 1px rgba(0, 0, 0, 0.3),
     0.5px 5px 6px -2px rgba(0, 0, 0, 0.38);
-  --ghost-seat-pressed:
+  --ghost-seat-pressed: 
     0 2px 0 var(--edge),
-    0 2px 0 1px var(--ring),
-    0 3px 2px -1px rgba(0, 0, 0, 0.3);
+    0 2.5px 0 rgba(0, 0, 0, 0.45);
   --ghost-wall-in: 0px;
   --ghost-travel: 1.25px;
   --ghost-lean: 1px;
@@ -861,7 +947,7 @@
   --led-width: 4px;
   --led-height: 4px;
   --led-radius: 50%;
-  --led-off: #1b1c1f;
+  --led-off: #3a3d42;
   --led-off-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06);
   --led-on: #ffbf5e;
   --led-on-shadow: 0 0 0 0.5px rgba(120, 60, 0, 0.6), 0 0 5px 1px rgba(242, 163, 58, 0.6), 0 0 12px 2px rgba(242, 163, 58, 0.22);
@@ -872,7 +958,7 @@
     inset 0 0 0 1px rgba(0, 0, 0, 0.4),
     0 1px 0 var(--lip);
   --indicator-bg: linear-gradient(180deg, #f8b752, #f2a33a);
-  --indicator-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 8px rgba(242, 163, 58, 0.3);
+  --indicator-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   --thumb-w: 22px;
   --thumb-h: 22px;
   --thumb-lift: 1px;
@@ -907,8 +993,8 @@
     0 2px 3px rgba(0, 0, 0, 0.4);
   --thumb-accent-grip: radial-gradient(circle, #ffbf5e 0 2px, transparent 2.5px);
   --slider-ticks: flex;
-  --tick-color: rgba(235, 232, 225, 0.22);
-  --tick-major-color: rgba(235, 232, 225, 0.55);
+  --tick-color: rgba(235, 232, 225, 0.4);
+  --tick-major-color: rgba(235, 232, 225, 0.7);
   --tick-shadow: none;
 
   --accent-control-bg: #f2a33a;
@@ -932,19 +1018,19 @@
 
   /* Readouts: a dark window with amber figures. */
   --readout-bg: #131416;
-  --readout-fg: #ffc266;
+  --readout-fg: #f1eee7;
   --readout-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
-  --readout-text-shadow: 0 0 6px rgba(242, 163, 58, 0.3);
+  --readout-text-shadow: none;
   --input-bg: #17181b;
   --input-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 0 var(--lip);
   --input-fg: #f1eee7;
-  --input-placeholder: rgba(235, 232, 225, 0.38);
+  --input-placeholder: rgba(235, 232, 225, 0.5);
 
   --menu-hover-bg: rgba(255, 255, 255, 0.07);
   --menu-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --select-selected-bg: rgba(242, 163, 58, 0.14);
-  --select-selected-fg: #ffd08a;
-  --select-selected-shadow: inset 0 0 0 1px rgba(242, 163, 58, 0.35);
+  --select-selected-bg: rgba(255, 255, 255, 0.05);
+  --select-selected-fg: var(--color-text);
+  --select-selected-shadow: none;
   --select-selected-mark: #ffc266;
   --tooltip-bg: #ebe8e1;
   --tooltip-fg: #1b1c1f;
@@ -959,14 +1045,60 @@
   --kbd-bg: linear-gradient(180deg, #3d4045 0%, #474b51 100%);
   --kbd-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 0 0 1px var(--ring), 0 1.5px 0 var(--edge);
   --kbd-wall: 2px;
-  --card-selected-ring: 0 0 0 2px #f2a33a;
+  --card-selected-ring: 0 0 0 1.5px rgba(242, 163, 58, 0.8);
   --card-selected-icon: #ffc266;
   --card-selected-icon-filter: none;
   --chip-bg: #1c1d20;
   --chip-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 0 var(--lip);
   --chip-active-bg: linear-gradient(180deg, #f2a33a 0%, #f8b752 100%);
   --chip-active-fg: #201405;
-  --chip-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(70, 38, 0, 0.7), 0 0 10px rgba(242, 163, 58, 0.3);
+  --chip-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(70, 38, 0, 0.7);
+
+  /* --- audit pass: states, focus, type, contrast --- */
+  --legend-font: var(--font-mono);   /* everything engraved on the instrument is mono caps; content stays in the sans */
+  --legend-case: uppercase;
+  --legend-tracking: 0.07em;
+  --legend-scale: 0.8;
+  --accent-text: #f2a33a;
+  --danger-text: #ff8573;
+  --focus-color: #f2a33a;
+  --hint-outline: rgba(255, 255, 255, 0.22);
+
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: #2a2c2f;
+  --disabled-face: 0 0 0 1px rgba(0, 0, 0, 0.3);
+  --disabled-seat: none;
+  --disabled-fg: #7f7d77;
+  --disabled-check-bg: #3a3d42;
+  --disabled-check-fg: #8b8983;
+  --disabled-check-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.4);
+
+  /* Unlit latches: hover raises a faint cap, press sinks it. */
+  --latch-hover-bg: rgba(255, 255, 255, 0.045);
+  --latch-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --latch-pressed-bg: rgba(0, 0, 0, 0.28);
+  --latch-pressed-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  --switch-thumb-hover-bg: linear-gradient(180deg, #ffffff 0%, #e8e5de 100%);
+  --switch-thumb-hover-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(0, 0, 0, 0.5), 0.5px 3px 4px rgba(0, 0, 0, 0.5);
+  --switch-thumb-held-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(0, 0, 0, 0.4);
+  --check-hover-bg: #1d1e21;
+  --check-hover-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --check-held-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  --thumb-hover-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.5),
+    1px 6px 8px -1px rgba(0, 0, 0, 0.55);
+  --thumb-accent-hover-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.5),
+    1px 6px 8px -1px rgba(0, 0, 0, 0.55);
+  --menu-pressed-bg: rgba(0, 0, 0, 0.25);
+  --menu-pressed-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 /* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white
@@ -976,7 +1108,7 @@
 [data-skin="blueprint"] {
   color-scheme: dark;
   --bp-ink: rgba(232, 243, 255, 0.85);
-  --bp-ink-soft: rgba(232, 243, 255, 0.45);
+  --bp-ink-soft: rgba(232, 243, 255, 0.6);
 
   --color-paper: #1b4f8a;
   --color-surface: #1f5894;
@@ -987,11 +1119,11 @@
   --color-accent-pressed: #7ccfef;
   --color-error: #ff8a7a;
 
-  --color-tint-visited: rgba(100, 220, 200, 0.4);
-  --color-tint-path: rgba(255, 200, 80, 0.4);
-  --color-tint-start: rgba(100, 220, 150, 0.4);
-  --color-tint-end: rgba(255, 120, 110, 0.4);
-  --color-tint-cycle: rgba(255, 100, 90, 0.45);
+  --color-tint-visited: #7fe6d6;
+  --color-tint-path: #ffd166;
+  --color-tint-start: #8ff0b0;
+  --color-tint-end: #ffa193;
+  --color-tint-cycle: #ff8a7a;
 
   --shadow-raised: 0 0 0 1px var(--bp-ink);
   --shadow-raised-lg: 0 0 0 1px var(--bp-ink), 2px 2px 0 rgba(10, 40, 70, 0.35);
@@ -1032,7 +1164,7 @@
 
   --color-interactive-hover: rgba(255, 255, 255, 0.1);
   --color-slider-range: rgba(159, 224, 247, 0.55);
-  --color-divider: rgba(232, 243, 255, 0.38);
+  --color-divider: rgba(232, 243, 255, 0.55);
 
   --color-accent-form: #ffd166;
   --color-accent-form-glow: rgba(255, 209, 102, 0.45);
@@ -1044,10 +1176,10 @@
   /* derived — the drafted sheet */
   --bp-shade: #123c6c;                            /* ink wash on the side of a solid */
   --bp-wash: rgba(8, 30, 60, 0.42);               /* cast shade, flat like a marker */
-  --bp-hatch: repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.24) 0 1px, transparent 1px 5px);
+  --bp-hatch: repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.2) 0 1px, transparent 1px 5px);
   --bp-xhatch:
-    repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.26) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(45deg, rgba(232, 243, 255, 0.26) 0 1px, transparent 1px 5px);
+    repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px);
   --radius-xs: 2px;
   --radius-sm: 3px;
   --radius-md: 4px;
@@ -1080,14 +1212,14 @@
     0 0 0 4px var(--bp-ink-soft),
     7px 7px 0 3px var(--bp-wash);
   --panel-marks:
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) 3px 3px / 7px 1px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) 3px 3px / 1px 7px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) calc(100% - 3px) 3px / 7px 1px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) calc(100% - 3px) 3px / 1px 7px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) 3px calc(100% - 3px) / 7px 1px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) 3px calc(100% - 3px) / 1px 7px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) calc(100% - 3px) calc(100% - 3px) / 7px 1px no-repeat,
-    linear-gradient(var(--bp-ink-soft), var(--bp-ink-soft)) calc(100% - 3px) calc(100% - 3px) / 1px 7px no-repeat;
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px 3px / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px 3px / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) 3px / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) 3px / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px calc(100% - 3px) / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px calc(100% - 3px) / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) calc(100% - 3px) / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) calc(100% - 3px) / 1px 7px no-repeat;
   --divider-v: repeating-linear-gradient(180deg, var(--color-divider) 0 3px, transparent 3px 6px);
   --divider-h: repeating-linear-gradient(90deg, var(--color-divider) 0 3px, transparent 3px 6px);
 
@@ -1146,7 +1278,7 @@
   --ghost-bg: transparent;
   --ghost-hover-bg: var(--bp-hatch), rgba(232, 243, 255, 0.05);
   --ghost-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
-  --ghost-face: 0 0 0 1px rgba(232, 243, 255, 0.3);
+  --ghost-face: 0 0 0 1px rgba(232, 243, 255, 0.45);
   --ghost-face-pressed: 0 0 0 1px var(--bp-ink);
   --ghost-seat: none;
   --ghost-seat-pressed: none;
@@ -1202,15 +1334,15 @@
   --switch-thumb-lift: 1px;
   --check-bg: #ffd166;
   --check-fg: #1b2a3a;
-  --check-shadow: inset 0 0 0 1px var(--bp-ink);
+  --check-shadow: inset 0 0 0 1px var(--bp-ink), 1.5px 1.5px 0 0 var(--bp-shade), 1.5px 1.5px 0 1px var(--bp-ink-soft);
 
   --input-bg: #1a4d86;
   --input-shadow: inset 0 0 0 1px var(--bp-ink-soft), inset 3px 3px 0 0 var(--bp-wash);
 
   --menu-hover-bg: var(--bp-hatch), rgba(232, 243, 255, 0.06);
   --menu-hover-shadow: inset 0 0 0 1px var(--bp-ink-soft);
-  --select-selected-bg: #ffd166;
-  --select-selected-fg: #1b2a3a;
+  --select-selected-bg: var(--bp-hatch), rgba(232, 243, 255, 0.06);
+  --select-selected-fg: #ffffff;
   --tooltip-bg: #f3f8fc;
   --tooltip-fg: #134a85;
   --tooltip-arrow-bg: #f3f8fc;
@@ -1223,11 +1355,52 @@
   --kbd-bg: #2463a3;
   --kbd-shadow: 0 0 0 1px var(--bp-ink-soft), 1.5px 1.5px 0 0 var(--bp-shade), 1.5px 1.5px 0 1px var(--bp-ink-soft);
   --kbd-wall: 2px;
-  --card-selected-ring: 0 0 0 3px var(--color-paper), 0 0 0 4px #ffd166;
+  --card-selected-ring: 0 0 0 2px var(--color-paper), 0 0 0 3px #ffd166;
   --card-selected-icon: #ffd166;
   --chip-bg: transparent;
   --chip-shadow: 0 0 0 1px var(--bp-ink-soft);
   --chip-active-bg: #ffd166;
   --chip-active-fg: #1b2a3a;
   --chip-active-shadow: 0 0 0 1px var(--bp-ink), 2px 2px 0 0 #a8842f, 2px 2px 0 1px var(--bp-ink-soft);
+
+  /* --- audit pass: states, focus, type, contrast --- */
+  --legend-font: var(--font-mono);   /* lettering on a drawing is one hand: mono caps */
+  --legend-case: uppercase;
+  --legend-tracking: 0.06em;
+  --legend-scale: 0.8;
+  --accent-text: #9fe0f7;
+  --danger-text: #ffc2b8;
+  --focus-color: #ffd166;
+  --hint-outline: #ffd166;
+  --select-selected-shadow: inset 0 0 0 1px var(--bp-ink-soft);
+  --select-selected-mark: #ffd166;
+  --menu-pad: 9px;                   /* rows stay clear of the corner registration marks */
+  --readout-shadow: inset 0 -1px 0 var(--bp-ink-soft);
+
+  /* Disabled is a part that is drawn but not built: faint outline, no thickness, no fill. */
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: transparent;
+  --disabled-face: 0 0 0 1px rgba(232, 243, 255, 0.26);
+  --disabled-seat: none;
+  --disabled-fg: rgba(243, 248, 252, 0.6);
+  --disabled-check-bg: transparent;
+  --disabled-check-fg: rgba(243, 248, 252, 0.6);
+  --disabled-check-shadow: inset 0 0 0 1px rgba(232, 243, 255, 0.35);
+
+  /* Unlit latches follow the keys: hover sketches a hatch, press cross-hatches. */
+  --latch-hover-bg: var(--bp-hatch);
+  --latch-hover-shadow: inset 0 0 0 1px rgba(232, 243, 255, 0.4);
+  --latch-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
+  --latch-pressed-shadow: inset 0 0 0 1px var(--bp-ink);
+  --switch-thumb-hover-bg: repeating-linear-gradient(135deg, rgba(19, 74, 133, 0.22) 0 1px, transparent 1px 4px), #f3f8fc;
+  --switch-thumb-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink);
+  --switch-thumb-held-shadow: 0 0 0 1px #ffffff, 1px 1px 0 0 var(--bp-shade), 1px 1px 0 1px var(--bp-ink);
+  --check-hover-bg: var(--bp-hatch), #1a4d86;
+  --check-hover-shadow: inset 0 0 0 1px var(--bp-ink);
+  --check-held-shadow: inset 0 0 0 1px #ffffff;
+  --thumb-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px #ffffff;
+  --thumb-accent-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 #a8842f, 2px 2px 0 1px #ffffff;
+  --menu-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
+  --menu-pressed-shadow: inset 0 0 0 1px var(--bp-ink);
 }

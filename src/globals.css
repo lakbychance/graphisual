@@ -40,7 +40,7 @@
   }
 
   ::selection {
-    background: rgba(92, 184, 92, 0.25);
+    background: color-mix(in srgb, var(--color-accent-form) 30%, transparent);
     color: var(--color-text);
   }
 }
