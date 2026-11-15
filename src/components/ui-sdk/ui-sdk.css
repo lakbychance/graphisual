@@ -389,6 +389,27 @@
   .gs-toolbar-separator { margin: 0 2px; }
   .gs-toolbar[data-orientation="vertical"] .gs-toolbar-separator { width: 24px; height: var(--divider-size); margin: 2px 0; background: var(--divider-h); }
 
+  /* Phones: a horizontal toolbar has to fit the screen, so it tightens instead
+     of overflowing. Keys keep their height (touch targets); only the air
+     between them and the side padding of text keys shrink. Sized so the main
+     toolbar fits at 375px (iPhone SE) in every theme, and at 320px with the
+     dividers dropped. */
+  @media (max-width: 430px) {
+    .gs-toolbar:not([data-orientation="vertical"]) { gap: 4px; }
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-group { gap: 4px; }
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-separator { margin: 0; }
+    .gs-toolbar .gs-toggle { padding-inline: 8px; }
+    .gs-toolbar .gs-button[data-size="sm"] { --_pad: 10px; }
+    /* The plate spans the row and spreads its groups, so spare width goes between them. */
+    .gs-toolbar.gs-panel:not([data-orientation="vertical"]) { justify-content: space-between; }
+  }
+  @media (max-width: 350px) {
+    .gs-toolbar:not([data-orientation="vertical"]) > .gs-toolbar-separator { display: none; }
+    .gs-toolbar .gs-toggle { padding-inline: 6px; }
+    /* 320px: the longest toolbar (step controls) only fits with slightly narrower icon keys. */
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-button[data-size="icon-sm"] { width: 28px; }
+  }
+
   /* ---------- status light (toggles, tabs, segments) ----------
      Present on every latching control; a theme decides whether it exists
      (`--led-display`) and what lit / unlit look like. */
