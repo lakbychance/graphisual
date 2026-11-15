@@ -1,7 +1,7 @@
 import { Check, Monitor, Moon, Ruler, Sun } from "lucide-react";
 import { SunMoonIcon as ThemeIcon } from "../ui/icons/SunMoonIcon";
 import {
-  Button, Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem, MenuTrigger,
+  Button, Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItemIcon, MenuItemIndicator, MenuRadioGroup, MenuRadioItem, MenuTrigger, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
 import { THEME, type Theme } from "@/theme";
 
@@ -22,9 +22,12 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 export const ThemeSelector = ({ theme, setTheme, alignDropdown }: ThemeSelectorProps) => {
   return (
     <Menu>
-      <Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings">
-        <ThemeIcon size={20} className="text-(--color-text-muted)" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings" />}>
+          <ThemeIcon size={20} className="text-(--color-text-muted)" />
+        </TooltipTrigger>
+        <TooltipContent side="top">Theme</TooltipContent>
+      </Tooltip>
       <MenuContent align={alignDropdown} sideOffset={8} className="w-44">
         <MenuGroup>
           <MenuGroupLabel>Theme</MenuGroupLabel>

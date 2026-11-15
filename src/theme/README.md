@@ -36,7 +36,7 @@ Other tokens every theme should answer, because the component layer reads them o
 disabled look; left `initial` a control just fades), `--focus-*` (one thin ring everywhere),
 `--legend-*` (the face used for what is written on a control), `--accent-text` / `--danger-text`
 (accent colours dark or light enough to be read as text), and the hover / held tokens for the switch,
-checkbox, slider thumb and menu rows. Never give a derived token the value `inherit`: on a custom
+checkbox, slider thumb and menu rows. Popups open differently per theme through the `--popup-*` tokens (travel, scale, fade, wipe, a starting shadow, late marks). Graph nodes read `--node-hatch-opacity` (0 = plain) in both renderers; how a node shows its algorithm state by shape is not themed, it lives in `NODE_STATE_MARK` in `constants/ui.ts`. Never give a derived token the value `inherit`: on a custom
 property that inherits the parent theme's value and leaks it into a nested skin. Use `initial` plus a
 `var(--token, fallback)` in the component layer instead.
 

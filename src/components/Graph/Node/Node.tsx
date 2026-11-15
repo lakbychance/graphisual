@@ -3,7 +3,7 @@ import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
-import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE } from "../../../constants/ui";
+import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE, NODE_STATE_MARK, NODE_RING } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
@@ -218,6 +218,11 @@ export const Node = memo(function Node(props: NodeProps) {
   const getNodeStroke = () =>
     visState === 'default' ? "var(--color-node-stroke)" : `var(--color-tint-${visState})`;
 
+  // State is also told by shape (outline weight, inner ring), not by colour alone.
+  const stateMark = NODE_STATE_MARK[visState];
+  const restStroke = NODE_STROKE.DEFAULT + stateMark.boost;
+  const bodyR = isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r;
+
   return (
     <m.g
       onMouseEnter={handleMouseEnter}
@@ -254,7 +259,7 @@ export const Node = memo(function Node(props: NodeProps) {
           // Keyframes for pop effect: default → active → selected
           strokeWidth: isSelected
             ? [NODE_STROKE.DEFAULT, NODE_STROKE.ACTIVE, NODE_STROKE.SELECTED]
-            : NODE_STROKE.DEFAULT,
+            : restStroke,
           r: isAlgorithmSelected && isBodyHovered ? node.r * NODE.HOVER_SCALE : node.r,
         }}
         transition={prefersReducedMotion ? { duration: 0 } : {
@@ -273,6 +278,20 @@ export const Node = memo(function Node(props: NodeProps) {
         cy={node.y}
         id={node.id.toString()}
       />
+      {/* Inner ring for states that carry one (path, end, cycle) */}
+      {stateMark.ring !== 'none' && (
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={bodyR - NODE_RING.INSET}
+          fill="none"
+          stroke={getNodeStroke()}
+          strokeWidth={NODE_RING.WIDTH}
+          strokeDasharray={stateMark.ring === 'dashed' ? NODE_RING.DASH.join(' ') : undefined}
+          className="pointer-events-none"
+          style={{ transition: prefersReducedMotion ? 'none' : `r ${STROKE_ANIMATION.DURATION}s` }}
+        />
+      )}
       {/* Crosshatch pattern overlay — plain circle with CSS transition instead of motion.circle */}
       <circle
         cx={node.x}

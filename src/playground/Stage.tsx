@@ -65,7 +65,7 @@ export function Stage() {
         <HistoryControls />
       </div>
 
-      <div className="pg-stage-br">
+      <div className="pg-stage-br gs-toolbar gs-panel">
         {stepMode && !traceVisible && <TraceToggle onExpand={() => setTraceVisible(true)} />}
         <ShortcutsPopover />
         <ThemeMenu />

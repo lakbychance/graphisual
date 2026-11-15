@@ -14,7 +14,7 @@ export function ZoomControls() {
     <Toolbar aria-label="Zoom controls">
       <IconAction label="Zoom out" side="top" disabled={zoom <= 0.5} onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}><ZoomOut aria-hidden="true" /></IconAction>
       <Tooltip>
-        <TooltipTrigger render={<ToolbarButton size="icon-xs" className="min-w-10 gs-value" aria-label="Reset zoom" onClick={() => setZoom(1)} />}>
+        <TooltipTrigger render={<ToolbarButton size="icon-sm" className="min-w-11 gs-value text-xs" aria-label="Reset zoom" onClick={() => setZoom(1)} />}>
           {Math.round(zoom * 100)}%
         </TooltipTrigger>
         <TooltipContent side="top">Reset zoom</TooltipContent>
@@ -49,7 +49,7 @@ export function ThemeMenu({ align = "end" }: { align?: "start" | "end" }) {
   return (
     <Menu>
       <Tooltip>
-        <TooltipTrigger render={<Button render={<MenuTrigger />} size="icon" aria-label="Theme settings" />}>
+        <TooltipTrigger render={<Button render={<MenuTrigger />} variant="ghost" size="icon-sm" aria-label="Theme settings" />}>
           <SunMoon className="h-5 w-5" aria-hidden="true" />
         </TooltipTrigger>
         <TooltipContent side="top">Theme</TooltipContent>
@@ -77,7 +77,7 @@ export function ShortcutsPopover() {
   return (
     <Popover>
       <Tooltip>
-        <TooltipTrigger render={<Button render={<PopoverTrigger />} size="icon" aria-label="Keyboard shortcuts" />}>
+        <TooltipTrigger render={<Button render={<PopoverTrigger />} variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts" />}>
           <Keyboard className="h-5 w-5" aria-hidden="true" />
         </TooltipTrigger>
         <TooltipContent side="top">Keyboard shortcuts</TooltipContent>
@@ -108,7 +108,7 @@ export function ShortcutsPopover() {
 export function TraceToggle({ onExpand }: { onExpand?: () => void }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<Button size="icon" aria-label="Show algorithm trace" onClick={onExpand} />}>
+      <TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Show algorithm trace" onClick={onExpand} />}>
         <Waypoints className="h-5 w-5" aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent side="top">Show trace</TooltipContent>

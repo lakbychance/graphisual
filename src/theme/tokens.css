@@ -190,6 +190,20 @@
   --menu-pad: 4px;
   --hint-outline: var(--color-accent-form);
 
+  /* popup motion (see "popups (motion)" in ui-sdk.css) */
+  --popup-dur: 200ms;
+  --popup-ease: cubic-bezier(0.2, 1.15, 0.3, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 0.96;
+  --popup-start-shift: 6px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+
+  /* graph nodes */
+  --node-hatch-opacity: 0.25;
+
   /* canvas */
   --canvas-texture: none;
   --canvas-texture-size: auto;
@@ -371,7 +385,7 @@
   --tooltip-radius: var(--radius-sm);
   --tooltip-shadow: var(--shadow-raised);
   --tooltip-text-shadow: none;
-  --tooltip-font: inherit;
+  --tooltip-font: var(--font-sans);
   --tooltip-size: 12px;
   --tooltip-tracking: 0;
   --tooltip-case: none;
@@ -379,6 +393,10 @@
   --kbd-shadow: none;
   --kbd-wall: 0px;
   --card-selected-ring: 0 0 0 2px var(--color-accent-form);
+  --card-mark-display: none;
+  --card-mark-width: 18px;
+  --card-mark-height: 2px;
+  --card-mark: var(--color-accent-form);
   --card-selected-icon: var(--color-text-muted);
   --card-selected-icon-filter: none;
   --chip-bg: var(--color-paper);
@@ -639,7 +657,7 @@
   --danger-text: #b23f28;
   --focus-color: #2a2520;            /* focus is a ruled ink line; orange stays "on" */
   --hint-outline: var(--color-accent-form);
-  --card-selected-ring: 0 0 0 1.5px #c2552c;
+  --card-selected-ring: 0 0 0 1px hsl(var(--sh) / 0.34);
   --card-selected-icon: #c2552c;
 
   --disabled-opacity: 1;
@@ -686,6 +704,41 @@
   /* Graph ink: dark enough to carry state without relying on hue alone. */
   --color-node-stroke: #6c665c;
   --color-edge-default: rgba(50, 45, 40, 0.62);
+
+  /* "On" in Paper is one device: a short rule printed in orange ink under the
+     legend. Tabs, segments, toggles and selected cards all carry it. */
+  --led-display: block;
+  --led-room: 5px;
+  --led-bottom: 4px;
+  --led-width: 12px;
+  --led-height: 2px;
+  --led-radius: 1px;
+  --led-off: transparent;
+  --led-off-shadow: none;
+  --led-on: #c2552c;
+  --led-on-shadow: none;
+  --card-mark-display: block;
+  --card-mark-width: 18px;
+  --card-mark-height: 2px;
+  --card-mark: #c2552c;
+
+  /* A popup is a sheet being laid down: it drops a few pixels onto the desk and
+     the tall soft shadow it had in the air closes up under it. No scale. */
+  --popup-dur: 220ms;
+  --popup-ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 1;
+  --popup-start-shift: 5px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px hsl(var(--sh) / 0.1),
+    0 1px 0 1px hsl(var(--sh) / 0),
+    0 14px 18px -4px hsl(var(--sh) / 0.14),
+    0 30px 44px -12px hsl(var(--sh) / 0.22);
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+  --node-hatch-opacity: 0.25;        /* pencil shading */
 }
 
 /* === DARK = ANODIZED — a matte graphite instrument. Bead-blasted, not brushed:
@@ -747,7 +800,7 @@
   --color-arrow-path: #d08a2a;
   --color-arrow-cycle: #c86850;
 
-  --node-shadow-color: rgba(0, 0, 0, 0.55);
+  --node-shadow-color: transparent;
   --color-node-stroke: #8a8f99;
 
   --color-interactive-hover: rgba(255, 255, 255, 0.06);
@@ -1082,8 +1135,8 @@
   --switch-thumb-hover-bg: linear-gradient(180deg, #ffffff 0%, #e8e5de 100%);
   --switch-thumb-hover-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(0, 0, 0, 0.5), 0.5px 3px 4px rgba(0, 0, 0, 0.5);
   --switch-thumb-held-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(0, 0, 0, 0.4);
-  --check-hover-bg: #1d1e21;
-  --check-hover-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --check-hover-bg: #2a2c30;
+  --check-hover-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.16);
   --check-held-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
   --thumb-hover-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
@@ -1099,6 +1152,19 @@
     1px 6px 8px -1px rgba(0, 0, 0, 0.55);
   --menu-pressed-bg: rgba(0, 0, 0, 0.25);
   --menu-pressed-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  --card-mark-display: none;
+
+  /* A popup rises out of the instrument: a short damped travel, no scale, no bounce. */
+  --popup-dur: 190ms;
+  --popup-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 1;
+  --popup-start-shift: 9px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+  --node-hatch-opacity: 0;           /* plain nodes: no ornament in this theme */
 }
 
 /* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white
@@ -1159,7 +1225,7 @@
   --color-arrow-path: #d0a030;
   --color-arrow-cycle: #e06050;
 
-  --node-shadow-color: rgba(10, 40, 70, 0.4);
+  --node-shadow-color: transparent;
   --color-node-stroke: #cfe4f7;
 
   --color-interactive-hover: rgba(255, 255, 255, 0.1);
@@ -1180,10 +1246,10 @@
   --bp-xhatch:
     repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px),
     repeating-linear-gradient(45deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px);
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  --radius-xs: 1px;
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
   --font-label: var(--font-mono);
   --label-case: uppercase;
   --label-tracking: 0.08em;
@@ -1308,7 +1374,7 @@
   --thumb-w: 22px;
   --thumb-h: 16px;
   --thumb-lift: 1px;
-  --thumb-radius: 2px;
+  --thumb-radius: 1px;
   --thumb-bg: #f3f8fc;
   --thumb-shadow: 0 0 0 1px #0d335f, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink);
   --thumb-pressed-shadow: 0 0 0 1px #0d335f, 1px 1px 0 0 var(--bp-shade), 1px 1px 0 1px var(--bp-ink);
@@ -1325,12 +1391,12 @@
 
   --accent-control-bg: #ffd166;
   --accent-control-fg: #1b2a3a;
-  --switch-radius: 3px;
+  --switch-radius: 1px;
   --switch-on-bg: repeating-linear-gradient(135deg, rgba(27, 42, 58, 0.22) 0 1px, transparent 1px 4px), #ffd166;
   --switch-on-shadow: inset 0 0 0 1px var(--bp-ink), inset 3px 3px 0 0 rgba(120, 85, 10, 0.35);
   --switch-thumb-bg: #f3f8fc;
   --switch-thumb-shadow: 0 0 0 1px #0d335f, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink-soft);
-  --switch-thumb-radius: 2px;
+  --switch-thumb-radius: 1px;
   --switch-thumb-lift: 1px;
   --check-bg: #ffd166;
   --check-fg: #1b2a3a;
@@ -1346,7 +1412,7 @@
   --tooltip-bg: #f3f8fc;
   --tooltip-fg: #134a85;
   --tooltip-arrow-bg: #f3f8fc;
-  --tooltip-radius: 2px;
+  --tooltip-radius: 1px;
   --tooltip-shadow: 0 0 0 1px #0d335f, 3px 3px 0 0 var(--bp-wash);
   --tooltip-font: var(--font-mono);
   --tooltip-size: 10.5px;
@@ -1403,4 +1469,20 @@
   --thumb-accent-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 #a8842f, 2px 2px 0 1px #ffffff;
   --menu-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
   --menu-pressed-shadow: inset 0 0 0 1px var(--bp-ink);
+  --card-mark-display: none;
+  --led-display: none;              /* Blueprint's "on" is the hatch, not a mark */
+  --led-room: 0px;
+
+  /* A popup is drawn: the plate is ruled in from the left at full strength, and
+     the registration marks are added once it is complete. No fade, no travel. */
+  --popup-dur: 170ms;
+  --popup-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --popup-start-opacity: 1;
+  --popup-start-scale: 1;
+  --popup-start-shift: 0px;
+  --popup-start-clip: inset(-120px 100% -120px -120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 0;
+  --popup-marks-delay: 150ms;
+  --node-hatch-opacity: 0.32;        /* drafted hatch */
 }

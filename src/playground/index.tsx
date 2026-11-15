@@ -54,8 +54,8 @@ const SECTIONS: Section[] = [
   { id: "label", title: "Node label popup", maps: "Graph/NodeLabelPopup", parts: "Popover (point anchor) · Input", render: () => <NodeLabelDemo /> },
   { id: "corners", title: "Corner controls", maps: "Board/ZoomControls · history · ThemeSelector · KeyboardShortcuts", parts: "Toolbar · Menu (radio group) · Popover · Kbd", render: () => (
       <div className="flex flex-col gap-3 items-center">
-        <div className="flex gap-2"><ZoomControls /><HistoryControls /></div>
-        <div className="flex gap-2"><ShortcutsPopover /><ThemeMenu /></div>
+        <div className="flex gap-3"><ZoomControls /><HistoryControls /></div>
+        <div className="gs-toolbar gs-panel"><ShortcutsPopover /><ThemeMenu /></div>
       </div>
     ) },
   { id: "hint", title: "Algorithm hint", maps: "Board/AlgorithmHint", parts: "status pill", render: () => <AlgorithmHintDemo /> },

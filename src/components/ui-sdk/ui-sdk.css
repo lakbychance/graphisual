@@ -813,26 +813,42 @@
   .gs-checkbox-indicator[data-starting-style],
   .gs-checkbox-indicator[data-ending-style] { scale: 0.6; opacity: 0; }
 
-  /* ---------- popups (shared motion) ---------- */
+  /* ---------- popups (motion) ----------
+     One mechanism, four dials a theme turns: how far a popup travels, whether
+     it scales, whether it fades, and whether it is wiped in (clip). A panel can
+     also start with a different shadow and bring its marks in late. */
   .gs-popover,
   .gs-menu,
   .gs-tooltip {
     transform-origin: var(--transform-origin);
+    clip-path: inset(-120px);
     transition:
-      opacity var(--dur-2) var(--ease-out),
-      scale var(--dur-3) var(--ease-release),
-      translate var(--dur-3) var(--ease-release);
+      opacity var(--popup-dur) var(--ease-out),
+      scale var(--popup-dur) var(--popup-ease),
+      translate var(--popup-dur) var(--popup-ease),
+      clip-path var(--popup-dur) var(--popup-ease),
+      box-shadow var(--popup-dur) var(--ease-out);
   }
   .gs-popover[data-starting-style],
   .gs-popover[data-ending-style],
   .gs-menu[data-starting-style],
-  .gs-menu[data-ending-style] { opacity: 0; scale: 0.96; }
+  .gs-menu[data-ending-style] {
+    opacity: var(--popup-start-opacity);
+    scale: var(--popup-start-scale);
+    clip-path: var(--popup-start-clip);
+  }
+  .gs-popover.gs-panel[data-starting-style],
+  .gs-menu.gs-panel[data-starting-style] { box-shadow: var(--popup-start-shadow, var(--popup-shadow)); }
   .gs-popover[data-ending-style],
   .gs-menu[data-ending-style] { transition-duration: var(--dur-1); }
-  .gs-popover[data-side="top"][data-starting-style],   .gs-menu[data-side="top"][data-starting-style]    { translate: 0 6px; }
-  .gs-popover[data-side="bottom"][data-starting-style], .gs-menu[data-side="bottom"][data-starting-style] { translate: 0 -6px; }
-  .gs-popover[data-side="left"][data-starting-style],   .gs-menu[data-side="left"][data-starting-style]   { translate: 6px 0; }
-  .gs-popover[data-side="right"][data-starting-style],  .gs-menu[data-side="right"][data-starting-style]  { translate: -6px 0; }
+  .gs-popover[data-side="top"][data-starting-style],   .gs-menu[data-side="top"][data-starting-style]    { translate: 0 var(--popup-start-shift); }
+  .gs-popover[data-side="bottom"][data-starting-style], .gs-menu[data-side="bottom"][data-starting-style] { translate: 0 calc(-1 * var(--popup-start-shift)); }
+  .gs-popover[data-side="left"][data-starting-style],   .gs-menu[data-side="left"][data-starting-style]   { translate: var(--popup-start-shift) 0; }
+  .gs-popover[data-side="right"][data-starting-style],  .gs-menu[data-side="right"][data-starting-style]  { translate: calc(-1 * var(--popup-start-shift)) 0; }
+  /* Marks on the plate (registration marks) can arrive after the plate itself. */
+  @keyframes gs-marks-in { from { opacity: var(--popup-start-marks-opacity); } }
+  .gs-popover.gs-panel::after,
+  .gs-menu.gs-panel::after { animation: gs-marks-in var(--dur-1) var(--ease-out) var(--popup-marks-delay) backwards; }
 
   .gs-popover {
     padding: 12px;
@@ -866,7 +882,7 @@
     line-height: 1.35;
   }
   .gs-tooltip[data-starting-style],
-  .gs-tooltip[data-ending-style] { opacity: 0; scale: 0.94; }
+  .gs-tooltip[data-ending-style] { opacity: 0; scale: var(--popup-start-scale); }
   .gs-tooltip[data-instant] { transition: none; }
   .gs-tooltip-arrow {
     position: absolute;
@@ -1037,6 +1053,25 @@
   /* Selected: the ring is on the cap, so it travels with it. */
   .gs-card-button[data-selected] { --_cap-face: var(--control-face), var(--card-selected-ring); }
   .gs-card-button[data-selected]:active { --_cap-face: var(--control-face-pressed), var(--card-selected-ring); }
+  /* Selected mark: a short ruled bar under the card's text, for themes whose
+     "on" signal is a printed mark rather than a ring. It rides with the cap. */
+  .gs-card-button::after {
+    content: "";
+    display: var(--card-mark-display);
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--key-wall-in) + 5px);
+    width: var(--card-mark-width);
+    height: var(--card-mark-height);
+    margin-left: calc(var(--card-mark-width) / -2);
+    border-radius: 1px;
+    background: var(--card-mark);
+    opacity: 0;
+    translate: var(--_tx) var(--_ty);
+    pointer-events: none;
+    transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release);
+  }
+  .gs-card-button[data-selected]::after { opacity: 1; }
   .gs-card-icon { display: inline-flex; color: var(--color-text-muted); }
   .gs-card-button[data-selected] .gs-card-icon { color: var(--card-selected-icon); filter: var(--card-selected-icon-filter); }
   .gs-card-icon > svg { width: 24px; height: 24px; }
@@ -1097,6 +1132,7 @@
   @media (prefers-reduced-motion: reduce) {
     [class^="gs-"], [class*=" gs-"] { transition: none !important; animation: none !important; transform: none !important; }
     [class^="gs-"]::before, [class*=" gs-"]::before { transition: none !important; transform: none !important; }
+    .gs-panel::after, .gs-card-button::after { transition: none !important; animation: none !important; }
     .gs-button:focus-visible, .gs-toggle:focus-visible, .gs-tab:focus-visible, .gs-segmented-item:focus-visible,
     .gs-switch:focus-visible, .gs-checkbox:focus-visible, .gs-card-button:focus-visible, .gs-stepper-button:focus-visible,
     .gs-slider-thumb:has(:focus-visible) { outline-width: var(--focus-width); }

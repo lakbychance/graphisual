@@ -35,6 +35,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // The 3D view is lazy-loaded, so without this Vite only discovers its
+  // dependencies the first time someone opens it and re-bundles mid-session.
+  // That can leave the page with two copies of React ("Invalid hook call" in
+  // <Canvas>). Bundling them at startup avoids the mid-session re-bundle.
+  optimizeDeps: {
+    include: ["three", "@react-three/fiber", "@react-three/drei"],
+  },
   server: {
     port: 3000,
     open: true,
