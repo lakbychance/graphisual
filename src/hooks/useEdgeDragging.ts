@@ -1,15 +1,14 @@
 import { useCallback, useRef } from "react";
-import { GraphNode, GraphEdge } from "../components/Graph/types";
-import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
+import { GraphNode } from "../components/Graph/types";
+import { calculateAccurateCoords, findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
+import { aimDraft, beginDraft, endDraft } from "@/physics/graphMotion";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { TIMING } from "../constants/ui";
-import { EDGE, EDGE_TYPE } from "../constants/graph";
 import { useGraphStore } from "../store/graphStore";
 
 interface UseEdgeDraggingProps {
   graphRef: React.RefObject<SVGSVGElement | null>;
   screenToSvgCoords: (clientX: number, clientY: number) => { x: number; y: number };
-  setMockEdge: (edge: GraphEdge | null) => void;
 }
 
 function setHitAreaRole(nodeId: number, role: 'source' | 'target') {
@@ -23,7 +22,6 @@ function clearHitAreaRole(nodeId: number, role: 'source' | 'target') {
 export function useEdgeDragging({
   graphRef,
   screenToSvgCoords,
-  setMockEdge,
 }: UseEdgeDraggingProps) {
   const isDraggingEdge = useRef(false);
   const addEdge = useGraphStore((state) => state.addEdge);
@@ -38,6 +36,7 @@ export function useEdgeDragging({
       setHitAreaRole(sourceNodeId, 'source');
 
       let prevHoverTargetId: number | null = null;
+      beginDraft(graphRef.current, { x: startX, y: startY }, { x: startX, y: startY });
 
       const handlePointerMove = (e: PointerEvent) => {
         const { x: endX, y: endY } = screenToSvgCoords(e.clientX, e.clientY);
@@ -52,12 +51,10 @@ export function useEdgeDragging({
           prevHoverTargetId = hoveredId;
         }
 
-        setMockEdge({
-          x1: startX, y1: startY, x2: endX, y2: endY,
-          nodeX2: 0, nodeY2: 0,
-          from: sourceNodeId, to: -1,
-          weight: EDGE.DEFAULT_WEIGHT, type: EDGE_TYPE.DIRECTED,
-        });
+        // Over a node it can connect to, the line is pulled onto that node's rim.
+        const catches = hoverTarget && hoveredId !== null && canCreateEdge(useGraphStore.getState().data.edges, sourceNodeId, hoveredId);
+        const rim = catches ? calculateAccurateCoords(startX, startY, hoverTarget.x, hoverTarget.y) : null;
+        aimDraft({ x: endX, y: endY }, rim && { x: rim.tempX, y: rim.tempY });
       };
 
       const handlePointerUp = (e: PointerEvent) => {
@@ -73,7 +70,7 @@ export function useEdgeDragging({
         const { data } = useGraphStore.getState();
         const { nodes, edges } = data;
         const sourceNode = nodes.find(n => n.id === sourceNodeId);
-        if (!sourceNode) { setMockEdge(null); return; }
+        if (!sourceNode) { endDraft(); return; }
 
         const target = e.target as SVGElement;
         let targetNode: GraphNode | undefined;
@@ -94,16 +91,18 @@ export function useEdgeDragging({
 
         if (targetNode && canCreateEdge(edges, sourceNodeId, targetNode.id)) {
           addEdge(sourceNode, targetNode);
+          endDraft({ from: sourceNodeId, to: targetNode.id });
+        } else {
+          endDraft();
         }
 
-        setMockEdge(null);
         setTimeout(() => { isDraggingEdge.current = false; }, TIMING.POPUP_DELAY);
       };
 
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [graphRef, screenToSvgCoords, setMockEdge, addEdge]
+    [graphRef, screenToSvgCoords, addEdge]
   );
 
   return { handleConnectorDragStart, isDraggingEdge };

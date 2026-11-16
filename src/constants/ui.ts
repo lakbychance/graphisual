@@ -42,3 +42,28 @@ export const NODE_STROKE = {
   ACTIVE: 5,  // Peak of keyframe animation
 } as const;
 
+
+/**
+ * How a node shows its algorithm state without relying on colour alone.
+ * Read by the SVG renderer, the canvas renderer and (through the SVG) export,
+ * so the three always agree.
+ *   boost  extra outline width
+ *   ring   a second, inner outline: solid or dashed
+ */
+export const NODE_STATE_MARK: Record<
+  'default' | 'visited' | 'path' | 'cycle' | 'start' | 'end',
+  { boost: number; ring: 'none' | 'solid' | 'dashed' }
+> = {
+  default: { boost: 0, ring: 'none' },
+  visited: { boost: 0.75, ring: 'none' },
+  path: { boost: 0, ring: 'solid' },
+  start: { boost: 1.5, ring: 'none' },
+  end: { boost: 1.5, ring: 'solid' },
+  cycle: { boost: 0, ring: 'dashed' },
+};
+
+export const NODE_RING = {
+  INSET: 5,
+  WIDTH: 1.5,
+  DASH: [3, 3],
+} as const;

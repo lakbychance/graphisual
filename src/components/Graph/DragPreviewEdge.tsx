@@ -1,21 +1,19 @@
-interface DragPreviewEdgeProps {
-  edge: { x1: number; y1: number; x2: number; y2: number } | null;
-}
+import { draftPath, useDraftShape } from "@/physics/graphMotion";
 
 /**
- * Dashed line preview shown while dragging to create an edge
+ * Dashed preview of the edge being drawn. Its shape comes from the graph
+ * motion layer: a thread, a wire or a ruled line depending on the theme, and a
+ * plain straight line when physics is off.
  */
-export const DragPreviewEdge = ({ edge }: DragPreviewEdgeProps) => {
-  if (!edge) return null;
+export const DragPreviewEdge = () => {
+  const shape = useDraftShape();
+  if (!shape) return null;
 
   return (
-    <line
-      className="stroke-[2px] [stroke-dasharray:8_4] pointer-events-none"
+    <path
+      className="fill-none stroke-[2px] [stroke-dasharray:8_4] pointer-events-none"
       style={{ stroke: 'var(--color-edge-default)' }}
-      x1={edge.x1}
-      y1={edge.y1}
-      x2={edge.x2}
-      y2={edge.y2}
+      d={draftPath(shape)}
       markerEnd="url(#mockArrowHead)"
     />
   );

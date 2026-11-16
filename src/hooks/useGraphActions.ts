@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { useGraphStore, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../store/graphStore";
 import { isModKey } from "../utils/keyboard";
-import { isElementInPopup } from "../utils/dom";
+import { isAnyPopupOpen, isElementInPopup, isTooltipOpen } from "../utils/dom";
 import { ZOOM } from "../constants/ui";
 import { VisualizationState } from "../constants/visualization";
 
@@ -136,7 +136,11 @@ export function useGraphActions() {
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (e.key === "Escape" && isElementInPopup(e.target as Element)) return;
+    // An open popup owns Escape: ui-sdk closes it from its own document
+    // listener, which skips events we have already prevented.
+    if (e.key === "Escape" && (isElementInPopup(e.target as Element) || isAnyPopupOpen())) return;
+    // Space on a focused button presses that button; it must not toggle play as well.
+    if (e.key === " " && (e.target as Element | null)?.closest?.("button, [role='button'], a[href]")) return;
 
     const s = useGraphStore.getState();
     const { visualization } = s;
@@ -147,7 +151,8 @@ export function useGraphActions() {
 
     // Escape: priority — step mode > algorithm > deselect
     if (e.key === "Escape") {
-      e.preventDefault();
+      // Leave the event unprevented while a tooltip shows, so ui-sdk still closes it.
+      if (!isTooltipOpen()) e.preventDefault();
       if (isInStepMode) stopVisualization();
       else if (isAlgorithmSelected && !isVisualizing) clearAlgorithm();
       else deselect();

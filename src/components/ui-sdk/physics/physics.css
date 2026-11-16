@@ -1,0 +1,94 @@
+/**
+ * Simulated motion for the gs-* controls.
+ *
+ * Applies only inside a `[data-physics]` scope (see physics/controls.ts). In
+ * that scope the parts that move stop using transitions and take their position
+ * from a custom property the simulation writes each frame. Every property has
+ * a resting fallback, so a control that is not moving looks exactly as it does
+ * outside the scope.
+ *
+ * Like ui-sdk.css this file never names a theme: how a part moves comes from
+ * the theme's `--phys-*` tokens, which the simulation reads.
+ *
+ * It lives in its own cascade layer, declared after `components`, so these
+ * rules replace the transition-driven ones without matching their specificity.
+ */
+
+@layer physics {
+  /* ---------- keys: --key-d is how far down the cap is, 0 … 1 ---------- */
+  [data-physics] :is(.gs-button, .gs-card-button, .gs-stepper-button) {
+    --_d: var(--key-d, 0);
+    --_ty: calc(var(--_d) * (var(--key-travel) + var(--press-y, 0) * var(--key-lean) * 0.25));
+    --_tx: calc(var(--_d) * var(--key-travel-x));
+    --_skew: calc(var(--_d) * var(--key-skew, 0deg));
+    transition-property: box-shadow, color, opacity;
+  }
+  [data-physics] :is(.gs-button, .gs-card-button, .gs-stepper-button)::before { transition-property: box-shadow; }
+  [data-physics] .gs-button:is(:active, [data-pressed], [data-open]):not([data-disabled], :disabled, [aria-disabled="true"]),
+  [data-physics] .gs-card-button:active,
+  [data-physics] .gs-stepper-button:active:not([data-disabled]) { --_d: var(--key-d, 1); }
+
+  /* ---------- latches: the same travel, as the small dent a low cap makes ---------- */
+  [data-physics] :is(.gs-toggle, .gs-segmented-item, .gs-tab, .gs-checkbox) {
+    --_d: var(--key-d, 0);
+    --_dent-x: var(--selected-shift-x);
+    --_dent-y: var(--selected-shift-y);
+    translate: calc(var(--_d) * var(--_dent-x)) calc(var(--_d) * var(--_dent-y));
+    transition-property: background-color, color, box-shadow;
+  }
+  [data-physics] .gs-checkbox { --_dent-x: 0px; --_dent-y: 1px; }
+  [data-physics] :is(.gs-toggle, .gs-segmented-item, .gs-tab, .gs-checkbox):active:not([data-disabled]) { --_d: var(--key-d, 1); }
+
+  /* ---------- slider: --thumb-dx is how far the thumb is from where the value is ---------- */
+  /* --thumb-stretch is how much longer the thumb is drawn while it is moving fast */
+  [data-physics] .gs-slider-thumb {
+    width: calc(var(--thumb-w) + var(--thumb-stretch, 0px));
+    transform: translateX(var(--thumb-dx, 0px));
+  }
+  [data-physics] .gs-slider-indicator {
+    min-width: calc(var(--slider-indicator-size) + var(--thumb-dx, 0px));
+    max-width: calc(var(--slider-indicator-size) + var(--thumb-dx, 0px));
+  }
+
+  /* ---------- switch: --sw-x is where the thumb is along its housing, 0 … 1;
+     --sw-s is how far it is stretched, 0 (a circle) … 1. It stretches under the
+     finger and stays stretched until it has arrived. ---------- */
+  [data-physics] .gs-switch-thumb {
+    --_held: 0;
+    --_squash: calc(4px * var(--sw-s, var(--_held)));
+    width: calc(var(--sw-h) - 6px + var(--_squash));
+    translate: calc(var(--sw-x, 0) * (var(--sw-w) - var(--sw-h) - var(--_squash))) 0;
+    transition-property: top, box-shadow, background-color;
+  }
+  [data-physics] .gs-switch-thumb[data-checked] { translate: calc(var(--sw-x, 1) * (var(--sw-w) - var(--sw-h) - var(--_squash))) 0; }
+  [data-physics] .gs-switch:active:not([data-disabled]) .gs-switch-thumb { --_held: 1; }
+
+  /* ---------- sliding caps: --ind-d* is how far the cap is from its slot ---------- */
+  [data-physics] :is(.gs-segmented-indicator, .gs-tabs-indicator) { transition-property: box-shadow, translate; }
+  [data-physics] .gs-segmented-indicator {
+    top: calc(var(--segmented-control-indicator-top) + var(--ind-dt, 0px));
+    left: calc(var(--segmented-control-indicator-left) + var(--ind-dl, 0px));
+    width: calc(var(--segmented-control-indicator-width) + var(--ind-dw, 0px));
+    height: calc(var(--segmented-control-indicator-height) + var(--ind-dh, 0px));
+  }
+  [data-physics] .gs-tabs-indicator {
+    top: calc(var(--active-tab-top) + var(--ind-dt, 0px));
+    left: calc(var(--active-tab-left) + var(--ind-dl, 0px));
+    width: calc(var(--active-tab-width) + var(--ind-dw, 0px));
+    height: calc(var(--active-tab-height) + var(--ind-dh, 0px));
+  }
+
+  /* ---------- popups: --pop-p runs from the starting pose (0) to in place (1) ---------- */
+  [data-physics] :is(.gs-popover, .gs-menu, .gs-tooltip) {
+    --_p: var(--pop-p, 1);
+    --_from-x: 0px;
+    --_from-y: 0px;
+    translate: calc((1 - var(--_p)) * var(--_from-x)) calc((1 - var(--_p)) * var(--_from-y));
+    scale: calc(1 - (1 - var(--_p)) * (1 - var(--popup-start-scale)));
+    transition-property: opacity, clip-path, box-shadow;
+  }
+  [data-physics] :is(.gs-popover, .gs-menu)[data-side="top"]    { --_from-y: var(--popup-start-shift); }
+  [data-physics] :is(.gs-popover, .gs-menu)[data-side="bottom"] { --_from-y: calc(-1 * var(--popup-start-shift)); }
+  [data-physics] :is(.gs-popover, .gs-menu)[data-side="left"]   { --_from-x: var(--popup-start-shift); }
+  [data-physics] :is(.gs-popover, .gs-menu)[data-side="right"]  { --_from-x: calc(-1 * var(--popup-start-shift)); }
+}

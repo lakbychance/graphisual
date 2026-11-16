@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { Shuffle } from "lucide-react";
-import { Button } from "../button";
-import { StepperInput } from "../stepper-input";
-import { Slider } from "../slider";
-import { Checkbox } from "../checkbox";
-import { RadixToggleGroup, RadixToggleGroupItem } from "../toggle-group";
-import {
-  generateRandomGraph,
-  type GeneratedGraph,
-  type LayoutType,
-} from "../../../utils/graph/graphGenerator";
+import { Button, Checkbox, Label, SegmentedControl, SegmentedControlItem, Slider, Stepper } from "@/components/ui-sdk";
+import { generateRandomGraph, type GeneratedGraph, type LayoutType } from "../../../utils/graph/graphGenerator";
 
 interface CustomGeneratorFormProps {
   onGenerate: (result: GeneratedGraph) => void;
@@ -35,6 +27,8 @@ const DEFAULT_STATE: FormState = {
   layout: "circular",
 };
 
+const single = (v: number | number[]) => (typeof v === "number" ? v : v[0]);
+
 export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) => {
   const [form, setForm] = useState<FormState>(DEFAULT_STATE);
 
@@ -54,114 +48,76 @@ export const CustomGeneratorForm = ({ onGenerate }: CustomGeneratorFormProps) =>
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <span className="text-xs text-(--color-text-muted)">Layout</span>
-        <RadixToggleGroup
-          type="single"
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label>Layout</Label>
+        <SegmentedControl
+          aria-label="Layout"
           value={form.layout}
           onValueChange={(value) => value && set("layout", value as LayoutType)}
-          variant="etched"
           className="w-full"
         >
-          <RadixToggleGroupItem value="circular" className="text-xs">
-            Circular
-          </RadixToggleGroupItem>
-          <RadixToggleGroupItem value="random" className="text-xs">
-            Random
-          </RadixToggleGroupItem>
-          <RadixToggleGroupItem value="grid" className="text-xs">
-            Grid
-          </RadixToggleGroupItem>
-        </RadixToggleGroup>
+          <SegmentedControlItem value="circular">Circular</SegmentedControlItem>
+          <SegmentedControlItem value="random">Random</SegmentedControlItem>
+          <SegmentedControlItem value="grid">Grid</SegmentedControlItem>
+        </SegmentedControl>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs">
-          <span className="text-(--color-text-muted)">Nodes</span>
-          <span className="text-(--color-text)">{form.nodeCount}</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-baseline">
+          <Label>Nodes</Label>
+          <span className="gs-value text-xs">{form.nodeCount}</span>
         </div>
-        <Slider
-          variant="accent"
-          min={3}
-          max={15}
-          step={1}
-          value={[form.nodeCount]}
-          onValueChange={([v]) => set("nodeCount", v)}
-        />
+        <Slider variant="accent" min={3} max={15} step={1} value={form.nodeCount} onValueChange={(v) => set("nodeCount", single(v))} thumbLabel="Node count" ticks />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs">
-          <span className="text-(--color-text-muted)">Edge Density</span>
-          <span className="text-(--color-text)">{Math.round(form.edgeDensity * 100)}%</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-baseline">
+          <Label>Edge density</Label>
+          <span className="gs-value text-xs">{Math.round(form.edgeDensity * 100)}%</span>
         </div>
-        <Slider
-          variant="accent"
-          min={0}
-          max={100}
-          step={1}
-          value={[form.edgeDensity * 100]}
-          onValueChange={([v]) => set("edgeDensity", v / 100)}
-        />
+        <Slider variant="accent" min={0} max={100} step={5} value={Math.round(form.edgeDensity * 100)} onValueChange={(v) => set("edgeDensity", single(v) / 100)} thumbLabel="Edge density" ticks />
       </div>
 
-      <div className="flex gap-4">
-        <label htmlFor="gen-directed" className="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            id="gen-directed"
-            checked={form.isDirected}
-            onCheckedChange={(checked) => set("isDirected", checked === true)}
-          />
-          <span className="text-xs text-(--color-text)">
-            Directed
-          </span>
+      <div className="flex gap-5">
+        <label htmlFor="gen-directed" className="flex items-center gap-2 cursor-pointer text-xs">
+          <Checkbox id="gen-directed" checked={form.isDirected} onCheckedChange={(checked) => set("isDirected", checked === true)} />
+          Directed
         </label>
-        <label htmlFor="gen-weighted" className="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            id="gen-weighted"
-            checked={form.isWeighted}
-            onCheckedChange={(checked) => set("isWeighted", checked === true)}
-          />
-          <span className="text-xs text-(--color-text)">
-            Weighted
-          </span>
+        <label htmlFor="gen-weighted" className="flex items-center gap-2 cursor-pointer text-xs">
+          <Checkbox id="gen-weighted" checked={form.isWeighted} onCheckedChange={(checked) => set("isWeighted", checked === true)} />
+          Weighted
         </label>
       </div>
 
       {form.isWeighted && (
         <div className="flex gap-3">
-          <div className="flex-1 space-y-1">
-            <p className="text-xs text-(--color-text-muted)">
-              Min Weight
-            </p>
-            <StepperInput
-              value={form.minWeight}
-              onChange={(val) => set("minWeight", Math.max(1, Math.min(val, form.maxWeight - 1)))}
-              min={1}
-              max={form.maxWeight - 1}
-            />
-          </div>
-          <div className="flex-1 space-y-1">
-            <p className="text-xs text-(--color-text-muted)">
-              Max Weight
-            </p>
-            <StepperInput
-              value={form.maxWeight}
-              onChange={(val) => set("maxWeight", Math.max(form.minWeight + 1, Math.min(val, 999)))}
-              min={form.minWeight + 1}
-              max={999}
-            />
-          </div>
+          <Stepper
+            label="Minimum weight"
+            scrubLabel={<Label>Min weight</Label>}
+            value={form.minWeight}
+            onValueChange={(v) => v !== null && set("minWeight", Math.max(1, Math.min(v, form.maxWeight - 1)))}
+            min={1}
+            max={form.maxWeight - 1}
+            className="flex-1"
+            controlClassName="w-full"
+          />
+          <Stepper
+            label="Maximum weight"
+            scrubLabel={<Label>Max weight</Label>}
+            value={form.maxWeight}
+            onValueChange={(v) => v !== null && set("maxWeight", Math.max(form.minWeight + 1, Math.min(v, 999)))}
+            min={form.minWeight + 1}
+            max={999}
+            className="flex-1"
+            controlClassName="w-full"
+          />
         </div>
       )}
 
-      <Button
-        onClick={handleGenerate}
-        className="w-full gap-2"
-      >
-        <Shuffle className="w-4 h-4" />
-        Generate Graph
+      <Button onClick={handleGenerate} className="w-full">
+        <Shuffle className="h-4 w-4" />
+        Generate graph
       </Button>
     </div>
   );

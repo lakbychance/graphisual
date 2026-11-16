@@ -1,0 +1,1183 @@
+/**
+ * ui-sdk component layer for Graphisual.
+ *
+ * This file is structure and physics only. It never names a theme: every
+ * colour, shadow, wall height, travel distance and texture is a token from
+ * src/theme/tokens.css, and each theme describes its own material there
+ * (Paper = card stock, Tungsten = machined metal, Blueprint = drafted
+ * linework). Because nothing here is theme-scoped, a theme cannot leak into
+ * another one, including nested `[data-skin]` scopes in the playground.
+ *
+ * The physical model:
+ *   - key   (`--control-*`)   a cap with a visible wall that travels when pressed
+ *   - cap   (`--selected-*`)  a low-profile key that lives inside a well
+ *   - well  (`--well-*`)      a pocket sunk into the surface
+ *   - panel (`--panel-*`)     a plate lying on the canvas
+ * Behaviour state comes from ui-sdk's data attributes (`data-pressed`,
+ * `data-checked`, `data-highlighted`, `data-starting-style`, …).
+ */
+
+@layer components {
+  /* ---------- focus ring (shared) ---------- */
+  @keyframes gs-focus-grow { from { outline-width: 0; } to { outline-width: var(--focus-active-width); } }
+  @keyframes gs-focus-shrink { from { outline-width: var(--focus-active-width); } to { outline-width: var(--focus-width); } }
+  @keyframes gs-focus-inset-grow { from { box-shadow: inset 0 0 0 0 var(--focus-color); } to { box-shadow: inset 0 0 0 var(--focus-active-width) var(--focus-color); } }
+  @keyframes gs-focus-inset-shrink { from { box-shadow: inset 0 0 0 var(--focus-active-width) var(--focus-color); } to { box-shadow: inset 0 0 0 var(--focus-width) var(--focus-color); } }
+
+  .gs-button:focus-visible,
+  .gs-toggle:focus-visible,
+  .gs-tab:focus-visible,
+  .gs-segmented-item:focus-visible,
+  .gs-segmented-item:has(:focus-visible),
+  .gs-switch:focus-visible,
+  .gs-checkbox:focus-visible,
+  .gs-card-button:focus-visible,
+  .gs-stepper-button:focus-visible,
+  .gs-slider-thumb:has(:focus-visible) {
+    outline: var(--focus-width) solid var(--focus-color);
+    outline-offset: var(--focus-offset);
+    animation:
+      gs-focus-grow calc(var(--focus-duration) * 0.25) var(--ease-out),
+      gs-focus-shrink calc(var(--focus-duration) * 0.75) calc(var(--focus-duration) * 0.25) var(--ease-out) forwards;
+  }
+
+  .gs-input:focus-visible,
+  .gs-stepper-control:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 var(--focus-width) var(--focus-color);
+    animation:
+      gs-focus-inset-grow calc(var(--focus-duration) * 0.25) var(--ease-out),
+      gs-focus-inset-shrink calc(var(--focus-duration) * 0.75) calc(var(--focus-duration) * 0.25) var(--ease-out) forwards;
+  }
+
+  /* ---------- panel / well / divider ---------- */
+  .gs-panel {
+    position: relative;
+    isolation: isolate;
+    background: var(--panel-bg);
+    color: var(--panel-fg);
+    border-radius: var(--panel-radius);
+    box-shadow: var(--panel-shadow);
+    -webkit-backdrop-filter: var(--panel-backdrop);
+    backdrop-filter: var(--panel-backdrop);
+  }
+  /* Material texture, where a theme has one (paper grain, matte finish). */
+  .gs-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: var(--panel-texture);
+    background-size: var(--panel-texture-size);
+    opacity: var(--panel-texture-opacity);
+    mix-blend-mode: var(--panel-texture-blend);
+  }
+  /* Marks drawn on the plate itself (registration marks, fasteners). */
+  .gs-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--panel-marks);
+  }
+  /* Anything floating above the canvas gets the taller elevation. */
+  .gs-popover.gs-panel,
+  .gs-menu.gs-panel { box-shadow: var(--popup-shadow); }
+
+  .gs-well {
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+    border-radius: var(--well-radius);
+  }
+  .gs-divider,
+  .gs-toolbar-separator {
+    flex: none;
+    border-radius: 1px;
+  }
+  .gs-divider[data-orientation="vertical"],
+  .gs-toolbar-separator { width: var(--divider-size); height: 24px; background: var(--divider-v); }
+  .gs-divider[data-orientation="horizontal"] { height: var(--divider-size); width: 100%; background: var(--divider-h); }
+
+  .gs-label {
+    font-family: var(--font-label);
+    font-size: var(--label-size);
+    font-weight: var(--label-weight);
+    text-transform: var(--label-case);
+    letter-spacing: var(--label-tracking);
+    color: var(--color-text-muted);
+    text-shadow: var(--legend-shadow);
+    line-height: 1.2;
+  }
+  .gs-description {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+  }
+  .gs-value {
+    font-family: var(--value-font);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+  }
+  .gs-kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 5px;
+    margin-bottom: var(--kbd-wall);
+    min-width: 18px;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    background: var(--kbd-bg);
+    box-shadow: var(--kbd-shadow);
+    color: var(--color-text);
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  /* ---------- button: a key ----------
+     A key is two parts. The element itself is the SEAT: it never moves, it is
+     the hit box, and it draws whatever the cap stands on or in (the wall, the
+     slot, the cast shadow). `::before` is the CAP: the face you touch. Pressing
+     drops the cap by `--key-travel` so it covers the wall beneath it, and it
+     leans toward the finger: press-physics.ts measures where the pointer landed
+     and sets `--press-x/-y` and `--key-skew`, so the pressed side bottoms out
+     while the far side stays up. The legend rides with the cap (padding).
+     Down is fast, release springs back. */
+  .gs-button,
+  .gs-card-button,
+  .gs-stepper-button {
+    --_ty: 0px;
+    --_tx: 0px;
+    --_skew: 0deg;
+    --_shade: none;
+    --_cap-bg: var(--control-bg);
+    --_cap-face: var(--control-face);
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    position: relative;
+    isolation: isolate;
+    margin: 0;
+    border: 0;
+    background: var(--control-seat-bg);
+    box-shadow: var(--control-seat);
+    color: var(--control-fg);
+    text-shadow: var(--control-text-shadow);
+    font: inherit;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition:
+      box-shadow var(--dur-release) var(--ease-release),
+      color var(--dur-1) var(--ease-out),
+      opacity var(--dur-2) var(--ease-out),
+      padding var(--dur-release) var(--ease-release);
+  }
+  .gs-button::before,
+  .gs-card-button::before,
+  .gs-stepper-button::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 var(--key-wall-in) 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--_shade), var(--key-texture), var(--_cap-bg);
+    background-size: auto, var(--key-texture-size), auto;
+    background-blend-mode: normal, var(--key-texture-blend), normal, normal, normal;
+    box-shadow: var(--_cap-face);
+    translate: var(--_tx) var(--_ty);
+    transform: skewY(var(--_skew));
+    pointer-events: none;
+    transition:
+      translate var(--dur-release) var(--ease-release),
+      transform var(--dur-release) var(--ease-release),
+      box-shadow var(--dur-release) var(--ease-release);
+  }
+  .gs-button:hover,
+  .gs-card-button:hover,
+  .gs-stepper-button:hover { --_cap-bg: var(--control-hover-bg); }
+  .gs-button:is(:active, [data-pressed], [data-open]):not([data-disabled], :disabled, [aria-disabled="true"]),
+  .gs-card-button:active,
+  .gs-stepper-button:active:not([data-disabled]) {
+    --_ty: calc(var(--key-travel) + var(--press-y, 0) * var(--key-lean) * 0.25);
+    --_tx: var(--key-travel-x);
+    --_skew: var(--key-skew, 0deg);
+    --_shade: radial-gradient(
+      circle at calc(50% + var(--press-x, 0) * 50%) calc(50% + var(--press-y, 0) * 50%),
+      var(--key-press-shade), transparent 72%);
+    --_cap-bg: var(--control-pressed-bg);
+    --_cap-face: var(--control-face-pressed);
+    box-shadow: var(--control-seat-pressed);
+    transition-duration: var(--dur-press);
+    transition-timing-function: var(--ease-press);
+  }
+  .gs-button:is(:active, [data-pressed], [data-open]):not([data-disabled], :disabled, [aria-disabled="true"])::before,
+  .gs-card-button:active::before,
+  .gs-stepper-button:active:not([data-disabled])::before {
+    transition-duration: var(--dur-press);
+    transition-timing-function: var(--ease-press);
+  }
+
+  .gs-button {
+    --_pad: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-block: calc(2 * var(--_ty)) var(--key-wall-in);
+    padding-inline: calc(var(--_pad) + var(--_tx)) calc(var(--_pad) - var(--_tx));
+    height: var(--control-md);
+    border-radius: var(--control-radius);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .gs-button :where(svg) { width: 16px; height: 16px; flex: none; filter: var(--control-icon-filter); }
+  /* Disabled: the key is still there but lies flush and unlit. A theme draws
+     that with the --disabled-* tokens; without them it falls back to a fade. */
+  .gs-button[data-disabled],
+  .gs-button:disabled,
+  .gs-button[aria-disabled="true"],
+  .gs-stepper-button[data-disabled] {
+    --_cap-bg: var(--disabled-bg, var(--control-bg));
+    --_cap-face: var(--disabled-face, var(--control-face));
+    box-shadow: var(--disabled-seat, var(--control-seat));
+    color: var(--disabled-fg, var(--control-fg));
+    text-shadow: none;
+    opacity: var(--disabled-opacity);
+    cursor: not-allowed;
+  }
+  .gs-button:is([data-disabled], :disabled, [aria-disabled="true"]) :where(svg) { filter: none; }
+  .gs-button[data-pending] { cursor: progress; }
+  .gs-button[data-pending] > * { opacity: 0.25; }
+  .gs-button[data-pending]::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 var(--key-wall-in) 0;
+    margin: auto;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    animation: gs-spin 700ms linear infinite;
+  }
+  @keyframes gs-spin { to { rotate: 360deg; } }
+
+  .gs-button[data-size="sm"] { --_pad: 14px; height: var(--control-sm); font-size: 12px; }
+  .gs-button[data-size="lg"] { --_pad: 28px; height: var(--control-lg); font-size: 16px; border-radius: var(--radius-md); }
+  .gs-button:is([data-size="icon"], [data-size="icon-sm"], [data-size="icon-xs"]) { padding-inline: calc(2 * var(--_tx)) 0; }
+  .gs-button[data-size="icon"] { width: var(--control-md); height: var(--control-md); }
+  .gs-button[data-size="icon-sm"] { width: var(--control-sm); height: var(--control-sm); }
+  .gs-button[data-size="icon-xs"] { width: var(--control-xs); height: var(--control-xs); border-radius: var(--radius-xs); }
+  .gs-button[data-size="icon-xs"] :where(svg) { width: 12px; height: 12px; }
+
+  /* Coloured keys re-point the key tokens; the press rule above does the rest. */
+  .gs-button[data-variant="primary"] {
+    --control-bg: var(--primary-bg);
+    --control-hover-bg: var(--primary-hover-bg);
+    --control-pressed-bg: var(--primary-pressed-bg);
+    --control-face: var(--primary-face);
+    --control-face-pressed: var(--primary-face-pressed);
+    --control-seat: var(--primary-seat);
+    --control-seat-pressed: var(--primary-seat-pressed);
+    --control-seat-bg: var(--primary-seat-bg);
+    --control-fg: var(--primary-fg);
+    --control-text-shadow: var(--primary-text-shadow);
+    --control-icon-filter: none;
+    --key-press-shade: var(--primary-press-shade);
+    font-weight: 600;
+  }
+  .gs-button[data-variant="destructive"] {
+    --control-bg: var(--danger-bg);
+    --control-hover-bg: var(--danger-hover-bg);
+    --control-pressed-bg: var(--danger-pressed-bg);
+    --control-face: var(--danger-face);
+    --control-face-pressed: var(--danger-face-pressed);
+    --control-seat: var(--danger-seat);
+    --control-seat-pressed: var(--danger-seat-pressed);
+    --control-seat-bg: var(--danger-seat-bg);
+    --control-fg: var(--danger-fg);
+    --control-text-shadow: var(--primary-text-shadow);
+    --control-icon-filter: none;
+    --key-press-shade: var(--primary-press-shade);
+    font-weight: 600;
+  }
+  /* Link is text on the surface: no cap, nothing to travel. */
+  .gs-button[data-variant="link"] {
+    --key-wall-in: 0px;
+    --key-travel: 0px;
+    --key-travel-x: 0px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--accent-text);
+    text-shadow: none;
+    padding: 3px 5px;
+    height: auto;
+    border-radius: var(--radius-xs);
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+  }
+  .gs-button[data-variant="link"]::before { display: none; }
+  .gs-button[data-variant="link"]:hover { text-decoration: underline; }
+  .gs-button[data-variant="link"]:is(:active, [data-pressed]):not([data-disabled], :disabled) {
+    box-shadow: none;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+  /* Outline: the low-profile key with its legend in the accent colour. */
+  .gs-button[data-variant="outline"]:not([data-disabled], :disabled, [aria-disabled="true"]) { color: var(--accent-text); }
+  .gs-button[data-variant="outline"] { font-weight: 600; }
+  /* Ghost: the low-profile key. Same construction, shorter wall, shorter throw. */
+  .gs-button[data-variant="ghost"],
+  .gs-button[data-variant="outline"],
+  .gs-stepper-button {
+    --control-bg: var(--ghost-bg);
+    --control-hover-bg: var(--ghost-hover-bg);
+    --control-pressed-bg: var(--ghost-pressed-bg);
+    --control-face: var(--ghost-face);
+    --control-face-pressed: var(--ghost-face-pressed);
+    --control-seat: var(--ghost-seat);
+    --control-seat-pressed: var(--ghost-seat-pressed);
+    --control-seat-bg: var(--ghost-seat-bg);
+    --key-wall-in: var(--ghost-wall-in);
+    --key-travel: var(--ghost-travel);
+    --key-travel-x: var(--ghost-travel-x);
+    --key-lean: var(--ghost-lean);
+  }
+  .gs-button[data-variant="secondary"] { color: var(--color-text-muted); }
+  .gs-button[data-variant="secondary"]:hover { color: var(--control-fg); }
+  /* Skip link: visually hidden until it takes focus, then a raised key in the corner. */
+  .gs-button[data-variant="skipLink"]:not(:focus) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .gs-button[data-variant="skipLink"]:focus {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 100;
+  }
+  .gs-button[data-tone="danger"]:not([data-disabled], :disabled, [aria-disabled="true"]) { color: var(--danger-text); }
+  .gs-button[data-tone="muted"] { color: var(--color-text-muted); }
+
+  /* ---------- toolbar ---------- */
+  .gs-toolbar {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--control-gap) + 1px);
+  }
+  /* Extra room under the keys for the part of the wall that stands proud. */
+  .gs-toolbar.gs-panel { padding: 8px calc(8px + var(--key-wall-out-x)) calc(8px + var(--key-wall-out)) 8px; }
+  .gs-toolbar[data-orientation="vertical"] { flex-direction: column; }
+  .gs-toolbar-group { display: flex; align-items: center; gap: var(--control-gap); }
+  .gs-toolbar-separator { margin: 0; }
+  .gs-toolbar[data-orientation="vertical"] .gs-toolbar-separator { width: 24px; height: var(--divider-size); margin: 2px 0; background: var(--divider-h); }
+
+  /* Phones: a horizontal toolbar has to fit the screen, so it tightens instead
+     of overflowing. Keys keep their height (touch targets); only the air
+     between them and the side padding of text keys shrink. Sized so the main
+     toolbar fits at 375px (iPhone SE) in every theme, and at 320px with the
+     dividers dropped. */
+  @media (max-width: 430px) {
+    .gs-toolbar:not([data-orientation="vertical"]) { gap: 6px; }
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-group { gap: 4px; }
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-separator { margin: 0; }
+    .gs-toolbar .gs-toggle { padding-inline: 8px; }
+    .gs-toolbar .gs-button[data-size="sm"] { --_pad: 10px; }
+    /* If a plate is ever wider than its keys, the spare width goes between the groups. */
+    .gs-toolbar.gs-panel:not([data-orientation="vertical"]) { justify-content: space-between; }
+  }
+  @media (max-width: 350px) {
+    .gs-toolbar:not([data-orientation="vertical"]) > .gs-toolbar-separator { display: none; }
+    .gs-toolbar:not([data-orientation="vertical"]) { gap: 4px; }
+    .gs-toolbar .gs-toggle { padding-inline: 6px; }
+    /* 320px: the longest toolbar (step controls) only fits with slightly narrower icon keys. */
+    .gs-toolbar:not([data-orientation="vertical"]) .gs-button[data-size="icon-sm"] { width: 28px; }
+  }
+
+  /* ---------- status light (toggles, tabs, segments) ----------
+     Present on every latching control; a theme decides whether it exists
+     (`--led-display`) and what lit / unlit look like. */
+  .gs-toggle::after,
+  .gs-tab::after,
+  .gs-segmented-item::after {
+    content: "";
+    display: var(--led-display);
+    position: absolute;
+    left: 50%;
+    bottom: var(--led-bottom);
+    width: var(--led-width);
+    height: var(--led-height);
+    translate: -50% 0;
+    border-radius: var(--led-radius);
+    background: var(--led-off);
+    box-shadow: var(--led-off-shadow);
+    pointer-events: none;
+    transition: background-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+  }
+  .gs-toggle[data-pressed]::after,
+  .gs-tab[data-selected]::after,
+  .gs-segmented-item[data-checked]::after {
+    background: var(--led-on);
+    box-shadow: var(--led-on-shadow);
+  }
+
+  /* ---------- toggle group ---------- */
+  .gs-toggle-group {
+    display: inline-flex;
+    align-items: stretch;
+    gap: var(--well-gap);
+    padding: var(--well-pad) calc(var(--well-pad) + var(--selected-wall-x)) calc(var(--well-pad) + var(--selected-wall)) var(--well-pad);
+    border-radius: var(--well-radius);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+  }
+  .gs-toggle-group[data-surface="flat"] { background: transparent; box-shadow: none; padding: 0 var(--selected-wall-x) var(--selected-wall) 0; gap: 2px; }
+  .gs-toggle-group[data-disabled] { opacity: 0.55; }
+  .gs-toggle {
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 10px var(--led-room);
+    margin: 0;
+    border: 0;
+    border-radius: calc(var(--well-radius) - var(--well-pad));
+    background: transparent;
+    color: var(--color-text-muted);
+    text-shadow: var(--legend-shadow);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color var(--dur-release) var(--ease-release),
+      color var(--dur-2) var(--ease-out),
+      box-shadow var(--dur-release) var(--ease-release),
+      translate var(--dur-release) var(--ease-release);
+  }
+  .gs-toggle-group[data-size="md"] .gs-toggle { height: 32px; padding-inline: 12px; font-size: 13px; }
+  .gs-toggle:hover { color: var(--control-fg); }
+  .gs-toggle[data-pressed] {
+    background: var(--selected-bg);
+    color: var(--selected-fg);
+    box-shadow: var(--selected-shadow);
+    text-shadow: var(--selected-text-shadow);
+  }
+  .gs-toggle:active:not([data-disabled]) {
+    translate: var(--selected-shift-x) var(--selected-shift-y);
+    transition-duration: var(--dur-press);
+  }
+  .gs-toggle[data-pressed]:active:not([data-disabled]) { box-shadow: var(--selected-pressed-shadow); }
+  .gs-toggle[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
+  .gs-toggle-icon { display: inline-flex; }
+  .gs-toggle-icon > svg, .gs-toggle > svg { width: 16px; height: 16px; }
+  .gs-toggle-group[data-orientation="vertical"] { flex-direction: column; }
+
+  /* ---------- segmented control: a cap sliding in a slot ---------- */
+  .gs-segmented {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: stretch;
+    gap: var(--well-gap);
+    padding: var(--well-pad) calc(var(--well-pad) + var(--selected-wall-x)) calc(var(--well-pad) + var(--selected-wall)) var(--well-pad);
+    border-radius: var(--well-radius);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+  }
+  .gs-segmented[data-orientation="vertical"] { flex-direction: column; }
+  .gs-segmented[data-disabled] { opacity: 0.55; }
+  .gs-segmented-indicator,
+  .gs-tabs-indicator {
+    position: absolute;
+    z-index: -1;
+    border-radius: calc(var(--well-radius) - var(--well-pad));
+    background: var(--selected-bg);
+    box-shadow: var(--selected-shadow);
+    transition:
+      top var(--dur-3) var(--ease-detent),
+      left var(--dur-3) var(--ease-detent),
+      width var(--dur-3) var(--ease-detent),
+      height var(--dur-3) var(--ease-detent),
+      box-shadow var(--dur-release) var(--ease-release),
+      translate var(--dur-release) var(--ease-release);
+  }
+  .gs-segmented-indicator {
+    top: var(--segmented-control-indicator-top);
+    left: var(--segmented-control-indicator-left);
+    width: var(--segmented-control-indicator-width);
+    height: var(--segmented-control-indicator-height);
+  }
+  /* While a segment or tab is held, the cap under the pointer goes down with it. */
+  .gs-segmented:has(.gs-segmented-item[data-checked]:active) .gs-segmented-indicator,
+  .gs-tabs-list:has(.gs-tab[data-selected]:active) .gs-tabs-indicator {
+    box-shadow: var(--selected-pressed-shadow);
+    translate: var(--selected-shift-x) var(--selected-shift-y);
+    transition-duration: var(--dur-press);
+  }
+  .gs-segmented-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    height: 28px;
+    padding: 0 10px var(--led-room);
+    border-radius: calc(var(--well-radius) - var(--well-pad));
+    color: var(--color-text-muted);
+    text-shadow: var(--legend-shadow);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .gs-segmented[data-size="md"] .gs-segmented-item { height: 32px; padding-inline: 14px; font-size: 13px; }
+  .gs-segmented-item:hover { color: var(--control-fg); }
+  .gs-segmented-item[data-checked] { color: var(--selected-fg); text-shadow: var(--selected-text-shadow); }
+  .gs-segmented-item:active:not([data-disabled]),
+  .gs-tab:active:not([data-disabled]) {
+    translate: var(--selected-shift-x) var(--selected-shift-y);
+    transition-duration: var(--dur-press);
+  }
+  .gs-segmented-item[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
+  .gs-segmented-item > svg { width: 14px; height: 14px; }
+
+  /* ---------- tabs ---------- */
+  .gs-tabs { display: flex; flex-direction: column; gap: 12px; }
+  .gs-tabs-list {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    gap: var(--well-gap);
+    padding: calc(var(--well-pad) + 1px) calc(var(--well-pad) + 1px + var(--selected-wall-x)) calc(var(--well-pad) + 1px + var(--selected-wall)) calc(var(--well-pad) + 1px);
+    border-radius: var(--well-radius);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+  }
+  .gs-tabs-indicator {
+    top: var(--active-tab-top);
+    left: var(--active-tab-left);
+    width: var(--active-tab-width);
+    height: var(--active-tab-height);
+  }
+  .gs-tabs-indicator[data-activation-direction="none"] { transition: none; }
+  .gs-tab {
+    appearance: none;
+    position: relative;
+    flex: 1 1 0;
+    height: 30px;
+    padding: 0 12px var(--led-room);
+    margin: 0;
+    border: 0;
+    border-radius: calc(var(--well-radius) - var(--well-pad) - 1px);
+    background: transparent;
+    color: var(--color-text-muted);
+    text-shadow: var(--legend-shadow);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .gs-tab:hover { color: var(--control-fg); }
+  .gs-tab[data-selected] { color: var(--selected-fg); text-shadow: var(--selected-text-shadow); font-weight: 600; }
+  .gs-tab[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
+  .gs-tabs-panel { outline: none; }
+  /* A panel that is no longer selected leaves at once. ui-sdk keeps a leaving
+     panel in the page until every animation inside it has finished (a focus
+     ring, a switch still settling, its own fade-in if tabs are flipped
+     quickly), and for that time both panels would be stacked one above the
+     other. There is no exit animation to wait for, so it takes no space. */
+  .gs-tabs-panel:not([data-selected], [hidden]) { display: none; }
+  .gs-tabs-panel[data-starting-style] { opacity: 0; translate: 0 4px; }
+  .gs-tabs-panel { transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out); }
+
+  /* A latch that is not on still answers the finger: hover previews it, press dents it. */
+  .gs-toggle:not([data-pressed], [data-disabled]):hover,
+  .gs-segmented-item:not([data-checked], [data-disabled]):hover,
+  .gs-tab:not([data-selected], [data-disabled]):hover {
+    background: var(--latch-hover-bg);
+    box-shadow: var(--latch-hover-shadow);
+  }
+  .gs-toggle:not([data-pressed], [data-disabled]):active,
+  .gs-segmented-item:not([data-checked], [data-disabled]):active,
+  .gs-tab:not([data-selected], [data-disabled]):active {
+    background: var(--latch-pressed-bg);
+    box-shadow: var(--latch-pressed-shadow);
+  }
+
+  /* Legends: what is written on a control. Themes choose the face. */
+  .gs-button,
+  .gs-toggle,
+  .gs-segmented-item,
+  .gs-tab {
+    font-family: var(--legend-font);
+    text-transform: var(--legend-case);
+    letter-spacing: var(--legend-tracking);
+  }
+  .gs-button { font-size: calc(14px * var(--legend-scale)); }
+  .gs-button[data-size="sm"] { font-size: calc(12px * var(--legend-scale)); }
+  .gs-button[data-size="lg"] { font-size: calc(16px * var(--legend-scale)); }
+  .gs-toggle, .gs-segmented-item { font-size: calc(12px * var(--legend-scale)); }
+  .gs-tab,
+  .gs-toggle-group[data-size="md"] .gs-toggle,
+  .gs-segmented[data-size="md"] .gs-segmented-item { font-size: calc(13px * var(--legend-scale)); }
+
+  /* ---------- slider: a cap riding in a groove ---------- */
+  .gs-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .gs-slider[data-disabled] { opacity: 0.5; }
+  .gs-slider-control {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    height: 28px;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .gs-slider-track {
+    position: relative;
+    width: 100%;
+    height: var(--track-height);
+    border-radius: var(--track-radius);
+    background: var(--track-bg);
+    box-shadow: var(--track-shadow);
+  }
+  /* End stops, for themes that draw the travel as a dimension line. */
+  .gs-slider-track::before,
+  .gs-slider-track::after {
+    content: "";
+    display: var(--track-caps);
+    position: absolute;
+    top: calc(50% - 6px);
+    width: 1px;
+    height: 12px;
+    background: var(--track-cap-color);
+  }
+  .gs-slider-track::before { left: 0; }
+  .gs-slider-track::after { right: 0; }
+  .gs-slider-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: var(--track-radius);
+    background: var(--indicator-bg);
+    box-shadow: var(--indicator-shadow);
+  }
+  .gs-slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: var(--thumb-w);
+    height: var(--thumb-h);
+    margin-top: calc(-1 * var(--thumb-lift));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--thumb-radius);
+    background: var(--thumb-bg);
+    box-shadow: var(--thumb-shadow);
+    cursor: grab;
+    transition:
+      margin-top var(--dur-release) var(--ease-release),
+      box-shadow var(--dur-release) var(--ease-release),
+      filter var(--dur-1) var(--ease-out);
+  }
+  .gs-slider-thumb:hover { filter: var(--thumb-hover-filter); box-shadow: var(--thumb-hover-shadow, var(--thumb-shadow)); }
+  .gs-slider-thumb[data-dragging] {
+    cursor: grabbing;
+    margin-top: 0;
+    box-shadow: var(--thumb-pressed-shadow);
+    transition-duration: var(--dur-press);
+  }
+  .gs-slider[data-variant="accent"] .gs-slider-thumb {
+    --thumb-bg: var(--thumb-accent-bg);
+    --thumb-shadow: var(--thumb-accent-shadow);
+    --thumb-pressed-shadow: var(--thumb-accent-pressed-shadow);
+    --thumb-hover-shadow: var(--thumb-accent-hover-shadow, var(--thumb-accent-shadow));
+    --thumb-grip: var(--thumb-accent-grip);
+  }
+  .gs-slider-grip {
+    width: var(--thumb-grip-w);
+    height: var(--thumb-grip-h);
+    background: var(--thumb-grip);
+    border-radius: 1px;
+  }
+  .gs-slider-ticks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% + var(--thumb-h) / 2 + 2px);
+    display: var(--slider-ticks);
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .gs-slider-ticks > span { width: 1px; height: 3px; background: var(--tick-color); box-shadow: var(--tick-shadow); }
+  .gs-slider-ticks > span[data-major] { height: 5px; background: var(--tick-major-color); }
+  .gs-slider-value {
+    font-family: var(--value-font);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    min-width: 3.5ch;
+    text-align: right;
+    color: var(--color-text);
+  }
+
+  /* ---------- switch ---------- */
+  .gs-switch {
+    --sw-w: 38px;
+    --sw-h: 22px;
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    width: var(--sw-w);
+    height: var(--sw-h);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--switch-radius);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+    cursor: pointer;
+    transition: background-color var(--dur-3) var(--ease-out), box-shadow var(--dur-3) var(--ease-out);
+  }
+  .gs-switch[data-checked] { background: var(--switch-on-bg); box-shadow: var(--switch-on-shadow); }
+  .gs-switch[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+  .gs-switch-thumb {
+    position: absolute;
+    left: 3px;
+    top: calc(3px - var(--switch-thumb-lift));
+    width: calc(var(--sw-h) - 6px);
+    height: calc(var(--sw-h) - 6px);
+    border-radius: var(--switch-thumb-radius);
+    background: var(--switch-thumb-bg);
+    box-shadow: var(--switch-thumb-shadow);
+    transition: translate var(--dur-3) var(--ease-detent), width var(--dur-1) var(--ease-out), top var(--dur-press) var(--ease-press), box-shadow var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
+  }
+  .gs-switch:hover:not([data-disabled]) .gs-switch-thumb { background: var(--switch-thumb-hover-bg, var(--switch-thumb-bg)); box-shadow: var(--switch-thumb-hover-shadow, var(--switch-thumb-shadow)); }
+  .gs-switch:active:not([data-disabled]) .gs-switch-thumb { top: 3px; box-shadow: var(--switch-thumb-held-shadow, var(--switch-thumb-shadow)); }
+  .gs-switch-thumb[data-checked] { translate: calc(var(--sw-w) - var(--sw-h)) 0; }
+  /* Held: the thumb squashes toward its direction of travel before it throws. */
+  .gs-switch:active:not([data-disabled]) .gs-switch-thumb { width: calc(var(--sw-h) - 2px); }
+  .gs-switch:active:not([data-disabled]) .gs-switch-thumb[data-checked] { translate: calc(var(--sw-w) - var(--sw-h) - 4px) 0; }
+
+  /* ---------- checkbox ---------- */
+  .gs-checkbox {
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+    cursor: pointer;
+    flex: none;
+    transition: translate var(--dur-release) var(--ease-release), background-color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .gs-checkbox:hover:not([data-disabled]) { background: var(--check-hover-bg, var(--well-bg)); box-shadow: var(--check-hover-shadow, var(--well-shadow)); }
+  .gs-checkbox:active:not([data-disabled]) { translate: 0 1px; box-shadow: var(--check-held-shadow, var(--well-shadow)); transition-duration: var(--dur-press); }
+  .gs-checkbox[data-disabled] { opacity: var(--disabled-latch-opacity); cursor: not-allowed; }
+  .gs-checkbox[data-disabled] .gs-checkbox-indicator {
+    background: var(--disabled-check-bg, var(--check-bg));
+    color: var(--disabled-check-fg, var(--check-fg));
+    box-shadow: var(--disabled-check-shadow, var(--check-shadow));
+  }
+  .gs-checkbox-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--check-bg);
+    color: var(--check-fg);
+    box-shadow: var(--check-shadow);
+    transition: scale var(--dur-2) var(--ease-release), opacity var(--dur-2) var(--ease-out);
+  }
+  .gs-checkbox-indicator > svg { filter: var(--check-glyph-filter); }
+  .gs-checkbox-indicator[data-starting-style],
+  .gs-checkbox-indicator[data-ending-style] { scale: 0.6; opacity: 0; }
+
+  /* ---------- popups (motion) ----------
+     One mechanism, four dials a theme turns: how far a popup travels, whether
+     it scales, whether it fades, and whether it is wiped in (clip). A panel can
+     also start with a different shadow and bring its marks in late. */
+  .gs-popover,
+  .gs-menu,
+  .gs-tooltip {
+    transform-origin: var(--transform-origin);
+    clip-path: inset(-120px);
+    transition:
+      opacity var(--popup-dur) var(--ease-out),
+      scale var(--popup-dur) var(--popup-ease),
+      translate var(--popup-dur) var(--popup-ease),
+      clip-path var(--popup-dur) var(--popup-ease),
+      box-shadow var(--popup-dur) var(--ease-out);
+  }
+  .gs-popover[data-starting-style],
+  .gs-popover[data-ending-style],
+  .gs-menu[data-starting-style],
+  .gs-menu[data-ending-style] {
+    opacity: var(--popup-start-opacity);
+    scale: var(--popup-start-scale);
+    clip-path: var(--popup-start-clip);
+  }
+  .gs-popover.gs-panel[data-starting-style],
+  .gs-menu.gs-panel[data-starting-style] { box-shadow: var(--popup-start-shadow, var(--popup-shadow)); }
+  .gs-popover[data-ending-style],
+  .gs-menu[data-ending-style] { transition-duration: var(--dur-1); }
+  .gs-popover[data-side="top"][data-starting-style],   .gs-menu[data-side="top"][data-starting-style]    { translate: 0 var(--popup-start-shift); }
+  .gs-popover[data-side="bottom"][data-starting-style], .gs-menu[data-side="bottom"][data-starting-style] { translate: 0 calc(-1 * var(--popup-start-shift)); }
+  .gs-popover[data-side="left"][data-starting-style],   .gs-menu[data-side="left"][data-starting-style]   { translate: var(--popup-start-shift) 0; }
+  .gs-popover[data-side="right"][data-starting-style],  .gs-menu[data-side="right"][data-starting-style]  { translate: calc(-1 * var(--popup-start-shift)) 0; }
+  /* Marks on the plate (registration marks) can arrive after the plate itself. */
+  @keyframes gs-marks-in { from { opacity: var(--popup-start-marks-opacity); } }
+  .gs-popover.gs-panel::after,
+  .gs-menu.gs-panel::after { animation: gs-marks-in var(--dur-1) var(--ease-out) var(--popup-marks-delay) backwards; }
+
+  .gs-popover {
+    padding: 12px;
+    outline: none;
+    max-height: var(--available-height);
+    overflow: visible;
+  }
+  .gs-popover-title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-shadow: var(--legend-shadow);
+  }
+
+  /* ---------- tooltip ---------- */
+  .gs-tooltip {
+    position: relative;
+    max-width: 260px;
+    padding: 5px 9px;
+    border-radius: var(--tooltip-radius);
+    background: var(--tooltip-bg);
+    color: var(--tooltip-fg);
+    box-shadow: var(--tooltip-shadow);
+    text-shadow: var(--tooltip-text-shadow);
+    font-family: var(--tooltip-font);
+    font-size: var(--tooltip-size);
+    font-weight: 500;
+    letter-spacing: var(--tooltip-tracking);
+    text-transform: var(--tooltip-case);
+    line-height: 1.35;
+  }
+  .gs-tooltip[data-starting-style],
+  .gs-tooltip[data-ending-style] { opacity: 0; scale: var(--popup-start-scale); }
+  .gs-tooltip[data-instant] { transition: none; }
+  .gs-tooltip-arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--tooltip-arrow-bg);
+    rotate: 45deg;
+    border-radius: 1px;
+  }
+  .gs-tooltip[data-side="top"] .gs-tooltip-arrow    { bottom: -4px; left: var(--arrow-offset); translate: -50% 0; }
+  .gs-tooltip[data-side="bottom"] .gs-tooltip-arrow { top: -4px; left: var(--arrow-offset); translate: -50% 0; }
+  .gs-tooltip[data-side="left"] .gs-tooltip-arrow   { right: -4px; top: var(--arrow-offset); translate: 0 -50%; }
+  .gs-tooltip[data-side="right"] .gs-tooltip-arrow  { left: -4px; top: var(--arrow-offset); translate: 0 -50%; }
+
+  /* ---------- menu / select list ---------- */
+  .gs-menu {
+    min-width: 176px;
+    padding: var(--menu-pad);
+    outline: none;
+    max-height: var(--available-height);
+    overflow-y: auto;
+  }
+  .gs-select { min-width: max(var(--anchor-width), 176px); }
+  .gs-menu-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 4px 8px;
+    border-radius: calc(var(--panel-radius) - 4px);
+    color: var(--color-text);
+    font-size: 13px;
+    line-height: 1.25;
+    cursor: default;
+    user-select: none;
+    outline: none;
+    transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+  }
+  .gs-menu-item[data-highlighted] { background: var(--menu-hover-bg); box-shadow: var(--menu-hover-shadow); }
+  .gs-menu-item:active:not([data-disabled]) { background: var(--menu-pressed-bg, var(--menu-hover-bg)); box-shadow: var(--menu-pressed-shadow, var(--menu-hover-shadow)); }
+  .gs-menu-item[data-disabled] { opacity: 0.5; }
+  .gs-menu-item[data-destructive] { color: var(--color-error); }
+  .gs-menu-item[data-pending] { cursor: progress; opacity: 0.7; }
+  .gs-select-item[data-selected] {
+    background: var(--select-selected-bg);
+    color: var(--select-selected-fg);
+    box-shadow: var(--select-selected-shadow);
+  }
+  .gs-select-item[data-selected] .gs-menu-icon,
+  .gs-select-item[data-selected] .gs-menu-indicator { color: var(--select-selected-mark); }
+  .gs-select-item[data-selected] .gs-description { color: inherit; opacity: 0.85; }
+  .gs-menu-icon {
+    display: inline-flex;
+    flex: none;
+    width: 16px;
+    color: var(--color-text-muted);
+  }
+  .gs-menu-icon > svg { width: 16px; height: 16px; }
+  .gs-menu-indicator {
+    display: inline-flex;
+    margin-left: auto;
+    color: var(--accent-text);
+  }
+  .gs-menu-label {
+    padding: 6px 8px 4px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: var(--label-weight);
+    text-transform: var(--label-case);
+    letter-spacing: var(--label-tracking);
+    color: var(--color-text-muted);
+    text-shadow: var(--legend-shadow);
+  }
+  .gs-menu-separator { height: var(--divider-size); margin: 4px 0; background: var(--divider-h); }
+  .gs-menu-shortcut { margin-left: auto; }
+  .gs-select-trigger { gap: 6px; }
+
+  /* ---------- stepper (number input): two caps and a readout in one well ---------- */
+  .gs-stepper { --stepper-size: 28px; display: inline-flex; flex-direction: column; gap: 6px; }
+  /* Fingers: the step keys match the other keys on a phone (--control-sm). */
+  @media (pointer: coarse) {
+    .gs-stepper { --stepper-size: var(--control-sm); }
+  }
+  .gs-stepper-group {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--well-pad);
+    padding: var(--well-pad) calc(var(--well-pad) + var(--selected-wall-x)) calc(var(--well-pad) + var(--selected-wall)) var(--well-pad);
+    border-radius: var(--well-radius);
+    background: var(--well-bg);
+    box-shadow: var(--well-shadow);
+  }
+  .gs-stepper-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Never squeezed: in a narrow row the readout gives way, not the keys. */
+    flex: none;
+    width: var(--stepper-size);
+    height: var(--stepper-size);
+    padding: calc(2 * var(--_ty)) 0 var(--key-wall-in) calc(2 * var(--_tx));
+    border-radius: calc(var(--well-radius) - var(--well-pad));
+    color: var(--color-text-muted);
+  }
+  .gs-stepper-button > svg { width: 14px; height: 14px; }
+  .gs-stepper-button:hover { color: var(--selected-fg); }
+  .gs-stepper-button[data-disabled]:hover { color: var(--disabled-fg, var(--color-text-muted)); }
+  .gs-stepper-control {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 48px;
+    height: var(--stepper-size);
+    margin: 0;
+    padding: 0 4px;
+    border: 0;
+    border-radius: calc(var(--well-radius) - var(--well-pad));
+    background: var(--readout-bg);
+    color: var(--readout-fg);
+    box-shadow: var(--readout-shadow);
+    text-shadow: var(--readout-text-shadow);
+    font: inherit;
+    font-family: var(--value-font);
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+  }
+  .gs-stepper-control::-webkit-outer-spin-button,
+  .gs-stepper-control::-webkit-inner-spin-button { appearance: none; margin: 0; }
+  .gs-scrub {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: ew-resize;
+    user-select: none;
+  }
+  .gs-scrub[data-scrubbing] { color: var(--color-text); }
+  .gs-scrub-cursor { color: var(--color-text); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
+
+  /* ---------- input ---------- */
+  .gs-input {
+    appearance: none;
+    height: var(--control-sm);
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--control-radius);
+    background: var(--input-bg);
+    box-shadow: var(--input-shadow);
+    color: var(--input-fg);
+    caret-color: var(--focus-color);
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+  }
+  .gs-input::placeholder { color: var(--input-placeholder); }
+  .gs-field { display: flex; flex-direction: column; gap: 6px; }
+  /* iOS zooms the page when a focused field's text is under 16px. On touch
+     devices every editable field is 16px, so focusing one never moves the page. */
+  @media (pointer: coarse) {
+    .gs-input,
+    .gs-stepper-control { font-size: 16px; }
+  }
+
+  /* ---------- card button: a large key ---------- */
+  .gs-card-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: calc(10px + var(--_ty)) calc(10px - var(--_tx)) calc(10px + var(--key-wall-in) - var(--_ty)) calc(10px + var(--_tx));
+    margin: 0 var(--key-wall-out-x) var(--key-wall-out) 0;
+    border-radius: var(--control-radius);
+    color: var(--color-text);
+    text-align: center;
+  }
+  /* Selected: the ring is on the cap, so it travels with it. */
+  .gs-card-button[data-selected] { --_cap-face: var(--control-face), var(--card-selected-ring); }
+  .gs-card-button[data-selected]:active { --_cap-face: var(--control-face-pressed), var(--card-selected-ring); }
+  /* Selected mark: a short ruled bar under the card's text, for themes whose
+     "on" signal is a printed mark rather than a ring. It rides with the cap. */
+  .gs-card-button::after {
+    content: "";
+    display: var(--card-mark-display);
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--key-wall-in) + 5px);
+    width: var(--card-mark-width);
+    height: var(--card-mark-height);
+    margin-left: calc(var(--card-mark-width) / -2);
+    border-radius: 1px;
+    background: var(--card-mark);
+    opacity: 0;
+    translate: var(--_tx) var(--_ty);
+    pointer-events: none;
+    transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-release) var(--ease-release);
+  }
+  .gs-card-button[data-selected]::after { opacity: 1; }
+  .gs-card-icon { display: inline-flex; color: var(--color-text-muted); }
+  .gs-card-button[data-selected] .gs-card-icon { color: var(--card-selected-icon); filter: var(--card-selected-icon-filter); }
+  .gs-card-icon > svg { width: 24px; height: 24px; }
+  .gs-card-button[data-icon="lg"] .gs-card-icon > svg { width: 40px; height: 40px; }
+  .gs-card-title { font-size: 12px; font-weight: 600; line-height: 1.2; }
+  .gs-card-subtitle { font-size: 11px; line-height: 1.25; color: var(--color-text-muted); }
+
+  /* ---------- graphisual-specific atoms ---------- */
+  @keyframes gs-hint-pulse {
+    0% { outline-width: 2px; }
+    35% { outline-width: 8px; }
+    100% { outline-width: 2px; }
+  }
+  .gs-hint {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: var(--control-radius);
+    background: var(--panel-bg);
+    color: var(--color-text);
+    box-shadow: var(--panel-shadow);
+    text-shadow: var(--legend-shadow);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    outline: 2px solid var(--hint-outline);
+    outline-offset: -2px;
+    animation: gs-hint-pulse 1.1s var(--ease-out);
+  }
+  .gs-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
+    background: var(--chip-bg);
+    color: var(--color-text);
+    box-shadow: var(--chip-shadow);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .gs-chip small { font-size: 10px; color: var(--color-text-muted); }
+  .gs-chip[data-state="processing"] {
+    background: var(--chip-active-bg);
+    color: var(--chip-active-fg);
+    box-shadow: var(--chip-active-shadow);
+    text-shadow: var(--chip-active-text-shadow);
+  }
+  .gs-chip[data-state="processing"] small { color: inherit; opacity: 0.8; }
+  .gs-chip[data-state="added"] {
+    background: color-mix(in srgb, var(--focus-color) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--focus-color);
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    [class^="gs-"], [class*=" gs-"] { transition: none !important; animation: none !important; transform: none !important; }
+    [class^="gs-"]::before, [class*=" gs-"]::before { transition: none !important; transform: none !important; }
+    .gs-panel::after, .gs-card-button::after { transition: none !important; animation: none !important; }
+    .gs-button:focus-visible, .gs-toggle:focus-visible, .gs-tab:focus-visible, .gs-segmented-item:focus-visible,
+    .gs-switch:focus-visible, .gs-checkbox:focus-visible, .gs-card-button:focus-visible, .gs-stepper-button:focus-visible,
+    .gs-slider-thumb:has(:focus-visible) { outline-width: var(--focus-width); }
+  }
+}
+

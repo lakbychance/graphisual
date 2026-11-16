@@ -1,23 +1,29 @@
-import { useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Hook to track if a media query matches
+ * Hook to track if a media query matches.
+ *
+ * The answer is read from the browser during the very first render, so a
+ * desktop page never paints its mobile layout first and then swaps.
+ *
  * @param query - CSS media query string (e.g., '(min-width: 768px)')
  * @returns boolean indicating if the query matches
  */
 const useMediaQuery = (query: string): boolean => {
-  const [matches, setMatches] = useState(false);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mediaQuery = window.matchMedia(query);
+      mediaQuery.addEventListener("change", onChange);
+      return () => mediaQuery.removeEventListener("change", onChange);
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
-    setMatches(mediaQuery.matches);
-
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mediaQuery.addEventListener("change", handler);
-    return () => mediaQuery.removeEventListener("change", handler);
-  }, [query]);
-
-  return matches;
+  return useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 };
 
 /**
@@ -25,11 +31,4 @@ const useMediaQuery = (query: string): boolean => {
  */
 export const useIsDesktop = (): boolean => {
   return useMediaQuery("(min-width: 768px)");
-};
-
-/**
- * Hook to check if device has hover capability (not touch-only)
- */
-export const useHasHover = (): boolean => {
-  return useMediaQuery("(hover: hover)");
 };

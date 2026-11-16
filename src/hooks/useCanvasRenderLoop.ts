@@ -5,7 +5,8 @@ import { type EdgeColorState, type NodeColorState, getCSSVar } from "@/theme";
 import { applyViewportTransform, resetTransform } from "../components/GraphCanvas/ViewportTransform";
 import { drawGrid } from "../components/GraphCanvas/renderers/gridRenderer";
 import { drawNode, drawConnectors } from "../components/GraphCanvas/renderers/nodeRenderer";
-import { drawEdge, drawPreviewEdge, drawSelectionBox } from "../components/GraphCanvas/renderers/edgeRenderer";
+import { drawDraftEdge, drawEdge, drawSelectionBox } from "../components/GraphCanvas/renderers/edgeRenderer";
+import { bowOf, useDraftShape, useMotionFrame } from "@/physics/graphMotion";
 
 interface UseCanvasRenderLoopProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -69,6 +70,11 @@ export function useCanvasRenderLoop({
   isVisualizing,
   theme,
 }: UseCanvasRenderLoopProps): void {
+  // The edge being drawn, and a counter that changes on every simulated frame so
+  // the canvas redraws while edges are still settling.
+  const draft = useDraftShape();
+  const motionFrame = useMotionFrame();
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -92,6 +98,8 @@ export function useCanvasRenderLoop({
     ctx.fillRect(0, 0, width, height);
 
     applyViewportTransform(ctx, actualViewport, dpr);
+    // Same for every node this frame, so read it once instead of per node.
+    const pixelScale = Math.abs(ctx.getTransform().a);
     drawGrid(ctx, actualViewport);
 
     const orderedNodeIds = [...stackingOrder];
@@ -105,19 +113,12 @@ export function useCanvasRenderLoop({
         drawEdge(ctx, edge, {
           colorState: getEdgeColorState(nodeId, edge.to),
           isFocused: isEdgeFocused(nodeId, edge.to) || hovered,
+          bow: bowOf(nodeId, edge.to),
         });
       }
     }
 
-    if (previewEdge) {
-      drawPreviewEdge(
-        ctx,
-        previewEdge.startX,
-        previewEdge.startY,
-        previewEdge.endX,
-        previewEdge.endY
-      );
-    }
+    if (draft) drawDraftEdge(ctx, draft);
 
     for (const nodeId of orderedNodeIds) {
       const node = nodes.find((candidate) => candidate.id === nodeId);
@@ -134,6 +135,7 @@ export function useCanvasRenderLoop({
         colorState: getNodeColorState(nodeId),
         isEdgeCreateSource: isEdgeDragSourceNode,
         isEdgeCreateTarget: isEdgeDragTargetNode,
+        pixelScale,
       });
 
       if (isHovered && !isVisualizing && !currentAlgorithm && !edgeDragSource) {
@@ -169,6 +171,8 @@ export function useCanvasRenderLoop({
     getEdgeColorState,
     isEdgeFocused,
     previewEdge,
+    draft,
+    motionFrame,
     selectionBox,
     currentAlgorithm,
     isVisualizing,

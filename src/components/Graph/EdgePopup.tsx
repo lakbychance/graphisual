@@ -1,15 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { ArrowLeftRight, Minus, MoveRight, Trash2 } from "lucide-react";
+import {
+  Button, Divider, Popover, PopoverContent, Stepper, Toggle, ToggleGroup, ToggleIcon, Tooltip, TooltipContent, TooltipTrigger,
+} from "@/components/ui-sdk";
 import { GraphEdge } from "./types";
-import { MoveRight, Minus, ArrowLeftRight, Trash2 } from "lucide-react";
-import { GrainTexture } from "../ui/grain-texture";
-import { Stepper, StepperDecrement, StepperField, StepperIncrement } from "../ui/stepper-input";
-import { Button } from "../ui/button";
-import { Popover, PopoverContent, PopoverAnchor } from "../ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { EDGE, EDGE_TYPE, type EdgeType } from "../../constants/graph";
 import { useGraphStore, selectHasReverseEdge } from "../../store/graphStore";
-import { useHasHover } from "../../hooks/useMediaQuery";
-import { cn } from "../../lib/utils";
 
 interface EdgePopupProps {
   edge: GraphEdge;
@@ -21,6 +17,11 @@ interface EdgePopupProps {
   onDelete: () => void;
 }
 
+/**
+ * Edge editor, anchored at the click point. ui-sdk Popover takes a point as
+ * `anchor`, keeps the content mounted through its exit transition and reports
+ * `onOpenChangeComplete` when it has gone, which is when we unmount.
+ */
 export const EdgePopup = ({
   edge,
   anchorPosition,
@@ -30,44 +31,29 @@ export const EdgePopup = ({
   onReverse,
   onDelete,
 }: EdgePopupProps) => {
-  const [weight, setWeight] = useState(edge.weight ?? EDGE.DEFAULT_WEIGHT);
+  const [weight, setWeight] = useState<number | null>(edge.weight ?? EDGE.DEFAULT_WEIGHT);
   const [type, setType] = useState<EdgeType>(edge.type as EdgeType);
-  const [isOpen, setIsOpen] = useState(true);
-  const weightInputRef = useRef<HTMLInputElement>(null);
+  // Content rendered already-open gets no initial focus from ui-sdk, so mount
+  // closed and open on the next tick: it then focuses like a user-opened popup.
+  const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    setIsOpen(true);
+  }, []);
 
-  // Check if a reverse edge exists (only matters for directed edges)
-  const fromNodeId = edge.from;
-  const toNodeId = edge.to;
-  const hasReverseEdge = useGraphStore(selectHasReverseEdge(fromNodeId, toNodeId));
-
+  const hasReverseEdge = useGraphStore(selectHasReverseEdge(edge.from, edge.to));
   // Can only switch to undirected if: already undirected OR no reverse edge exists
   const canSwitchToUndirected = type === EDGE_TYPE.UNDIRECTED || !hasReverseEdge;
 
-  // Only show tooltips on hover-capable devices
-  const hasHover = useHasHover();
-
-  // Focus weight input on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      weightInputRef.current?.focus();
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    // Delay unmount to allow exit animation (150ms default from tailwindcss-animate)
-    setTimeout(onClose, 150);
-  };
+  const handleClose = () => setIsOpen(false);
 
   const handleTypeChange = (newType: EdgeType) => {
     setType(newType);
     onUpdateType(newType);
   };
 
-  const handleWeightChange = (newWeight: number) => {
+  const handleWeightChange = (newWeight: number | null) => {
     setWeight(newWeight);
-    onUpdateWeight(newWeight);
+    if (newWeight !== null) onUpdateWeight(newWeight);
   };
 
   const handleReverse = () => {
@@ -80,159 +66,82 @@ export const EdgePopup = ({
     handleClose();
   };
 
-  // Toggle items use manual <button> instead of <Button> because they live inside
-  // a pressed/etched container and need toggle semantics (active = raised, inactive = flat)
-  // without the ghost variant's hover shadow/bg effects.
-  const toggleButtonClass = (isActive: boolean, isDisabled?: boolean) => cn(
-    "w-8 h-8 flex items-center justify-center rounded-md cursor-pointer focus-ring-animated",
-    isActive
-      ? "bg-(--color-surface) text-(--color-text) shadow-[var(--shadow-raised),var(--highlight-edge)]"
-      : "bg-transparent text-(--color-text-muted) hover:text-(--color-text)",
-    isDisabled && "opacity-50 cursor-not-allowed"
-  );
-
-  const DirectedButton = (
-    <button
-      onClick={() => handleTypeChange(EDGE_TYPE.DIRECTED)}
-      className={toggleButtonClass(type === EDGE_TYPE.DIRECTED)}
-      aria-pressed={type === EDGE_TYPE.DIRECTED}
-      aria-label="Directed edge"
-    >
-      <MoveRight className="w-4 h-4" />
-    </button>
-  );
-
-  const UndirectedButton = (
-    <button
-      onClick={() => canSwitchToUndirected && handleTypeChange(EDGE_TYPE.UNDIRECTED)}
-      disabled={!canSwitchToUndirected}
-      className={toggleButtonClass(type === EDGE_TYPE.UNDIRECTED, !canSwitchToUndirected)}
-      aria-pressed={type === EDGE_TYPE.UNDIRECTED}
-      aria-label="Undirected edge"
-    >
-      <Minus className="w-4 h-4" />
-    </button>
-  );
-
   return (
-    <TooltipProvider delayDuration={300}>
-      <Popover modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-        {/* Virtual anchor positioned at click location */}
-        <PopoverAnchor asChild>
-          <div
-            style={{
-              position: "fixed",
-              left: anchorPosition.x,
-              top: anchorPosition.y,
-              width: 1,
-              height: 1,
-              pointerEvents: "none",
-            }}
-          />
-        </PopoverAnchor>
-        <PopoverContent
-          side="top"
-          sideOffset={8}
-          className="p-2"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.stopPropagation();
-              handleClose();
-            }
-          }}
-        >
-          <GrainTexture className="rounded-lg" />
-
-          <div role="group" aria-label="Edge controls" className="flex items-center gap-2">
-            {/* Type toggle section */}
-            <div
-              role="group"
-              aria-label="Edge type"
-              className="flex p-0.5 gap-2 bg-(--color-paper) shadow-(--shadow-etched) rounded-lg"
-            >
-              {hasHover ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>{DirectedButton}</TooltipTrigger>
-                  <TooltipContent side="bottom">Directed</TooltipContent>
-                </Tooltip>
-              ) : (
-                DirectedButton
-              )}
-              {hasHover ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>{UndirectedButton}</TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                UndirectedButton
-              )}
-            </div>
-
-            {/* Divider */}
-            <div className="w-px h-6 bg-(--color-divider)" />
-
-            {/* Weight section */}
-            <Stepper
-              value={weight}
-              onChange={handleWeightChange}
-              min={EDGE.MIN_WEIGHT}
-              max={EDGE.MAX_WEIGHT}
-              onEnter={handleClose}
-            >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <StepperDecrement />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Decrease weight</TooltipContent>
-              </Tooltip>
-              <StepperField ref={weightInputRef} aria-label="Edge weight" className="max-w-10" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <StepperIncrement />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Increase weight</TooltipContent>
-              </Tooltip>
-            </Stepper>
-
-            {/* Divider */}
-            <div className="w-px h-6 bg-(--color-divider)" />
-
-            {/* Actions section — reversing is impossible if the opposite edge already exists */}
-            {type === EDGE_TYPE.DIRECTED && !hasReverseEdge && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleReverse}
-                    variant="default"
-                    size="icon-sm"
-                    aria-label="Reverse direction"
-                  >
-                    <ArrowLeftRight className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Reverse direction</TooltipContent>
-              </Tooltip>
-            )}
+    <Popover
+      modal
+      open={isOpen}
+      onOpenChange={(open) => !open && handleClose()}
+      onOpenChangeComplete={(open) => !open && onClose()}
+    >
+      <PopoverContent
+        side="top"
+        sideOffset={8}
+        anchor={anchorPosition}
+        initialFocus=".gs-stepper-control"
+        className="p-2"
+        aria-label="Edge controls"
+        onKeyDown={(e) => {
+          // Keep Escape/Enter from reaching the graph's own keyboard handlers.
+          if (e.key !== "Escape" && e.key !== "Enter") return;
+          e.stopPropagation();
+          // Enter confirms and closes only from the weight field; on a toggle
+          // or button it just operates that control.
+          if (e.key === "Escape" || e.target instanceof HTMLInputElement) handleClose();
+        }}
+      >
+        <div role="group" aria-label="Edge controls" className="flex items-center gap-2">
+          <ToggleGroup
+            aria-label="Edge type"
+            value={[type]}
+            deselectable={false}
+            onValueChange={([value]) => value && handleTypeChange(value as EdgeType)}
+          >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleDelete}
-                  variant="default"
-                  size="icon-sm"
-                  className="text-(--color-error)"
-                  aria-label="Delete edge"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+              <TooltipTrigger render={<Toggle value={EDGE_TYPE.DIRECTED} aria-label="Directed edge" />}>
+                <ToggleIcon><MoveRight /></ToggleIcon>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Delete edge</TooltipContent>
+              <TooltipContent side="bottom">Directed</TooltipContent>
             </Tooltip>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger render={<Toggle value={EDGE_TYPE.UNDIRECTED} aria-label="Undirected edge" disabled={!canSwitchToUndirected} />}>
+                <ToggleIcon><Minus /></ToggleIcon>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {canSwitchToUndirected ? "Undirected" : "Delete reverse edge first"}
+              </TooltipContent>
+            </Tooltip>
+          </ToggleGroup>
+
+          <Divider />
+
+          <Stepper
+            label="Edge weight"
+            value={weight}
+            onValueChange={handleWeightChange}
+            min={EDGE.MIN_WEIGHT}
+            max={EDGE.MAX_WEIGHT}
+            controlClassName="w-12"
+          />
+
+          <Divider />
+
+          {/* Reversing is impossible if the opposite edge already exists */}
+          {type === EDGE_TYPE.DIRECTED && !hasReverseEdge && (
+            <Tooltip>
+              <TooltipTrigger render={<Button size="icon-sm" aria-label="Reverse direction" onClick={handleReverse} />}>
+                <ArrowLeftRight aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Reverse direction</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger render={<Button size="icon-sm" tone="danger" aria-label="Delete edge" onClick={handleDelete} />}>
+              <Trash2 aria-hidden="true" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Delete edge</TooltipContent>
+          </Tooltip>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };

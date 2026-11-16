@@ -1,7 +1,5 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { ToolbarToggleGroup, ToolbarToggleItem, ToolbarSeparator } from "../ui/toolbar";
+import { Toggle, ToggleGroup, Tooltip, TooltipContent, TooltipTrigger, ToolbarSeparator } from "@/components/ui-sdk";
 import { VisualizationMode } from "../../constants/visualization";
-import { useHasHover } from "../../hooks/useMediaQuery";
 
 interface ModeToggleProps {
   mode: VisualizationMode;
@@ -9,63 +7,30 @@ interface ModeToggleProps {
   disabled: boolean;
 }
 
+/**
+ * Auto / Step mode switch. A toggle group inside the toolbar joins its arrow-key
+ * navigation (arrows move focus, Space/Enter press) instead of adding a tab stop;
+ * `deselectable={false}` keeps one mode always on.
+ */
 export const ModeToggle = ({ mode, onModeChange, disabled }: ModeToggleProps) => {
-  const hasHover = useHasHover();
-
   return (
     <>
-      <ToolbarToggleGroup
-        type="single"
-        value={mode}
-        onValueChange={(value) => value && onModeChange(value as VisualizationMode)}
+      <ToggleGroup
+        aria-label="Visualization mode"
+        value={[mode]}
+        deselectable={false}
+        onValueChange={([value]) => value && onModeChange(value as VisualizationMode)}
         disabled={disabled}
       >
-        {hasHover ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex-1">
-                <ToolbarToggleItem
-                  value={VisualizationMode.AUTO}
-                  className="px-2.5 py-1 text-xs w-full"
-                >
-                  Auto
-                </ToolbarToggleItem>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Runs visualization automatically</TooltipContent>
-          </Tooltip>
-        ) : (
-          <ToolbarToggleItem
-            value={VisualizationMode.AUTO}
-            className="px-2.5 py-1 text-xs"
-          >
-            Auto
-          </ToolbarToggleItem>
-        )}
-        {hasHover ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex-1">
-                <ToolbarToggleItem
-                  value={VisualizationMode.MANUAL}
-                  className="px-2.5 py-1 text-xs w-full"
-                >
-                  Step
-                </ToolbarToggleItem>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Control each step manually</TooltipContent>
-          </Tooltip>
-        ) : (
-          <ToolbarToggleItem
-            value={VisualizationMode.MANUAL}
-            className="px-2.5 py-1 text-xs"
-          >
-            Step
-          </ToolbarToggleItem>
-        )}
-      </ToolbarToggleGroup>
-
+        <Tooltip>
+          <TooltipTrigger render={<Toggle value={VisualizationMode.AUTO} />}>Auto</TooltipTrigger>
+          <TooltipContent>Runs visualization automatically</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger render={<Toggle value={VisualizationMode.MANUAL} />}>Step</TooltipTrigger>
+          <TooltipContent>Control each step manually</TooltipContent>
+        </Tooltip>
+      </ToggleGroup>
       <ToolbarSeparator />
     </>
   );

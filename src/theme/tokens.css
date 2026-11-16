@@ -2,29 +2,36 @@
  * Theme tokens — the single source of truth for every colour, shadow, gradient
  * and dimension used across the app (UI, SVG graph, Canvas, Three.js, export).
  *
- * `:root` holds the light-theme defaults. Each `[data-theme="..."]` block
- * overrides them; `data-theme` on <html> (set by useApplyTheme) selects one.
- * To add a theme: copy a block, change the selector, and adjust values.
+ * `:root` holds the light theme (Paper). `[data-theme="dark"]` is Tungsten and
+ * `[data-theme="blueprint"]` is Blueprint; `data-theme` on <html> (set by
+ * useApplyTheme) selects one. Each block is also exposed as a `[data-skin]`
+ * scope so the theme playground can render several themes on one page.
+ *
+ * Two kinds of token live here:
+ *   1. Palette: `--color-*`, `--gradient-*`, `--shadow-*` — what a theme IS.
+ *   2. Derived: `--panel-*`, `--control-*`, `--well-*`, `--selected-*`, … — what
+ *      the ui-sdk component layer (components/ui-sdk/ui-sdk.css) reads. They
+ *      default to the palette and a theme overrides only what it needs.
+ *
+ * A `var()` inside a custom property resolves on the element where it is
+ * declared, so the derived defaults are declared on `:root, [data-skin]`:
+ * every skin scope recomputes them from its own palette.
  */
 
-:root {
+:root,
+[data-skin="paper"] {
+  color-scheme: light;
+
   /* Fonts */
   --font-sans: "Outfit", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* === PHYSICAL SURFACE PALETTE === */
-
-  /* Paper background - warm, textured feel */
+  /* === PAPER — warm flat paper, hairline rings, grain === */
   --color-paper: #e5e0d8;
-
-  /* Surface - light like nodes */
   --color-surface: #f1eee9;
   --color-surface-hover: #f8f6f2;
-
-  /* Text */
   --color-text: #2a2520;
   --color-text-muted: #5a544c;
-
-  /* Single accent - only one visible at a time */
   --color-accent: #4aaa4a;
   --color-accent-pressed: #3a943a;
   --color-error: #d96850;
@@ -36,74 +43,48 @@
   --color-tint-end: #c06048;
   --color-tint-cycle: #d86850;
 
-  /* === SHADOW SYSTEM (Flat Paper Aesthetic) === */
+  /* Shadow system */
+  --shadow-raised: 0px 0px 0px 1px rgba(50, 45, 40, 0.2);
+  --shadow-raised-lg: 0px 0px 0px 1px rgba(50, 45, 40, 0.2), 0px 3px 2px rgba(50, 45, 40, 0.03);
+  --highlight-edge: inset 0px 1px 0px rgba(255, 255, 255, 0.5);
+  --shadow-pressed: inset 0px 2px 4px rgba(50, 45, 40, 0.15);
+  --shadow-etched: inset 0px 1px 3px rgba(50, 45, 40, 0.12);
+  --shadow-premium: 0px 0px 0px 1px rgba(50, 45, 40, 0.2);
 
-  --shadow-raised:
-    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
-
-  --shadow-raised-lg:
-    0px 0px 0px 1px rgba(50, 45, 40, 0.2),
-    0px 3px 2px rgba(50, 45, 40, 0.03);
-
-  --highlight-edge:
-    inset 0px 1px 0px rgba(255, 255, 255, 0.5);
-
-  --shadow-pressed:
-    inset 0px 2px 4px rgba(50, 45, 40, 0.15);
-
-  --shadow-etched:
-    inset 0px 1px 3px rgba(50, 45, 40, 0.12);
-
-  --shadow-premium:
-    0px 0px 0px 1px rgba(50, 45, 40, 0.2);
-
-  /* Node gradient colors - flat for minimal 2D look */
+  /* Node gradient colors - flat for the paper look */
   --gradient-default-start: #e8e3db;
   --gradient-default-mid: #e8e3db;
   --gradient-default-end: #e8e3db;
-
   --gradient-visited-start: #a0d4a0;
   --gradient-visited-mid: #a0d4a0;
   --gradient-visited-end: #a0d4a0;
-
   --gradient-path-start: #e4c890;
   --gradient-path-mid: #e4c890;
   --gradient-path-end: #e4c890;
-
   --gradient-start-start: #90c8e0;
   --gradient-start-mid: #90c8e0;
   --gradient-start-end: #90c8e0;
-
   --gradient-end-start: #e4a088;
   --gradient-end-mid: #e4a088;
   --gradient-end-end: #e4a088;
-
   --gradient-cycle-start: #e8a090;
   --gradient-cycle-mid: #e8a090;
   --gradient-cycle-end: #e8a090;
 
-  /* Edge colors */
+  /* Edges & arrows */
   --color-edge-default: rgba(50, 45, 40, 0.45);
   --color-edge-traversal: #4a9a4a;
   --color-edge-path: #b89040;
   --color-edge-cycle: #d86850;
-
-  /* Arrow colors (slightly darker than edges for differentiation) */
   --color-arrow-traversal: #429242;
   --color-arrow-path: #a88038;
   --color-arrow-cycle: #c85840;
 
-  /* Node drop shadow - none for flat design */
   --node-shadow-color: transparent;
-
-  /* Node stroke */
   --color-node-stroke: #8a847a;
 
-  /* Interactive states (for hover on items) */
-  --color-interactive-hover: rgba(50, 45, 40, 0.12);
+  --color-interactive-hover: rgba(50, 45, 40, 0.1);
   --color-slider-range: rgba(50, 45, 40, 0.22);
-
-  /* Divider */
   --color-divider: rgba(50, 45, 40, 0.18);
 
   /* Form control accent (warm orange) */
@@ -114,7 +95,6 @@
   --color-grid-line: rgba(50, 45, 40, 0.08);
   --color-grid-line-major: rgba(50, 45, 40, 0.15);
 
-  /* Grain texture opacity */
   --grain-opacity: 0.15;
 
   /* Focus ring animation */
@@ -128,240 +108,1483 @@
   --edge-stroke-active-width: 5px;
 }
 
-/* === DARK THEME === */
-[data-theme="dark"] {
-  /* Paper background - dark, subtle warmth */
-  --color-paper: #1a1a1e;
+/* === DERIVED TOKENS (defaults; themes override below) ===
+   Every token the component layer reads has a default here, declared on
+   `:root, [data-skin]`. That is what keeps themes sealed: a nested skin scope
+   re-declares all of them, so nothing set by the page theme can reach into it. */
+:root,
+[data-skin] {
+  /* shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --control-xs: 24px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
 
-  /* Molded surface material - slightly lighter than paper */
-  --color-surface: #242428;
-  --color-surface-hover: #2e2e32;
+  /* type */
+  --font-label: var(--font-sans);
+  --label-size: 12px;
+  --label-weight: 500;
+  --label-case: none;
+  --label-tracking: 0;
+  --value-font: var(--font-sans);
+  --legend-shadow: none;
 
-  /* Text */
-  --color-text: #e8e6e3;
-  --color-text-muted: #9a9590;
+  /* motion: keys go down fast and settle on release; sliding caps snap to a detent */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-press: cubic-bezier(0.3, 0, 0.6, 1);
+  --ease-release: cubic-bezier(0.2, 1.15, 0.3, 1);
+  --ease-detent: cubic-bezier(0.45, 0, 0.15, 1);
+  --dur-press: 55ms;
+  --dur-release: 170ms;
+  --dur-1: 100ms;
+  --dur-2: 160ms;
+  --dur-3: 240ms;
 
-  /* Accent colors (slightly brighter for dark bg) */
-  --color-accent: #6bc96b;
-  --color-accent-pressed: #5ab85a;
-  --color-error: #e07b5a;
+  /* focus: a thin ring with clear air round it */
+  --focus-color: var(--color-accent-form);
+  --focus-width: 2px;
+  --focus-active-width: 4px;
+  --focus-duration: 280ms;
+  --focus-offset: 3px;
 
-  /* Node state tints (more saturated for dark bg) */
+  /* legends: what is written on a control */
+  --legend-font: var(--font-sans);
+  --legend-case: none;
+  --legend-tracking: normal;
+  --legend-scale: 1;
+
+  /* text in the accent / danger colour (may need to be darker than the fill colour) */
+  --accent-text: var(--color-accent);
+  --danger-text: var(--color-error);
+
+  /* disabled: `initial` means "no theme look, just fade" (see .gs-button[data-disabled]) */
+  --disabled-opacity: 0.4;
+  --disabled-latch-opacity: 0.5;
+  --disabled-bg: initial;
+  --disabled-face: initial;
+  --disabled-seat: initial;
+  --disabled-fg: initial;
+  --disabled-check-bg: initial;
+  --disabled-check-fg: initial;
+  --disabled-check-shadow: initial;
+
+  /* latches that are not on: hover preview and press dent */
+  --latch-hover-bg: transparent;
+  --latch-hover-shadow: none;
+  --latch-pressed-bg: transparent;
+  --latch-pressed-shadow: none;
+  --thumb-hover-shadow: initial;
+  --thumb-accent-hover-shadow: initial;
+  --switch-thumb-hover-bg: initial;
+  --switch-thumb-hover-shadow: initial;
+  --switch-thumb-held-shadow: initial;
+  --check-hover-bg: initial;
+  --check-hover-shadow: initial;
+  --check-held-shadow: initial;
+  --menu-pressed-bg: initial;
+  --menu-pressed-shadow: initial;
+  --menu-pad: 4px;
+  --hint-outline: var(--color-accent-form);
+
+  /* popup motion (see "popups (motion)" in ui-sdk.css) */
+  --popup-dur: 200ms;
+  --popup-ease: cubic-bezier(0.2, 1.15, 0.3, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 0.96;
+  --popup-start-shift: 6px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+
+  /* graph nodes */
+  --node-hatch-opacity: 0.25;
+
+  /* which synthesised sound kit the controls use (see ui-sdk/press-sound.ts) */
+  --sound-kit: none;
+
+  /* physics: a neutral material: exact, no ring, no slack. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.14;
+  --phys-key-damping: 1;
+  --phys-key-bounce: 0;
+  --phys-slide-response: 0.2;
+  --phys-slide-damping: 1;
+  --phys-slide-bounce: 0;
+  --phys-popup-response: 0.3;
+  --phys-popup-damping: 1;
+  --phys-edge: pen;
+  --phys-edge-response: 0.09;
+  --phys-edge-damping: 1;
+  --phys-edge-slack: 0;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.06;
+  --phys-node-damping: 1;
+  --phys-node-bounce: 0;
+  --phys-node-glide: 0;
+  /* a new node simply appears at size (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 0.9;
+  --phys-arrive-response: 0.2;
+  --phys-arrive-damping: 1;
+
+  /* canvas */
+  --canvas-texture: none;
+  --canvas-texture-size: auto;
+  --canvas-blend: normal;
+
+  /* panel: a plate lying on the canvas */
+  --panel-bg: var(--color-surface);
+  --panel-fg: var(--color-text);
+  --panel-shadow: var(--shadow-premium);
+  --popup-shadow: var(--panel-shadow);
+  --panel-radius: var(--radius-md);
+  --panel-texture: var(--texture-grain);
+  --panel-texture-size: auto;
+  --panel-texture-opacity: var(--grain-opacity);
+  --panel-texture-blend: normal;
+  --panel-marks: none;
+  --panel-backdrop: none;
+  --divider-size: 1px;
+  --divider-v: var(--color-divider);
+  --divider-h: var(--color-divider);
+
+  /* well: a pocket sunk into the surface */
+  --well-bg: var(--color-paper);
+  --well-shadow: var(--shadow-etched);
+  --well-radius: var(--radius-md);
+  --well-pad: 2px;
+  --well-gap: 6px;
+
+  /* key: a fixed seat and a cap that travels and leans (see .gs-button).
+     seat  = what the cap stands on / in: wall, slot, cast shadow (never moves)
+     face  = the cap's own edges and highlights (moves with it) */
+  --control-bg: var(--color-surface);
+  --control-fg: var(--color-text);
+  --control-hover-bg: var(--color-surface-hover);
+  --control-pressed-bg: var(--color-paper);
+  --control-face: var(--shadow-raised), var(--highlight-edge);
+  --control-face-pressed: var(--shadow-pressed);
+  --control-seat: none;
+  --control-seat-pressed: none;
+  --control-seat-bg: transparent;
+  --control-radius: var(--radius-sm);
+  --control-text-shadow: none;
+  --control-icon-filter: none;
+  --control-gap: 4px;
+  --key-wall-out: 0px;        /* wall standing below the key's layout box */
+  --key-wall-out-x: 0px;      /* …and to its right (oblique solids) */
+  --key-wall-in: 0px;         /* wall drawn inside the box (slotted keys) */
+  --key-travel: 1px;          /* how far the cap drops */
+  --key-travel-x: 0px;
+  --key-lean: 0px;            /* height difference across a leaning cap; 0 = stays level */
+  --key-press-shade: transparent;   /* the shade a fingertip throws on the cap */
+  --key-texture: none;
+  --key-texture-size: auto;
+  --key-texture-blend: normal;
+
+  --primary-bg: var(--color-accent);
+  --primary-hover-bg: var(--color-accent-pressed);
+  --primary-pressed-bg: var(--color-accent-pressed);
+  --primary-face: var(--shadow-raised), var(--highlight-edge);
+  --primary-face-pressed: var(--shadow-pressed);
+  --primary-seat: none;
+  --primary-seat-pressed: none;
+  --primary-seat-bg: transparent;
+  --primary-press-shade: transparent;
+  --primary-fg: #ffffff;
+  --primary-text-shadow: none;
+  --danger-bg: var(--color-error);
+  --danger-hover-bg: var(--color-error);
+  --danger-pressed-bg: var(--color-error);
+  --danger-face: var(--shadow-raised), var(--highlight-edge);
+  --danger-face-pressed: var(--shadow-pressed);
+  --danger-seat: none;
+  --danger-seat-pressed: none;
+  --danger-seat-bg: transparent;
+  --danger-fg: #ffffff;
+
+  /* ghost: the low-profile key (toolbar icons, steppers) */
+  --ghost-bg: transparent;
+  --ghost-hover-bg: var(--color-surface);
+  --ghost-pressed-bg: var(--color-paper);
+  --ghost-face: none;
+  --ghost-face-pressed: var(--shadow-pressed);
+  --ghost-seat: none;
+  --ghost-seat-pressed: none;
+  --ghost-seat-bg: transparent;
+  --ghost-wall-in: 0px;
+  --ghost-travel: 1px;
+  --ghost-travel-x: 0px;
+  --ghost-lean: 0px;
+
+  /* cap: the low-profile key inside a well (selected toggle, sliding indicator, stepper) */
+  --selected-bg: var(--color-surface);
+  --selected-fg: var(--color-text);
+  --selected-shadow: var(--shadow-raised), var(--highlight-edge);
+  --selected-pressed-shadow: var(--shadow-raised), var(--highlight-edge);
+  --selected-text-shadow: none;
+  --selected-wall: 0px;
+  --selected-wall-x: 0px;
+  --selected-shift-x: 0px;
+  --selected-shift-y: 0px;
+
+  /* status light on latching controls */
+  --led-display: none;
+  --led-room: 0px;
+  --led-bottom: 3px;
+  --led-width: 10px;
+  --led-height: 2px;
+  --led-radius: 1px;
+  --led-off: transparent;
+  --led-off-shadow: none;
+  --led-on: var(--color-accent-form);
+  --led-on-shadow: none;
+
+  /* slider */
+  --track-height: 6px;
+  --track-radius: 999px;
+  --track-bg: var(--color-paper);
+  --track-shadow: var(--shadow-etched);
+  --track-caps: none;
+  --track-cap-color: currentColor;
+  --indicator-bg: var(--color-slider-range);
+  --indicator-shadow: none;
+  --thumb-w: 24px;
+  --thumb-h: 16px;
+  --thumb-lift: 0px;
+  --thumb-radius: var(--radius-xs);
+  --thumb-bg: var(--color-surface);
+  --thumb-shadow: var(--shadow-raised), var(--highlight-edge);
+  --thumb-pressed-shadow: var(--shadow-raised), var(--highlight-edge);
+  --thumb-hover-filter: brightness(1.04);
+  --thumb-grip-color: rgba(255, 255, 255, 0.7);
+  --thumb-grip: repeating-linear-gradient(90deg, var(--thumb-grip-color) 0 1.5px, transparent 1.5px 4.5px) 0 0 / 13.5px 100%;
+  --thumb-grip-w: 12px;
+  --thumb-grip-h: 9px;
+  --thumb-accent-bg: var(--color-accent-form);
+  --thumb-accent-shadow: var(--shadow-raised), var(--highlight-edge);
+  --thumb-accent-pressed-shadow: var(--shadow-raised), var(--highlight-edge);
+  --thumb-accent-grip: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 1.5px 4.5px) 0 0 / 13.5px 100%;
+  --slider-ticks: none;
+  --tick-color: var(--color-divider);
+  --tick-major-color: var(--color-text-muted);
+  --tick-shadow: none;
+
+  /* switch / checkbox */
+  --accent-control-bg: var(--color-accent-form);
+  --accent-control-fg: #ffffff;
+  --switch-radius: 999px;
+  --switch-on-bg: var(--color-accent-form);
+  --switch-on-shadow: var(--shadow-etched);
+  --switch-thumb-bg: var(--color-surface);
+  --switch-thumb-shadow: var(--shadow-raised), var(--highlight-edge);
+  --switch-thumb-radius: 999px;
+  --switch-thumb-lift: 0px;
+  --check-bg: var(--color-accent-form);
+  --check-fg: #ffffff;
+  --check-shadow: var(--highlight-edge);
+  --check-glyph-filter: none;
+
+  /* readouts and fields */
+  --readout-bg: transparent;
+  --readout-fg: var(--color-text);
+  --readout-shadow: none;
+  --readout-text-shadow: none;
+  --input-bg: var(--color-paper);
+  --input-shadow: var(--shadow-etched);
+  --input-fg: var(--color-text);
+  --input-placeholder: var(--color-text-muted);
+
+  /* menus, tooltips, small parts */
+  --menu-hover-bg: var(--color-interactive-hover);
+  --menu-hover-shadow: none;
+  --select-selected-bg: var(--color-accent-form);
+  --select-selected-fg: #ffffff;
+  --select-selected-shadow: none;
+  --select-selected-mark: currentColor;
+  --tooltip-bg: var(--color-text);
+  --tooltip-fg: var(--color-paper);
+  --tooltip-arrow-bg: var(--color-text);
+  --tooltip-radius: var(--radius-sm);
+  --tooltip-shadow: var(--shadow-raised);
+  --tooltip-text-shadow: none;
+  --tooltip-font: var(--font-sans);
+  --tooltip-size: 12px;
+  --tooltip-tracking: 0;
+  --tooltip-case: none;
+  --kbd-bg: var(--color-paper);
+  --kbd-shadow: none;
+  --kbd-wall: 0px;
+  --card-selected-ring: 0 0 0 2px var(--color-accent-form);
+  --card-mark-display: none;
+  --card-mark-width: 18px;
+  --card-mark-height: 2px;
+  --card-mark: var(--color-accent-form);
+  --card-selected-icon: var(--color-text-muted);
+  --card-selected-icon-filter: none;
+  --chip-bg: var(--color-paper);
+  --chip-shadow: inset 0 0 0 1px var(--color-divider);
+  --chip-active-bg: var(--color-accent-form);
+  --chip-active-fg: #ffffff;
+  --chip-active-shadow: var(--shadow-raised), var(--highlight-edge);
+  --chip-active-text-shadow: none;
+
+  /* flat node colours for previews */
+  --node-default: var(--gradient-default-mid);
+  --node-visited: var(--gradient-visited-mid);
+  --node-path: var(--gradient-path-mid);
+  --node-start: var(--gradient-start-mid);
+  --node-end: var(--gradient-end-mid);
+  --node-stroke: var(--color-node-stroke);
+  --edge-default: var(--color-edge-default);
+  --edge-traversal: var(--color-edge-traversal);
+  --edge-path: var(--color-edge-path);
+
+  --texture-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Material maps: opaque mid-grey noise, meant for soft-light / overlay blending
+     so they add light and dark specks without washing the surface out. */
+  --tex-fibre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95 .5' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.7 .7 .7 0 -.55 .7 .7 .7 0 -.55 .7 .7 .7 0 -.55 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --tex-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.2 .2 .2 0 .4 .2 .2 .2 0 .4 .2 .2 .2 0 .4 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --tex-matte: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.3 .3 .3 0 .05 .3 .3 .3 0 .05 .3 .3 .3 0 .05 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* === LIGHT = PAPER — a desk of cotton stock. Nothing here is thicker than a
+   sheet: plates are sheets lying on the desk, keys are slips of card, toolbar
+   keys are blind-embossed into the sheet and deboss under the finger, wells
+   are debossed, dividers are perforations, colour is ink soaked into the
+   fibre. The stock itself is plain: no grain. === */
+:root,
+[data-skin="paper"] {
+  --sh: 32 24% 22%;            /* warm shadow hue (h s l) */
+  --ply-1: #e6dfd4;
+  --ply-2: #cdc4b5;
+  --ply-3: #b9ae9d;
+
+  --canvas-texture: none;
+  --canvas-texture-size: auto;
+  --canvas-blend: normal;
+  --legend-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  --panel-bg: #f7f4ee;
+  --panel-texture: none;
+  --panel-texture-size: auto;
+  --panel-texture-opacity: 0;
+  --panel-texture-blend: normal;
+  /* One sheet thick: a lit top edge, a hairline, the cut edge, a close soft shadow. */
+  --panel-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px hsl(var(--sh) / 0.16),
+    0 1px 0 1px hsl(var(--sh) / 0.07),
+    0 2px 4px -1px hsl(var(--sh) / 0.1);
+  --popup-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px hsl(var(--sh) / 0.18),
+    0 1px 0 1px hsl(var(--sh) / 0.07),
+    0 4px 8px -2px hsl(var(--sh) / 0.14),
+    0 12px 24px -10px hsl(var(--sh) / 0.2);
+  /* Dividers are perforations. */
+  --divider-size: 2px;
+  --divider-v: radial-gradient(circle, hsl(var(--sh) / 0.42) 0 0.8px, transparent 1.1px) 50% 0 / 2px 5px repeat-y;
+  --divider-h: radial-gradient(circle, hsl(var(--sh) / 0.42) 0 0.8px, transparent 1.1px) 0 50% / 5px 2px repeat-x;
+
+  --well-bg: #e2ddd3;
+  --well-shadow:
+    inset 0 1px 2px hsl(var(--sh) / 0.24),
+    inset 0 0 0 1px hsl(var(--sh) / 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+  --well-pad: 3px;
+  --well-gap: 4px;
+
+  /* A key is a slip of card lying on the sheet: one ply thick, a close shadow.
+     Pressing pushes it flat and the face takes the dent of the fingertip. */
+  --control-bg: #fdfbf7;
+  --control-hover-bg: #ffffff;
+  --control-pressed-bg: #f1ede5;
+  --control-face:
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.2);
+  --control-face-pressed:
+    inset 0 1px 2px hsl(var(--sh) / 0.16),
+    0 0 0 1px hsl(var(--sh) / 0.24);
+  --control-seat: 
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.14),
+    0 2px 2px -1px hsl(var(--sh) / 0.12);
+  --control-seat-pressed: 
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.16);
+  --control-text-shadow: none;
+  --control-gap: 6px;
+  --key-wall-out: 1px;
+  --key-travel: 1px;
+  --key-lean: 0px;
+  --key-press-shade: hsl(var(--sh) / 0.05);
+  --key-texture: none;
+  --key-texture-size: auto;
+  --key-texture-blend: normal;
+
+  /* Colour is ink: flat, matte, darker where it pooled at the edge. */
+  --primary-bg: #2f8234;
+  --primary-hover-bg: #37893c;
+  --primary-pressed-bg: #27732c;
+  --primary-face: 
+    inset 0 0 0 1px rgba(10, 60, 16, 0.25),
+    0 0 0 1px rgba(16, 70, 22, 0.75);
+  --primary-face-pressed:
+    inset 0 1px 2px rgba(10, 60, 14, 0.4),
+    inset 0 0 6px rgba(20, 90, 26, 0.18),
+    0 0 0 1px rgba(26, 96, 30, 0.65);
+  --primary-seat: 
+    0 1px 0 #1f5c23,
+    0 1px 0 1px rgba(16, 60, 20, 0.45),
+    0 2px 2px -1px hsl(var(--sh) / 0.12);
+  --primary-seat-pressed: 
+    0 1px 0 #1f5c23,
+    0 1px 0 1px rgba(16, 60, 20, 0.5);
+  --primary-press-shade: rgba(10, 60, 14, 0.14);
+  --primary-text-shadow: none;
+  --danger-bg: #c4472f;
+  --danger-hover-bg: #cc5038;
+  --danger-pressed-bg: #b33d26;
+  --danger-face: 
+    inset 0 0 0 1px rgba(100, 26, 10, 0.25),
+    0 0 0 1px rgba(110, 34, 18, 0.75);
+  --danger-face-pressed:
+    inset 0 1px 2px rgba(90, 24, 10, 0.4),
+    inset 0 0 6px rgba(130, 40, 22, 0.18),
+    0 0 0 1px rgba(140, 48, 30, 0.65);
+  --danger-seat: 
+    0 1px 0 #8e2f1d,
+    0 1px 0 1px rgba(90, 28, 14, 0.45),
+    0 2px 2px -1px hsl(var(--sh) / 0.12);
+  --danger-seat-pressed: 
+    0 1px 0 #8e2f1d,
+    0 1px 0 1px rgba(90, 28, 14, 0.5);
+
+  /* Ghost: a blind emboss. Same sheet, pushed up from behind; pressing debosses it. */
+  --ghost-bg: #faf8f3;
+  --ghost-hover-bg: #ffffff;
+  --ghost-pressed-bg: #ebe6dd;
+  --ghost-face: 
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.11),
+    0 1px 0 hsl(var(--sh) / 0.08);
+  --ghost-face-pressed: 
+    inset 0 1px 1.5px hsl(var(--sh) / 0.2),
+    inset 0 0 0 1px hsl(var(--sh) / 0.07);
+  --ghost-seat: none;
+  --ghost-seat-pressed: none;
+  --ghost-travel: 0.5px;
+  --ghost-lean: 0px;
+
+  --selected-bg: #fdfbf7;
+  --selected-shadow: 
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.17),
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.1);
+  --selected-pressed-shadow:
+    inset 0 1px 2px hsl(var(--sh) / 0.14),
+    0 0 0 1px hsl(var(--sh) / 0.2);
+  --selected-text-shadow: none;
+  --selected-wall: 1px;
+  --selected-shift-y: 1px;
+
+  --track-bg: #ddd7cc;
+  --track-shadow:
+    inset 0 1px 2px hsl(var(--sh) / 0.3),
+    inset 0 0 0 1px hsl(var(--sh) / 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+  --indicator-bg: linear-gradient(180deg, #8d867a, #a29b8f);
+  --indicator-shadow: inset 0 1px 1px hsl(var(--sh) / 0.4);
+  --thumb-w: 26px;
+  --thumb-h: 18px;
+  --thumb-lift: 1px;
+  --thumb-radius: 5px;
+  --thumb-bg: #fdfbf7;
+  --thumb-shadow: 
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.22),
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.12),
+    0 2px 2px -1px hsl(var(--sh) / 0.14);
+  --thumb-pressed-shadow:
+    inset 0 1px 2px hsl(var(--sh) / 0.12),
+    0 0 0 1px hsl(var(--sh) / 0.24),
+    0 1px 1px hsl(var(--sh) / 0.12);
+  --thumb-grip: repeating-linear-gradient(90deg, hsl(var(--sh) / 0.28) 0 1px, rgba(255, 255, 255, 0.95) 1px 2px, transparent 2px 4px) 0 0 / 12px 100%;
+  --thumb-grip-w: 10px;
+  --thumb-accent-bg: #c2552c;
+  --thumb-accent-shadow: 
+    inset 0 0 0 1px rgba(130, 50, 20, 0.28),
+    0 0 0 1px rgba(150, 60, 25, 0.6),
+    0 1px 0 #b05430,
+    0 1px 0 1px rgba(110, 40, 15, 0.35),
+    0 2px 2px -1px hsl(var(--sh) / 0.16);
+  --thumb-accent-pressed-shadow:
+    inset 0 1px 2px rgba(90, 30, 8, 0.35),
+    0 0 0 1px rgba(150, 60, 25, 0.65),
+    0 1px 1px hsl(var(--sh) / 0.12);
+  --thumb-accent-grip: repeating-linear-gradient(90deg, rgba(120, 45, 15, 0.45) 0 1px, rgba(255, 255, 255, 0.5) 1px 2px, transparent 2px 4px) 0 0 / 12px 100%;
+
+  --accent-control-bg: #c2552c;
+  --switch-on-bg: #c2552c;
+  --switch-on-shadow:
+    inset 0 1px 2px rgba(110, 40, 10, 0.5),
+    inset 0 0 0 1px rgba(110, 40, 10, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+  --switch-thumb-bg: linear-gradient(180deg, #ffffff, #f1ede6);
+  --switch-thumb-shadow: 
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.2),
+    0 1px 1px hsl(var(--sh) / 0.18);
+  --switch-thumb-lift: 1px;
+  --check-bg: #c2552c;
+  --check-shadow:
+    inset 0 0 0 1px rgba(130, 50, 20, 0.3),
+    inset 0 0 4px rgba(130, 50, 20, 0.2);
+  --check-glyph-filter: none;
+
+  --input-bg: #e6e1d8;
+  --input-shadow: 
+    inset 0 1px 2px hsl(var(--sh) / 0.22),
+    inset 0 0 0 1px hsl(var(--sh) / 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --menu-hover-bg: hsl(var(--sh) / 0.07);
+  --menu-hover-shadow: inset 0 1px 2px hsl(var(--sh) / 0.14), inset 0 0 0 1px hsl(var(--sh) / 0.05);
+  --select-selected-bg: hsl(var(--sh) / 0.07);
+  --select-selected-shadow: inset 0 1px 2px hsl(var(--sh) / 0.14), inset 0 0 0 1px hsl(var(--sh) / 0.05);
+  --tooltip-bg: #2a2520;
+  --tooltip-arrow-bg: #2a2520;
+  --tooltip-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px hsl(var(--sh) / 0.35);
+  --kbd-bg: linear-gradient(180deg, #fefdfa, #f2eee7);
+  --kbd-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px hsl(var(--sh) / 0.18), 0 1px 0 var(--ply-2);
+  --kbd-wall: 1px;
+  --card-selected-icon: var(--color-accent-form);
+  --chip-bg: #e6e1d8;
+  --chip-shadow: inset 0 1px 1px hsl(var(--sh) / 0.18), inset 0 0 0 1px hsl(var(--sh) / 0.08), 0 1px 0 rgba(255, 255, 255, 0.9);
+  --chip-active-bg: #c2552c;
+  --chip-active-shadow:
+    inset 0 0 0 1px rgba(130, 50, 20, 0.3),
+    0 0 0 1px rgba(150, 60, 25, 0.5),
+    0 1px 0 #b05430;
+  --chip-active-text-shadow: none;
+
+  /* --- audit pass: states, focus, contrast --- */
+  --tooltip-radius: 3px;
+  --select-selected-fg: var(--color-text);
+  --select-selected-mark: #c2552c;
+  --accent-text: #2c7a31;            /* green ink dark enough to read as text */
+  --danger-text: #b23f28;
+  --focus-color: #2a2520;            /* focus is a ruled ink line; orange stays "on" */
+  --hint-outline: var(--color-accent-form);
+  --card-selected-ring: 0 0 0 1px hsl(var(--sh) / 0.34);
+  --card-selected-icon: #c2552c;
+
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: #ece8e0;
+  --disabled-face: 0 0 0 1px hsl(var(--sh) / 0.1);
+  --disabled-seat: none;
+  --disabled-fg: #8b8479;
+  --disabled-check-bg: #d3cdc2;
+  --disabled-check-fg: #f7f4ee;
+  --disabled-check-shadow: inset 0 0 0 1px hsl(var(--sh) / 0.12);
+
+  /* Unlit latches: hover is a thumb smudge, press is a blind deboss. */
+  --latch-hover-bg: hsl(var(--sh) / 0.045);
+  --latch-hover-shadow: none;
+  --latch-pressed-bg: hsl(var(--sh) / 0.08);
+  --latch-pressed-shadow: inset 0 1px 2px hsl(var(--sh) / 0.2), inset 0 0 0 1px hsl(var(--sh) / 0.05);
+  --thumb-hover-shadow:
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px hsl(var(--sh) / 0.34),
+    0 1px 0 var(--ply-2),
+    0 1px 0 1px hsl(var(--sh) / 0.16),
+    0 2px 3px -1px hsl(var(--sh) / 0.2);
+  --thumb-accent-hover-shadow:
+    inset 0 0 0 1px rgba(100, 36, 10, 0.35),
+    0 0 0 1px rgba(120, 44, 14, 0.8),
+    0 1px 0 #8d3a1a,
+    0 2px 3px -1px hsl(var(--sh) / 0.24);
+  --switch-thumb-hover-bg: #ffffff;
+  --switch-thumb-hover-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px hsl(var(--sh) / 0.32), 0 1px 2px hsl(var(--sh) / 0.24);
+  --switch-thumb-held-shadow: inset 0 1px 1px hsl(var(--sh) / 0.14), 0 0 0 1px hsl(var(--sh) / 0.3);
+  --check-hover-bg: #dad4c9;
+  --check-hover-shadow: inset 0 1px 2px hsl(var(--sh) / 0.3), inset 0 0 0 1px hsl(var(--sh) / 0.14), 0 1px 0 rgba(255, 255, 255, 0.9);
+  --check-held-shadow: inset 0 1px 3px hsl(var(--sh) / 0.4), inset 0 0 0 1px hsl(var(--sh) / 0.16);
+  --menu-pressed-bg: hsl(var(--sh) / 0.11);
+  --menu-pressed-shadow: inset 0 1px 3px hsl(var(--sh) / 0.22), inset 0 0 0 1px hsl(var(--sh) / 0.06);
+
+  /* Finishing: a printed rule under the slider, a ruled baseline under the stepper figure. */
+  --slider-ticks: flex;
+  --tick-color: hsl(var(--sh) / 0.3);
+  --tick-major-color: hsl(var(--sh) / 0.6);
+  --readout-shadow: inset 0 -1px 0 hsl(var(--sh) / 0.28);
+
+  /* Graph ink: dark enough to carry state without relying on hue alone. */
+  --color-node-stroke: #6c665c;
+  --color-edge-default: rgba(50, 45, 40, 0.62);
+
+  /* "On" in Paper is one device: a short rule printed in orange ink under the
+     legend. Tabs, segments, toggles and selected cards all carry it. */
+  --led-display: block;
+  --led-room: 5px;
+  --led-bottom: 4px;
+  --led-width: 12px;
+  --led-height: 2px;
+  --led-radius: 1px;
+  --led-off: transparent;
+  --led-off-shadow: none;
+  --led-on: #c2552c;
+  --led-on-shadow: none;
+  --card-mark-display: block;
+  --card-mark-width: 18px;
+  --card-mark-height: 2px;
+  --card-mark: #c2552c;
+
+  /* A popup is a sheet being laid down: it drops a few pixels onto the desk and
+     the tall soft shadow it had in the air closes up under it. No scale. */
+  --popup-dur: 220ms;
+  --popup-ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 1;
+  --popup-start-shift: 5px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px hsl(var(--sh) / 0.1),
+    0 1px 0 1px hsl(var(--sh) / 0),
+    0 14px 18px -4px hsl(var(--sh) / 0.14),
+    0 30px 44px -12px hsl(var(--sh) / 0.22);
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+  --node-hatch-opacity: 0.25;        /* pencil shading */
+  --sound-kit: paper;
+
+  /* physics: card stock. Light and soft: it gives, returns without ringing and lands dead. A drawn edge is a thread with a little slack. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.26;
+  --phys-key-damping: 0.8;
+  --phys-key-bounce: 0.15;
+  --phys-slide-response: 0.36;
+  --phys-slide-damping: 0.78;
+  --phys-slide-bounce: 0.12;
+  --phys-popup-response: 0.45;
+  --phys-popup-damping: 0.8;
+  --phys-edge: thread;
+  --phys-edge-response: 0.36;
+  --phys-edge-damping: 0.6;
+  --phys-edge-slack: 0.025;
+  --phys-edge-gravity: 900;
+  --phys-node-response: 0.1;
+  --phys-node-damping: 0.9;
+  --phys-node-bounce: 0.1;
+  --phys-node-glide: 0.97;
+  /* a new node is laid down: it comes up to size softly (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 0.88;
+  --phys-arrive-response: 0.36;
+  --phys-arrive-damping: 0.8;
+}
+
+/* === DARK = TUNGSTEN — a matte graphite instrument. Bead-blasted, not brushed:
+   smooth soft faces, keys that stand three pixels proud on a solid wall and
+   throw a soft shadow, shallow wells, round caps, one amber lamp colour for
+   anything that is on. Depth comes from light, never from ornament. === */
+[data-theme="dark"],
+[data-skin="tungsten"] {
+  color-scheme: dark;
+  --amber: #f2a33a;
+  --amber-glow: rgba(242, 163, 58, 0.45);
+
+  --color-paper: #1b1c1f;
+  --color-surface: #2a2c30;
+  --color-surface-hover: #33363b;
+  --color-text: #ebe8e1;
+  --color-text-muted: #9c9991;
+  --color-accent: var(--amber);
+  --color-accent-pressed: #e0922a;
+  --color-error: #ff6b57;
+
   --color-tint-visited: rgba(107, 201, 107, 0.3);
-  --color-tint-path: rgba(230, 162, 60, 0.35);
+  --color-tint-path: rgba(242, 163, 58, 0.35);
   --color-tint-start: rgba(93, 173, 226, 0.35);
   --color-tint-end: rgba(224, 123, 90, 0.35);
   --color-tint-cycle: rgba(216, 104, 80, 0.4);
 
-  /* === SHADOW SYSTEM (adjusted for dark mode) === */
+  --highlight-edge: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --shadow-raised: 0 0 0 1px rgba(0, 0, 0, 0.65), 0 1px 1px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-raised-lg: 0 0 0 1px rgba(0, 0, 0, 0.65), 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-pressed: inset 0 2px 3px rgba(0, 0, 0, 0.75), inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --shadow-etched: inset 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-premium: 0 0 0 1px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 3px 8px rgba(0, 0, 0, 0.5), 0 14px 30px -12px rgba(0, 0, 0, 0.85);
 
-  /* Raised elements - soft shadows on dark */
-  --shadow-raised:
-    2px 2px 4px rgba(0, 0, 0, 0.4),
-    1px 1px 2px rgba(0, 0, 0, 0.25);
+  --gradient-default-start: #3e4147;
+  --gradient-default-mid: #34373c;
+  --gradient-default-end: #2a2c30;
+  --gradient-visited-start: #2f5a3a;
+  --gradient-visited-mid: #284d32;
+  --gradient-visited-end: #203f29;
+  --gradient-path-start: #6b4e1c;
+  --gradient-path-mid: #5a4118;
+  --gradient-path-end: #483412;
+  --gradient-start-start: #244a5a;
+  --gradient-start-mid: #1e3e4c;
+  --gradient-start-end: #18323e;
+  --gradient-end-start: #6a2f28;
+  --gradient-end-mid: #5a2822;
+  --gradient-end-end: #48201b;
+  --gradient-cycle-start: #6a2f2f;
+  --gradient-cycle-mid: #5a2626;
+  --gradient-cycle-end: #481e1e;
 
-  --shadow-raised-lg:
-    3px 3px 6px rgba(0, 0, 0, 0.45),
-    2px 2px 3px rgba(0, 0, 0, 0.3);
-
-  /* Inner highlight - subtle edge catch */
-  --highlight-edge:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.08);
-
-  /* Pressed/inset */
-  --shadow-pressed:
-    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
-
-  /* Etched groove */
-  --shadow-etched:
-    inset 1px 1px 2px rgba(0, 0, 0, 0.25),
-    inset -1px -1px 1px rgba(255, 255, 255, 0.04);
-
-  /* Premium shadow - layered depth with subtle shine */
-  --shadow-premium:
-    inset 0px 2px 4px 0px rgba(255, 255, 255, 0.08),
-    0px 0.75px 0.75px -0.75px rgba(0, 0, 0, 0.5),
-    0px 2px 2px -1.5px rgba(0, 0, 0, 0.48),
-    0px 4.4px 4.4px -2.25px rgba(0, 0, 0, 0.45),
-    0px 9.8px 9.8px -3px rgba(0, 0, 0, 0.4),
-    0px 25px 25px -3.75px rgba(0, 0, 0, 0.2),
-    0px 0px 0px 1px rgba(255, 255, 255, 0.1);
-
-  /* Node gradient colors (darker versions) */
-  --gradient-default-start: #3a3a3e;
-  --gradient-default-mid: #2e2e32;
-  --gradient-default-end: #242428;
-
-  --gradient-visited-start: #2a4a2a;
-  --gradient-visited-mid: #234823;
-  --gradient-visited-end: #1c3c1c;
-
-  --gradient-path-start: #4a3a20;
-  --gradient-path-mid: #3d3018;
-  --gradient-path-end: #302610;
-
-  --gradient-start-start: #204050;
-  --gradient-start-mid: #183848;
-  --gradient-start-end: #102838;
-
-  --gradient-end-start: #503020;
-  --gradient-end-mid: #482818;
-  --gradient-end-end: #382010;
-
-  --gradient-cycle-start: #503028;
-  --gradient-cycle-mid: #482420;
-  --gradient-cycle-end: #381c18;
-
-  /* Edge colors (brighter for dark bg) */
-  --color-edge-default: rgba(180, 175, 165, 0.4);
+  --color-edge-default: rgba(235, 232, 225, 0.35);
   --color-edge-traversal: #7ac97a;
-  --color-edge-path: #d4b070;
+  --color-edge-path: var(--amber);
   --color-edge-cycle: #e88870;
-
-  /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #5aa95a;
-  --color-arrow-path: #b49050;
+  --color-arrow-path: #d08a2a;
   --color-arrow-cycle: #c86850;
 
-  /* Node drop shadow */
-  --node-shadow-color: rgba(0, 0, 0, 0.5);
+  --node-shadow-color: transparent;
+  --color-node-stroke: #8a8f99;
 
-  /* Node stroke */
-  --color-node-stroke: #9a9590;
+  --color-interactive-hover: rgba(255, 255, 255, 0.06);
+  --color-slider-range: rgba(242, 163, 58, 0.5);
+  --color-divider: rgba(255, 255, 255, 0.1);
 
-  /* Interactive states (brighter for dark bg) */
-  --color-interactive-hover: rgba(255, 255, 255, 0.1);
-  --color-slider-range: rgba(255, 255, 255, 0.2);
+  --color-accent-form: var(--amber);
+  --color-accent-form-glow: var(--amber-glow);
 
-  /* Divider - more visible on dark surfaces */
-  --color-divider: rgba(255, 255, 255, 0.15);
-
-  /* Form control accent (brighter warm orange for dark mode) */
-  --color-accent-form: #e88060;
-  --color-accent-form-glow: rgba(232, 128, 96, 0.5);
-
-  /* Graph paper grid */
-  --color-grid-line: rgba(255, 255, 255, 0.06);
-  --color-grid-line-major: rgba(255, 255, 255, 0.12);
-
-  /* Grain texture opacity (lighter grain on dark paper) */
+  --color-grid-line: rgba(255, 255, 255, 0.05);
+  --color-grid-line-major: rgba(255, 255, 255, 0.1);
   --grain-opacity: 0.1;
+
+  /* derived — the matte instrument */
+  --slot: #0e0f11;
+  --lip: rgba(255, 255, 255, 0.06);
+  --edge: #202226;                               /* the wall of a key: the cap's own graphite, in shade */
+  --ring: rgba(0, 0, 0, 0.34);                   /* hairline where a part meets the plate */
+  --radius-xs: 4px;
+  --radius-sm: 7px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --font-label: var(--font-mono);
+  --label-case: uppercase;
+  --label-tracking: 0.1em;
+  --label-size: 10px;
+  --label-weight: 600;
+  --value-font: var(--font-mono);
+  --legend-shadow: none;
+
+  /* No texture on the canvas: it must match the flat fill the performance renderer paints. */
+  --canvas-texture: none;
+  --canvas-texture-size: auto;
+  --canvas-blend: normal;
+
+  --panel-bg: linear-gradient(180deg, #27292c 0%, #222427 100%);
+  --panel-texture: var(--tex-fine);
+  --panel-texture-size: 200px 200px;
+  --panel-texture-opacity: 0.22;
+  --panel-texture-blend: soft-light;
+  --panel-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 0 0 1px var(--ring),
+    0.5px 1px 1px rgba(0, 0, 0, 0.2),
+    1px 2px 2px rgba(0, 0, 0, 0.2),
+    2px 4px 4px rgba(0, 0, 0, 0.2),
+    4px 8px 8px rgba(0, 0, 0, 0.18),
+    8px 16px 16px rgba(0, 0, 0, 0.16);
+  --popup-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 0 0 1px var(--ring),
+    0.5px 1px 1px rgba(0, 0, 0, 0.22),
+    1px 2px 2px rgba(0, 0, 0, 0.22),
+    2px 4px 4px rgba(0, 0, 0, 0.22),
+    4px 8px 8px rgba(0, 0, 0, 0.22),
+    8px 16px 16px rgba(0, 0, 0, 0.22),
+    16px 32px 32px rgba(0, 0, 0, 0.24);
+  --divider-size: 2px;
+  --divider-v: linear-gradient(90deg, rgba(0, 0, 0, 0.4) 50%, rgba(255, 255, 255, 0.07) 50%);
+  --divider-h: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 50%, rgba(255, 255, 255, 0.07) 50%);
+
+  --well-bg: #161719;
+  --well-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 1px 0 var(--lip);
+  --well-pad: 3px;
+  --well-gap: 4px;
+
+  /* A key: a soft dished face on a solid wall, lit from the top-left. */
+  --control-bg: linear-gradient(180deg, #36383d 0%, #383b3f 30%, #42454b 100%);
+  --control-hover-bg: linear-gradient(180deg, #3c3f44 0%, #3e4146 30%, #494d53 100%);
+  --control-pressed-bg: linear-gradient(180deg, #303236 0%, #323438 30%, #3a3d42 100%);
+  --control-face:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.16),
+    0 0 0 1px var(--ring);
+  --control-face-pressed:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 1px 3px rgba(0, 0, 0, 0.18),
+    0 0 0 1px var(--ring);
+  --control-seat-bg: transparent;
+  --control-seat: 
+    0 3px 0 var(--edge),
+    0 3.5px 0 rgba(0, 0, 0, 0.5),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 3px rgba(0, 0, 0, 0.25),
+    1px 8px 10px -3px rgba(0, 0, 0, 0.45);
+  --control-seat-pressed: 
+    0 3px 0 var(--edge),
+    0 3.5px 0 rgba(0, 0, 0, 0.5),
+    0.5px 6px 6px -2px rgba(0, 0, 0, 0.35);
+  --control-text-shadow: none;
+  --control-icon-filter: none;
+  --control-gap: 7px;
+  --key-wall-out: 3px;
+  --key-wall-in: 0px;
+  --key-travel: 2px;
+  --key-lean: 1.5px;
+  --key-press-shade: rgba(0, 0, 0, 0.16);
+  --key-texture: none;
+  --key-texture-size: auto;
+  --key-texture-blend: normal;
+
+  --primary-bg: linear-gradient(180deg, #ee9d2c 0%, #f2a33a 30%, #f9b85a 100%);
+  --primary-hover-bg: linear-gradient(180deg, #f3a73c 0%, #f6ad4a 30%, #fcc26c 100%);
+  --primary-pressed-bg: linear-gradient(180deg, #e2921f 0%, #e6982c 30%, #eeab4a 100%);
+  --primary-face:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 0 0 1px rgba(70, 38, 0, 0.7);
+  --primary-face-pressed:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 1px 3px rgba(90, 45, 0, 0.3),
+    0 0 0 1px rgba(70, 38, 0, 0.7);
+  --primary-seat-bg: transparent;
+  --primary-seat: 
+    0 3px 0 #a5670f,
+    0 3.5px 0 rgba(40, 20, 0, 0.7),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 7px -3px rgba(150, 90, 10, 0.5);
+  --primary-seat-pressed: 
+    0 3px 0 #a5670f,
+    0 3.5px 0 rgba(40, 20, 0, 0.7),
+    0 5px 5px -2px rgba(150, 90, 10, 0.4);
+  --primary-press-shade: rgba(110, 55, 0, 0.2);
+  --primary-fg: #201405;
+  --primary-text-shadow: none;
+  --danger-bg: linear-gradient(180deg, #ea5440 0%, #ef5a45 30%, #f6745f 100%);
+  --danger-hover-bg: linear-gradient(180deg, #ef604c 0%, #f36652 30%, #f9806c 100%);
+  --danger-pressed-bg: linear-gradient(180deg, #dc4834 0%, #e04e3a 30%, #e96551 100%);
+  --danger-face:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 0 0 1px rgba(70, 10, 2, 0.7);
+  --danger-face-pressed:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 1px 3px rgba(80, 10, 0, 0.3),
+    0 0 0 1px rgba(70, 10, 2, 0.7);
+  --danger-seat-bg: transparent;
+  --danger-seat: 
+    0 3px 0 #9c2c1e,
+    0 3.5px 0 rgba(40, 6, 0, 0.7),
+    0 4.5px 1px rgba(0, 0, 0, 0.35),
+    0 6px 7px -3px rgba(150, 40, 26, 0.5);
+  --danger-seat-pressed: 
+    0 3px 0 #9c2c1e,
+    0 3.5px 0 rgba(40, 6, 0, 0.7),
+    0 5px 5px -2px rgba(150, 40, 26, 0.4);
+  --danger-fg: #230603;
+
+  /* Ghost: the same key at two-thirds height, in the plate's own tone. */
+  --ghost-bg: linear-gradient(180deg, #2d2f33 0%, #2f3135 30%, #37393e 100%);
+  --ghost-hover-bg: linear-gradient(180deg, #34363b 0%, #36393d 30%, #3f4247 100%);
+  --ghost-pressed-bg: linear-gradient(180deg, #282a2d 0%, #2a2c2f 30%, #313337 100%);
+  --ghost-face:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 0 0 1px var(--ring);
+  --ghost-face-pressed:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 3px rgba(0, 0, 0, 0.18),
+    0 0 0 1px var(--ring);
+  --ghost-seat-bg: transparent;
+  --ghost-seat: 
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.45),
+    0 3.5px 1px rgba(0, 0, 0, 0.3),
+    0.5px 5px 6px -2px rgba(0, 0, 0, 0.38);
+  --ghost-seat-pressed: 
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.45);
+  --ghost-wall-in: 0px;
+  --ghost-travel: 1.25px;
+  --ghost-lean: 1px;
+
+  /* Cap in a well. */
+  --selected-bg: linear-gradient(180deg, #45494f 0%, #4c5057 100%);
+  --selected-fg: #f4f1ea;
+  --selected-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 1px var(--ring),
+    0 1.5px 0 var(--edge),
+    0 1.5px 0 1px var(--ring),
+    0.5px 4px 5px -1px rgba(0, 0, 0, 0.5);
+  --selected-pressed-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px var(--ring),
+    0 0.5px 0 var(--edge);
+  --selected-text-shadow: none;
+  --selected-wall: 2px;
+  --selected-shift-y: 1px;
+
+  /* One round amber lamp under every latching legend. */
+  --led-display: block;
+  --led-room: 6px;
+  --led-bottom: 3px;
+  --led-width: 4px;
+  --led-height: 4px;
+  --led-radius: 50%;
+  --led-off: #3a3d42;
+  --led-off-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06);
+  --led-on: #ffbf5e;
+  --led-on-shadow: 0 0 0 0.5px rgba(120, 60, 0, 0.6), 0 0 5px 1px rgba(242, 163, 58, 0.6), 0 0 12px 2px rgba(242, 163, 58, 0.22);
+
+  --track-bg: #17181b;
+  --track-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 1px 0 var(--lip);
+  --indicator-bg: linear-gradient(180deg, #f8b752, #f2a33a);
+  --indicator-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  --thumb-w: 22px;
+  --thumb-h: 22px;
+  --thumb-lift: 1px;
+  --thumb-radius: 999px;
+  --thumb-bg: linear-gradient(180deg, #54585f 0%, #5e636a 100%);
+  --thumb-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2px 0 1px var(--ring),
+    1px 5px 6px -1px rgba(0, 0, 0, 0.5);
+  --thumb-pressed-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px var(--ring),
+    0 1px 0 var(--edge),
+    0 2px 3px rgba(0, 0, 0, 0.4);
+  --thumb-hover-filter: brightness(1.08);
+  --thumb-grip: radial-gradient(circle, #1d1e21 0 2px, transparent 2.5px);
+  --thumb-grip-w: 6px;
+  --thumb-grip-h: 6px;
+  --thumb-accent-bg: linear-gradient(180deg, #54585f 0%, #5e636a 100%);
+  --thumb-accent-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2px 0 1px var(--ring),
+    1px 5px 6px -1px rgba(0, 0, 0, 0.5);
+  --thumb-accent-pressed-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px var(--ring),
+    0 1px 0 var(--edge),
+    0 2px 3px rgba(0, 0, 0, 0.4);
+  --thumb-accent-grip: radial-gradient(circle, #ffbf5e 0 2px, transparent 2.5px);
+  --slider-ticks: flex;
+  --tick-color: rgba(235, 232, 225, 0.4);
+  --tick-major-color: rgba(235, 232, 225, 0.7);
+  --tick-shadow: none;
+
+  --accent-control-bg: #f2a33a;
+  --accent-control-fg: #1b1c1f;
+  --switch-on-bg: #f2a33a;
+  --switch-on-shadow:
+    inset 0 1px 2px rgba(90, 45, 0, 0.5),
+    inset 0 0 0 1px rgba(70, 38, 0, 0.5),
+    0 1px 0 var(--lip);
+  --switch-thumb-bg: linear-gradient(180deg, #f7f5f0 0%, #dedbd4 100%);
+  --switch-thumb-shadow:
+    inset 0 1px 0 #ffffff,
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(0, 0, 0, 0.5),
+    0.5px 2px 3px rgba(0, 0, 0, 0.45);
+  --switch-thumb-lift: 0px;
+  --check-bg: linear-gradient(180deg, #f2a33a 0%, #f8b752 100%);
+  --check-fg: #201405;
+  --check-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(70, 38, 0, 0.7);
+  --check-glyph-filter: none;
+
+  /* Readouts: a dark window with amber figures. */
+  --readout-bg: #131416;
+  --readout-fg: #f1eee7;
+  --readout-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  --readout-text-shadow: none;
+  --input-bg: #17181b;
+  --input-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 0 var(--lip);
+  --input-fg: #f1eee7;
+  --input-placeholder: rgba(235, 232, 225, 0.5);
+
+  --menu-hover-bg: rgba(255, 255, 255, 0.07);
+  --menu-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --select-selected-bg: rgba(255, 255, 255, 0.05);
+  --select-selected-fg: var(--color-text);
+  --select-selected-shadow: none;
+  --select-selected-mark: #ffc266;
+  --tooltip-bg: #ebe8e1;
+  --tooltip-fg: #1b1c1f;
+  --tooltip-arrow-bg: #ebe8e1;
+  --tooltip-radius: 5px;
+  --tooltip-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(0, 0, 0, 0.6), 1px 6px 10px -2px rgba(0, 0, 0, 0.6);
+  --tooltip-text-shadow: none;
+  --tooltip-font: var(--font-mono);
+  --tooltip-size: 10.5px;
+  --tooltip-tracking: 0.06em;
+  --tooltip-case: uppercase;
+  --kbd-bg: linear-gradient(180deg, #3d4045 0%, #474b51 100%);
+  --kbd-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), 0 0 0 1px var(--ring), 0 1.5px 0 var(--edge);
+  --kbd-wall: 2px;
+  --card-selected-ring: 0 0 0 1.5px rgba(242, 163, 58, 0.8);
+  --card-selected-icon: #ffc266;
+  --card-selected-icon-filter: none;
+  --chip-bg: #1c1d20;
+  --chip-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 0 var(--lip);
+  --chip-active-bg: linear-gradient(180deg, #f2a33a 0%, #f8b752 100%);
+  --chip-active-fg: #201405;
+  --chip-active-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(70, 38, 0, 0.7);
+
+  /* --- audit pass: states, focus, type, contrast --- */
+  --legend-font: var(--font-mono);   /* everything engraved on the instrument is mono caps; content stays in the sans */
+  --legend-case: uppercase;
+  --legend-tracking: 0.07em;
+  --legend-scale: 0.8;
+  --accent-text: #f2a33a;
+  --danger-text: #ff8573;
+  --focus-color: #f2a33a;
+  --hint-outline: rgba(255, 255, 255, 0.22);
+
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: #2a2c2f;
+  --disabled-face: 0 0 0 1px rgba(0, 0, 0, 0.3);
+  --disabled-seat: none;
+  --disabled-fg: #7f7d77;
+  --disabled-check-bg: #3a3d42;
+  --disabled-check-fg: #8b8983;
+  --disabled-check-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.4);
+
+  /* Unlit latches: hover raises a faint cap, press sinks it. */
+  --latch-hover-bg: rgba(255, 255, 255, 0.045);
+  --latch-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --latch-pressed-bg: rgba(0, 0, 0, 0.28);
+  --latch-pressed-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  --switch-thumb-hover-bg: linear-gradient(180deg, #ffffff 0%, #e8e5de 100%);
+  --switch-thumb-hover-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(0, 0, 0, 0.5), 0.5px 3px 4px rgba(0, 0, 0, 0.5);
+  --switch-thumb-held-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(0, 0, 0, 0.4);
+  --check-hover-bg: #2a2c30;
+  --check-hover-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.16);
+  --check-held-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  --thumb-hover-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.5),
+    1px 6px 8px -1px rgba(0, 0, 0, 0.55);
+  --thumb-accent-hover-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px var(--ring),
+    0 2px 0 var(--edge),
+    0 2.5px 0 rgba(0, 0, 0, 0.5),
+    1px 6px 8px -1px rgba(0, 0, 0, 0.55);
+  --menu-pressed-bg: rgba(0, 0, 0, 0.25);
+  --menu-pressed-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  --card-mark-display: none;
+
+  /* A popup rises out of the instrument: a short damped travel, no scale, no bounce. */
+  --popup-dur: 190ms;
+  --popup-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --popup-start-opacity: 0;
+  --popup-start-scale: 1;
+  --popup-start-shift: 9px;
+  --popup-start-clip: inset(-120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 1;
+  --popup-marks-delay: 0ms;
+  --node-hatch-opacity: 0;           /* plain nodes: no ornament in this theme */
+  --sound-kit: tungsten;
+
+  /* physics: machined graphite. Heavy and crisp: a firm snap, a short ring and a clean knock off each stop. A drawn edge is a stiff wire. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.2;
+  --phys-key-damping: 0.5;
+  --phys-key-bounce: 0.42;
+  --phys-slide-response: 0.3;
+  --phys-slide-damping: 0.56;
+  --phys-slide-bounce: 0.36;
+  --phys-popup-response: 0.36;
+  --phys-popup-damping: 0.6;
+  --phys-edge: wire;
+  --phys-edge-response: 0.2;
+  --phys-edge-damping: 0.4;
+  --phys-edge-slack: 0.012;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.14;
+  --phys-node-damping: 0.72;
+  --phys-node-bounce: 0.35;
+  --phys-node-glide: 0.985;
+  /* a new node is dropped in: it lands a little large and knocks once (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 1.14;
+  --phys-arrive-response: 0.26;
+  --phys-arrive-damping: 0.5;
 }
 
-/* === BLUEPRINT THEME === */
-[data-theme="blueprint"] {
-  /* Classic blueprint cobalt blue */
-  --color-paper: #1a5490;
+/* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white
+   hairlines, dashed wells, hatched selection, dimension ticks, registration
+   marks in the corners of every plate. === */
+[data-theme="blueprint"],
+[data-skin="blueprint"] {
+  color-scheme: dark;
+  --bp-ink: rgba(232, 243, 255, 0.85);
+  --bp-ink-soft: rgba(232, 243, 255, 0.6);
 
-  /* Surface - deep cobalt, cohesive with paper */
-  --color-surface: #1f5c98;
-  --color-surface-hover: #2568a8;
+  --color-paper: #1b4f8a;
+  --color-surface: #1f5894;
+  --color-surface-hover: #25639f;
+  --color-text: #f3f8fc;
+  --color-text-muted: #b9d3ea;
+  --color-accent: #9fe0f7;
+  --color-accent-pressed: #7ccfef;
+  --color-error: #ff8a7a;
 
-  /* Text - white chalk on blueprint */
-  --color-text: #ffffff;
-  --color-text-muted: #c8e0f0;
+  --color-tint-visited: #7fe6d6;
+  --color-tint-path: #ffd166;
+  --color-tint-start: #8ff0b0;
+  --color-tint-end: #ffa193;
+  --color-tint-cycle: #ff8a7a;
 
-  /* Accent - light cyan for visibility */
-  --color-accent: #90d8f0;
-  --color-accent-pressed: #70c0e0;
-  --color-error: #ff8070;
+  --shadow-raised: 0 0 0 1px var(--bp-ink);
+  --shadow-raised-lg: 0 0 0 1px var(--bp-ink), 2px 2px 0 rgba(10, 40, 70, 0.35);
+  --highlight-edge: inset 0 0 0 0 transparent;
+  --shadow-pressed: inset 0 0 0 1px var(--bp-ink), inset 0 2px 4px rgba(10, 40, 70, 0.4);
+  --shadow-etched: inset 0 0 0 1px var(--bp-ink-soft);
+  --shadow-premium: 0 0 0 1px var(--bp-ink), 0 0 0 4px var(--color-paper), 0 0 0 5px var(--bp-ink-soft);
 
-  /* Node tints - marking colors */
-  --color-tint-visited: rgba(100, 220, 200, 0.4);
-  --color-tint-path: rgba(255, 200, 80, 0.4);
-  --color-tint-start: rgba(100, 220, 150, 0.4);
-  --color-tint-end: rgba(255, 120, 110, 0.4);
-  --color-tint-cycle: rgba(255, 100, 90, 0.45);
-
-  /* Shadows - balanced for steel blue surfaces */
-  --shadow-raised:
-    2px 2px 4px rgba(10, 40, 70, 0.4),
-    1px 1px 2px rgba(10, 40, 70, 0.25);
-
-  --shadow-raised-lg:
-    3px 3px 6px rgba(10, 40, 70, 0.45),
-    2px 2px 3px rgba(10, 40, 70, 0.3);
-
-  --highlight-edge:
-    inset 1px 1px 1px rgba(255, 255, 255, 0.18);
-
-  --shadow-pressed:
-    inset 2px 2px 4px rgba(10, 40, 70, 0.35),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.1);
-
-  --shadow-etched:
-    inset 1px 1px 2px rgba(10, 40, 70, 0.3),
-    inset -1px -1px 1px rgba(255, 255, 255, 0.12);
-
-  /* Premium shadow - balanced depth */
-  --shadow-premium:
-    inset 0px 1px 2px 0px rgba(255, 255, 255, 0.3),
-    3px 3px 4px rgba(10, 40, 70, 0.22),
-    8px 8px 6px rgba(10, 40, 70, 0.16),
-    0px 0px 10px rgba(10, 40, 70, 0.25);
-
-  /* Node gradients - blueprint palette */
-  /* Default: blueprint blue */
   --gradient-default-start: #3878b0;
   --gradient-default-mid: #2a6498;
   --gradient-default-end: #1c5080;
-
-  /* Visited: distinct cyan/teal - clearly different hue */
   --gradient-visited-start: #38a0a0;
   --gradient-visited-mid: #288888;
   --gradient-visited-end: #1c7070;
-
-  /* Path: warm amber highlight */
   --gradient-path-start: #b89040;
   --gradient-path-mid: #a07830;
   --gradient-path-end: #886020;
-
-  /* Start: vivid green */
   --gradient-start-start: #38a070;
   --gradient-start-mid: #288858;
   --gradient-start-end: #1c7048;
-
-  /* End: coral marker */
   --gradient-end-start: #b85858;
   --gradient-end-mid: #a04848;
   --gradient-end-end: #883838;
-
-  /* Cycle: distinct coral/red */
   --gradient-cycle-start: #c85858;
   --gradient-cycle-mid: #b04848;
   --gradient-cycle-end: #983838;
 
-  /* Edge colors - white blueprint lines */
-  --color-edge-default: rgba(200, 225, 245, 0.5);
+  --color-edge-default: rgba(200, 225, 245, 0.55);
   --color-edge-traversal: #60d8c8;
   --color-edge-path: #f0c050;
   --color-edge-cycle: #ff8070;
-
-  /* Arrow colors (darker than edges for differentiation) */
   --color-arrow-traversal: #40b8a8;
   --color-arrow-path: #d0a030;
   --color-arrow-cycle: #e06050;
 
-  /* Node shadow & stroke */
-  --node-shadow-color: rgba(10, 40, 70, 0.4);
-  --color-node-stroke: #5090c0;
+  --node-shadow-color: transparent;
+  --color-node-stroke: #cfe4f7;
 
-  /* Interactive states */
-  --color-interactive-hover: rgba(255, 255, 255, 0.15);
-  --color-slider-range: rgba(144, 216, 240, 0.35);
+  --color-interactive-hover: rgba(255, 255, 255, 0.1);
+  --color-slider-range: rgba(159, 224, 247, 0.55);
+  --color-divider: rgba(232, 243, 255, 0.55);
 
-  /* Divider */
-  --color-divider: rgba(200, 224, 240, 0.25);
+  --color-accent-form: #ffd166;
+  --color-accent-form-glow: rgba(255, 209, 102, 0.45);
 
-  /* Form accent - warm amber */
-  --color-accent-form: #f0b040;
-  --color-accent-form-glow: rgba(240, 176, 64, 0.45);
+  --color-grid-line: rgba(220, 236, 250, 0.14);
+  --color-grid-line-major: rgba(220, 236, 250, 0.3);
+  --grain-opacity: 0.08;
 
-  /* Grid - white blueprint lines */
-  --color-grid-line: rgba(200, 225, 245, 0.12);
-  --color-grid-line-major: rgba(200, 225, 245, 0.25);
+  /* derived — the drafted sheet */
+  --bp-shade: #123c6c;                            /* ink wash on the side of a solid */
+  --bp-wash: rgba(8, 30, 60, 0.42);               /* cast shade, flat like a marker */
+  --bp-hatch: repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.2) 0 1px, transparent 1px 5px);
+  --bp-xhatch:
+    repeating-linear-gradient(135deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg, rgba(232, 243, 255, 0.18) 0 1px, transparent 1px 5px);
+  --radius-xs: 1px;
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --font-label: var(--font-mono);
+  --label-case: uppercase;
+  --label-tracking: 0.08em;
+  --label-size: 10px;
+  --value-font: var(--font-mono);
 
-  /* Light grain */
-  --grain-opacity: 0.1;
+  --canvas-texture: none;
+  --canvas-texture-size: auto;
+  --canvas-blend: normal;
+
+  /* Plates are tracing film laid over the sheet: the grid shows through, softened. */
+  --panel-bg: rgba(33, 92, 153, 0.86);
+  --panel-backdrop: blur(3px);
+  --panel-texture: none;
+  --panel-texture-size: auto;
+  --panel-texture-opacity: 0;
+  --panel-texture-blend: normal;
+  --panel-shadow:
+    0 0 0 1px var(--bp-ink),
+    0 0 0 3px var(--color-paper),
+    0 0 0 4px var(--bp-ink-soft),
+    4px 4px 0 3px var(--bp-wash);
+  --popup-shadow:
+    0 0 0 1px var(--bp-ink),
+    0 0 0 3px var(--color-paper),
+    0 0 0 4px var(--bp-ink-soft),
+    7px 7px 0 3px var(--bp-wash);
+  --panel-marks:
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px 3px / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px 3px / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) 3px / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) 3px / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px calc(100% - 3px) / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) 3px calc(100% - 3px) / 1px 7px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) calc(100% - 3px) / 7px 1px no-repeat,
+    linear-gradient(var(--bp-ink), var(--bp-ink)) calc(100% - 3px) calc(100% - 3px) / 1px 7px no-repeat;
+  --divider-v: repeating-linear-gradient(180deg, var(--color-divider) 0 3px, transparent 3px 6px);
+  --divider-h: repeating-linear-gradient(90deg, var(--color-divider) 0 3px, transparent 3px 6px);
+
+  /* A pocket: soft outline, shade thrown into its top-left corner. */
+  --well-bg: #1a4d86;
+  --well-shadow: inset 0 0 0 1px var(--bp-ink-soft), inset 3px 3px 0 0 var(--bp-wash);
+  --well-pad: 3px;
+  --well-gap: 5px;
+
+  /* Keys are drawn, not built: an inked rectangle with one offset line for its
+     thickness. Hovering sketches a hatch across the face; pressing slides the
+     face onto its offset line and cross-hatches it, the way a draughtsman
+     shades a section that has been cut. */
+  --control-bg: #2463a3;
+  --control-hover-bg: var(--bp-hatch), #2666a7;
+  --control-pressed-bg: var(--bp-xhatch), #1f5894;
+  --control-face: 0 0 0 1px var(--bp-ink);
+  --control-face-pressed: 0 0 0 1px #ffffff;
+  --control-seat: 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink-soft);
+  --control-seat-pressed: 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink-soft);
+  --control-gap: 8px;
+  --key-wall-out: 2px;
+  --key-wall-out-x: 2px;
+  --key-travel: 2px;
+  --key-travel-x: 2px;
+  --key-lean: 0px;                 /* a drawing slides; it does not rock */
+  --key-press-shade: transparent;
+  --primary-press-shade: transparent;
+  --key-texture: none;
+
+  /* Primary is the sheet reversed: white ground, blue ink. */
+  --primary-bg: #eef6ff;
+  --primary-hover-bg: repeating-linear-gradient(135deg, rgba(19, 74, 133, 0.16) 0 1px, transparent 1px 5px), #f6faff;
+  --primary-pressed-bg:
+    repeating-linear-gradient(135deg, rgba(19, 74, 133, 0.26) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg, rgba(19, 74, 133, 0.26) 0 1px, transparent 1px 5px),
+    #dcebfa;
+  --primary-face: 0 0 0 1px #0d335f;
+  --primary-face-pressed: 0 0 0 1px #0d335f;
+  --primary-seat: 2px 2px 0 0 #8fb9e0, 2px 2px 0 1px #0d335f;
+  --primary-seat-pressed: 2px 2px 0 0 #8fb9e0, 2px 2px 0 1px #0d335f;
+  --primary-fg: #134a85;
+  --danger-bg: #ff8a7a;
+  --danger-hover-bg: repeating-linear-gradient(135deg, rgba(58, 13, 7, 0.16) 0 1px, transparent 1px 5px), #ff978a;
+  --danger-pressed-bg:
+    repeating-linear-gradient(135deg, rgba(58, 13, 7, 0.26) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(45deg, rgba(58, 13, 7, 0.26) 0 1px, transparent 1px 5px),
+    #f27a6a;
+  --danger-face: 0 0 0 1px #3a0d07;
+  --danger-face-pressed: 0 0 0 1px #3a0d07;
+  --danger-seat: 2px 2px 0 0 #a8483c, 2px 2px 0 1px #3a0d07;
+  --danger-seat-pressed: 2px 2px 0 0 #a8483c, 2px 2px 0 1px #3a0d07;
+  --danger-fg: #3a0d07;
+
+  /* Ghost: a construction line. Faint until hovered, inked and hatched when pressed. */
+  --ghost-bg: transparent;
+  --ghost-hover-bg: var(--bp-hatch), rgba(232, 243, 255, 0.05);
+  --ghost-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
+  --ghost-face: 0 0 0 1px rgba(232, 243, 255, 0.45);
+  --ghost-face-pressed: 0 0 0 1px var(--bp-ink);
+  --ghost-seat: none;
+  --ghost-seat-pressed: none;
+  --ghost-travel: 1px;
+  --ghost-travel-x: 1px;
+  --ghost-lean: 0px;
+
+  --selected-bg: var(--bp-hatch), #2a6cad;
+  --selected-fg: #ffffff;
+  --selected-shadow:
+    0 0 0 1px var(--bp-ink),
+    2px 2px 0 0 var(--bp-shade),
+    2px 2px 0 1px var(--bp-ink-soft);
+  --selected-pressed-shadow: 0 0 0 1px var(--bp-ink);
+  --selected-wall: 2px;
+  --selected-wall-x: 2px;
+  --selected-shift-x: 1px;
+  --selected-shift-y: 1px;
+
+  /* The slider is a dimension line: stops at both ends, hatched run, a drafted block. */
+  --track-bg: transparent;
+  --track-shadow: 0 0 0 1px var(--bp-ink-soft);
+  --track-radius: 0px;
+  --track-caps: block;
+  --track-cap-color: var(--bp-ink);
+  --indicator-bg: repeating-linear-gradient(135deg, rgba(159, 224, 247, 0.75) 0 1px, transparent 1px 4px);
+  --thumb-w: 22px;
+  --thumb-h: 16px;
+  --thumb-lift: 1px;
+  --thumb-radius: 1px;
+  --thumb-bg: #f3f8fc;
+  --thumb-shadow: 0 0 0 1px #0d335f, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink);
+  --thumb-pressed-shadow: 0 0 0 1px #0d335f, 1px 1px 0 0 var(--bp-shade), 1px 1px 0 1px var(--bp-ink);
+  --thumb-hover-filter: none;
+  --thumb-grip: repeating-linear-gradient(90deg, rgba(27, 79, 138, 0.7) 0 1px, transparent 1px 4px) 0 0 / 12px 100%;
+  --thumb-grip-w: 9px;
+  --thumb-accent-bg: #ffd166;
+  --thumb-accent-shadow: 0 0 0 1px #0d335f, 2px 2px 0 0 #a8842f, 2px 2px 0 1px var(--bp-ink);
+  --thumb-accent-pressed-shadow: 0 0 0 1px #0d335f, 1px 1px 0 0 #a8842f, 1px 1px 0 1px var(--bp-ink);
+  --thumb-accent-grip: repeating-linear-gradient(90deg, rgba(27, 42, 58, 0.6) 0 1px, transparent 1px 4px) 0 0 / 12px 100%;
+  --slider-ticks: flex;
+  --tick-color: var(--bp-ink-soft);
+  --tick-major-color: var(--bp-ink);
+
+  --accent-control-bg: #ffd166;
+  --accent-control-fg: #1b2a3a;
+  --switch-radius: 1px;
+  --switch-on-bg: repeating-linear-gradient(135deg, rgba(27, 42, 58, 0.22) 0 1px, transparent 1px 4px), #ffd166;
+  --switch-on-shadow: inset 0 0 0 1px var(--bp-ink), inset 3px 3px 0 0 rgba(120, 85, 10, 0.35);
+  --switch-thumb-bg: #f3f8fc;
+  --switch-thumb-shadow: 0 0 0 1px #0d335f, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink-soft);
+  --switch-thumb-radius: 1px;
+  --switch-thumb-lift: 1px;
+  --check-bg: #ffd166;
+  --check-fg: #1b2a3a;
+  --check-shadow: inset 0 0 0 1px var(--bp-ink), 1.5px 1.5px 0 0 var(--bp-shade), 1.5px 1.5px 0 1px var(--bp-ink-soft);
+
+  --input-bg: #1a4d86;
+  --input-shadow: inset 0 0 0 1px var(--bp-ink-soft), inset 3px 3px 0 0 var(--bp-wash);
+
+  --menu-hover-bg: var(--bp-hatch), rgba(232, 243, 255, 0.06);
+  --menu-hover-shadow: inset 0 0 0 1px var(--bp-ink-soft);
+  --select-selected-bg: var(--bp-hatch), rgba(232, 243, 255, 0.06);
+  --select-selected-fg: #ffffff;
+  --tooltip-bg: #f3f8fc;
+  --tooltip-fg: #134a85;
+  --tooltip-arrow-bg: #f3f8fc;
+  --tooltip-radius: 1px;
+  --tooltip-shadow: 0 0 0 1px #0d335f, 3px 3px 0 0 var(--bp-wash);
+  --tooltip-font: var(--font-mono);
+  --tooltip-size: 10.5px;
+  --tooltip-tracking: 0.06em;
+  --tooltip-case: uppercase;
+  --kbd-bg: #2463a3;
+  --kbd-shadow: 0 0 0 1px var(--bp-ink-soft), 1.5px 1.5px 0 0 var(--bp-shade), 1.5px 1.5px 0 1px var(--bp-ink-soft);
+  --kbd-wall: 2px;
+  --card-selected-ring: 0 0 0 2px var(--color-paper), 0 0 0 3px #ffd166;
+  --card-selected-icon: #ffd166;
+  --chip-bg: transparent;
+  --chip-shadow: 0 0 0 1px var(--bp-ink-soft);
+  --chip-active-bg: #ffd166;
+  --chip-active-fg: #1b2a3a;
+  --chip-active-shadow: 0 0 0 1px var(--bp-ink), 2px 2px 0 0 #a8842f, 2px 2px 0 1px var(--bp-ink-soft);
+
+  /* --- audit pass: states, focus, type, contrast --- */
+  --legend-font: var(--font-mono);   /* lettering on a drawing is one hand: mono caps */
+  --legend-case: uppercase;
+  --legend-tracking: 0.06em;
+  --legend-scale: 0.8;
+  --accent-text: #9fe0f7;
+  --danger-text: #ffc2b8;
+  --focus-color: #ffd166;
+  --hint-outline: #ffd166;
+  --select-selected-shadow: inset 0 0 0 1px var(--bp-ink-soft);
+  --select-selected-mark: #ffd166;
+  --menu-pad: 9px;                   /* rows stay clear of the corner registration marks */
+  --readout-shadow: inset 0 -1px 0 var(--bp-ink-soft);
+
+  /* Disabled is a part that is drawn but not built: faint outline, no thickness, no fill. */
+  --disabled-opacity: 1;
+  --disabled-latch-opacity: 1;
+  --disabled-bg: transparent;
+  --disabled-face: 0 0 0 1px rgba(232, 243, 255, 0.26);
+  --disabled-seat: none;
+  --disabled-fg: rgba(243, 248, 252, 0.6);
+  --disabled-check-bg: transparent;
+  --disabled-check-fg: rgba(243, 248, 252, 0.6);
+  --disabled-check-shadow: inset 0 0 0 1px rgba(232, 243, 255, 0.35);
+
+  /* Unlit latches follow the keys: hover sketches a hatch, press cross-hatches. */
+  --latch-hover-bg: var(--bp-hatch);
+  --latch-hover-shadow: inset 0 0 0 1px rgba(232, 243, 255, 0.4);
+  --latch-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
+  --latch-pressed-shadow: inset 0 0 0 1px var(--bp-ink);
+  --switch-thumb-hover-bg: repeating-linear-gradient(135deg, rgba(19, 74, 133, 0.22) 0 1px, transparent 1px 4px), #f3f8fc;
+  --switch-thumb-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px var(--bp-ink);
+  --switch-thumb-held-shadow: 0 0 0 1px #ffffff, 1px 1px 0 0 var(--bp-shade), 1px 1px 0 1px var(--bp-ink);
+  --check-hover-bg: var(--bp-hatch), #1a4d86;
+  --check-hover-shadow: inset 0 0 0 1px var(--bp-ink);
+  --check-held-shadow: inset 0 0 0 1px #ffffff;
+  --thumb-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 var(--bp-shade), 2px 2px 0 1px #ffffff;
+  --thumb-accent-hover-shadow: 0 0 0 1px #ffffff, 2px 2px 0 0 #a8842f, 2px 2px 0 1px #ffffff;
+  --menu-pressed-bg: var(--bp-xhatch), rgba(8, 30, 60, 0.28);
+  --menu-pressed-shadow: inset 0 0 0 1px var(--bp-ink);
+  --card-mark-display: none;
+  --led-display: none;              /* Blueprint's "on" is the hatch, not a mark */
+  --led-room: 0px;
+
+  /* A popup is drawn: the plate is ruled in from the left at full strength, and
+     the registration marks are added once it is complete. No fade, no travel. */
+  --popup-dur: 170ms;
+  --popup-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --popup-start-opacity: 1;
+  --popup-start-scale: 1;
+  --popup-start-shift: 0px;
+  --popup-start-clip: inset(-120px 100% -120px -120px);
+  --popup-start-shadow: initial;
+  --popup-start-marks-opacity: 0;
+  --popup-marks-delay: 150ms;
+  --node-hatch-opacity: 0.32;        /* drafted hatch */
+  --sound-kit: blueprint;
+
+  /* physics: ink on a sheet. A drawing has no mass: it moves exactly, never bounces, and only the pen lags the hand. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.14;
+  --phys-key-damping: 1;
+  --phys-key-bounce: 0;
+  --phys-slide-response: 0.2;
+  --phys-slide-damping: 1;
+  --phys-slide-bounce: 0;
+  --phys-popup-response: 0.3;
+  --phys-popup-damping: 1;
+  --phys-edge: pen;
+  --phys-edge-response: 0.09;
+  --phys-edge-damping: 1;
+  --phys-edge-slack: 0;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.06;
+  --phys-node-damping: 1;
+  --phys-node-bounce: 0;
+  --phys-node-glide: 0;
+  /* a new node is drawn: it has no size to settle, it is just there (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 1;
+  --phys-arrive-response: 0.2;
+  --phys-arrive-damping: 1;
 }

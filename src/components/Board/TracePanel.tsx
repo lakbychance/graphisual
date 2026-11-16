@@ -1,26 +1,21 @@
 import { useCallback } from "react";
 import { X } from "lucide-react";
-import { Button } from "../ui/button";
-import { GrainTexture } from "../ui/grain-texture";
+import * as m from "motion/react-m";
+import { useShallow } from "zustand/shallow";
+import { Button, Divider, Panel } from "@/components/ui-sdk";
 import { DataStructureVis } from "./DataStructureVis";
 import type { StepTrace } from "../../algorithms/types";
-import * as m from "motion/react-m";
 import { useGraphStore } from "../../store/graphStore";
-import { useShallow } from "zustand/shallow";
 
 // Parse **bold** markers and newlines in text and return React nodes.
 // Resolves {n:X} node ID placeholders to custom labels before parsing.
 const parseTrace = (text: string, getNodeLabel?: (id: number) => string): React.ReactNode => {
-  // Resolve node ID placeholders emitted by algorithm adapters via nid()
   const processed = text.replace(/\{n:(\d+)\}/g, (_, id) =>
     getNodeLabel ? getNodeLabel(parseInt(id, 10)) : id
   );
-
-  // Split by newlines first
   const lines = processed.split("\n");
 
   return lines.map((line, lineIndex) => {
-    // Parse bold markers within each line
     const parts = line.split(/(\*\*[^*]+\*\*)/g);
     const parsedLine = parts.map((part, partIndex) => {
       if (part.startsWith("**") && part.endsWith("**")) {
@@ -28,8 +23,6 @@ const parseTrace = (text: string, getNodeLabel?: (id: number) => string): React.
       }
       return part;
     });
-
-    // Add line break between lines (but not after the last one)
     if (lineIndex < lines.length - 1) {
       return <span key={lineIndex}>{parsedLine}<br /></span>;
     }
@@ -52,43 +45,38 @@ export const TracePanel = ({ trace, onCollapse }: TracePanelProps) => {
 
   return (
     <m.div
-      layout='preserve-aspect'
+      layout="preserve-aspect"
       initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: 16, filter: "blur(4px)" }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40"
     >
-      <div
-        role="region"
-        aria-label="Algorithm trace"
-        className="relative flex flex-col gap-2 p-3 pr-10 rounded-md bg-(--color-surface) shadow-(--shadow-premium) min-w-[280px] max-w-[500px]"
-      >
-        <GrainTexture baseFrequency={4.2} className="rounded-md" />
-
-        {/* Collapse button */}
+      <Panel role="region" aria-label="Algorithm trace" className="flex flex-col gap-2 p-3 pr-10 min-w-[280px] max-w-[500px]">
         <Button
           onClick={onCollapse}
           variant="ghost"
           size="icon-xs"
-          className="absolute top-2 right-2 z-10"
+          tone="muted"
+          className="absolute top-2 right-2"
           aria-label="Hide trace panel"
         >
-          <X size={14} className="text-(--color-text-muted)" />
+          <X aria-hidden="true" />
         </Button>
 
-        {/* Trace message */}
-        <div className="text-sm text-(--color-text-muted) relative z-10">
+        <div className="text-sm text-(--color-text-muted)">
           {trace?.message ? parseTrace(trace.message, getNodeLabel) : "Starting algorithm..."}
         </div>
 
-        {/* Data structure visualization */}
         {trace?.dataStructure && (
-          <div className="relative z-10 pt-1 border-t border-(--color-divider)">
-            <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
-          </div>
+          <>
+            <Divider orientation="horizontal" />
+            <div className="pt-1">
+              <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={getNodeLabel} />
+            </div>
+          </>
         )}
-      </div>
+      </Panel>
     </m.div>
   );
 };

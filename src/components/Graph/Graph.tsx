@@ -1,9 +1,8 @@
-import { useState, useRef, useCallback, useMemo, useImperativeHandle, type Ref } from "react";
+import { useRef, useCallback, useEffect, useMemo, useImperativeHandle, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { Node } from "../Graph/Node/Node";
 import { NodeEdges } from "./NodeEdges";
 import { ZOOM } from "../../constants/ui";
-import { GraphEdge } from "./types";
 import { EdgePopup } from "./EdgePopup";
 import { useGraphStore, selectIsInStepMode } from "../../store/graphStore";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
@@ -26,6 +25,8 @@ import { NodeDefs } from "./defs/NodeDefs";
 import { EdgeDefs } from "./defs/EdgeDefs";
 import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
+import { dragNode, nodesMoving, releaseNode, setGraphSurface } from "@/physics/graphMotion";
+import { LeavingLayer } from "./LeavingLayer";
 
 export interface GraphHandle {
   getSvgElement: () => SVGSVGElement | null;
@@ -47,8 +48,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // Animated viewport values (spring-smoothed)
   const { zoom, pan } = useSpringViewport({ zoomTarget, panTarget });
 
-  const { addNode, moveNode, selectNode } = useNodeActions();
-  const moveNodes = useGraphStore((state) => state.moveNodes);
   const setViewportPan = useGraphStore((state) => state.setViewportPan);
   const setViewportZoom = useGraphStore((state) => state.setViewportZoom);
   const setVisualizationAlgorithm = useGraphStore((state) => state.setVisualizationAlgorithm);
@@ -59,9 +58,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   // Visualization execution hook - only need currentAlgorithm and isVisualizing for checks
   const { currentAlgorithm, isVisualizing } = useVisualizationExecution();
 
-  // Local UI state (not shared with other components)
-  const [mockEdge, setMockEdge] = useState<GraphEdge | null>(null);
-
   // Refs
   const graph = useRef<SVGSVGElement | null>(null);
 
@@ -69,6 +65,12 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   useImperativeHandle(ref, () => ({
     getSvgElement: () => graph.current,
   }), []);
+
+  // Tell the motion layer which element the graph is on, so deleted nodes can leave in the theme's manner.
+  useEffect(() => {
+    setGraphSurface(graph.current);
+    return () => setGraphSurface(null);
+  }, []);
 
   // Track SVG dimensions for viewBox calculation
   const svgDimensions = useElementDimensions(graph);
@@ -159,8 +161,22 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
   const { handleConnectorDragStart, isDraggingEdge } = useEdgeDragging({
     graphRef: graph,
     screenToSvgCoords,
-    setMockEdge,
   });
+
+  // Node moves go through the motion layer: a dragged node has weight, its edges lag behind it,
+  // and it may slide on after it is let go. With physics off these are plain store moves.
+  const { addNode, selectNode } = useNodeActions();
+  const moveNodes = useGraphStore((state) => state.moveNodes);
+  const handleNodeMove = useCallback((nodeId: number, x: number, y: number) => {
+    dragNode(graph.current, nodeId, x, y);
+  }, []);
+  const handleNodeDrop = useCallback((nodeId: number) => {
+    releaseNode(graph.current, nodeId);
+  }, []);
+  const handleGroupMove = useCallback((nodeIds: number[], deltaX: number, deltaY: number) => {
+    nodesMoving(graph.current, nodeIds);
+    moveNodes(nodeIds, deltaX, deltaY);
+  }, [moveNodes]);
 
   // Edge selection hook
   const {
@@ -265,13 +281,17 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
           />
         ))}
 
+        {/* Deleted nodes fading out and their edges recoiling; under the live nodes */}
+        <LeavingLayer />
+
         {/* Nodes layer - orderedNodeIds determines z-order (last = top) */}
         {orderedNodeIds.map((nodeId) => (
           <Node
             key={nodeId}
             nodeId={nodeId}
-            onNodeMove={moveNode}
-            onGroupMove={moveNodes}
+            onNodeMove={handleNodeMove}
+            onNodeDrop={handleNodeDrop}
+            onGroupMove={handleGroupMove}
             onConnectorDragStart={handleConnectorDragStart}
             isVisualizing={isVisualizing}
             isAlgorithmSelected={!!currentAlgorithm}
@@ -282,7 +302,7 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
           />
         ))}
 
-        <DragPreviewEdge edge={mockEdge} />
+        <DragPreviewEdge />
 
         {/* Box selection rectangle - uses same accent color as selected nodes */}
         {selectionBox && (

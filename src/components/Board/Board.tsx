@@ -1,19 +1,16 @@
 import { useState, useRef, useCallback } from "react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
-import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Button, Toolbar } from "@/components/ui-sdk";
+import { IconAction } from "../ui/icon-action";
 import { Undo2, Redo2 } from "lucide-react";
 import { useGraphStore, selectStepIndex, selectStepHistory, selectIsPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { useAutoPlay } from "../../hooks/useAutoPlay";
-import { TIMING } from "../../constants/ui";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
 import { VisualizationState } from "../../constants/visualization";
-import { GrainTexture } from "../ui/grain-texture";
 
 import { MainToolbar } from "./MainToolbar";
 import { MobileControls } from "./MobileControls";
@@ -26,7 +23,6 @@ import { TracePanel } from "./TracePanel";
 import { TraceToggle } from "./TraceToggle";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
-import { Toolbar, ToolbarButton } from "../ui/toolbar";
 
 export const Board = () => {
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
@@ -86,7 +82,7 @@ export const Board = () => {
   }, []);
 
   return (
-    <TooltipProvider delayDuration={TIMING.TOOLTIP_DELAY}>
+    <>
       <main className="h-dvh w-screen relative overflow-hidden">
         {/* Skip link for keyboard navigation - first in tab order, 2D only, only if nodes exist */}
         {!is3DMode && hasNodes && (
@@ -96,11 +92,11 @@ export const Board = () => {
         )}
 
         {/* Background color */}
-        <div className="absolute inset-0 pointer-events-none bg-(--color-paper)" />
+        <div className="absolute inset-0 pointer-events-none canvas-surface" />
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
-        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2">
           {!isDesktop && (
             <MobileControls
               onUndo={execute.undo}
@@ -166,9 +162,8 @@ export const Board = () => {
         </AnimatePresence>
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
-        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-2">
-          <Toolbar aria-label="Zoom controls" className="relative flex items-center gap-2 p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
-            <GrainTexture baseFrequency={4.2} className="rounded-md" />
+        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-3">
+          <Toolbar aria-label="Zoom controls">
             <ZoomControls
               onZoomIn={execute.zoomIn}
               onZoomOut={execute.zoomOut}
@@ -176,48 +171,18 @@ export const Board = () => {
             />
           </Toolbar>
 
-          <Toolbar aria-label="History controls" className="relative flex items-center gap-2 p-2 rounded-md bg-(--color-surface) shadow-(--shadow-premium)">
-            <GrainTexture baseFrequency={4.2} className="rounded-md" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToolbarButton asChild>
-                  <Button
-                    onClick={execute.undo}
-                    disabled={!canUndo}
-                    variant="ghost"
-                    size="icon-sm"
-                    className="relative z-10"
-                    aria-label="Undo"
-                  >
-                    <Undo2 size={16} className={cn(canUndo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-                  </Button>
-                </ToolbarButton>
-              </TooltipTrigger>
-              <TooltipContent>Undo</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToolbarButton asChild>
-                  <Button
-                    onClick={execute.redo}
-                    disabled={!canRedo}
-                    variant="ghost"
-                    size="icon-sm"
-                    className="relative z-10"
-                    aria-label="Redo"
-                  >
-                    <Redo2 size={16} className={cn(canRedo ? "text-(--color-text)" : "text-(--color-text-muted)")} />
-                  </Button>
-                </ToolbarButton>
-              </TooltipTrigger>
-              <TooltipContent>Redo</TooltipContent>
-            </Tooltip>
+          <Toolbar aria-label="History controls">
+            <IconAction label="Undo" side="top" disabled={!canUndo} onClick={execute.undo}>
+              <Undo2 aria-hidden="true" />
+            </IconAction>
+            <IconAction label="Redo" side="top" disabled={!canRedo} onClick={execute.redo}>
+              <Redo2 aria-hidden="true" />
+            </IconAction>
           </Toolbar>
         </div>
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 flex items-center gap-2">
+        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel">
           <AnimatePresence>
             {isInStepMode && !tracePanelVisible && (
               <TraceToggle onExpand={() => setTracePanelVisible(true)} />
@@ -233,6 +198,6 @@ export const Board = () => {
           />
         </div>
       </main>
-    </TooltipProvider>
+    </>
   );
 };

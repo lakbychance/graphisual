@@ -3,6 +3,8 @@ import type { GraphNode, GraphEdge } from "../components/Graph/types";
 import { screenToWorld } from "../components/GraphCanvas/ViewportTransform";
 import { hitTestNodes, hitTestNodesBody, hitTestEdges, hitTestConnectors, nodesInRect } from "../components/GraphCanvas/HitTesting";
 import type { HoveredEdge, PreviewEdge, SelectionBox } from "../components/GraphCanvas/types";
+import { aimDraft, beginDraft, dragNode, endDraft, nodesMoving, releaseNode } from "@/physics/graphMotion";
+import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
@@ -58,7 +60,6 @@ export function useCanvasInteractions({
   currentAlgorithm,
   isVisualizing,
   addNode,
-  moveNode,
   moveNodes,
   selectNode,
   selectNodes,
@@ -205,6 +206,7 @@ export function useCanvasInteractions({
             connectorNodeId: hitNodeFull.id,
           });
           setEdgeDragSource(hitNodeFull.id);
+          beginDraft(canvas, { x: hitNodeFull.x, y: hitNodeFull.y }, world);
           isDraggingRef.current = false;
           canvas.setPointerCapture(e.pointerId);
           return;
@@ -300,6 +302,7 @@ export function useCanvasInteractions({
         if (state.isGroupDrag && state.groupNodeIds && state.initialPositions) {
           const worldDeltaX = world.x - state.startWorldX;
           const worldDeltaY = world.y - state.startWorldY;
+          nodesMoving(canvas, state.groupNodeIds);
           moveNodes(state.groupNodeIds, worldDeltaX, worldDeltaY);
           setDragState(prev => ({
             ...prev,
@@ -307,7 +310,8 @@ export function useCanvasInteractions({
             startWorldY: world.y,
           }));
         } else if (state.nodeId !== undefined) {
-          moveNode(state.nodeId, world.x, world.y);
+          // Through the motion layer: the node has weight and its edges lag behind it.
+          dragNode(canvas, state.nodeId, world.x, world.y);
         }
         break;
 
@@ -336,6 +340,10 @@ export function useCanvasInteractions({
         } else {
           setEdgeDragTarget(null);
         }
+        // Over a node it can connect to, the line is pulled onto that node's rim.
+        const catches = targetNode && state.connectorNodeId !== undefined && canCreateEdge(edges, state.connectorNodeId, targetNode.id);
+        const rim = catches ? calculateAccurateCoords(state.startWorldX, state.startWorldY, targetNode.x, targetNode.y) : null;
+        aimDraft(world, rim && { x: rim.tempX, y: rim.tempY });
         break;
       }
     }
@@ -344,9 +352,9 @@ export function useCanvasInteractions({
     viewportForHitTest,
     zoom,
     nodes,
+    edges,
     stackingOrder,
     selectedNodeIds,
-    moveNode,
     moveNodes,
     selectNode,
     selectNodes,
@@ -366,12 +374,18 @@ export function useCanvasInteractions({
     if (state.type === 'edge-create' && state.connectorNodeId !== undefined) {
       const world = screenToWorld(e.clientX, e.clientY, canvas, viewportForHitTest);
       const targetNode = findToNodeForTouchBasedDevices(world.x, world.y, nodes);
-      if (targetNode && canCreateEdge(edges, state.connectorNodeId, targetNode.id)) {
-        const sourceNode = nodes.find(n => n.id === state.connectorNodeId);
-        if (sourceNode) {
-          addEdge(sourceNode, targetNode);
-        }
+      const sourceNode = nodes.find(n => n.id === state.connectorNodeId);
+      if (sourceNode && targetNode && canCreateEdge(edges, state.connectorNodeId, targetNode.id)) {
+        addEdge(sourceNode, targetNode);
+        endDraft({ from: sourceNode.id, to: targetNode.id });
+      } else {
+        endDraft();
       }
+    }
+
+    // A single node that was being dragged is let go (it may slide on, in themes that allow it).
+    if (state.type === 'node' && !state.isGroupDrag && state.nodeId !== undefined) {
+      releaseNode(canvas, state.nodeId);
     }
 
     // Handle click (no drag)

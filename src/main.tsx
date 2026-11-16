@@ -2,6 +2,19 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./globals.css";
+import "./components/ui-sdk/physics/physics.css";
+import { installPressPhysics } from "./components/ui-sdk/press-physics";
+import { setControlPhysicsEnabled } from "./components/ui-sdk/physics/controls";
+import { setPressSoundEnabled } from "./components/ui-sdk/press-sound";
+import { useSettingsStore } from "./store/settingsStore";
+
+installPressPhysics();
+// Controls and the graph move as simulated masses in each theme's own material
+// (skipped when the system asks for reduced motion).
+setControlPhysicsEnabled(true);
+// Keep the sound engine in step with the persisted setting.
+setPressSoundEnabled(useSettingsStore.getState().soundEnabled);
+useSettingsStore.subscribe((state) => setPressSoundEnabled(state.soundEnabled));
 
 const rootElement = document.getElementById("root");
 

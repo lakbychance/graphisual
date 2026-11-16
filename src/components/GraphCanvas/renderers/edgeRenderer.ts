@@ -7,10 +7,13 @@ import type { GraphEdge } from "../../Graph/types";
 import { type EdgeColorState, getEdgeColor, getCSSVar } from "@/theme";
 import { EDGE } from "../../../constants/graph";
 import { getControlPoint } from "../../../utils/geometry/calc";
+import { traceDraft, type DraftShape } from "@/physics/graphMotion";
 
 interface EdgeRenderOptions {
   colorState: EdgeColorState;
   isFocused: boolean;
+  /** How far the middle of the line lags while an end is moving (see physics/graphMotion). */
+  bow?: { x: number; y: number } | null;
 }
 
 /**
@@ -105,8 +108,10 @@ function drawDirectedEdge(
   edge: GraphEdge,
   options: EdgeRenderOptions
 ): void {
-  const { colorState, isFocused } = options;
-  const { cx, cy } = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
+  const { colorState, isFocused, bow } = options;
+  const control = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
+  const cx = control.cx + 2 * (bow?.x ?? 0);
+  const cy = control.cy + 2 * (bow?.y ?? 0);
 
   const color = isFocused ? getCSSVar('--color-accent-form') : getEdgeColor(colorState);
   const lineWidth = edge.type === 'directed' ? 2 : 2.5;
@@ -150,14 +155,15 @@ function drawUndirectedEdge(
   edge: GraphEdge,
   options: EdgeRenderOptions
 ): void {
-  const { colorState, isFocused } = options;
+  const { colorState, isFocused, bow } = options;
   const color = isFocused ? getCSSVar('--color-accent-form') : getEdgeColor(colorState);
 
   ctx.save();
 
   ctx.beginPath();
   ctx.moveTo(edge.x1, edge.y1);
-  ctx.lineTo(edge.x2, edge.y2);
+  if (bow) ctx.quadraticCurveTo((edge.x1 + edge.x2) / 2 + 2 * bow.x, (edge.y1 + edge.y2) / 2 + 2 * bow.y, edge.x2, edge.y2);
+  else ctx.lineTo(edge.x2, edge.y2);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2.5;
   ctx.stroke();
@@ -166,8 +172,8 @@ function drawUndirectedEdge(
 
   // Weight label (at midpoint)
   if (edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT) {
-    const centerX = (edge.x1 + edge.nodeX2) / 2;
-    const centerY = (edge.y1 + edge.nodeY2) / 2;
+    const centerX = (edge.x1 + edge.nodeX2) / 2 + (bow?.x ?? 0);
+    const centerY = (edge.y1 + edge.nodeY2) / 2 + (bow?.y ?? 0);
     drawWeightLabel(ctx, centerX, centerY, edge.weight);
   }
 }
@@ -222,6 +228,26 @@ export function drawPreviewEdge(
   ctx.setLineDash([]); // Reset dash for solid arrow
   drawArrowhead(ctx, endX, endY, angle, color, arrowWidth, arrowHeight);
 
+  ctx.restore();
+}
+
+/**
+ * Draw the edge being drawn in the shape the motion layer gives it (a thread,
+ * a wire or a ruled line). Same dashed stroke and arrow as `drawPreviewEdge`.
+ */
+export function drawDraftEdge(ctx: CanvasRenderingContext2D, shape: DraftShape): void {
+  const color = getCSSVar('--color-edge-default');
+
+  ctx.save();
+  ctx.beginPath();
+  const end = traceDraft(ctx, shape);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // The SVG marker starts at the end of the line and points onward; match it.
+  drawArrowhead(ctx, end.x + Math.cos(end.angle) * 18, end.y + Math.sin(end.angle) * 18, end.angle, color, 18, 14);
   ctx.restore();
 }
 

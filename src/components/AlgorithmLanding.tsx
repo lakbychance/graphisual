@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { GrainTexture } from "../components/ui/grain-texture";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui-sdk";
 
 const algorithms = [
   { id: "dijkstra", name: "Dijkstra's" },
@@ -74,11 +74,9 @@ export function AlgorithmLanding({
 
         {/* CTA */}
         <div className="mb-12">
-          <Button variant="outline" size="lg" asChild>
-            <a href={`/?algorithm=${algorithmId}`} className="gap-2">
-              {ctaText}
-              <ArrowRight className="w-4 h-4" />
-            </a>
+          <Button variant="outline" size="lg" render={<a href={`/?algorithm=${algorithmId}`} />}>
+            {ctaText}
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
 
@@ -149,11 +147,9 @@ export function AlgorithmLanding({
           <p className="text-(--color-text-muted) mb-4">
             Ready to see it in action?
           </p>
-          <Button variant="outline" size="lg" asChild>
-            <a href={`/?algorithm=${algorithmId}`} className="gap-2">
-              Open the Visualizer
-              <ArrowRight className="w-4 h-4" />
-            </a>
+          <Button variant="outline" size="lg" render={<a href={`/?algorithm=${algorithmId}`} />}>
+            Open the Visualizer
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </main>

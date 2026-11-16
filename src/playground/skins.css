@@ -1,0 +1,20 @@
+/**
+ * Theme playground skin scope.
+ *
+ * A skin is a `[data-skin="…"]` scope. The three skins are the app's live
+ * themes (paper = Light, tungsten = Dark, blueprint = Blueprint), and all of
+ * their tokens live in src/theme/tokens.css; this file only makes a scope
+ * paint its own background and text so several can sit on one page. Popups
+ * render in place (top layer, no portal), so everything inside a scope,
+ * including open menus and tooltips, inherits it.
+ */
+
+@layer components {
+  [data-skin] {
+    background: var(--color-paper);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

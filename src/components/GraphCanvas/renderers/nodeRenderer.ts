@@ -10,7 +10,7 @@ import {
   getNodeStrokeColor,
   getCSSVar,
 } from "@/theme";
-import { NODE_STROKE } from "../../../constants/ui";
+import { NODE_STROKE, NODE_STATE_MARK, NODE_RING } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 
 interface NodeRenderOptions {
@@ -21,30 +21,11 @@ interface NodeRenderOptions {
   opacity?: number; // For entrance animation
   isEdgeCreateSource?: boolean; // Highlight during edge creation drag
   isEdgeCreateTarget?: boolean; // Highlight when hovering as edge target
-}
-
-/**
- * Create a linear gradient for a node (diagonal, matching SVG).
- */
-function createNodeGradient(
-  ctx: CanvasRenderingContext2D,
-  node: GraphNode,
-  colorState: NodeColorState
-): CanvasGradient {
-  const colors = getNodeGradientColors(colorState);
-  // Diagonal gradient from top-left to bottom-right (matching SVG x1=0% y1=0% x2=100% y2=100%)
-  const gradient = ctx.createLinearGradient(
-    node.x - node.r,
-    node.y - node.r,
-    node.x + node.r,
-    node.y + node.r
-  );
-
-  gradient.addColorStop(0, colors.start);
-  gradient.addColorStop(0.5, colors.mid);
-  gradient.addColorStop(1, colors.end);
-
-  return gradient;
+  /**
+   * The canvas's pixel scale for this frame (device pixel ratio x zoom). It is
+   * the same for every node, so the render loop reads it once and passes it in.
+   */
+  pixelScale?: number;
 }
 
 // Cache for offscreen crosshatch pattern canvases
@@ -65,30 +46,40 @@ export function invalidateCrosshatchCache(): void {
 function drawCrosshatch(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
-  radius: number
+  radius: number,
+  pixelScale: number
 ): void {
   // Create cache key based on radius and text color (for theme changes)
+  // A theme sets the hatch strength; 0 means plain nodes (SVG default is 0.25).
+  const strength = parseFloat(getCSSVar('--node-hatch-opacity'));
+  if (!(strength > 0)) return;
   const size = Math.ceil(radius * 2);
   const color = getCSSVar('--color-text');
-  const cacheKey = `${size}-${color}`;
+  // Rasterise at the canvas's real pixel scale (device pixel ratio x zoom) so the
+  // lines stay as crisp as the SVG's; stepped to keep the cache small.
+  const density = Math.min(4, Math.max(1, Math.ceil(pixelScale * 2) / 2));
+  const cacheKey = `${size}-${color}-${strength}-${density}`;
 
   let patternCanvas = crosshatchCache.get(cacheKey);
 
   if (!patternCanvas) {
     // Create offscreen canvas for masked crosshatch
     patternCanvas = document.createElement('canvas');
-    patternCanvas.width = size;
-    patternCanvas.height = size;
+    patternCanvas.width = Math.ceil(size * density);
+    patternCanvas.height = Math.ceil(size * density);
     const pCtx = patternCanvas.getContext('2d')!;
+    pCtx.scale(density, density);
 
     const center = size / 2;
     const r = radius;
 
     // Draw crosshatch pattern - SVG uses rotate(45) on vertical lines = bottom-left to top-right (/)
-    const spacing = 5; // Slightly more sparse than SVG's 3 for cleaner look
+    // Same geometry as the SVG pattern: lines 3px apart (measured across the lines), 0.8px wide,
+    // at the theme's opacity. The loop steps along x, so the step is 3 * sqrt(2).
+    const spacing = 3 * Math.SQRT2;
     pCtx.strokeStyle = color;
-    pCtx.lineWidth = 0.6; // Slightly thinner for subtler effect
-    pCtx.globalAlpha = 0.2; // Reduced opacity
+    pCtx.lineWidth = 0.8;
+    pCtx.globalAlpha = Math.min(1, strength);
 
     const bounds = r * 1.5;
     pCtx.beginPath();
@@ -104,15 +95,15 @@ function drawCrosshatch(
     pCtx.globalCompositeOperation = 'destination-in';
     pCtx.globalAlpha = 1;
 
-    // Radial gradient mask: transparent center, opaque edges
-    // Offset to top-left (35%) for lighting effect, r=60%
+    // Radial gradient mask: transparent centre, opaque edges. The SVG mask is in
+    // bounding-box units (box = 2r): cx/cy 35% is 0.3r up-left of centre, r 60% is 1.2r.
     const maskGradient = pCtx.createRadialGradient(
-      center - r * 0.15, // cx="35%" offset
-      center - r * 0.15, // cy="35%" offset
+      center - r * 0.3,
+      center - r * 0.3,
       0,
-      center,
-      center,
-      r * 0.6 // r="60%"
+      center - r * 0.3,
+      center - r * 0.3,
+      r * 1.2
     );
     // SVG mask: 0% black (hidden), 40% #444 (partial), 100% white (visible)
     maskGradient.addColorStop(0, 'rgba(0,0,0,0)'); // Hidden at center
@@ -138,7 +129,9 @@ function drawCrosshatch(
   ctx.drawImage(
     patternCanvas,
     node.x - radius,
-    node.y - radius
+    node.y - radius,
+    size,
+    size
   );
 }
 
@@ -158,6 +151,7 @@ export function drawNode(
     opacity = 1,
     isEdgeCreateSource = false,
     isEdgeCreateTarget = false,
+    pixelScale = Math.abs(ctx.getTransform().a),
   } = options;
 
   // Apply animation transforms and hover scale
@@ -195,11 +189,10 @@ export function drawNode(
   ctx.shadowOffsetX = 1.5;
   ctx.shadowOffsetY = 1.5;
 
-  // Main circle with gradient fill
-  const gradient = createNodeGradient(ctx, node, colorState);
+  // Main circle: the same flat fill the SVG renderer uses (the gradient's mid colour)
   ctx.beginPath();
   ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = getNodeGradientColors(colorState).mid;
   ctx.fill();
 
   // Clear shadow for stroke
@@ -212,14 +205,26 @@ export function drawNode(
   const strokeColor = isSelected
     ? getCSSVar('--color-accent-form')
     : getNodeStrokeColor(colorState);
-  const strokeWidth = isSelected ? NODE_STROKE.SELECTED : NODE_STROKE.DEFAULT;
+  const stateMark = NODE_STATE_MARK[colorState];
+  const strokeWidth = isSelected ? NODE_STROKE.SELECTED : NODE_STROKE.DEFAULT + stateMark.boost;
 
   ctx.strokeStyle = strokeColor;
   ctx.lineWidth = strokeWidth;
   ctx.stroke();
 
+  // Inner ring for states that carry one (matches the SVG renderer)
+  if (stateMark.ring !== 'none' && radius > NODE_RING.INSET) {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, radius - NODE_RING.INSET, 0, Math.PI * 2);
+    ctx.strokeStyle = getNodeStrokeColor(colorState);
+    ctx.lineWidth = NODE_RING.WIDTH;
+    if (stateMark.ring === 'dashed') ctx.setLineDash([...NODE_RING.DASH]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
   // Crosshatch overlay
-  drawCrosshatch(ctx, node, radius);
+  drawCrosshatch(ctx, node, radius, pixelScale);
 
   ctx.restore();
 
@@ -243,7 +248,8 @@ function drawNodeLabel(
   ctx.fillStyle = getCSSVar('--color-text');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(node.label || node.id.toString(), node.x, node.y);
+  // +1: canvas 'middle' sits a pixel higher than the SVG label's 'central' baseline.
+  ctx.fillText(node.label || node.id.toString(), node.x, node.y + 1);
   ctx.restore();
 }
 

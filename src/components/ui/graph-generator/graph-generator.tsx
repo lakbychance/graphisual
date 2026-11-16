@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "../popover";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../tabs";
-import { Button } from "../button";
-import { ToolbarButton } from "../toolbar";
-import { cn } from "../../../lib/utils";
+import { Divider, Popover, PopoverContent, PopoverTrigger, Tabs, TabsList, TabsPanel, TabsTab, ToolbarButton } from "@/components/ui-sdk";
 import { useGraphStore } from "../../../store/graphStore";
 import { type GeneratedGraph } from "../../../utils/graph/graphGenerator";
 import { TemplatesTab } from "./templates-tab";
@@ -14,6 +10,7 @@ interface GraphGeneratorProps {
   disabled?: boolean;
 }
 
+/** Graph generator: popover with template tiles and a custom form. */
 export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
   const [open, setOpen] = useState(false);
   const setGraph = useGraphStore((state) => state.setGraph);
@@ -25,43 +22,33 @@ export const GraphGenerator = ({ disabled }: GraphGeneratorProps) => {
 
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <ToolbarButton asChild>
-          <Button
-            disabled={disabled}
-            aria-label="Generate graph"
-            className={cn(
-              "w-auto md:w-[110px] gap-1.5",
-              "justify-center"
-            )}
-            size='sm'
-          >
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span className="hidden md:inline">Generate</span>
-          </Button>
-        </ToolbarButton>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[300px] p-0"
-        align="center"
-        sideOffset={12}
+      <ToolbarButton
+        render={<PopoverTrigger />}
+        variant="default"
+        size="sm"
+        disabled={disabled}
+        aria-label="Generate graph"
+        className="w-auto md:w-[110px]"
       >
-        <Tabs defaultValue="templates">
-          <div className="p-2 border-b border-(--color-divider)">
-            <TabsList>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="custom">Custom</TabsTrigger>
+        <Sparkles className="h-4 w-4 shrink-0" />
+        <span className="hidden md:inline">Generate</span>
+      </ToolbarButton>
+      <PopoverContent className="w-[300px] p-0" align="center" sideOffset={12} aria-label="Generate a graph">
+        <Tabs defaultValue="templates" className="gap-0">
+          <div className="p-2">
+            <TabsList aria-label="Generator mode">
+              <TabsTab value="templates">Templates</TabsTab>
+              <TabsTab value="custom">Custom</TabsTab>
             </TabsList>
           </div>
-
+          <Divider orientation="horizontal" />
           <div className="p-3">
-            <TabsContent value="templates">
+            <TabsPanel value="templates">
               <TemplatesTab onGenerate={handleGenerate} />
-            </TabsContent>
-
-            <TabsContent value="custom">
+            </TabsPanel>
+            <TabsPanel value="custom">
               <CustomGeneratorForm onGenerate={handleGenerate} />
-            </TabsContent>
+            </TabsPanel>
           </div>
         </Tabs>
       </PopoverContent>

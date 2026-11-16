@@ -5,9 +5,9 @@ import { NODE_GRADIENT } from "../../../constants/graph";
  */
 export const NodeDefs = () => (
   <>
-    {/* Crosshatch pattern for node shading */}
+    {/* Crosshatch pattern for node shading; a theme sets its strength (0 = plain nodes) */}
     <pattern id="crosshatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="3" stroke="var(--color-text)" strokeWidth="0.8" opacity="0.25" />
+      <line x1="0" y1="0" x2="0" y2="3" stroke="var(--color-text)" strokeWidth="0.8" style={{ opacity: 'var(--node-hatch-opacity)' }} />
     </pattern>
 
     {/* Radial gradient for sphere mask - white=visible, black=hidden */}

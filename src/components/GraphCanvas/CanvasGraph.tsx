@@ -251,6 +251,8 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     <div ref={containerRef} className="relative flex-1 w-full h-full">
       <canvas
         ref={canvasRef}
+        // Performance mode is exact: no weight, slide, bowing edges or thread on this canvas.
+        data-no-physics=""
         className="absolute inset-0 focus:outline-none"
         style={{ width: '100%', height: '100%', cursor: getCursor(), touchAction: 'none' }}
         tabIndex={-1}

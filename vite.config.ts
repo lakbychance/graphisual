@@ -35,6 +35,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // The 3D view is lazy-loaded, so without this Vite only discovers its
+  // dependencies the first time someone opens it and re-bundles mid-session.
+  // That can leave the page with two copies of React ("Invalid hook call" in
+  // <Canvas>). Bundling them at startup avoids the mid-session re-bundle.
+  optimizeDeps: {
+    include: ["three", "@react-three/fiber", "@react-three/drei"],
+  },
   server: {
     port: 3000,
     open: true,
@@ -43,17 +50,9 @@ export default defineConfig({
     outDir: "build",
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-ui": [
-            "@radix-ui/react-checkbox",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-slider",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-toggle-group",
-            "@radix-ui/react-tooltip",
-          ],
-          "vendor-motion": ["motion"],
+        manualChunks(id) {
+          if (id.includes("node_modules/@ui-sdk/")) return "vendor-ui";
+          if (id.includes("node_modules/motion/") || id.includes("node_modules/framer-motion/")) return "vendor-motion";
         },
       },
     },
