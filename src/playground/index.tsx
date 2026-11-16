@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import "./skins.css";
 import "./playground.css";
-import { Button, SegmentedControl, SegmentedControlItem, Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui-sdk";
+import { Button, Label, SegmentedControl, SegmentedControlItem, Slider, Switch, Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui-sdk";
+import { setControlPhysicsEnabled } from "@/components/ui-sdk/physics/controls";
 import { SKINS, type SkinId } from "./skins";
 import { Stage } from "./Stage";
 import { MainToolbar } from "./recipes/MainToolbar";
@@ -14,6 +15,7 @@ import { GraphGenerator } from "./recipes/GraphGenerator";
 import { EdgePopupDemo, NodeLabelDemo } from "./recipes/EdgePopups";
 import { AlgorithmHintDemo } from "./recipes/AlgorithmHint";
 import { ButtonsDemo, SelectionDemo, ValuesDemo } from "./recipes/Primitives";
+import { GraphLab } from "./recipes/GraphLab";
 import { BFS_STEPS } from "./recipes/mock";
 
 interface Section {
@@ -40,6 +42,7 @@ function StepControlsDemo() {
 }
 
 const SECTIONS: Section[] = [
+  { id: "graph", title: "Graph canvas", maps: "Graph/Node · EdgeConnector · the edge being drawn", parts: "@ui-sdk/core/gesture · physics/graph (drag a node; drag a handle to connect)", render: () => <GraphLab /> },
   { id: "toolbar", title: "Main toolbar", maps: "Board/MainToolbar + ModeToggle + SpeedControl", parts: "Toolbar · SegmentedControl · Popover · Select · Menu · Tooltip", wide: true, render: () => <MainToolbar /> },
   { id: "step", title: "Step controls", maps: "Board/StepControls", parts: "Toolbar · ToolbarButton · Tooltip", render: () => <StepControlsDemo /> },
   { id: "trace", title: "Trace panel", maps: "Board/TracePanel + DataStructureVis", parts: "Panel · chips", render: () => <TracePanel step={BFS_STEPS[2]} onCollapse={() => {}} /> },
@@ -82,8 +85,16 @@ export default function ThemePlayground() {
   const [stageSkin, setStageSkin] = useState<SkinId>(initial.skin ?? "tungsten");
   const skins = filter === "all" ? SKINS : SKINS.filter((s) => s.id === filter);
 
+  // Simulated motion is on app-wide; the switch here turns it off to compare against plain transitions.
+  const [physics, setPhysics] = useState(true);
+  const [feel, setFeel] = useState(100);
+  useEffect(() => {
+    setControlPhysicsEnabled(physics);
+    return () => setControlPhysicsEnabled(true);
+  }, [physics]);
+
   return (
-    <div className="pg-root">
+    <div className="pg-root" style={{ "--phys-intensity": feel / 100 } as CSSProperties}>
       <header className="pg-header">
         <div className="pg-header-row">
           <Button variant="ghost" size="sm" tone="muted" render={<a href="/" />}>
@@ -100,6 +111,14 @@ export default function ThemePlayground() {
             <TabsTab value="components">Components</TabsTab>
             <TabsTab value="stage">Stage</TabsTab>
           </TabsList>
+          <label className="pg-physics-toggle">
+            <Switch checked={physics} onCheckedChange={setPhysics} aria-label="Simulated physics" /> Physics
+          </label>
+          <div className="pg-feel" data-off={!physics || undefined}>
+            <Label>Feel</Label>
+            <Slider min={0} max={200} step={10} value={feel} onValueChange={(v) => setFeel(typeof v === "number" ? v : v[0])} thumbLabel="Physics intensity" disabled={!physics} />
+            <span className="gs-value">{feel}%</span>
+          </div>
         </div>
 
         <TabsPanel value="components" className="pg-panel" keepMounted>

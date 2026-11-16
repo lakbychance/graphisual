@@ -24,6 +24,9 @@ let enabled = true;
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let noise: AudioBuffer | null = null;
+/** Loudness and pitch of the sound being voiced: a hard strike is louder and a little lower. */
+let level = 1;
+let pitch = 1;
 
 export function setPressSoundEnabled(value: boolean): void {
   enabled = value;
@@ -44,8 +47,33 @@ function audio(): AudioContext | null {
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   }
-  if (ctx.state === "suspended") void ctx.resume();
   return ctx;
+}
+
+/**
+ * Get the audio engine ready before it is needed. Called on every first touch
+ * and key (see press-physics.ts) and when the page comes back to the front,
+ * so the context is already running when a control asks for a sound.
+ */
+export function primePressSound(): void {
+  if (!enabled) return;
+  const ac = audio();
+  if (ac && ac.state !== "running") void ac.resume().catch(() => {});
+}
+
+/** A sound that could not start this soon after it was asked for is dropped rather than played late. */
+const STALE_MS = 60;
+
+/** The kit of each theme scope, so asking for a sound does not force a style recalculation. */
+const kits = new WeakMap<Element, { theme: string; kit: string }>();
+function kitOf(element: Element): string {
+  const scope = element.closest("[data-skin], [data-theme]") ?? document.documentElement;
+  const theme = `${scope.getAttribute("data-skin") ?? ""}|${scope.getAttribute("data-theme") ?? ""}`;
+  const known = kits.get(scope);
+  if (known?.theme === theme) return known.kit;
+  const kit = getComputedStyle(scope).getPropertyValue("--sound-kit").trim();
+  kits.set(scope, { theme, kit });
+  return kit;
 }
 
 interface Burst {
@@ -80,12 +108,12 @@ function burst(ac: AudioContext, b: Burst): void {
   src.buffer = noise;
   const filter = ac.createBiquadFilter();
   filter.type = b.filter;
-  filter.frequency.setValueAtTime(b.freq, t);
-  if (b.sweepTo) filter.frequency.exponentialRampToValueAtTime(b.sweepTo, t + b.decay);
+  filter.frequency.setValueAtTime(b.freq * pitch, t);
+  if (b.sweepTo) filter.frequency.exponentialRampToValueAtTime(b.sweepTo * pitch, t + b.decay);
   filter.Q.value = b.q ?? 0.8;
   const gain = ac.createGain();
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(b.gain, t + 0.002);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, b.gain * level), t + 0.002);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + b.decay);
   src.connect(filter).connect(gain).connect(master);
   // Start somewhere different in the buffer each time so repeats are not identical.
@@ -98,11 +126,11 @@ function tone(ac: AudioContext, o: Tone): void {
   const t = ac.currentTime + (o.at ?? 0);
   const osc = ac.createOscillator();
   osc.type = o.type;
-  osc.frequency.setValueAtTime(o.freq, t);
-  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + o.decay);
+  osc.frequency.setValueAtTime(o.freq * pitch, t);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to * pitch, t + o.decay);
   const gain = ac.createGain();
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(o.gain, t + 0.002);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, o.gain * level), t + 0.002);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + o.decay);
   osc.connect(gain).connect(master);
   osc.start(t);
@@ -160,12 +188,33 @@ const KITS: Record<Kit, Record<SoundEvent, (ac: AudioContext) => void>> = {
 
 const isKit = (value: string): value is Kit => value in KITS;
 
-/** Play `event` in the kit of the theme `element` belongs to. */
-export function playPressSound(element: Element, event: SoundEvent): void {
+/**
+ * Play `event` in the kit of the theme `element` belongs to.
+ * `strength` is how hard the contact was (1 = an ordinary press): it scales
+ * loudness and drops the pitch slightly, as a heavier strike does.
+ */
+export function playPressSound(element: Element, event: SoundEvent, strength = 1): void {
   if (!enabled) return;
-  const kit = getComputedStyle(element).getPropertyValue("--sound-kit").trim();
+  const kit = kitOf(element);
   if (!isKit(kit)) return;
   const ac = audio();
   if (!ac) return;
-  KITS[kit][event](ac);
+  const voice = () => {
+    const s = Math.max(0.2, Math.min(1.4, strength));
+    level = s;
+    pitch = 1.1 - 0.1 * s;
+    KITS[kit][event](ac);
+    level = 1;
+    pitch = 1;
+  };
+  if (ac.state === "running") {
+    voice();
+    return;
+  }
+  // The engine is asleep (first gesture, or the page was in the background). Wake it, and
+  // play only if it wakes at once: a click that arrives late is worse than no click.
+  const asked = performance.now();
+  void ac.resume().then(() => {
+    if (performance.now() - asked <= STALE_MS) voice();
+  }).catch(() => {});
 }

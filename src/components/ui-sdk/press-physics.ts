@@ -1,5 +1,5 @@
 import { WebHaptics } from "web-haptics";
-import { playPressSound } from "./press-sound";
+import { playPressSound, primePressSound } from "./press-sound";
 
 /**
  * Press physics for the gs-* keys.
@@ -24,10 +24,12 @@ import { playPressSound } from "./press-sound";
  * theme's own sound kit.
  */
 
-const KEYS = ".gs-button, .gs-card-button, .gs-stepper-button";
-const LATCHES = ".gs-toggle, .gs-tab, .gs-segmented-item, .gs-switch, .gs-checkbox";
-const DISABLED = ':disabled, [data-disabled], [aria-disabled="true"]';
-const MENU_ROWS = ".gs-menu-item";
+export const KEYS = ".gs-button, .gs-card-button, .gs-stepper-button";
+export const LATCHES = ".gs-toggle, .gs-tab, .gs-segmented-item, .gs-switch, .gs-checkbox";
+export const DISABLED = ':disabled, [data-disabled], [aria-disabled="true"]';
+export const MENU_ROWS = ".gs-menu-item";
+/** Inside this scope the simulated layer (physics/controls.ts) moves and voices the controls instead. */
+const SIMULATED = "[data-physics]";
 /** Slider detents closer together than this are merged, so a fast drag purrs instead of buzzing. */
 const TICK_GAP_MS = 28;
 
@@ -37,6 +39,23 @@ const toDeg = (rad: number) => (rad * 180) / Math.PI;
 const clamp = (n: number) => Math.max(-1, Math.min(1, n));
 /** A press near the middle goes straight down; the lean ramps in toward the edges. */
 const edge = (t: number) => (Math.abs(t) < 0.15 ? 0 : Math.sign(t) * ((Math.abs(t) - 0.15) / 0.85));
+const simulated = (target: EventTarget | null) => !!(target as Element | null)?.closest?.(SIMULATED);
+
+/** Measure where on `key` the pointer landed and write the lean it causes. */
+export function leanKey(key: HTMLElement, clientX: number, clientY: number): void {
+  const rect = key.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  const x = edge(clamp((clientX - rect.left) / (rect.width / 2) - 1));
+  const y = edge(clamp((clientY - rect.top) / (rect.height / 2) - 1));
+  const lean = parseFloat(getComputedStyle(key).getPropertyValue("--key-lean")) || 0;
+  key.style.setProperty("--press-x", x.toFixed(3));
+  key.style.setProperty("--press-y", y.toFixed(3));
+  key.style.setProperty("--key-skew", `${toDeg(Math.atan((lean * x) / rect.width)).toFixed(3)}deg`);
+}
+
+export function clearLean(key: HTMLElement): void {
+  for (const prop of PROPS) key.style.removeProperty(prop);
+}
 
 let installed = false;
 
@@ -50,17 +69,26 @@ export function installPressPhysics(root: Document = document): void {
   let lastTick = 0;
   let settleTimer = 0;
 
+  // Wake the audio engine at the very start of every gesture, ahead of any control's own handler,
+  // and again when the page returns to the front (mobile browsers put it to sleep in the background).
+  for (const type of ["pointerdown", "keydown", "touchstart"] as const) {
+    window.addEventListener(type, primePressSound, { capture: true, passive: true });
+  }
+  root.addEventListener("visibilitychange", () => {
+    if (!root.hidden) primePressSound();
+  });
+
   const release = () => {
     window.clearTimeout(settleTimer);
     if (!held) return;
-    for (const prop of PROPS) held.style.removeProperty(prop);
+    clearLean(held);
     held = null;
   };
 
   root.addEventListener(
     "pointerdown",
     (event) => {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || simulated(event.target)) return;
       const target = event.target as Element | null;
       const key = target?.closest?.<HTMLElement>(KEYS);
       const control = key ?? target?.closest?.<HTMLElement>(LATCHES);
@@ -76,14 +104,7 @@ export function installPressPhysics(root: Document = document): void {
 
       if (!key) return;
       release();
-      const rect = key.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-      const x = edge(clamp((event.clientX - rect.left) / (rect.width / 2) - 1));
-      const y = edge(clamp((event.clientY - rect.top) / (rect.height / 2) - 1));
-      const lean = parseFloat(getComputedStyle(key).getPropertyValue("--key-lean")) || 0;
-      key.style.setProperty("--press-x", x.toFixed(3));
-      key.style.setProperty("--press-y", y.toFixed(3));
-      key.style.setProperty("--key-skew", `${toDeg(Math.atan((lean * x) / rect.width)).toFixed(3)}deg`);
+      leanKey(key, event.clientX, event.clientY);
       held = key;
     },
     { capture: true, passive: true },
@@ -98,6 +119,7 @@ export function installPressPhysics(root: Document = document): void {
   root.addEventListener(
     "pointerup",
     (event) => {
+      if (simulated(event.target) && !sounding) return;
       if (sounding) playPressSound(sounding, "up");
       else if (event.button === 0) {
         // A menu row is chosen on release, so that is when it sounds.
@@ -120,6 +142,7 @@ export function installPressPhysics(root: Document = document): void {
   root.addEventListener(
     "keydown",
     (event) => {
+      if (simulated(event.target)) return;
       release();
       // Enter / Space operate a control from the keyboard: voice it once, not on auto-repeat.
       if (event.repeat || (event.key !== "Enter" && event.key !== " ")) return;
@@ -135,7 +158,7 @@ export function installPressPhysics(root: Document = document): void {
     "input",
     (event) => {
       const slider = (event.target as Element | null)?.closest?.<HTMLElement>(".gs-slider");
-      if (!slider || slider.matches(DISABLED)) return;
+      if (!slider || slider.matches(DISABLED) || simulated(slider)) return;
       const now = performance.now();
       if (now - lastTick < TICK_GAP_MS) return;
       lastTick = now;

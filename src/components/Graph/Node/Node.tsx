@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState, memo } from "react";
+import { nodeArrival } from "@/physics/graphMotion";
 import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,8 @@ import { resolveNodeVisState } from "../../../utils/visualization/nodeVisState";
 export interface NodeProps {
   nodeId: number;
   onNodeMove: (nodeId: number, x: number, y: number) => void;
+  /** A single-node drag has ended (not called for a click or a group drag). */
+  onNodeDrop: (nodeId: number) => void;
   onGroupMove: (nodeIds: number[], deltaX: number, deltaY: number) => void;
   onConnectorDragStart: (
     sourceNodeId: number,
@@ -34,6 +37,7 @@ export const Node = memo(function Node(props: NodeProps) {
   const {
     nodeId,
     onNodeMove,
+    onNodeDrop,
     onGroupMove,
     onConnectorDragStart,
     isVisualizing,
@@ -63,6 +67,8 @@ export const Node = memo(function Node(props: NodeProps) {
   const [isBodyHovered, setIsBodyHovered] = useState(false);
   const isDragging = useRef(false);
   const prefersReducedMotion = useReducedMotion();
+  // How this theme brings a node in (laid down, dropped, drawn); read once, when the node appears.
+  const [arrival] = useState(nodeArrival);
   const isDesktop = useIsDesktop();
   const haptics = useAppHaptics();
 
@@ -172,6 +178,8 @@ export const Node = memo(function Node(props: NodeProps) {
         // Reset cursor
         target.style.cursor = '';
 
+        if (isDragging.current && !isGroupDrag) onNodeDrop(nodeId);
+
         // If not dragging and not pinching, toggle node selection (single click)
         if (!isDragging.current && !isGestureActive()) {
           if (isSelected) {
@@ -187,7 +195,7 @@ export const Node = memo(function Node(props: NodeProps) {
       document.addEventListener("pointermove", handlePointerMove);
       document.addEventListener("pointerup", handlePointerUp);
     },
-    [nodeId, onNodeMove, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront, haptics]
+    [nodeId, onNodeMove, onNodeDrop, onGroupMove, onNodeSelect, isVisualizing, isAlgorithmSelected, screenToSvgCoords, isSelected, isGestureActive, bringNodeToFront, haptics]
   );
 
   const handleDoubleClick = useCallback(
@@ -227,12 +235,14 @@ export const Node = memo(function Node(props: NodeProps) {
     <m.g
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      initial={prefersReducedMotion ? false : { scale: 0, opacity: 0 }}
+      initial={prefersReducedMotion ? false : { scale: arrival?.from ?? 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={prefersReducedMotion ? { duration: 0 } : {
         type: 'spring',
-        stiffness: 600,
-        damping: 28,
+        stiffness: arrival?.stiffness ?? 600,
+        damping: arrival?.damping ?? 28,
+        // In a theme's own entrance the node is fully there as it lands; only its size is still settling.
+        ...(arrival ? { opacity: { duration: 0.12 } } : {}),
       }}
       style={{ transformOrigin: `${node.x}px ${node.y}px` }}
     >

@@ -17,6 +17,24 @@
   .pg-tabs { max-width: 1480px; margin: 0 auto; padding: 0 24px 64px; gap: 0; }
   .pg-controls { display: flex; align-items: center; gap: 16px; padding: 8px 0 16px; }
   .pg-view { width: 240px; }
+  .pg-controls { flex-wrap: wrap; }
+  .pg-physics-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .pg-feel { display: flex; align-items: center; gap: 10px; width: 260px; font-size: 12px; }
+  .pg-feel[data-off] { opacity: 0.5; }
+  .pg-feel .gs-value { min-width: 4ch; text-align: right; }
+
+  /* live graph */
+  .pg-graph { max-width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; overflow: visible; }
+  .pg-node > circle:not(.pg-node-target) { cursor: grab; }
+  .pg-graph:active .pg-node > circle:not(.pg-node-target) { cursor: grabbing; }
+  .pg-connector { cursor: crosshair; opacity: 0; transition: opacity var(--dur-2) var(--ease-out); }
+  .pg-node:hover .pg-connector,
+  .pg-node[data-active] .pg-connector { opacity: 1; }
+  .pg-graph[data-drawing] .pg-connector,
+  .pg-graph:active .pg-connector { opacity: 0; }
+  .pg-graph[data-drawing] .pg-connector { pointer-events: none; }
+  .pg-node-target { opacity: 0; transition: opacity var(--dur-1) var(--ease-out); }
+  .pg-node[data-target] .pg-node-target { opacity: 1; }
   .pg-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
   .pg-stage-blurb { margin: 0; font-size: 13px; color: var(--color-text-muted); }
   .pg-panel[data-starting-style] { translate: 0; }

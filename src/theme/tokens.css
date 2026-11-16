@@ -207,6 +207,30 @@
   /* which synthesised sound kit the controls use (see ui-sdk/press-sound.ts) */
   --sound-kit: none;
 
+  /* physics: a neutral material: exact, no ring, no slack. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.14;
+  --phys-key-damping: 1;
+  --phys-key-bounce: 0;
+  --phys-slide-response: 0.2;
+  --phys-slide-damping: 1;
+  --phys-slide-bounce: 0;
+  --phys-popup-response: 0.3;
+  --phys-popup-damping: 1;
+  --phys-edge: pen;
+  --phys-edge-response: 0.09;
+  --phys-edge-damping: 1;
+  --phys-edge-slack: 0;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.06;
+  --phys-node-damping: 1;
+  --phys-node-bounce: 0;
+  --phys-node-glide: 0;
+  /* a new node simply appears at size (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 0.9;
+  --phys-arrive-response: 0.2;
+  --phys-arrive-damping: 1;
+
   /* canvas */
   --canvas-texture: none;
   --canvas-texture-size: auto;
@@ -743,6 +767,30 @@
   --popup-marks-delay: 0ms;
   --node-hatch-opacity: 0.25;        /* pencil shading */
   --sound-kit: paper;
+
+  /* physics: card stock. Light and soft: it gives, returns without ringing and lands dead. A drawn edge is a thread with a little slack. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.26;
+  --phys-key-damping: 0.8;
+  --phys-key-bounce: 0.15;
+  --phys-slide-response: 0.36;
+  --phys-slide-damping: 0.78;
+  --phys-slide-bounce: 0.12;
+  --phys-popup-response: 0.45;
+  --phys-popup-damping: 0.8;
+  --phys-edge: thread;
+  --phys-edge-response: 0.36;
+  --phys-edge-damping: 0.6;
+  --phys-edge-slack: 0.025;
+  --phys-edge-gravity: 900;
+  --phys-node-response: 0.1;
+  --phys-node-damping: 0.9;
+  --phys-node-bounce: 0.1;
+  --phys-node-glide: 0.97;
+  /* a new node is laid down: it comes up to size softly (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 0.88;
+  --phys-arrive-response: 0.36;
+  --phys-arrive-damping: 0.8;
 }
 
 /* === DARK = TUNGSTEN — a matte graphite instrument. Bead-blasted, not brushed:
@@ -1170,6 +1218,30 @@
   --popup-marks-delay: 0ms;
   --node-hatch-opacity: 0;           /* plain nodes: no ornament in this theme */
   --sound-kit: tungsten;
+
+  /* physics: machined graphite. Heavy and crisp: a firm snap, a short ring and a clean knock off each stop. A drawn edge is a stiff wire. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.2;
+  --phys-key-damping: 0.5;
+  --phys-key-bounce: 0.42;
+  --phys-slide-response: 0.3;
+  --phys-slide-damping: 0.56;
+  --phys-slide-bounce: 0.36;
+  --phys-popup-response: 0.36;
+  --phys-popup-damping: 0.6;
+  --phys-edge: wire;
+  --phys-edge-response: 0.2;
+  --phys-edge-damping: 0.4;
+  --phys-edge-slack: 0.012;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.14;
+  --phys-node-damping: 0.72;
+  --phys-node-bounce: 0.35;
+  --phys-node-glide: 0.985;
+  /* a new node is dropped in: it lands a little large and knocks once (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 1.14;
+  --phys-arrive-response: 0.26;
+  --phys-arrive-damping: 0.5;
 }
 
 /* === BLUEPRINT — cobalt drafting sheet. Every edge is a pen line: white
@@ -1491,4 +1563,28 @@
   --popup-marks-delay: 150ms;
   --node-hatch-opacity: 0.32;        /* drafted hatch */
   --sound-kit: blueprint;
+
+  /* physics: ink on a sheet. A drawing has no mass: it moves exactly, never bounces, and only the pen lags the hand. Read by components/ui-sdk/physics; response is a spring's
+     period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
+  --phys-key-response: 0.14;
+  --phys-key-damping: 1;
+  --phys-key-bounce: 0;
+  --phys-slide-response: 0.2;
+  --phys-slide-damping: 1;
+  --phys-slide-bounce: 0;
+  --phys-popup-response: 0.3;
+  --phys-popup-damping: 1;
+  --phys-edge: pen;
+  --phys-edge-response: 0.09;
+  --phys-edge-damping: 1;
+  --phys-edge-slack: 0;
+  --phys-edge-gravity: 0;
+  --phys-node-response: 0.06;
+  --phys-node-damping: 1;
+  --phys-node-bounce: 0;
+  --phys-node-glide: 0;
+  /* a new node is drawn: it has no size to settle, it is just there (scale it starts from, then the spring that brings it to 1; leaving plays it backwards) */
+  --phys-arrive-from: 1;
+  --phys-arrive-response: 0.2;
+  --phys-arrive-damping: 1;
 }

@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { calculateCurve, calculateTextLoc } from "../../../utils/geometry/calc";
+import { getControlPoint } from "../../../utils/geometry/calc";
+import { useEdgeBow } from "@/physics/graphMotion";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
@@ -49,9 +50,18 @@ export const Edge = memo(function Edge({
   // Subscribe to keyboard focus state for this edge
   const isFocused = useGraphStore(selectIsEdgeFocused(sourceNodeId, edge.to));
 
-  const directedPath = calculateCurve(edge.x1, edge.y1, edge.x2, edge.y2);
-  const undirectedPath = `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
-  const textCoordDirected = calculateTextLoc(edge.x1, edge.y1, edge.x2, edge.y2);
+  // While an end of this edge is moving, its middle lags behind by `bow` (null at rest).
+  const bow = useEdgeBow(sourceNodeId, edge.to);
+  const bowX = bow?.x ?? 0;
+  const bowY = bow?.y ?? 0;
+
+  const control = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
+  const c1x = control.cx + 2 * bowX;
+  const c1y = control.cy + 2 * bowY;
+  const directedPath = `M${edge.x1} ${edge.y1} Q${c1x} ${c1y} ${edge.x2} ${edge.y2}`;
+  const undirectedPath = bow
+    ? `M${edge.x1},${edge.y1} Q${(edge.x1 + edge.x2) / 2 + 2 * bowX},${(edge.y1 + edge.y2) / 2 + 2 * bowY} ${edge.x2},${edge.y2}`
+    : `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
 
   // Generate edge key - includes type and marker to force Safari to repaint SVG markers
   const getEdgeKey = (markerId?: string) => {
@@ -120,8 +130,8 @@ export const Edge = memo(function Edge({
   if (edge.type === "directed") {
     // Calculate actual center of quadratic bezier curve at t=0.5
     // Q(0.5) = (P0 + 2*P1 + P2) / 4
-    const centerX = (edge.x1 + 2 * textCoordDirected.c1x + edge.x2) / 4;
-    const centerY = (edge.y1 + 2 * textCoordDirected.c1y + edge.y2) / 4;
+    const centerX = (edge.x1 + 2 * c1x + edge.x2) / 4;
+    const centerY = (edge.y1 + 2 * c1y + edge.y2) / 4;
 
     return (
       <g key={getEdgeKey(arrowMarkerId)}>
@@ -163,8 +173,8 @@ export const Edge = memo(function Edge({
   }
 
   // Undirected edge
-  const centerX = (edge.x1 + edge.nodeX2) / 2;
-  const centerY = (edge.y1 + edge.nodeY2) / 2;
+  const centerX = (edge.x1 + edge.nodeX2) / 2 + bowX;
+  const centerY = (edge.y1 + edge.nodeY2) / 2 + bowY;
 
   return (
     <g key={getEdgeKey()}>

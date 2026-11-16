@@ -380,13 +380,13 @@
   .gs-toolbar {
     display: flex;
     align-items: center;
-    gap: calc(var(--control-gap) + 4px);
+    gap: calc(var(--control-gap) + 1px);
   }
   /* Extra room under the keys for the part of the wall that stands proud. */
   .gs-toolbar.gs-panel { padding: 8px calc(8px + var(--key-wall-out-x)) calc(8px + var(--key-wall-out)) 8px; }
   .gs-toolbar[data-orientation="vertical"] { flex-direction: column; }
   .gs-toolbar-group { display: flex; align-items: center; gap: var(--control-gap); }
-  .gs-toolbar-separator { margin: 0 2px; }
+  .gs-toolbar-separator { margin: 0; }
   .gs-toolbar[data-orientation="vertical"] .gs-toolbar-separator { width: 24px; height: var(--divider-size); margin: 2px 0; background: var(--divider-h); }
 
   /* Phones: a horizontal toolbar has to fit the screen, so it tightens instead
@@ -395,16 +395,17 @@
      toolbar fits at 375px (iPhone SE) in every theme, and at 320px with the
      dividers dropped. */
   @media (max-width: 430px) {
-    .gs-toolbar:not([data-orientation="vertical"]) { gap: 4px; }
+    .gs-toolbar:not([data-orientation="vertical"]) { gap: 6px; }
     .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-group { gap: 4px; }
     .gs-toolbar:not([data-orientation="vertical"]) .gs-toolbar-separator { margin: 0; }
     .gs-toolbar .gs-toggle { padding-inline: 8px; }
     .gs-toolbar .gs-button[data-size="sm"] { --_pad: 10px; }
-    /* The plate spans the row and spreads its groups, so spare width goes between them. */
+    /* If a plate is ever wider than its keys, the spare width goes between the groups. */
     .gs-toolbar.gs-panel:not([data-orientation="vertical"]) { justify-content: space-between; }
   }
   @media (max-width: 350px) {
     .gs-toolbar:not([data-orientation="vertical"]) > .gs-toolbar-separator { display: none; }
+    .gs-toolbar:not([data-orientation="vertical"]) { gap: 4px; }
     .gs-toolbar .gs-toggle { padding-inline: 6px; }
     /* 320px: the longest toolbar (step controls) only fits with slightly narrower icon keys. */
     .gs-toolbar:not([data-orientation="vertical"]) .gs-button[data-size="icon-sm"] { width: 28px; }
@@ -613,6 +614,12 @@
   .gs-tab[data-selected] { color: var(--selected-fg); text-shadow: var(--selected-text-shadow); font-weight: 600; }
   .gs-tab[data-disabled] { opacity: var(--disabled-latch-opacity); color: var(--disabled-fg, var(--color-text-muted)); cursor: not-allowed; }
   .gs-tabs-panel { outline: none; }
+  /* A panel that is no longer selected leaves at once. ui-sdk keeps a leaving
+     panel in the page until every animation inside it has finished (a focus
+     ring, a switch still settling, its own fade-in if tabs are flipped
+     quickly), and for that time both panels would be stacked one above the
+     other. There is no exit animation to wait for, so it takes no space. */
+  .gs-tabs-panel:not([data-selected], [hidden]) { display: none; }
   .gs-tabs-panel[data-starting-style] { opacity: 0; translate: 0 4px; }
   .gs-tabs-panel { transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out); }
 
@@ -983,7 +990,11 @@
   .gs-select-trigger { gap: 6px; }
 
   /* ---------- stepper (number input): two caps and a readout in one well ---------- */
-  .gs-stepper { display: inline-flex; flex-direction: column; gap: 6px; }
+  .gs-stepper { --stepper-size: 28px; display: inline-flex; flex-direction: column; gap: 6px; }
+  /* Fingers: the step keys match the other keys on a phone (--control-sm). */
+  @media (pointer: coarse) {
+    .gs-stepper { --stepper-size: var(--control-sm); }
+  }
   .gs-stepper-group {
     display: inline-flex;
     align-items: center;
@@ -997,8 +1008,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    /* Never squeezed: in a narrow row the readout gives way, not the keys. */
+    flex: none;
+    width: var(--stepper-size);
+    height: var(--stepper-size);
     padding: calc(2 * var(--_ty)) 0 var(--key-wall-in) calc(2 * var(--_tx));
     border-radius: calc(var(--well-radius) - var(--well-pad));
     color: var(--color-text-muted);
@@ -1009,8 +1022,10 @@
   .gs-stepper-control {
     appearance: textfield;
     -moz-appearance: textfield;
+    flex: 1 1 auto;
+    min-width: 0;
     width: 48px;
-    height: 28px;
+    height: var(--stepper-size);
     margin: 0;
     padding: 0 4px;
     border: 0;
@@ -1058,6 +1073,12 @@
   }
   .gs-input::placeholder { color: var(--input-placeholder); }
   .gs-field { display: flex; flex-direction: column; gap: 6px; }
+  /* iOS zooms the page when a focused field's text is under 16px. On touch
+     devices every editable field is 16px, so focusing one never moves the page. */
+  @media (pointer: coarse) {
+    .gs-input,
+    .gs-stepper-control { font-size: 16px; }
+  }
 
   /* ---------- card button: a large key ---------- */
   .gs-card-button {

@@ -4,7 +4,7 @@ import { MainToolbar } from "./recipes/MainToolbar";
 import { StepControls } from "./recipes/StepControls";
 import { TracePanel } from "./recipes/TracePanel";
 import { HistoryControls, ShortcutsPopover, ThemeMenu, TraceToggle, ZoomControls } from "./recipes/CornerControls";
-import { GraphPreview } from "./recipes/GraphPreview";
+import { GraphLab } from "./recipes/GraphLab";
 import { BFS_STEPS } from "./recipes/mock";
 
 /**
@@ -34,7 +34,7 @@ export function Stage() {
   return (
     <div className="pg-stage">
       <div className="pg-stage-canvas">
-        <GraphPreview step={step} className="pg-stage-graph" />
+        <GraphLab step={step} width="100%" height="auto" className="pg-stage-graph" />
       </div>
 
       <div className="pg-stage-top">

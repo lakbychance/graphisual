@@ -96,7 +96,7 @@ export const Board = () => {
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
-        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-[26rem] md:w-auto md:max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2">
           {!isDesktop && (
             <MobileControls
               onUndo={execute.undo}
