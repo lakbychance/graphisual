@@ -39,6 +39,17 @@ const treeWeight = (frame: Frame, graph: LabGraph) => [...frame.traversed].reduc
 const cycleNodes = (frame: Frame, graph: LabGraph) => [...frame.pathNodes].map((id) => nameOf(graph, id)).sort().join(", ");
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
+/** The graph as the visitor arranged it, scaled to fill a card of the given size. */
+function fitGraph(graph: LabGraph, width: number, height: number, pad: number): LabGraph {
+  const xs = graph.nodes.map((n) => n.x);
+  const ys = graph.nodes.map((n) => n.y);
+  const [x0, y0] = [Math.min(...xs), Math.min(...ys)];
+  const scale = Math.min((width - pad * 2) / Math.max(1, Math.max(...xs) - x0), (height - pad * 2) / Math.max(1, Math.max(...ys) - y0));
+  const dx = (width - (Math.max(...xs) - x0) * scale) / 2;
+  const dy = (height - (Math.max(...ys) - y0) * scale) / 2;
+  return { ...graph, nodes: graph.nodes.map((n) => ({ ...n, x: dx + (n.x - x0) * scale, y: dy + (n.y - y0) * scale })) };
+}
+
 /** Which entries of a phase map a frame lights up. */
 function lit(map: PhaseMap, frame: Frame): number[] {
   if (frame.phase === "ready") return map.ready;
@@ -204,6 +215,8 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
   const tallPreview = useMemo(() => pageGraph(live, TALL), [live]);
   // The sections below replay the same run on a compact copy of the same graph.
   const compact = useMemo(() => ({ ...pageGraph(live, COMPACT), edges: graph.edges }), [live, graph.edges]);
+  // The closing section shows the hero graph again, in the arrangement the visitor left it in.
+  const yours = useMemo(() => fitGraph(graph, 560, 340, 52), [graph]);
   const open = useMemo(() => appLink(live.algorithmId, graph), [live.algorithmId, graph]);
   const outcome = useMemo(() => summary(live, run, graph), [live, run, graph]);
   const litSteps = lit(live.steps, frame);
@@ -289,7 +302,6 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
   const headline = <><span>{live.headline[0]}</span> <span>{live.headline[1]}</span></>;
   const label = `A graph being worked through by ${live.limits.here === "Directed" ? "cycle detection" : live.limits.here}, drawn across paper, graphite and blueprint`;
   const newGraphKey = <button type="button" className="lp-key lp-new" data-size="sm" onClick={newGraph}><Shuffle />New graph</button>;
-  const others = OTHERS.filter((other) => other.id !== live.algorithmId);
   const table = live.limits.table;
 
   return (
@@ -310,8 +322,9 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
       </header>
 
       <section className="lp-plate" aria-label={`${live.headline.join(" ")}, running live`}>
-        <div className="lp-ground" data-material="paper" />
+        {/* Graphite fills the plate; paper and blueprint are clipped to their thirds on top of it. */}
         <div className="lp-ground" data-material="graphite" />
+        <div className="lp-ground" data-material="paper" />
         <div className="lp-ground" data-material="blueprint" />
         <h1 className="lp-h1" data-material="paper">{headline}</h1>
         <div className="lp-h1" data-material="graphite" aria-hidden="true">{headline}</div>
@@ -360,13 +373,6 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
           <div className="lp-split-head">
             <h2>How it works</h2>
             {howItWorks.description.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-          </div>
-          <div>
-            <ol className="lp-steps">
-              {howItWorks.steps.map((step, i) => (
-                <li key={step} data-active={litSteps.includes(i) ? "" : undefined}><span>{i + 1}</span>{step}</li>
-              ))}
-            </ol>
             <div className="lp-ledger" role="table" aria-label={live.ledger === "distance" ? "Best known distance to each node" : "The order each node was visited in"}>
               {graph.nodes.map((node) => {
                 const value = live.ledger === "distance"
@@ -382,8 +388,15 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
               })}
             </div>
             <p className="lp-note">
-              The lit steps and the {live.ledger === "distance" ? "distance table" : "visit order"} follow the graph at the top of the page.
+              This {live.ledger === "distance" ? "distance table" : "visit order"} and the lit steps follow the graph at the top of the page.
             </p>
+          </div>
+          <div>
+            <ol className="lp-steps">
+              {howItWorks.steps.map((step, i) => (
+                <li key={step} data-active={litSteps.includes(i) ? "" : undefined}><span>{i + 1}</span>{step}</li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
@@ -462,27 +475,26 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
 
       <section className="lp-paper lp-band">
         <div className="lp-wrap lp-split">
-          <div className="lp-split-head"><h2>Where it is used</h2></div>
-          <ul className="lp-uses">
-            {useCases.map((use) => {
-              const [name, ...rest] = use.text.split(" — ");
-              const detail = rest.join(" — ");
-              return <li key={use.text}><b>{name}</b>{detail && <span>{detail.charAt(0).toUpperCase() + detail.slice(1)}.</span>}</li>;
-            })}
-          </ul>
-        </div>
-      </section>
-
-      <section className="lp-paper lp-band" data-ruled="">
-        <div className="lp-wrap lp-split">
-          <div className="lp-split-head"><h2>Questions</h2></div>
-          <div className="lp-faq">
-            {faq.map((item, i) => (
-              <details key={item.question} open={i === 0}>
-                <summary>{item.question}</summary>
-                <p>{item.answer}</p>
-              </details>
-            ))}
+          <div className="lp-split-side">
+            <h2>Where it is used</h2>
+            <ul className="lp-uses">
+              {useCases.map((use) => {
+                const [name, ...rest] = use.text.split(" — ");
+                const detail = rest.join(" — ");
+                return <li key={use.text}><b>{name}</b>{detail && <span>{detail.charAt(0).toUpperCase() + detail.slice(1)}.</span>}</li>;
+              })}
+            </ul>
+          </div>
+          <div className="lp-split-main">
+            <h2>Questions</h2>
+            <div className="lp-faq">
+              {faq.map((item, i) => (
+                <details key={item.question} open={i === 0}>
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -490,13 +502,26 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
       <section className="lp-graphite lp-band" id="more">
         <div className="lp-wrap">
           <div className="lp-close">
-            <h2>See it on your own graph</h2>
-            <a className="lp-key" data-tone="amber" data-size="lg" href={open}>Open the visualizer</a>
+            <div className="lp-close-copy">
+              <h2>See it on your own graph</h2>
+              <p>
+                This is the graph from the top of the page, as you left it. Open it in the visualizer to add nodes, draw your
+                own edges and step through every move.
+              </p>
+              <a className="lp-key" data-tone="amber" data-size="lg" href={open}>Open this graph in the visualizer</a>
+            </div>
+            <div className="lp-close-graph">
+              <LiveGraph
+                graph={yours} frame={frame} width={560} height={340} radius={24} material="graphite" label="Your graph from the top of the page, still running"
+                showDistances={live.ledger === "distance"} showWeights={live.weighted}
+              />
+            </div>
           </div>
-          <h3 className="lp-others-title">Seven more algorithms to watch</h3>
+          <h3 className="lp-others-title">Eight algorithms, one visualizer</h3>
           <div className="lp-others">
-            {others.map((other) => (
-              <a key={other.id} href={`/algorithm/${other.id}`}><b>{other.name}</b><span>{other.why}</span></a>
+            {OTHERS.map((other) => (other.id === live.algorithmId
+              ? <div key={other.id} aria-current="page"><b>{other.name}</b><span>You are here</span></div>
+              : <a key={other.id} href={`/algorithm/${other.id}`}><b>{other.name}</b><span>{other.why}</span></a>
             ))}
           </div>
           <footer className="lp-footer">
