@@ -615,3 +615,20 @@ export function generateWeighted(): GeneratedGraph {
 
   return { nodes, edges, nodeCounter: nodes.length };
 }
+
+/** A plain description of a graph: node positions plus edges between node indexes. */
+export interface GraphSpec {
+  nodes: Array<{ x: number; y: number; label?: string }>;
+  edges: Array<{ from: number; to: number; weight: number; directed: boolean }>;
+}
+
+/** Build a graph from a spec. Node ids are 1-based, in spec order. */
+export function graphFromSpec(spec: GraphSpec): GeneratedGraph {
+  const nodes: GraphNode[] = spec.nodes.map((n, i) => ({ id: i + 1, x: n.x, y: n.y, r: NODE.RADIUS, label: n.label }));
+  const edges = new Map<number, GraphEdge[]>();
+  for (const node of nodes) edges.set(node.id, []);
+  for (const edge of spec.edges) {
+    addEdgeToMap(edges, nodes[edge.from], nodes[edge.to], edge.directed ? EDGE_TYPE.DIRECTED : EDGE_TYPE.UNDIRECTED, edge.weight);
+  }
+  return { nodes, edges, nodeCounter: nodes.length };
+}

@@ -1,5 +1,5 @@
-import { Timer, GitBranch, Route, Search, Puzzle, Map } from "lucide-react";
-import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { AlgorithmLanding } from "@/landing/AlgorithmLanding";
+import { dfsPathfinding as live } from "@/landing/live/configs";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
@@ -30,10 +30,8 @@ export const meta = {
 export default function DfsPathfindingPage() {
   return (
     <AlgorithmLanding
-      algorithmId="dfs-pathfinding"
-      title="DFS Pathfinding Visualizer"
+      live={live}
       subtitle="Visualize how DFS finds a path between two nodes by exploring deeply along each branch. Select a source and destination, then watch DFS navigate through the graph."
-      ctaText="Visualize DFS Pathfinding"
       howItWorks={{
         description: [
           "DFS Pathfinding uses Depth-First Search to find a path between a source and destination node. Unlike BFS, DFS does not guarantee the shortest path — it finds the first path it encounters by diving deep into each branch before backtracking.",
@@ -48,16 +46,10 @@ export default function DfsPathfindingPage() {
           "Repeat until a path is found or all reachable nodes are exhausted",
         ],
       }}
-      properties={[
-        { icon: Timer, title: "Time Complexity", description: "O(V + E) where V is the number of vertices and E is the number of edges in the graph." },
-        { icon: GitBranch, title: "Non-Optimal Path", description: "Finds a path but not necessarily the shortest — the result depends on exploration order." },
-        { icon: Route, title: "Memory Efficient", description: "Only stores the current path on the stack, using O(V) memory compared to BFS which may store O(V) nodes in the queue." },
-        { icon: Search, title: "Backtracking", description: "Naturally backtracks when a dead end is reached, exploring all possible paths systematically." },
-      ]}
       useCases={[
-        { icon: Puzzle, text: "Maze generation — carving paths through a grid using randomized DFS" },
-        { icon: Map, text: "Reachability testing — checking whether a path exists between two nodes" },
-        { icon: GitBranch, text: "Constraint satisfaction — exploring solution spaces with backtracking" },
+        { text: "Maze generation — carving paths through a grid using randomized DFS" },
+        { text: "Reachability testing — checking whether a path exists between two nodes" },
+        { text: "Constraint satisfaction — exploring solution spaces with backtracking" },
       ]}
       faq={[
         { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path between two nodes but not necessarily the shortest one. It explores deeply along each branch, so it may discover a longer path first. For the shortest path in unweighted graphs, use BFS instead." },

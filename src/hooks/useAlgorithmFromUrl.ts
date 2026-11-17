@@ -6,8 +6,10 @@ import {
   generateWeighted,
   generateRandomGraph,
   generateCycle,
+  graphFromSpec,
   type GeneratedGraph,
 } from "../utils/graph/graphGenerator";
+import { decodeGraphLink } from "../utils/graph/graphLink";
 
 const graphForAlgorithm: Record<string, () => GeneratedGraph> = {
   "dijkstra": generateWeighted,
@@ -22,7 +24,8 @@ const graphForAlgorithm: Record<string, () => GeneratedGraph> = {
 
 /**
  * Reads `?algorithm=` from the URL on mount, selects the algorithm,
- * generates an appropriate graph, and cleans the URL.
+ * loads the graph carried in `?graph=` (or generates an appropriate one),
+ * and cleans the URL.
  */
 export function useAlgorithmFromUrl() {
   useEffect(() => {
@@ -42,11 +45,11 @@ export function useAlgorithmFromUrl() {
 
     setVisualizationMode(VisualizationMode.MANUAL);
 
+    // A landing page can hand over the graph the visitor arranged there.
+    const linked = decodeGraphLink(params.get("graph") ?? "");
     const generator = graphForAlgorithm[algorithmParam];
-    if (generator) {
-      const { nodes, edges, nodeCounter } = generator();
-      setGraph(nodes, edges, nodeCounter);
-    }
+    const graph = linked ? graphFromSpec(linked) : generator?.();
+    if (graph) setGraph(graph.nodes, graph.edges, graph.nodeCounter);
 
     window.history.replaceState({}, "", "/");
   }, []);

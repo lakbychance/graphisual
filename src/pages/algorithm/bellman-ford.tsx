@@ -1,5 +1,5 @@
-import { Timer, Scale, Route, AlertTriangle, Network, Navigation } from "lucide-react";
-import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { AlgorithmLanding } from "@/landing/AlgorithmLanding";
+import { bellmanFord as live } from "@/landing/live/configs";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
@@ -30,10 +30,8 @@ export const meta = {
 export default function BellmanFordPage() {
   return (
     <AlgorithmLanding
-      algorithmId="bellman-ford"
-      title="Bellman-Ford Algorithm Visualizer"
+      live={live}
       subtitle="Visualize how the Bellman-Ford algorithm finds shortest paths even with negative edge weights. Build a weighted graph and watch it relax edges iteratively."
-      ctaText="Visualize Bellman-Ford"
       howItWorks={{
         description: [
           "The Bellman-Ford algorithm finds the shortest paths from a single source node to all other nodes in a weighted graph. Unlike Dijkstra's, it handles negative edge weights and can detect negative-weight cycles. It was developed by Richard Bellman and Lester Ford Jr. in 1958.",
@@ -48,16 +46,10 @@ export default function BellmanFordPage() {
           "If any distance can still be reduced, a negative-weight cycle exists",
         ],
       }}
-      properties={[
-        { icon: Timer, title: "Time Complexity", description: "O(V × E) where V is the number of vertices and E is the number of edges." },
-        { icon: Scale, title: "Negative Weights", description: "Handles graphs with negative edge weights, unlike Dijkstra's which requires non-negative weights." },
-        { icon: AlertTriangle, title: "Cycle Detection", description: "Detects negative-weight cycles that would make shortest paths undefined (infinitely negative)." },
-        { icon: Route, title: "Edge Relaxation", description: "Iteratively relaxes all edges, progressively improving distance estimates until they converge." },
-      ]}
       useCases={[
-        { icon: Network, text: "Currency arbitrage — detecting profitable exchange rate cycles in financial networks" },
-        { icon: Navigation, text: "Distance-vector routing — protocols like RIP use Bellman-Ford for distributed routing" },
-        { icon: Route, text: "Constraint systems — solving systems of difference constraints in scheduling" },
+        { text: "Currency arbitrage — detecting profitable exchange rate cycles in financial networks" },
+        { text: "Distance-vector routing — protocols like RIP use Bellman-Ford for distributed routing" },
+        { text: "Constraint systems — solving systems of difference constraints in scheduling" },
       ]}
       faq={[
         { question: "What is the Bellman-Ford algorithm?", answer: "The Bellman-Ford algorithm finds the shortest paths from a single source to all other vertices in a weighted graph. Unlike Dijkstra's, it correctly handles negative edge weights and can detect negative-weight cycles." },

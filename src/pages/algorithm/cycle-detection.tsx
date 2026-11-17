@@ -1,5 +1,5 @@
-import { Timer, RefreshCw, GitBranch, Search, Network, AlertTriangle } from "lucide-react";
-import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { AlgorithmLanding } from "@/landing/AlgorithmLanding";
+import { cycleDetection as live } from "@/landing/live/configs";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
@@ -31,10 +31,8 @@ export const meta = {
 export default function CycleDetectionPage() {
   return (
     <AlgorithmLanding
-      algorithmId="cycle-detection"
-      title="Cycle Detection in Graphs"
+      live={live}
       subtitle="Learn how DFS finds cycles in directed and undirected graphs by spotting back edges — then build your own graph and watch it happen step by step. Free, no signup."
-      ctaText="Visualize Cycle Detection"
       howItWorks={{
         description: [
           "Cycle detection determines whether a graph contains a cycle — a path that starts and ends at the same node. In directed graphs, this uses DFS with node coloring (white/gray/black) to detect back edges. In undirected graphs, a back edge to a visited node (other than the parent) indicates a cycle.",
@@ -49,16 +47,10 @@ export default function CycleDetectionPage() {
           "Repeat from the next unvisited node until all nodes are processed",
         ],
       }}
-      properties={[
-        { icon: Timer, title: "Time Complexity", description: "O(V + E) where V is the number of vertices and E is the number of edges." },
-        { icon: RefreshCw, title: "Back Edge Detection", description: "Identifies cycles by finding edges that point back to an ancestor in the DFS tree." },
-        { icon: GitBranch, title: "DFS-Based", description: "Uses depth-first traversal with three-color marking to track node states during exploration." },
-        { icon: Search, title: "Directed & Undirected", description: "Works on both directed and undirected graphs with slight variations in back edge detection." },
-      ]}
       useCases={[
-        { icon: AlertTriangle, text: "Deadlock detection — finding circular wait conditions in operating systems" },
-        { icon: GitBranch, text: "Dependency validation — ensuring package dependencies form a DAG with no circular imports" },
-        { icon: Network, text: "Workflow validation — verifying that task pipelines have no circular dependencies" },
+        { text: "Deadlock detection — finding circular wait conditions in operating systems" },
+        { text: "Dependency validation — ensuring package dependencies form a DAG with no circular imports" },
+        { text: "Workflow validation — verifying that task pipelines have no circular dependencies" },
       ]}
       faq={[
         { question: "What is a cycle in a graph?", answer: "A cycle is a path in a graph that starts and ends at the same node, passing through at least one other node. In a directed graph, the edges must follow the direction; in an undirected graph, any closed path with at least three nodes forms a cycle." },

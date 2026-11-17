@@ -1,5 +1,5 @@
-import { Route, Network, Timer, Scale, Navigation } from "lucide-react";
-import { AlgorithmLanding } from "@/components/AlgorithmLanding";
+import { AlgorithmLanding } from "@/landing/AlgorithmLanding";
+import { dijkstra as live } from "@/landing/live/configs";
 import { makeJsonLd } from "@/utils/make-json-ld";
 import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
@@ -30,10 +30,8 @@ export const meta = {
 export default function DijkstraPage() {
   return (
     <AlgorithmLanding
-      algorithmId="dijkstra"
-      title="Dijkstra's Algorithm Visualizer"
+      live={live}
       subtitle="Visualize how Dijkstra's algorithm finds the shortest path between nodes in a weighted graph. Draw your own graph, set edge weights, and watch the algorithm explore step by step."
-      ctaText="Visualize Dijkstra's Algorithm"
       howItWorks={{
         description: [
           "Dijkstra's algorithm is a greedy algorithm that finds the shortest path from a source node to all other nodes in a weighted graph with non-negative edge weights. It was conceived by computer scientist Edsger W. Dijkstra in 1956.",
@@ -48,16 +46,10 @@ export default function DijkstraPage() {
           "Repeat until the destination is reached or the queue is empty",
         ],
       }}
-      properties={[
-        { icon: Timer, title: "Time Complexity", description: "O((V + E) log V) with a binary heap priority queue, where V is vertices and E is edges." },
-        { icon: Scale, title: "Weighted Graphs", description: "Designed for graphs with non-negative edge weights. For negative weights, use Bellman-Ford instead." },
-        { icon: Route, title: "Optimal Paths", description: "Guarantees the shortest path between the source and every reachable node in the graph." },
-        { icon: Network, title: "Greedy Strategy", description: "Always processes the closest unvisited node first, building up shortest paths incrementally." },
-      ]}
       useCases={[
-        { icon: Navigation, text: "GPS navigation — finding the fastest route between two locations" },
-        { icon: Network, text: "Network routing protocols — OSPF uses Dijkstra's to compute shortest paths" },
-        { icon: Route, text: "Game AI pathfinding — navigating NPCs through weighted terrain and obstacle maps" },
+        { text: "GPS navigation — finding the fastest route between two locations" },
+        { text: "Network routing protocols — OSPF uses Dijkstra's to compute shortest paths" },
+        { text: "Game AI pathfinding — navigating NPCs through weighted terrain and obstacle maps" },
       ]}
       faq={[
         { question: "What is Dijkstra's algorithm?", answer: "Dijkstra's algorithm is a greedy graph algorithm that finds the shortest path from a single source node to all other nodes in a weighted graph with non-negative edge weights. It works by repeatedly selecting the unvisited node with the smallest known distance and updating its neighbors." },

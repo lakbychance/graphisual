@@ -1,4 +1,6 @@
-import type { Plugin, ResolvedConfig } from "vite";
+import type { Plugin, ResolvedConfig, Rollup } from "vite";
+
+type OutputChunk = Rollup.OutputChunk;
 import { build as viteBuild } from "vite";
 import Beasties from "beasties";
 import { z } from "zod";
@@ -34,9 +36,19 @@ const prerenderOptionsSchema = z.object({
   author: z.string().optional(),
   siteName: z.string().optional(),
   twitterHandle: z.string().optional(),
+  /**
+   * Hydrate the prerendered pages. `entry` is a client module that hydrates
+   * `#page` (its `data-page` holds the page's key, e.g. "algorithm/dijkstra");
+   * `styles` are stylesheets it imports, linked directly in dev to avoid a flash.
+   * Without this the pages are static HTML styled by the app's own CSS.
+   */
+  client: z.object({ entry: z.string(), styles: z.array(z.string()).optional() }).optional(),
 });
 
 type PrerenderOptions = z.infer<typeof prerenderOptionsSchema>;
+
+/** Rollup input name of the client entry that hydrates the pages. */
+const CLIENT_CHUNK = "page-client";
 
 /**
  * Validate a module's exports and render its default component to HTML.
@@ -94,6 +106,17 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
 
   return {
     name: "vite-prerender",
+    config() {
+      if (!parsedOptions.client) return;
+      // The client entry is built alongside the app so it shares its chunks and hashing.
+      return {
+        build: {
+          rollupOptions: {
+            input: { main: path.resolve("index.html"), [CLIENT_CHUNK]: path.resolve(parsedOptions.client.entry) },
+          },
+        },
+      };
+    },
     configResolved(resolved) {
       config = resolved;
     },
@@ -113,14 +136,21 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
           const page = await renderPage(mod, url);
           if (!page) return next();
 
-          const html = buildHtml({
+          const client = parsedOptions.client;
+          let html = buildHtml({
             meta: page.meta,
             content: page.content,
+            pageKey: url.slice(1),
             cssHrefs: [],
             options: parsedOptions,
-            devHead: `<script type="module" src="/@vite/client"></script>
+            devHead: client
+              ? `${(client.styles ?? []).map((href) => `<link rel="stylesheet" href="/${href}" />`).join("\n    ")}
+    <script type="module" src="/${client.entry}"></script>`
+              : `<script type="module" src="/@vite/client"></script>
     <link rel="stylesheet" href="/src/globals.css" />`,
           });
+          // Lets Vite add its client and the React refresh preamble the entry needs.
+          if (client) html = await server.transformIndexHtml(url, html);
 
           console.log(`[prerender] Served ${url}`);
           res.setHeader("Content-Type", "text/html");
@@ -134,9 +164,31 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
     async writeBundle(_outputOptions, bundle) {
       const outDir = config.build.outDir;
 
-      const cssHrefs = Object.keys(bundle)
+      const allCss = Object.keys(bundle)
         .filter((fileName) => fileName.endsWith(".css"))
         .map((fileName) => `/${fileName}`);
+
+      // With a client entry, each page loads only that entry's chunks and styles.
+      const chunks = Object.values(bundle).filter((item): item is OutputChunk => item.type === "chunk");
+      const clientChunk = parsedOptions.client ? chunks.find((c) => c.isEntry && c.name === CLIENT_CHUNK) : undefined;
+      if (parsedOptions.client && !clientChunk) {
+        console.error(`[prerender] Client entry "${parsedOptions.client.entry}" was not built; pages will not hydrate.`);
+      }
+      const assetsOf = (roots: OutputChunk[]) => {
+        const js = new Set<string>();
+        const css = new Set<string>();
+        const visit = (chunk: OutputChunk) => {
+          if (js.has(chunk.fileName)) return;
+          js.add(chunk.fileName);
+          Array.from(chunk.viteMetadata?.importedCss ?? []).forEach((file: string) => css.add(file));
+          for (const name of chunk.imports) {
+            const next = bundle[name];
+            if (next?.type === "chunk") visit(next);
+          }
+        };
+        roots.forEach(visit);
+        return { js: Array.from(js), css: Array.from(css) };
+      };
 
       const pages = discoverPages();
       if (pages.size === 0) return;
@@ -170,10 +222,17 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
           const page = await renderPage(mod, `${key}.tsx`);
           if (!page) continue;
 
+          // The page's own module is a dynamic import of the client entry; preload it too.
+          const pageChunk = chunks.find((c) => c.facadeModuleId === input[key]);
+          const assets = clientChunk ? assetsOf(pageChunk ? [clientChunk, pageChunk] : [clientChunk]) : undefined;
           const html = buildHtml({
             meta: page.meta,
             content: page.content,
-            cssHrefs,
+            pageKey: key,
+            cssHrefs: assets ? assets.css.map((file) => `/${file}`) : allCss,
+            scripts: clientChunk && assets
+              ? { entry: `/${clientChunk.fileName}`, preload: assets.js.filter((file) => file !== clientChunk.fileName).map((file) => `/${file}`) }
+              : undefined,
             options: parsedOptions,
           });
 
@@ -201,11 +260,22 @@ export function prerenderPlugin(options: PrerenderOptions = {}): Plugin {
 function buildHtml(opts: {
   meta: PageMeta;
   content: string;
+  /** The page's key under `src/pages`, e.g. "algorithm/dijkstra". */
+  pageKey: string;
   cssHrefs: string[];
+  /** Built client entry and the chunks it needs (production only). */
+  scripts?: { entry: string; preload: string[] };
   options: PrerenderOptions;
   devHead?: string;
 }): string {
-  const { meta, content, cssHrefs, options, devHead } = opts;
+  const { meta, content, pageKey, cssHrefs, scripts, options, devHead } = opts;
+
+  const scriptHtml = scripts
+    ? [
+        ...scripts.preload.map((href) => `<link rel="modulepreload" crossorigin href="${href}" />`),
+        `<script type="module" crossorigin src="${scripts.entry}"></script>`,
+      ].join("\n    ")
+    : "";
 
   const analyticsHtml = options.analytics
     ? `<script>
@@ -298,10 +368,11 @@ ${JSON.stringify(meta.jsonLd, null, 6)}
     </script>
 
     ${cssHtml}
+    ${scriptHtml}
     ${devHead ?? ""}
   </head>
   <body>
-    ${content}
+    <div id="page" data-page="${escapeAttr(pageKey)}">${content}</div>
   </body>
 </html>`;
 }
