@@ -54,7 +54,7 @@ export function springOf(element: Element, part: Part): Spring {
 export interface EdgeMaterial {
   model: EdgeModel;
   spring: Spring;
-  /** Extra length of a thread over the straight distance (0.05 = 5% slack). */
+  /** Extra length a loose thread has over the straight distance when its end is moving fast (0.05 = 5% slack); it has none at rest. */
   slack: number;
   /** Downward pull on a loose line, in px/s². */
   gravity: number;

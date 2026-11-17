@@ -768,7 +768,7 @@
   --node-hatch-opacity: 0.25;        /* pencil shading */
   --sound-kit: paper;
 
-  /* physics: card stock. Light and soft: it gives, returns without ringing and lands dead. A drawn edge is a thread with a little slack. Read by components/ui-sdk/physics; response is a spring's
+  /* physics: card stock. Light and soft: it gives, returns without ringing and lands dead. A drawn edge is a thread: taut while the hand is still, with a little slack while it moves. Read by components/ui-sdk/physics; response is a spring's
      period in seconds, damping 1 = no overshoot, bounce = speed kept off a hard stop. */
   --phys-key-response: 0.26;
   --phys-key-damping: 0.8;

@@ -11,7 +11,8 @@ import type { EdgeMaterial } from "./material";
  *   edge    a line with mass: when its ends move, its middle arrives late, so
  *           the line bows and straightens the way its material would
  *   draft   the edge being drawn, in one of three materials
- *             thread  hangs with a little slack and pulls taut when it connects
+ *             thread  taut while the hand is still, trails with a little slack while it moves,
+ *                     and pulls taut when it connects
  *             wire    stays almost straight and whips behind a fast hand
  *             pen     a ruled line; only the pen tip lags the hand
  *
@@ -51,6 +52,25 @@ export class Mass {
     const b = this.by.step(dt);
     return a || b;
   }
+}
+
+/** Hand speed (px/s) at which a loose thread has all of its material's slack. */
+const FULL_SLACK_SPEED = 1200;
+
+/**
+ * The slack a loose thread has right now: none while its end is still, rising to the
+ * material's `slack` as the end moves faster. A thread that is not moving lies straight.
+ */
+export function looseSlack(slack: number, tip: Mass): number {
+  return slack * Math.min(1, Math.hypot(tip.bx.v, tip.by.v) / FULL_SLACK_SPEED);
+}
+
+/**
+ * The pull of gravity on a thread being drawn: in proportion to the slack it has right now,
+ * so a thread that has not been moved is a straight line and does not sag under its own weight.
+ */
+export function looseGravity({ slack, gravity }: EdgeMaterial, current: number): number {
+  return slack > 0 ? gravity * Math.max(0, Math.min(1, current / slack)) : gravity;
 }
 
 /** A thread: point masses joined by links that pull but never push. */
@@ -134,7 +154,7 @@ export interface Draft {
   cancelling: boolean;
   rope: Rope | null;
   mid: Mass | null;
-  /** Current slack of a thread: its material slack while loose, drawn to zero once it catches a node. */
+  /** Current slack of a thread: follows the speed of its loose end, and is drawn to zero once it catches a node. */
   slack: Body;
 }
 
@@ -227,7 +247,7 @@ export class GraphSim implements Sim {
     if (!source) return;
     const { edge } = this.physics;
     const tip = new Mass(x, y).spring(edge.model === "pen" ? edge.spring : { response: 0.05, damping: 1, bounce: 0 });
-    const slack = new Body(edge.slack, 0.0005).spring({ response: 0.16, damping: 0.7, bounce: 0 });
+    const slack = new Body(0, 0.0005).spring({ response: 0.16, damping: 0.7, bounce: 0 });
     this.pointer = { x, y };
     this.draft = {
       from,
@@ -255,7 +275,7 @@ export class GraphSim implements Sim {
       draft.snap = snap;
       // Caught: the tip is pulled onto the node with the material's own spring, and a thread pulls taut.
       draft.tip.spring(snap || this.physics.edge.model === "pen" ? this.physics.edge.spring : { response: 0.05, damping: 1, bounce: 0 });
-      draft.slack.target = snap ? 0 : this.physics.edge.slack;
+      if (snap) draft.slack.target = 0;
       this.onSnap?.(snap !== null);
     }
   }
@@ -312,10 +332,11 @@ export class GraphSim implements Sim {
       else if (caught) draft.tip.to(caught.x, caught.y);
       else draft.tip.to(this.pointer.x, this.pointer.y);
       draft.tip.step(dt);
+      if (draft.rope && !caught && !draft.cancelling) draft.slack.target = looseSlack(this.physics.edge.slack, draft.tip);
       draft.slack.step(dt);
       const span = Math.hypot(draft.tip.x - source.x, draft.tip.y - source.y);
       if (draft.rope) {
-        draft.rope.step(dt, source, draft.tip, span * (1 + Math.max(0, draft.slack.x)), this.physics.edge.gravity, 5);
+        draft.rope.step(dt, source, draft.tip, span * (1 + Math.max(0, draft.slack.x)), looseGravity(this.physics.edge, draft.slack.x), 5);
       } else if (draft.mid) {
         draft.mid.to((source.x + draft.tip.x) / 2, (source.y + draft.tip.y) / 2);
         draft.mid.step(dt);

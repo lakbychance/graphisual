@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { projectDistance } from "@ui-sdk/core/gesture";
 import { Body, wake, type Sim } from "@/components/ui-sdk/physics/engine";
-import { Mass, Rope } from "@/components/ui-sdk/physics/graph";
+import { looseGravity, looseSlack, Mass, Rope } from "@/components/ui-sdk/physics/graph";
 import { edgeOf, glideOf, intensityOf, springOf, type EdgeMaterial } from "@/components/ui-sdk/physics/material";
 import { getControlPoint } from "@/utils/geometry/calc";
 import type { GraphNode } from "@/components/Graph/types";
@@ -123,9 +123,10 @@ const motion: Sim = {
       else if (draft.snap) tip.to(draft.snap.x, draft.snap.y);
       else tip.to(draft.pointer.x, draft.pointer.y);
       tip.step(dt);
+      if (draft.rope && !draft.snap && !draft.cancelling) draft.slack.target = looseSlack(draft.material.slack, tip);
       draft.slack.step(dt);
       const span = Math.hypot(tip.x - start.x, tip.y - start.y);
-      if (draft.rope) draft.rope.step(dt, start, tip, span * (1 + Math.max(0, draft.slack.x)), draft.material.gravity, 5);
+      if (draft.rope) draft.rope.step(dt, start, tip, span * (1 + Math.max(0, draft.slack.x)), looseGravity(draft.material, draft.slack.x), 5);
       else if (draft.mid) {
         draft.mid.to((start.x + tip.x) / 2, (start.y + tip.y) / 2);
         draft.mid.step(dt);
@@ -323,7 +324,7 @@ export function beginDraft(el: Element | null, start: Point, pointer: Point): vo
     tip,
     rope: material.model === "thread" ? new Rope(start, tip) : null,
     mid: material.model === "wire" ? new Mass((start.x + pointer.x) / 2, (start.y + pointer.y) / 2).spring(material.spring) : null,
-    slack: new Body(material.slack, 0.0005).spring({ response: 0.16, damping: 0.7, bounce: 0 }),
+    slack: new Body(0, 0.0005).spring({ response: 0.16, damping: 0.7, bounce: 0 }),
     cancelling: false,
     material,
   };
@@ -341,7 +342,7 @@ export function aimDraft(pointer: Point, snap: Point | null): void {
   } else if (!!snap !== !!draft.snap) {
     // Caught: the end is pulled onto the node in the material's own spring, and a thread pulls taut.
     draft.tip.spring(snap || draft.material.model === "pen" ? draft.material.spring : UNDER_THE_HAND);
-    draft.slack.target = snap ? 0 : draft.material.slack;
+    if (snap) draft.slack.target = 0;
     if (snap) playPressSound(draft.el, "tick", 0.8);
   }
   draft.snap = live && snap ? { ...snap } : null;
