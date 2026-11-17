@@ -4,9 +4,7 @@ import type { CompareTable, Experiment, LiveConfig } from "./types";
 type Point = [number, number];
 const LABELS = ["A", "B", "C", "D", "E", "F"];
 
-/** Six-node layouts: the wide hero plate (1200 x 600), the tall one (390 x 640), and a compact card (560 x 300). */
-export const WIDE: Point[] = [[150, 400], [480, 300], [340, 520], [850, 290], [730, 520], [1070, 410]];
-export const TALL: Point[] = [[60, 292], [236, 266], [128, 388], [322, 376], [170, 520], [322, 574]];
+/** The six-node layout every page's graph uses (it fits a 560 x 300 box). */
 export const COMPACT: Point[] = [[60, 150], [200, 60], [200, 240], [360, 60], [360, 240], [500, 150]];
 /** Four nodes for the small experiments (540 x 300). */
 const FOUR: Point[] = [[70, 150], [290, 66], [210, 244], [470, 150]];
@@ -25,47 +23,6 @@ export const WEIGHTED_EDGES: Array<[number, number, number]> = [
   [0, 1, 4], [0, 2, 2], [2, 1, 1], [1, 3, 5], [2, 4, 9], [3, 4, 2], [3, 5, 3], [4, 5, 6],
 ];
 export const PLAIN_EDGES = WEIGHTED_EDGES.map(([from, to]) => [from, to, 1] as [number, number, number]);
-
-/**
- * A fresh six-node graph for the hero: one node per cell of a loose grid, so
- * every material gets some, joined to its neighbors.
- */
-export function scatterGraph(narrow: boolean, live: LiveConfig): LabGraph {
-  const cols = narrow ? 2 : 3;
-  const rows = narrow ? 3 : 2;
-  // The wide box stops short of the New graph key in the plate's bottom corner.
-  const box = narrow ? { x0: 56, x1: 334, y0: 262, y1: 590 } : { x0: 150, x1: 1070, y0: 300, y1: 478 };
-  const jitter = narrow ? 26 : 70;
-  const rand = (spread: number) => (Math.random() - 0.5) * spread;
-  const weight = () => (live.weighted ? 1 + Math.floor(Math.random() * 9) : 1);
-  // Wide plates read left to right, tall ones top to bottom, so label in that order.
-  const cells: Point[] = [];
-  if (narrow) for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells.push([c, r]);
-  else for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) cells.push([c, r]);
-  const index = (c: number, r: number) => cells.findIndex(([cc, rr]) => cc === c && rr === r);
-  const nodes = cells.map(([c, r], id) => ({
-    id, label: LABELS[id],
-    x: box.x0 + (c / (cols - 1)) * (box.x1 - box.x0) + rand(jitter),
-    y: box.y0 + (r / (rows - 1)) * (box.y1 - box.y0) + rand(jitter * 0.5),
-  }));
-  const edges: LabEdge[] = [];
-  // On directed pages most edges point away from the start; `back` turns one around, which is what makes cycles.
-  const join = (from: number, to: number, back = false) => {
-    if (!live.directed) edges.push({ from, to, weight: weight() });
-    else edges.push(back ? { from: to, to: from, weight: weight(), directed: true } : { from, to, weight: weight(), directed: true });
-  };
-  for (const [c, r] of cells) {
-    // The first row always joins across and every cell joins the one below it,
-    // so every node can be reached from the start; the other links are optional.
-    if (c + 1 < cols && (r === 0 || Math.random() < 0.7)) join(index(c, r), index(c + 1, r), r > 0 && Math.random() < 0.6);
-    if (r + 1 < rows) join(index(c, r), index(c, r + 1));
-    if (c + 1 < cols && r + 1 < rows && Math.random() < 0.55) {
-      if (Math.random() < 0.5) join(index(c, r), index(c + 1, r + 1), Math.random() < 0.3);
-      else join(index(c + 1, r), index(c, r + 1));
-    }
-  }
-  return { nodes, edges, start: 0, end: live.kind === "route" ? nodes.length - 1 : undefined };
-}
 
 /* -------------------------------------------------------------- experiments */
 

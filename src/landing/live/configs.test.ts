@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import "@/algorithms";
 import { runAlgorithm } from "../engine";
 import * as configs from "./configs";
-import { COMPACT, pageGraph, scatterGraph } from "./shared";
+import { COMPACT, pageGraph } from "./shared";
 import type { LiveConfig } from "./types";
 
 const all = Object.values(configs) as LiveConfig[];
@@ -30,19 +30,6 @@ describe("live configs", () => {
     if (live.kind === "route") expect(run.cost).not.toBeNull();
     if (live.kind === "cycle") expect(run.cycle).toBe(true);
     if (live.kind === "traversal" || live.kind === "tree") expect(run.frames.at(-1)?.visited.size).toBe(6);
-  });
-
-  it.each(all)("$algorithmId always gets a usable new graph", (live) => {
-    for (const narrow of [false, true]) {
-      for (let i = 0; i < 100; i++) {
-        const graph = scatterGraph(narrow, live);
-        const run = runAlgorithm(live.algorithmId, graph);
-        // "No cycle" is reported as an error by the adapter; on this page it is a valid outcome.
-        if (live.kind !== "cycle") expect(run.error).toBeUndefined();
-        if (live.kind === "route") expect(run.cost).not.toBeNull();
-        if (live.kind === "traversal" || live.kind === "tree") expect(run.frames.at(-1)?.visited.size).toBe(6);
-      }
-    }
   });
 });
 

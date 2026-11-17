@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import { Pause, Play, Shuffle, StepBack, StepForward } from "lucide-react";
 import "@/algorithms";
 import "./landing.css";
 import { encodeGraphLink } from "@/utils/graph/graphLink";
 import { formatDistance, messageParts, runAlgorithm, usePlayback, type Frame, type LabGraph, type Playback, type Run } from "./engine";
-import { LiveGraph, type MaterialRegion } from "./LiveGraph";
-import { COMPACT, OTHERS, pageGraph, scatterGraph, TALL, WIDE } from "./live/shared";
+import { LiveGraph, type GraphBox, type MaterialRegion } from "./LiveGraph";
+import { COMPACT, OTHERS, pageGraph } from "./live/shared";
 import type { LiveConfig, PhaseMap } from "./live/types";
 
 export interface AlgorithmLandingProps {
@@ -17,38 +16,34 @@ export interface AlgorithmLandingProps {
   live: LiveConfig;
 }
 
-type Layout = "wide" | "tall";
-const NARROW = "(max-width: 760px)";
-
-// The hero plate is split in thirds: across on wide screens, down on narrow ones.
-const WIDE_REGIONS: MaterialRegion[] = [
-  { name: "paper", x: 0, y: 0, w: 400, h: 600 }, { name: "graphite", x: 400, y: 0, w: 400, h: 600 }, { name: "blueprint", x: 800, y: 0, w: 400, h: 600 },
-];
-const TALL_REGIONS: MaterialRegion[] = [
-  { name: "paper", x: 0, y: 0, w: 390, h: 214 }, { name: "graphite", x: 0, y: 214, w: 390, h: 213 }, { name: "blueprint", x: 0, y: 427, w: 390, h: 213 },
+type Chapter = "paper" | "graphite" | "blueprint";
+const CHAPTERS: Array<{ id: Chapter; name: string }> = [
+  { id: "paper", name: "The idea" }, { id: "graphite", name: "The machine" }, { id: "blueprint", name: "The spec" },
 ];
 
-const QUEUE_NAMES: Record<string, string> = {
-  "queue": "Queue", "stack": "Stack", "priority-queue": "Priority queue", "distances": "Distance just updated", "recursion-stack": "Recursion stack",
-};
+// The pinned scroll, in fractions of its length: run, wipe to graphite, run again, wipe to blueprint.
+const RUN_1: [number, number] = [0.05, 0.34];
+const WIPE_1: [number, number] = [0.34, 0.43];
+const RUN_2: [number, number] = [0.43, 0.73];
+const WIPE_2: [number, number] = [0.73, 0.82];
+
+// Where the graph sits on the stage, as fractions of it: left on a wide stage, top on a tall one.
+const AREA = { wide: { x: 0.07, y: 0.36, w: 0.46, h: 0.44 }, tall: { x: 0.08, y: 0.2, w: 0.84, h: 0.26 } };
+// The compact layout's own bounds, and the node radius in its units.
+const BOUNDS = { x: 60, y: 60, w: 440, h: 180 };
+const RADIUS = 22;
+const percent = (value: number) => `${value * 100}%`;
+const boxOf = (area: typeof AREA.wide): GraphBox => ({
+  x: percent(area.x), y: percent(area.y), w: percent(area.w), h: percent(area.h), viewBox: `${BOUNDS.x} ${BOUNDS.y} ${BOUNDS.w} ${BOUNDS.h}`,
+});
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const within = (p: number, [a, b]: [number, number]) => Math.max(0, Math.min(1, (p - a) / (b - a)));
 const frameAt = (run: Run, index: number) => run.frames[Math.min(index, run.frames.length - 1)];
 const nameOf = (graph: LabGraph, id: number) => graph.nodes.find((n) => n.id === id)?.label ?? String(id);
 const treeWeight = (frame: Frame, graph: LabGraph) => [...frame.traversed].reduce((sum, i) => sum + graph.edges[i].weight, 0);
 const cycleNodes = (frame: Frame, graph: LabGraph) => [...frame.pathNodes].map((id) => nameOf(graph, id)).sort().join(", ");
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-
-/** The graph as the visitor arranged it, scaled to fill a card of the given size. */
-function fitGraph(graph: LabGraph, width: number, height: number, pad: number): LabGraph {
-  const xs = graph.nodes.map((n) => n.x);
-  const ys = graph.nodes.map((n) => n.y);
-  const [x0, y0] = [Math.min(...xs), Math.min(...ys)];
-  const scale = Math.min((width - pad * 2) / Math.max(1, Math.max(...xs) - x0), (height - pad * 2) / Math.max(1, Math.max(...ys) - y0));
-  const dx = (width - (Math.max(...xs) - x0) * scale) / 2;
-  const dy = (height - (Math.max(...ys) - y0) * scale) / 2;
-  return { ...graph, nodes: graph.nodes.map((n) => ({ ...n, x: dx + (n.x - x0) * scale, y: dy + (n.y - y0) * scale })) };
-}
 
 /** Which entries of a phase map a frame lights up. */
 function lit(map: PhaseMap, frame: Frame): number[] {
@@ -57,7 +52,7 @@ function lit(map: PhaseMap, frame: Frame): number[] {
   return /Found destination|Cycle detected/.test(frame.message) ? map.found : map.explore;
 }
 
-/** The app link that opens this exact graph with the page's algorithm selected. */
+/** The app link that opens the page's graph with its algorithm selected. */
 function appLink(algorithmId: string, graph: LabGraph): string {
   const indexOf = (id: number) => graph.nodes.findIndex((n) => n.id === id);
   const link = encodeGraphLink({
@@ -67,39 +62,21 @@ function appLink(algorithmId: string, graph: LabGraph): string {
   return `/?algorithm=${algorithmId}&graph=${encodeURIComponent(link)}`;
 }
 
-/** The outcome of a whole run, in a few words, for the control rail. */
-function summary(live: LiveConfig, run: Run, graph: LabGraph): { text: string; strong: string } {
+/** What the whole run came to, as a sentence for the last chapter. */
+function outcome(live: LiveConfig, run: Run, graph: LabGraph): ReactNode {
   const last = run.frames[run.frames.length - 1];
   if (live.kind === "route") {
-    if (run.cost === null) return { text: "No route between them", strong: "" };
-    return { text: run.pathLabels.join(" to "), strong: live.weighted ? `costs ${run.cost}` : plural(last.path.size, "edge") };
+    if (run.cost === null) return <>There is no route between the two nodes.</>;
+    const route = <b>{run.pathLabels.join(" to ")}</b>;
+    return live.weighted ? <>The route is {route}, at cost <b>{run.cost}</b>.</> : <>The route is {route}, <b>{plural(last.path.size, "edge")}</b> long.</>;
   }
-  if (live.kind === "tree") return { text: `Spanning tree over ${plural(last.visited.size, "node")}`, strong: `weight ${treeWeight(last, graph)}` };
-  if (live.kind === "cycle") return run.cycle ? { text: `Cycle through ${cycleNodes(last, graph)}`, strong: "found" } : { text: "No cycle in this graph", strong: "" };
-  return { text: last.order.map((id) => nameOf(graph, id)).join(", "), strong: plural(last.order.length, "node") };
+  if (live.kind === "tree") return <>The tree joins <b>{plural(last.visited.size, "node")}</b> with total weight <b>{treeWeight(last, graph)}</b>.</>;
+  if (live.kind === "cycle") return run.cycle ? <>It found a cycle through <b>{cycleNodes(last, graph)}</b>.</> : <>There is no cycle in this graph.</>;
+  return <>It visited <b>{last.order.map((id) => nameOf(graph, id)).join(", ")}</b>, in that order.</>;
 }
 
 function Message({ frame, graph }: { frame: Frame; graph: LabGraph }) {
   return <>{messageParts(frame.message, graph).map((part, i) => (part.bold ? <b key={i}>{part.text}</b> : <span key={i}>{part.text}</span>))}</>;
-}
-
-function Transport({ playback }: { playback: Playback }) {
-  return (
-    <>
-      <div className="lp-rail-keys">
-        <button type="button" className="lp-key" data-size="icon" data-tone="amber" aria-label={playback.playing ? "Pause" : "Play"} onClick={playback.toggle}>
-          {playback.playing ? <Pause /> : <Play />}
-        </button>
-        <button type="button" className="lp-key" data-size="icon" aria-label="Step back" disabled={playback.index === 0} onClick={() => playback.step(-1)}><StepBack /></button>
-        <button type="button" className="lp-key" data-size="icon" aria-label="Step forward" disabled={playback.index === playback.last} onClick={() => playback.step(1)}><StepForward /></button>
-      </div>
-      <input
-        className="lp-scrub" type="range" aria-label="Algorithm step" min={0} max={playback.last} step={1} value={playback.index}
-        style={{ "--fill": `${(playback.index / Math.max(1, playback.last)) * 100}%` } as React.CSSProperties}
-        onChange={(event) => playback.step(Number(event.target.value) - playback.index)}
-      />
-    </>
-  );
 }
 
 /** Plays a clock only while its section is on screen (and never for reduced motion). */
@@ -198,77 +175,42 @@ function ExperimentBlock({ live }: { live: LiveConfig }) {
 }
 
 /**
- * An algorithm's landing page. One fixed design in three materials, one job each:
- * paper for reading, graphite for the running machine, blueprint for the specification.
- * It is prerendered, then hydrated: until the browser reports its width both hero
- * layouts are in the markup and CSS shows the right one.
+ * An algorithm's landing page, built around one stage: a single graph stays pinned
+ * while the page scrolls. Scrolling is time. It runs the algorithm, and the page
+ * changes material around the graph: paper for the idea, graphite for the machine,
+ * blueprint for the specification.
+ *
+ * The page is prerendered, then hydrated. Until the stage has been measured the
+ * graph is placed by percentages, for both stage shapes, so the markup alone is
+ * laid out correctly; measuring it afterwards lets the material seam cut through
+ * the drawing at exactly the pixel the page's ground changes.
  */
 export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: AlgorithmLandingProps) {
-  const [layout, setLayout] = useState<Layout | null>(null);
-  const [graph, setGraph] = useState(() => pageGraph(live, WIDE));
-  const [intro, setIntro] = useState(true);
-  const [docked, setDocked] = useState(false);
-  const run = useMemo(() => runAlgorithm(live.algorithmId, graph), [live.algorithmId, graph]);
-  const playback = usePlayback(run.frames.length, { ms: 950, hold: 3200, autoplay: false });
-  const frame = frameAt(run, playback.index);
-  // Before the layout is known, the tall hero shows the same run on its own layout.
-  const tallPreview = useMemo(() => pageGraph(live, TALL), [live]);
-  // The sections below replay the same run on a compact copy of the same graph.
-  const compact = useMemo(() => ({ ...pageGraph(live, COMPACT), edges: graph.edges }), [live, graph.edges]);
-  // The closing section shows the hero graph again, in the arrangement the visitor left it in.
-  const yours = useMemo(() => fitGraph(graph, 560, 340, 52), [graph]);
-  const open = useMemo(() => appLink(live.algorithmId, graph), [live.algorithmId, graph]);
-  const outcome = useMemo(() => summary(live, run, graph), [live, run, graph]);
-  const litSteps = lit(live.steps, frame);
-  const litLines = lit(live.lines, frame);
-  const rail = useRef<HTMLDivElement>(null);
-  const machine = useRef<HTMLElement>(null);
-  const tween = useRef(0);
-  const clock = useRef(playback);
-  clock.current = playback;
+  const track = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [progress, setProgress] = useState(0);
 
-  // Pick the hero layout for this screen, and again if the screen changes shape.
   useEffect(() => {
-    const query = window.matchMedia(NARROW);
-    let current: Layout = "wide";
-    const apply = () => {
-      const next: Layout = query.matches ? "tall" : "wide";
-      if (next !== current) { setGraph(pageGraph(live, next === "tall" ? TALL : WIDE)); clock.current.setIndex(0); }
-      current = next;
-      setLayout(next);
-    };
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
-  }, [live]);
-
-  // The run starts once the entrance has played, and not at all for reduced motion.
-  useEffect(() => {
-    const still = reducedMotion();
-    const timer = window.setTimeout(() => { setIntro(false); if (!still) clock.current.restart(); }, still ? 0 : 1500);
-    return () => { window.clearTimeout(timer); cancelAnimationFrame(tween.current); };
+    const el = stage.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setSize({ w: el.clientWidth, h: el.clientHeight }));
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
-  // Nothing runs in a hidden tab.
-  useEffect(() => {
-    let paused = false;
-    const onVisibility = () => {
-      if (document.hidden && clock.current.playing) { paused = true; clock.current.toggle(); }
-      else if (!document.hidden && paused) { paused = false; clock.current.toggle(); }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, []);
-
-  // A docked copy of the controls takes over once the rail has scrolled away, and
-  // leaves again when the last section that follows the run has passed where it sits.
   useEffect(() => {
     let queued = 0;
     const update = () => {
       queued = 0;
-      const top = rail.current?.getBoundingClientRect();
-      const end = machine.current?.getBoundingClientRect();
-      if (top && end) setDocked(top.bottom < 0 && end.bottom > window.innerHeight - 24);
+      const el = track.current;
+      const pinned = stage.current;
+      if (!el || !pinned) return;
+      const box = el.getBoundingClientRect();
+      const top = Number.parseFloat(getComputedStyle(pinned).top) || 0;
+      const travel = box.height - pinned.clientHeight;
+      // Quantised so the stage re-renders a few hundred times over the whole scroll, not every pixel.
+      setProgress(Math.round(Math.max(0, Math.min(1, (top - box.top) / travel)) * 400) / 400);
     };
     const onScroll = () => { if (!queued) queued = requestAnimationFrame(update); };
     update();
@@ -277,31 +219,52 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
     return () => { cancelAnimationFrame(queued); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); };
   }, []);
 
-  const move = (id: number, x: number, y: number) => setGraph((g) => ({ ...g, nodes: g.nodes.map((n) => (n.id === id ? { ...n, x, y } : n)) }));
-  const bump = (edgeIndex: number) => {
-    setGraph((g) => ({ ...g, edges: g.edges.map((e, i) => (i === edgeIndex ? { ...e, weight: (e.weight % 9) + 1 } : e)) }));
-    playback.restart();
-  };
-  // A new graph: the nodes glide from where they are to where they are going.
-  const newGraph = () => {
-    const target = scatterGraph(layout === "tall", live);
-    const from = graph.nodes;
-    cancelAnimationFrame(tween.current);
-    playback.restart();
-    if (reducedMotion()) { setGraph(target); return; }
-    const began = performance.now();
-    const tick = (now: number) => {
-      const k = Math.min(1, (now - began) / 560);
-      const eased = 1 - Math.pow(1 - k, 3);
-      setGraph({ ...target, nodes: target.nodes.map((n, i) => ({ ...n, x: from[i].x + (n.x - from[i].x) * eased, y: from[i].y + (n.y - from[i].y) * eased })) });
-      if (k < 1) tween.current = requestAnimationFrame(tick);
+  const base = useMemo(() => pageGraph(live, COMPACT), [live]);
+  const run = useMemo(() => runAlgorithm(live.algorithmId, base), [live.algorithmId, base]);
+  const open = useMemo(() => appLink(live.algorithmId, base), [live.algorithmId, base]);
+  const lastFrame = run.frames.length - 1;
+
+  // The same placement the percentages give, in pixels, once the stage has a size.
+  const placed = useMemo(() => {
+    if (!size) return null;
+    const area = size.w < 760 ? AREA.tall : AREA.wide;
+    const scale = Math.min((area.w * size.w) / BOUNDS.w, (area.h * size.h) / BOUNDS.h);
+    const left = area.x * size.w + (area.w * size.w - BOUNDS.w * scale) / 2;
+    const top = area.y * size.h + (area.h * size.h - BOUNDS.h * scale) / 2;
+    return {
+      radius: RADIUS * scale,
+      graph: { ...base, nodes: base.nodes.map((n) => ({ ...n, x: left + (n.x - BOUNDS.x) * scale, y: top + (n.y - BOUNDS.y) * scale })) },
     };
-    tween.current = requestAnimationFrame(tick);
+  }, [base, size]);
+
+  const wipe1 = within(progress, WIPE_1);
+  const wipe2 = within(progress, WIPE_2);
+  const chapter: Chapter = wipe2 > 0.5 ? "blueprint" : wipe1 > 0.5 ? "graphite" : "paper";
+  const wiping = (wipe1 > 0 && wipe1 < 1) || (wipe2 > 0 && wipe2 < 1);
+  const frameIndex = progress >= WIPE_2[0] ? lastFrame
+    : progress >= RUN_2[0] ? Math.round(within(progress, RUN_2) * lastFrame)
+    : progress >= WIPE_1[0] ? lastFrame
+    : Math.round(within(progress, RUN_1) * lastFrame);
+  const frame = run.frames[frameIndex];
+  const opening = chapter === "paper" && frameIndex === 0;
+
+  // Each new material enters from the left edge and pushes the last one off to the right.
+  const regions: MaterialRegion[] = size ? [
+    { name: "paper", x: wipe1 * size.w, y: 0, w: size.w * (1 - wipe1), h: size.h },
+    { name: "graphite", x: wipe2 * size.w, y: 0, w: Math.max(0, size.w * (wipe1 - wipe2)), h: size.h },
+    { name: "blueprint", x: 0, y: 0, w: wipe2 * size.w, h: size.h },
+  ] : [];
+  const clip = {
+    paper: `inset(0 0 0 ${wipe1 * 100}%)`,
+    graphite: `inset(0 ${(1 - wipe1) * 100}% 0 ${wipe2 * 100}%)`,
+    blueprint: `inset(0 ${(1 - wipe2) * 100}% 0 0)`,
   };
 
+  const litSteps = lit(live.steps, frame);
+  const litLines = lit(live.lines, frame);
   const headline = <><span>{live.headline[0]}</span> <span>{live.headline[1]}</span></>;
-  const label = `A graph being worked through by ${live.limits.here === "Directed" ? "cycle detection" : live.limits.here}, drawn across paper, graphite and blueprint`;
-  const newGraphKey = <button type="button" className="lp-key lp-new" data-size="sm" onClick={newGraph}><Shuffle />New graph</button>;
+  const label = "The graph this page is about. Scroll to run the algorithm on it.";
+  const shared = { frame, label, showDistances: live.ledger === "distance", showWeights: live.weighted };
   const table = live.limits.table;
 
   return (
@@ -321,138 +284,81 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
         </nav>
       </header>
 
-      <section className="lp-plate" aria-label={`${live.headline.join(" ")}, running live`}>
-        {/* Graphite fills the plate; paper and blueprint are clipped to their thirds on top of it. */}
-        <div className="lp-ground" data-material="graphite" />
-        <div className="lp-ground" data-material="paper" />
-        <div className="lp-ground" data-material="blueprint" />
-        <h1 className="lp-h1" data-material="paper">{headline}</h1>
-        <div className="lp-h1" data-material="graphite" aria-hidden="true">{headline}</div>
-        <div className="lp-h1" data-material="blueprint" aria-hidden="true">{headline}</div>
-        {layout !== "tall" && (
-          <LiveGraph
-            key="wide" layout="wide" graph={graph} frame={frame} width={1200} height={600} radius={28} material={WIDE_REGIONS} label={label}
-            showDistances={live.ledger === "distance"} showWeights={live.weighted} intro={intro}
-            onMove={layout ? move : undefined} onWeight={layout && live.weighted ? bump : undefined}
-          />
-        )}
-        {layout !== "wide" && (
-          <LiveGraph
-            key="tall" layout="tall" graph={layout ? graph : tallPreview} frame={frame} width={390} height={640} radius={19} material={TALL_REGIONS} label={label}
-            showDistances={live.ledger === "distance"} showWeights={live.weighted} intro={intro}
-            onMove={layout ? move : undefined} onWeight={layout && live.weighted ? bump : undefined}
-          />
-        )}
-        {newGraphKey}
-      </section>
+      <div className="lp-track" ref={track} id="how">
+        <section className="lp-stage" ref={stage} aria-label={`${live.headline.join(" ")}: scroll to run it`}>
+          {/* Graphite fills the stage; paper and blueprint are clipped on top of it as the seams move. */}
+          <div className="lp-ground" data-material="graphite" />
+          <div className="lp-ground" data-material="paper" style={{ clipPath: clip.paper }} />
+          <div className="lp-ground" data-material="blueprint" style={{ clipPath: clip.blueprint }} />
+          <h1 className="lp-h1" data-material="paper" style={{ clipPath: clip.paper }}>{headline}</h1>
+          <div className="lp-h1" data-material="graphite" aria-hidden="true" style={{ clipPath: clip.graphite }}>{headline}</div>
+          <div className="lp-h1" data-material="blueprint" aria-hidden="true" style={{ clipPath: clip.blueprint }}>{headline}</div>
 
-      <div className="lp-rail lp-graphite" ref={rail}>
-        <div className="lp-wrap lp-rail-row">
-          <Transport playback={playback} />
-          <p className="lp-rail-message" aria-live="polite"><Message frame={frame} graph={graph} /></p>
-          <p className="lp-rail-answer">{outcome.text} {outcome.strong && <b>{outcome.strong}</b>}</p>
-          {newGraphKey}
-        </div>
+          {placed && size ? (
+            <LiveGraph graph={placed.graph} width={size.w} height={size.h} radius={placed.radius} material={regions} {...shared} />
+          ) : (
+            <>
+              <LiveGraph layout="wide" graph={base} box={boxOf(AREA.wide)} radius={RADIUS} material="paper" {...shared} />
+              <LiveGraph layout="tall" graph={base} box={boxOf(AREA.tall)} radius={RADIUS} material="paper" {...shared} />
+            </>
+          )}
+
+          <div className={`lp-panel lp-${chapter}`} data-hidden={wiping ? "" : undefined} data-opening={opening ? "" : undefined}>
+            {chapter === "paper" && (
+              <>
+                {opening
+                  ? <><p className="lp-opening">{subtitle}</p><p className="lp-cue">Scroll to run it</p></>
+                  : <p className="lp-now" aria-live="polite"><Message frame={frame} graph={base} /></p>}
+                <ol className="lp-steps">
+                  {howItWorks.steps.map((step, i) => (
+                    <li key={step} data-active={!opening && litSteps.includes(i) ? "" : undefined}><span>{i + 1}</span>{step}</li>
+                  ))}
+                </ol>
+              </>
+            )}
+            {chapter === "graphite" && (
+              <>
+                <pre className="lp-code" aria-label="Pseudocode">
+                  {live.pseudocode.map((line, i) => (
+                    <span key={line} data-active={litLines.includes(i) ? "" : undefined}><i>{i + 1}</i>{line}{"\n"}</span>
+                  ))}
+                </pre>
+                <div className="lp-queue-items">
+                  {frame.processing && (
+                    <span className="lp-chip" data-now="">
+                      {nameOf(base, frame.processing.id)}{frame.processing.value !== undefined && <b>{formatDistance(frame.processing.value)}</b>}
+                    </span>
+                  )}
+                  {frame.queue.map((item, i) => (
+                    <span key={`${item.id}-${i}`} className="lp-chip">
+                      {nameOf(base, item.id)}{item.value !== undefined && <b>{formatDistance(item.value)}</b>}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+            {chapter === "blueprint" && (
+              <>
+                <dl className="lp-specs">
+                  {live.specs.map((spec) => (
+                    <div key={spec.label}><dt>{spec.label}</dt><dd>{spec.value}</dd><dd className="lp-spec-note">{spec.note}</dd></div>
+                  ))}
+                </dl>
+                <p className="lp-now">{outcome(live, run, base)} Keep scrolling to put it to the test.</p>
+              </>
+            )}
+          </div>
+
+          <div className="lp-chapters" aria-hidden="true">
+            {CHAPTERS.map((c) => <span key={c.id} data-active={c.id === chapter ? "" : undefined}>{c.name}</span>)}
+            <i style={{ width: `${progress * 100}%` }} />
+          </div>
+        </section>
       </div>
-
-      <section className="lp-paper lp-band" data-tight="">
-        <div className="lp-wrap lp-intro">
-          <p className="lp-lede">{subtitle}</p>
-          <div className="lp-intro-side">
-            <p>
-              The graph above is live. Drag a node across the page{live.weighted ? " or click a weight to change it" : ""}, and it
-              runs again. The button opens that same graph in the visualizer.
-            </p>
-            <a className="lp-key" data-tone="ink" href={open}>Open this graph in the visualizer</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="lp-paper lp-band" id="how" data-ruled="">
-        <div className="lp-wrap lp-split">
-          <div className="lp-split-head">
-            <h2>How it works</h2>
-            {howItWorks.description.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-            <div className="lp-ledger" role="table" aria-label={live.ledger === "distance" ? "Best known distance to each node" : "The order each node was visited in"}>
-              {graph.nodes.map((node) => {
-                const value = live.ledger === "distance"
-                  ? formatDistance(frame.dist.get(node.id))
-                  : frame.order.includes(node.id) ? String(frame.order.indexOf(node.id) + 1) : "–";
-                return (
-                  <div key={node.id} role="row" data-settled={frame.visited.has(node.id) ? "" : undefined}>
-                    <span role="rowheader">{node.label}</span>
-                    {/* Keyed by value so a changed cell replays its tick. */}
-                    <b role="cell" key={value}>{value}</b>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="lp-note">
-              This {live.ledger === "distance" ? "distance table" : "visit order"} and the lit steps follow the graph at the top of the page.
-            </p>
-          </div>
-          <div>
-            <ol className="lp-steps">
-              {howItWorks.steps.map((step, i) => (
-                <li key={step} data-active={litSteps.includes(i) ? "" : undefined}><span>{i + 1}</span>{step}</li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      <section className="lp-graphite lp-band" ref={machine}>
-        <div className="lp-wrap lp-machine">
-          <div className="lp-machine-head">
-            <h2>What the machine is doing</h2>
-            <p>The same run, seen from the inside: the line being executed and the data it is reading from.</p>
-          </div>
-          <div className="lp-machine-graph">
-            <LiveGraph
-              graph={compact} frame={frame} width={560} height={300} radius={22} material="graphite" label="The same graph, in step with the code"
-              showDistances={live.ledger === "distance"} showWeights={live.weighted}
-            />
-          </div>
-          <pre className="lp-code" aria-label="Pseudocode">
-            {live.pseudocode.map((line, i) => (
-              <span key={line} data-active={litLines.includes(i) ? "" : undefined}><i>{i + 1}</i>{line}{"\n"}</span>
-            ))}
-          </pre>
-          <div className="lp-queue">
-            <h3>{QUEUE_NAMES[frame.queueKind ?? ""] ?? QUEUE_NAMES[run.frames[1]?.queueKind ?? ""] ?? "Queue"}</h3>
-            <div className="lp-queue-items">
-              {frame.processing && (
-                <span className="lp-chip" data-now="" key={`now-${frame.processing.id}`}>
-                  {nameOf(graph, frame.processing.id)}{frame.processing.value !== undefined && <b>{formatDistance(frame.processing.value)}</b>}
-                </span>
-              )}
-              {frame.queue.map((item, i) => (
-                <span key={`${item.id}-${i}`} className="lp-chip">
-                  {nameOf(graph, item.id)}{item.value !== undefined && <b>{formatDistance(item.value)}</b>}
-                </span>
-              ))}
-              {!frame.processing && frame.queue.length === 0 && <span className="lp-queue-empty">Empty</span>}
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section className="lp-blueprint lp-band" id="limits">
         <div className="lp-wrap">
-          <div className="lp-split">
-            <div className="lp-split-head">
-              <h2>{live.limits.heading}</h2>
-            </div>
-            <dl className="lp-specs">
-              {live.specs.map((spec) => (
-                <div key={spec.label}>
-                  <dt>{spec.label}</dt>
-                  <dd>{spec.value}</dd>
-                  <dd className="lp-spec-note">{spec.note}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          <h2>{live.limits.heading}</h2>
           <ExperimentBlock live={live} />
           <h3 className="lp-table-title" id="lp-compare-title">{table.title}</h3>
           <div className="lp-table-scroll">
@@ -476,7 +382,11 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
       <section className="lp-paper lp-band">
         <div className="lp-wrap lp-split">
           <div className="lp-split-side">
-            <h2>Where it is used</h2>
+            <h2>Background</h2>
+            <div className="lp-prose">
+              {howItWorks.description.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            </div>
+            <h3>Where it is used</h3>
             <ul className="lp-uses">
               {useCases.map((use) => {
                 const [name, ...rest] = use.text.split(" — ");
@@ -502,22 +412,10 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
       <section className="lp-graphite lp-band" id="more">
         <div className="lp-wrap">
           <div className="lp-close">
-            <div className="lp-close-copy">
-              <h2>See it on your own graph</h2>
-              <p>
-                This is the graph from the top of the page, as you left it. Open it in the visualizer to add nodes, draw your
-                own edges and step through every move.
-              </p>
-              <a className="lp-key" data-tone="amber" data-size="lg" href={open}>Open this graph in the visualizer</a>
-            </div>
-            <div className="lp-close-graph">
-              <LiveGraph
-                graph={yours} frame={frame} width={560} height={340} radius={24} material="graphite" label="Your graph from the top of the page, still running"
-                showDistances={live.ledger === "distance"} showWeights={live.weighted}
-              />
-            </div>
+            <h2>See it on your own graph</h2>
+            <a className="lp-key" data-tone="amber" data-size="lg" href={open}>Open the visualizer</a>
           </div>
-          <h3 className="lp-others-title">Eight algorithms, one visualizer</h3>
+          <h3 className="lp-others-title">More algorithms to watch</h3>
           <div className="lp-others">
             {OTHERS.map((other) => (other.id === live.algorithmId
               ? <div key={other.id} aria-current="page"><b>{other.name}</b><span>You are here</span></div>
@@ -530,11 +428,6 @@ export function AlgorithmLanding({ subtitle, howItWorks, useCases, faq, live }: 
           </footer>
         </div>
       </section>
-
-      <div className="lp-dock" data-shown={docked ? "" : undefined}>
-        <Transport playback={playback} />
-        <p className="lp-dock-message"><Message frame={frame} graph={graph} /></p>
-      </div>
     </div>
   );
 }

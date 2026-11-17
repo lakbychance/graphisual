@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useId } from "react";
 import { formatDistance, type Frame, type LabGraph } from "./engine";
 
 export type MaterialName = "paper" | "graphite" | "blueprint";
@@ -6,73 +6,39 @@ export type MaterialName = "paper" | "graphite" | "blueprint";
 /** A region of the drawing rendered in one material (viewBox units). */
 export interface MaterialRegion { name: MaterialName; x: number; y: number; w: number; h: number }
 
+/**
+ * Where to place the drawing inside a container whose size is not known yet:
+ * a box given in percentages of the container, showing `viewBox` of the graph.
+ */
+export interface GraphBox { x: string; y: string; w: string; h: string; viewBox: string }
+
 interface LiveGraphProps {
   graph: LabGraph;
   frame: Frame;
-  width: number;
-  height: number;
   label: string;
   /** One material for the whole drawing, or regions that split it between several. */
   material: MaterialName | MaterialRegion[];
+  /** The drawing's own size in viewBox units. Leave out when `box` places it instead. */
+  width?: number;
+  height?: number;
+  /** Place the drawing by percentages (for markup rendered before the container is measured). */
+  box?: GraphBox;
   radius?: number;
   showDistances?: boolean;
   /** Draw edge weights (off for algorithms that ignore them). */
   showWeights?: boolean;
-  /** Which hero layout this drawing is for; CSS shows the one that fits the screen. */
+  /** Which stage shape this drawing is for; CSS shows the one that fits the screen. */
   layout?: "wide" | "tall";
-  onMove?: (id: number, x: number, y: number) => void;
-  onWeight?: (edgeIndex: number) => void;
-  /** Play the one-off entrance: edges fade up, then nodes land one by one. */
-  intro?: boolean;
 }
 
 /**
- * The landing page's graph, driven by one engine frame. It is drawn once per
- * material and clipped to that material's region, so a node dragged across a
- * seam is redrawn in the material it lands on.
+ * The landing page's graph, driven by one engine frame. With regions it is drawn
+ * once per material and clipped to that material's region, so a seam can pass
+ * through the drawing and each side is rendered in its own material.
  */
-export function LiveGraph({ graph, frame, width, height, label, material, radius = 22, showDistances = false, showWeights = true, layout, onMove, onWeight, intro = false }: LiveGraphProps) {
+export function LiveGraph({ graph, frame, label, material, width = 0, height = 0, box, radius = 22, showDistances = false, showWeights = true, layout }: LiveGraphProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const svgRef = useRef<SVGSVGElement>(null);
-  const drag = useRef<{ id: number; dx: number; dy: number } | null>(null);
   const regions: MaterialRegion[] = typeof material === "string" ? [{ name: material, x: 0, y: 0, w: width, h: height }] : material;
-
-  const toSvg = (event: ReactPointerEvent) => {
-    const matrix = svgRef.current?.getScreenCTM();
-    if (!matrix) return { x: 0, y: 0 };
-    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
-    return { x: point.x, y: point.y };
-  };
-  const onDown = (event: ReactPointerEvent<SVGGElement>, id: number, x: number, y: number) => {
-    if (!onMove) return;
-    const p = toSvg(event);
-    drag.current = { id, dx: p.x - x, dy: p.y - y };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const onDrag = (event: ReactPointerEvent<SVGGElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    const p = toSvg(event);
-    const pad = radius + 6;
-    onMove?.(d.id, Math.max(pad, Math.min(width - pad, p.x - d.dx)), Math.max(pad + 12, Math.min(height - pad, p.y - d.dy)));
-  };
-  const onUp = () => { drag.current = null; };
-
-  // A touch that starts on a node drags it instead of scrolling the page. Browsers that
-  // ignore `touch-action` on SVG shapes need the touch cancelled by hand, which React's
-  // passive touch listeners cannot do.
-  const draggable = Boolean(onMove);
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg || !draggable) return;
-    const hold = (event: TouchEvent) => {
-      if (drag.current || (event.target as Element).closest(".lp-node")) event.preventDefault();
-    };
-    svg.addEventListener("touchstart", hold, { passive: false });
-    svg.addEventListener("touchmove", hold, { passive: false });
-    return () => { svg.removeEventListener("touchstart", hold); svg.removeEventListener("touchmove", hold); };
-  }, [draggable]);
-
   const at = (id: number) => graph.nodes.find((n) => n.id === id) ?? graph.nodes[0];
 
   const drawing = (
@@ -98,18 +64,16 @@ export function LiveGraph({ graph, frame, width, height, label, material, radius
                 points={`${tip.x},${tip.y} ${tip.x - ux * wing * 1.7 - uy * wing * 0.85},${tip.y - uy * wing * 1.7 + ux * wing * 0.85} ${tip.x - ux * wing * 1.7 + uy * wing * 0.85},${tip.y - uy * wing * 1.7 - ux * wing * 0.85}`}
               />
             )}
-            {showWeights && <g
-              className="lp-weight" data-editable={onWeight ? "" : undefined}
-              transform={`translate(${(a.x + b.x) / 2 - uy * radius * 0.8} ${(a.y + b.y) / 2 + ux * radius * 0.8})`}
-              onClick={onWeight ? () => onWeight(i) : undefined}
-            >
-              <circle r={radius * 0.56} />
-              <text dy="0.36em">{edge.weight < 0 ? `−${-edge.weight}` : edge.weight}</text>
-            </g>}
+            {showWeights && (
+              <g className="lp-weight" transform={`translate(${(a.x + b.x) / 2 - uy * radius * 0.8} ${(a.y + b.y) / 2 + ux * radius * 0.8})`}>
+                <circle r={radius * 0.56} />
+                <text dy="0.36em">{edge.weight < 0 ? `−${-edge.weight}` : edge.weight}</text>
+              </g>
+            )}
           </g>
         );
       })}
-      {graph.nodes.map((node, order) => {
+      {graph.nodes.map((node) => {
         const state = node.id === graph.start ? "start" : node.id === graph.end ? "end"
           : frame.pathNodes.has(node.id) ? "path" : frame.visited.has(node.id) ? "visited" : "idle";
         const reached = frame.visited.has(node.id) || frame.pathNodes.has(node.id);
@@ -120,8 +84,6 @@ export function LiveGraph({ graph, frame, width, height, label, material, radius
           <g
             key={node.id} className="lp-node" data-state={state} data-reached={reached ? "" : undefined}
             data-current={frame.current === node.id ? "" : undefined} transform={`translate(${node.x} ${node.y})`}
-            style={{ "--i": order } as React.CSSProperties}
-            onPointerDown={(event) => onDown(event, node.id, node.x, node.y)} onPointerMove={onDrag} onPointerUp={onUp} onPointerCancel={onUp}
           >
             <circle className="lp-node-ring" r={radius + 8} />
             <g className="lp-node-body">
@@ -141,12 +103,27 @@ export function LiveGraph({ graph, frame, width, height, label, material, radius
     </>
   );
 
+  const hatch = (
+    <pattern id={`${uid}-hatch`} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="5" stroke="currentColor" strokeWidth="1.2" />
+    </pattern>
+  );
+
+  if (box) {
+    return (
+      <svg className="lp-graph" width="100%" height="100%" role="img" aria-label={label} data-layout={layout} style={{ fontSize: radius * 0.72 }}>
+        <defs>{hatch}</defs>
+        <svg x={box.x} y={box.y} width={box.w} height={box.h} viewBox={box.viewBox} overflow="visible">
+          <g data-material={regions[0].name}>{drawing}</g>
+        </svg>
+      </svg>
+    );
+  }
+
   return (
-    <svg ref={svgRef} className="lp-graph" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} data-draggable={onMove ? "" : undefined} data-layout={layout} data-intro={intro ? "" : undefined} style={{ fontSize: radius * 0.72 }}>
+    <svg className="lp-graph" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} data-layout={layout} style={{ fontSize: radius * 0.72 }}>
       <defs>
-        <pattern id={`${uid}-hatch`} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="5" stroke="currentColor" strokeWidth="1.2" />
-        </pattern>
+        {hatch}
         {regions.map((r) => (
           <clipPath key={r.name} id={`${uid}-${r.name}`}><rect x={r.x} y={r.y} width={r.w} height={r.h} /></clipPath>
         ))}
