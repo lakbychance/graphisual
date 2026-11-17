@@ -3,20 +3,7 @@
  */
 export const EdgeDefs = () => (
   <>
-    {/* Arrow marker for drag preview edge */}
-    <marker
-      id="mockArrowHead"
-      markerWidth="10"
-      markerHeight="7"
-      refX="0"
-      refY="3.5"
-      orient="auto"
-      style={{ fill: 'var(--color-edge-default)' }}
-    >
-      <polygon points="0 0, 10 3.5, 0 7" />
-    </marker>
-
-    {/* Shared arrow markers for directed edges - 3 states */}
+    {/* Shared arrow markers for directed edges (the default one is also on the edge being drawn) */}
     <marker
       id="arrowhead-default"
       markerWidth="9"

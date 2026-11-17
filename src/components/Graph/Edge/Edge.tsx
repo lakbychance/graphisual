@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { getControlPoint } from "../../../utils/geometry/calc";
-import { useEdgeBow } from "@/physics/graphMotion";
+import { dashOf, useEdgeBow } from "@/physics/graphMotion";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
 import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
@@ -55,10 +55,15 @@ export const Edge = memo(function Edge({
   const bowX = bow?.x ?? 0;
   const bowY = bow?.y ?? 0;
 
-  const control = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
+  // An edge that was just drawn (always directed) starts where the drafted line ended and with its dashes, and settles from there.
+  const x2 = edge.x2 + (bow?.end?.x ?? 0);
+  const y2 = edge.y2 + (bow?.end?.y ?? 0);
+  const dash = dashOf(bow)?.join(" ");
+
+  const control = getControlPoint(edge.x1, edge.y1, x2, y2);
   const c1x = control.cx + 2 * bowX;
   const c1y = control.cy + 2 * bowY;
-  const directedPath = `M${edge.x1} ${edge.y1} Q${c1x} ${c1y} ${edge.x2} ${edge.y2}`;
+  const directedPath = `M${edge.x1} ${edge.y1} Q${c1x} ${c1y} ${x2} ${y2}`;
   const undirectedPath = bow
     ? `M${edge.x1},${edge.y1} Q${(edge.x1 + edge.x2) / 2 + 2 * bowX},${(edge.y1 + edge.y2) / 2 + 2 * bowY} ${edge.x2},${edge.y2}`
     : `M${edge.x1},${edge.y1} L${edge.x2},${edge.y2}`;
@@ -130,8 +135,8 @@ export const Edge = memo(function Edge({
   if (edge.type === "directed") {
     // Calculate actual center of quadratic bezier curve at t=0.5
     // Q(0.5) = (P0 + 2*P1 + P2) / 4
-    const centerX = (edge.x1 + 2 * c1x + edge.x2) / 4;
-    const centerY = (edge.y1 + 2 * c1y + edge.y2) / 4;
+    const centerX = (edge.x1 + 2 * c1x + x2) / 4;
+    const centerY = (edge.y1 + 2 * c1y + y2) / 4;
 
     return (
       <g key={getEdgeKey(arrowMarkerId)}>
@@ -163,6 +168,7 @@ export const Edge = memo(function Edge({
             "fill-transparent pointer-events-none",
             isFocused && "edge-focused"
           )}
+          strokeDasharray={dash}
           markerEnd={`url(#${arrowMarkerId})`}
         />
         {edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT && (

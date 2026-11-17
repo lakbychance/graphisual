@@ -7,13 +7,13 @@ import type { GraphEdge } from "../../Graph/types";
 import { type EdgeColorState, getEdgeColor, getCSSVar } from "@/theme";
 import { EDGE } from "../../../constants/graph";
 import { getControlPoint } from "../../../utils/geometry/calc";
-import { traceDraft, type DraftShape } from "@/physics/graphMotion";
+import { DRAFT_DASH, dashOf, traceDraft, type DraftShape, type EdgeBow } from "@/physics/graphMotion";
 
 interface EdgeRenderOptions {
   colorState: EdgeColorState;
   isFocused: boolean;
-  /** How far the middle of the line lags while an end is moving (see physics/graphMotion). */
-  bow?: { x: number; y: number } | null;
+  /** How far the middle of the line lags while an end is moving, and what is left of the draft it was drawn as (see physics/graphMotion). */
+  bow?: EdgeBow | null;
 }
 
 /**
@@ -109,7 +109,10 @@ function drawDirectedEdge(
   options: EdgeRenderOptions
 ): void {
   const { colorState, isFocused, bow } = options;
-  const control = getControlPoint(edge.x1, edge.y1, edge.x2, edge.y2);
+  // Just drawn (a new edge is always directed): the far end starts where the drafted line ended.
+  const x2 = edge.x2 + (bow?.end?.x ?? 0);
+  const y2 = edge.y2 + (bow?.end?.y ?? 0);
+  const control = getControlPoint(edge.x1, edge.y1, x2, y2);
   const cx = control.cx + 2 * (bow?.x ?? 0);
   const cy = control.cy + 2 * (bow?.y ?? 0);
 
@@ -119,9 +122,9 @@ function drawDirectedEdge(
   const arrowHeight = 14;
 
   // Calculate angle at curve end and shorten endpoint to arrow base
-  const angle = getBezierEndAngle(edge.x1, edge.y1, cx, cy, edge.x2, edge.y2);
-  const shortenedX2 = edge.x2 - Math.cos(angle) * arrowWidth;
-  const shortenedY2 = edge.y2 - Math.sin(angle) * arrowWidth;
+  const angle = getBezierEndAngle(edge.x1, edge.y1, cx, cy, x2, y2);
+  const shortenedX2 = x2 - Math.cos(angle) * arrowWidth;
+  const shortenedY2 = y2 - Math.sin(angle) * arrowWidth;
 
   ctx.save();
 
@@ -131,18 +134,20 @@ function drawDirectedEdge(
   ctx.quadraticCurveTo(cx, cy, shortenedX2, shortenedY2);
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
+  ctx.setLineDash(dashOf(bow) ?? []);
   ctx.stroke();
+  ctx.setLineDash([]);
 
   // Draw arrowhead at original endpoint
-  drawArrowhead(ctx, edge.x2, edge.y2, angle, color, arrowWidth, arrowHeight);
+  drawArrowhead(ctx, x2, y2, angle, color, arrowWidth, arrowHeight);
 
   ctx.restore();
 
   // Weight label (at curve center)
   if (edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT) {
     // Calculate center of bezier: Q(0.5) = (P0 + 2*P1 + P2) / 4
-    const centerX = (edge.x1 + 2 * cx + edge.x2) / 4;
-    const centerY = (edge.y1 + 2 * cy + edge.y2) / 4;
+    const centerX = (edge.x1 + 2 * cx + x2) / 4;
+    const centerY = (edge.y1 + 2 * cy + y2) / 4;
     drawWeightLabel(ctx, centerX, centerY, edge.weight);
   }
 }
@@ -194,60 +199,22 @@ export function drawEdge(
 }
 
 /**
- * Draw a preview edge during edge creation drag.
- * Matches SVG DragPreviewEdge: dashed line with arrow, using edge-default color.
- */
-export function drawPreviewEdge(
-  ctx: CanvasRenderingContext2D,
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number
-): void {
-  const color = getCSSVar('--color-edge-default');
-  const arrowWidth = 18;
-  const arrowHeight = 14;
-
-  // Calculate angle and shorten line to stop at arrow base
-  const angle = Math.atan2(endY - startY, endX - startX);
-  const lineEndX = endX - Math.cos(angle) * arrowWidth;
-  const lineEndY = endY - Math.sin(angle) * arrowWidth;
-
-  ctx.save();
-
-  // Draw dashed line (shortened to arrow base)
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  ctx.lineTo(lineEndX, lineEndY);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 4]);
-  ctx.stroke();
-
-  // Draw arrowhead at end
-  ctx.setLineDash([]); // Reset dash for solid arrow
-  drawArrowhead(ctx, endX, endY, angle, color, arrowWidth, arrowHeight);
-
-  ctx.restore();
-}
-
-/**
  * Draw the edge being drawn in the shape the motion layer gives it (a thread,
- * a wire or a ruled line). Same dashed stroke and arrow as `drawPreviewEdge`.
+ * a wire or a ruled line). Apart from its dashes it is drawn as the edge it
+ * becomes: same colour and width, and the arrowhead ends where the line ends.
  */
 export function drawDraftEdge(ctx: CanvasRenderingContext2D, shape: DraftShape): void {
-  const color = getCSSVar('--color-edge-default');
+  const color = getEdgeColor('default');
 
   ctx.save();
   ctx.beginPath();
   const end = traceDraft(ctx, shape);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
-  ctx.setLineDash([8, 4]);
+  ctx.setLineDash([...DRAFT_DASH]);
   ctx.stroke();
   ctx.setLineDash([]);
-  // The SVG marker starts at the end of the line and points onward; match it.
-  drawArrowhead(ctx, end.x + Math.cos(end.angle) * 18, end.y + Math.sin(end.angle) * 18, end.angle, color, 18, 14);
+  drawArrowhead(ctx, end.x, end.y, end.angle, color, 18, 14);
   ctx.restore();
 }
 

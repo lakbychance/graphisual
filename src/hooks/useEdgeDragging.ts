@@ -36,13 +36,18 @@ export function useEdgeDragging({
       setHitAreaRole(sourceNodeId, 'source');
 
       let prevHoverTargetId: number | null = null;
-      beginDraft(graphRef.current, { x: startX, y: startY }, { x: startX, y: startY });
+      // The line runs from the centre of its node, as the edge it becomes will.
+      const source = useGraphStore.getState().data.nodes.find((node) => node.id === sourceNodeId);
+      const from = source ? { x: source.x, y: source.y } : { x: startX, y: startY };
+      beginDraft(graphRef.current, from, { x: startX, y: startY });
 
       const handlePointerMove = (e: PointerEvent) => {
         const { x: endX, y: endY } = screenToSvgCoords(e.clientX, e.clientY);
         const { nodes } = useGraphStore.getState().data;
         const hoverTarget = findToNodeForTouchBasedDevices(endX, endY, nodes);
-        const hoveredId = hoverTarget && hoverTarget.id !== sourceNodeId ? hoverTarget.id : null;
+        // Only a node the line can connect to is a target: it is highlighted, and the line is pulled onto its rim.
+        const catches = hoverTarget && hoverTarget.id !== sourceNodeId && canCreateEdge(useGraphStore.getState().data.edges, sourceNodeId, hoverTarget.id);
+        const hoveredId = catches ? hoverTarget.id : null;
 
         // Update target highlight only when it changes
         if (hoveredId !== prevHoverTargetId) {
@@ -51,9 +56,7 @@ export function useEdgeDragging({
           prevHoverTargetId = hoveredId;
         }
 
-        // Over a node it can connect to, the line is pulled onto that node's rim.
-        const catches = hoverTarget && hoveredId !== null && canCreateEdge(useGraphStore.getState().data.edges, sourceNodeId, hoveredId);
-        const rim = catches ? calculateAccurateCoords(startX, startY, hoverTarget.x, hoverTarget.y) : null;
+        const rim = catches ? calculateAccurateCoords(from.x, from.y, hoverTarget.x, hoverTarget.y) : null;
         aimDraft({ x: endX, y: endY }, rim && { x: rim.tempX, y: rim.tempY });
       };
 

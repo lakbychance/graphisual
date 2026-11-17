@@ -281,6 +281,9 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
           />
         ))}
 
+        {/* The edge being drawn; under the nodes, where the edge it becomes will be */}
+        <DragPreviewEdge />
+
         {/* Deleted nodes fading out and their edges recoiling; under the live nodes */}
         <LeavingLayer />
 
@@ -301,8 +304,6 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
             onLabelEdit={handleLabelEdit}
           />
         ))}
-
-        <DragPreviewEdge />
 
         {/* Box selection rectangle - uses same accent color as selected nodes */}
         {selectionBox && (

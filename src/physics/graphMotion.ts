@@ -3,7 +3,7 @@ import { projectDistance } from "@ui-sdk/core/gesture";
 import { Body, wake, type Sim } from "@/components/ui-sdk/physics/engine";
 import { looseGravity, looseSlack, Mass, Rope } from "@/components/ui-sdk/physics/graph";
 import { edgeOf, glideOf, intensityOf, springOf, type EdgeMaterial } from "@/components/ui-sdk/physics/material";
-import { getControlPoint } from "@/utils/geometry/calc";
+import { calculateAccurateCoords, getControlPoint } from "@/utils/geometry/calc";
 import type { GraphNode } from "@/components/Graph/types";
 import { playPressSound } from "@/components/ui-sdk/press-sound";
 import { useGraphStore } from "@/store/graphStore";
@@ -21,7 +21,9 @@ import { useGraphStore } from "@/store/graphStore";
  *           late; that offset (its "bow") is published for the renderers to
  *           bend the line by, and disappears once the line has settled
  *   draft   the edge being drawn, as a thread, a wire or a ruled pen line,
- *           published as a shape both renderers can stroke
+ *           published as a shape both renderers can stroke; when it connects
+ *           it becomes the edge: the edge starts in the shape, at the end point
+ *           and with the dashes the line had, and settles into itself
  *   leaving a deleted node lingers for a moment as a ghost that goes the way
  *           it came in that theme, while each edge it held is let go and
  *           recoils into the node at its other end
@@ -46,6 +48,8 @@ export interface DraftShape {
 const MAX_BOW = 0.2;
 
 const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+/** A just-drawn edge has its own motion, so an edge already running the other way between the same nodes is left alone. */
+const drawnKey = (from: number, to: number) => `${from}>${to}`;
 
 const simulated = (el: Element | null): el is Element =>
   !!el?.closest("[data-physics]") &&
@@ -55,7 +59,28 @@ const simulated = (el: Element | null): el is Element =>
 /* ---------- state ---------- */
 
 interface MovingNode { id: number; mass: Mass; held: boolean; lastX: number; lastY: number }
-interface MovingEdge { a: number; b: number; mid: Mass }
+/** An edge that was just drawn and is still turning from the drafted line into itself. */
+interface Fresh {
+  /** 1 while it still looks like the dashed draft, 0 once it is the edge. */
+  draft: Body;
+  /**
+   * How far its far end is from the rim of the node it will rest on, settling to nothing. Kept as
+   * an offset, not a position, so the end stays on the node if the node is moved meanwhile.
+   */
+  end: Mass;
+  /** The dashes have closed and the far end has arrived. */
+  settled: boolean;
+}
+/** `drawn` marks the motion of one edge that was just drawn (from `a` to `b`), not of every edge between the two nodes. */
+interface MovingEdge { a: number; b: number; mid: Mass; drawn?: true; fresh?: Fresh }
+
+/** What a renderer bends an edge by. The last two are only there just after the edge was drawn. */
+export interface EdgeBow extends Point {
+  /** How much of the draft's dashes are left: 1 is the draft's dashed stroke, 0 (or absent) is solid. */
+  draft?: number;
+  /** How far the far end still is from where it will rest. */
+  end?: Point;
+}
 interface Draft {
   el: Element;
   start: Point;
@@ -95,7 +120,7 @@ let draft: Draft | null = null;
 let edgeMaterial: EdgeMaterial | null = null;
 
 /** What the renderers read. Objects are replaced, never mutated, so they work as snapshots. */
-const bows = new Map<string, Point>();
+const bows = new Map<string, EdgeBow>();
 let draftShape: DraftShape | null = null;
 let frame = 0;
 
@@ -114,7 +139,15 @@ const motion: Sim = {
     let moving = false;
     for (const node of nodes.values()) moving = node.mass.step(dt) || node.held || moving;
 
-    for (const edge of edges.values()) moving = edge.mid.step(dt) || moving;
+    for (const edge of edges.values()) {
+      moving = edge.mid.step(dt) || moving;
+      if (edge.fresh) {
+        const closing = edge.fresh.draft.step(dt);
+        const arriving = edge.fresh.end.step(dt);
+        edge.fresh.settled = !closing && !arriving;
+        moving = closing || arriving || moving;
+      }
+    }
 
     if (draft) {
       moving = true;
@@ -175,7 +208,9 @@ const motion: Sim = {
     for (const [key, edge] of edges) {
       const a = positionOf(edge.a);
       const b = positionOf(edge.b);
-      if (!a || !b) {
+      // A drawn edge that has since been deleted, reversed or made undirected is no longer the line that was drawn.
+      const gone = edge.drawn && !useGraphStore.getState().data.edges.get(edge.a)?.some((e) => e.to === edge.b && e.type === "directed");
+      if (!a || !b || gone) {
         edges.delete(key);
         bows.delete(key);
         continue;
@@ -183,15 +218,22 @@ const motion: Sim = {
       const mx = (a.x + b.x) / 2;
       const my = (a.y + b.y) / 2;
       edge.mid.to(mx, my);
-      let bx = (edge.mid.x - mx) * gain;
-      let by = (edge.mid.y - my) * gain;
+      const bx = (edge.mid.x - mx) * gain;
+      const by = (edge.mid.y - my) * gain;
       const limit = Math.hypot(b.x - a.x, b.y - a.y) * MAX_BOW;
       const size = Math.hypot(bx, by);
-      if (size > limit && size > 0) {
-        bx *= limit / size;
-        by *= limit / size;
+      // Done turning into the edge once it has settled and its bend is one an ordinary edge could have.
+      if (edge.fresh?.settled && size <= limit) edge.fresh = undefined;
+      const bow: EdgeBow = { x: bx, y: by };
+      if (edge.fresh) {
+        // Not limited while fresh: it has to start in exactly the shape the drafted line had.
+        bow.draft = Math.max(0, Math.min(1, edge.fresh.draft.x));
+        bow.end = { x: edge.fresh.end.x, y: edge.fresh.end.y };
+      } else if (size > limit && size > 0) {
+        bow.x *= limit / size;
+        bow.y *= limit / size;
       }
-      bows.set(key, { x: bx, y: by });
+      bows.set(key, bow);
     }
 
     draftShape = draft ? shapeOf(draft) : null;
@@ -250,7 +292,7 @@ function exciteEdges(el: Element, ids: Iterable<number>): void {
     for (const edge of list) {
       if (!moved.has(from) && !moved.has(edge.to)) continue;
       const key = pairKey(from, edge.to);
-      if (edges.has(key)) continue;
+      if (edges.has(key) || edges.has(drawnKey(from, edge.to))) continue; // a just-drawn edge already has its own
       const a = at.get(from);
       const b = at.get(edge.to);
       if (!a || !b) continue;
@@ -360,22 +402,43 @@ export function endDraft(connected?: { from: number; to: number }): void {
   if (connected) {
     const speed = Math.hypot(current.tip.bx.v, current.tip.by.v);
     if (live) playPressSound(current.el, "latch", Math.max(0.6, Math.min(1.2, 0.6 + speed / 1500)));
-    const middle = current.rope?.middle(1 / 480)
-      ?? (current.mid ? { x: current.mid.x, y: current.mid.y, vx: current.mid.bx.v, vy: current.mid.by.v } : null);
     const a = positionOf(connected.from);
     const b = positionOf(connected.to);
-    if (middle && a && b && live) {
-      // The new edge inherits how far the line was from straight, and how fast it was moving.
+    const gain = Math.min(1, current.material.intensity);
+    if (a && b && live && gain > 0) {
+      // The line becomes the edge: the edge starts where the line was (its middle, its far end, its
+      // dashes) and moving as fast, and settles from there into its own shape.
       edgeMaterial = current.material;
-      const { start, tip } = current;
-      const mid = new Mass(
-        (a.x + b.x) / 2 + (middle.x - (start.x + tip.x) / 2),
-        (a.y + b.y) / 2 + (middle.y - (start.y + tip.y) / 2),
-      ).spring(current.material.spring);
-      mid.to((a.x + b.x) / 2, (a.y + b.y) / 2);
-      mid.bx.v = middle.vx;
-      mid.by.v = middle.vy;
-      edges.set(pairKey(connected.from, connected.to), { a: connected.from, b: connected.to, mid });
+      const { start, tip, material } = current;
+      const cx = (start.x + tip.x) / 2;
+      const cy = (start.y + tip.y) / 2;
+      // Where the middle of the line is drawn.
+      const drawn = current.rope?.middle(1 / 480)
+        ?? (current.mid
+          ? { x: cx + (current.mid.x - cx) * gain, y: cy + (current.mid.y - cy) * gain, vx: current.mid.bx.v * gain, vy: current.mid.by.v * gain }
+          : { x: cx, y: cy, vx: 0, vy: 0 });
+      // Where the middle of the edge would be drawn between the same two points: on its arc (a new edge is always directed).
+      const control = getControlPoint(start.x, start.y, tip.x, tip.y);
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const mid = new Mass(mx + (drawn.x - (cx + control.cx) / 2) / gain, my + (drawn.y - (cy + control.cy) / 2) / gain).spring(material.spring);
+      mid.to(mx, my);
+      mid.bx.v = drawn.vx / gain;
+      mid.by.v = drawn.vy / gain;
+      const dashes = new Body(1, 0.002).spring({ response: material.spring.response, damping: 1, bounce: 0 });
+      dashes.target = 0;
+      const rim = calculateAccurateCoords(a.x, a.y, b.x, b.y);
+      const end = new Mass(tip.x - rim.tempX, tip.y - rim.tempY).spring(material.spring);
+      end.to(0, 0);
+      end.bx.v = tip.bx.v;
+      end.by.v = tip.by.v;
+      edges.set(drawnKey(connected.from, connected.to), {
+        a: connected.from,
+        b: connected.to,
+        mid,
+        drawn: true,
+        fresh: { draft: dashes, end, settled: false },
+      });
     }
     draft = null;
   } else if (!live) {
@@ -499,12 +562,12 @@ useGraphStore.subscribe((state, previous) => {
 
 /* ---------- what the renderers read ---------- */
 
-/** How far the middle of the edge between `a` and `b` is from where it will settle, or null when it is at rest. */
-export function bowOf(a: number, b: number): Point | null {
-  return bows.get(pairKey(a, b)) ?? null;
+/** How far the middle of the edge from `a` to `b` is from where it will settle, or null when it is at rest. */
+export function bowOf(a: number, b: number): EdgeBow | null {
+  return bows.get(drawnKey(a, b)) ?? bows.get(pairKey(a, b)) ?? null;
 }
 
-export function useEdgeBow(a: number, b: number): Point | null {
+export function useEdgeBow(a: number, b: number): EdgeBow | null {
   return useSyncExternalStore(subscribe, () => bowOf(a, b));
 }
 
@@ -520,6 +583,18 @@ export function useDraftShape(): DraftShape | null {
 /** Changes every simulated frame; a canvas render loop depends on it to redraw while things move. */
 export function useMotionFrame(): number {
   return useSyncExternalStore(subscribe, () => frame);
+}
+
+/** The dashes of the line being drawn: a dash and the gap after it. */
+export const DRAFT_DASH = [8, 4] as const;
+
+/**
+ * The dashes of an edge that was just drawn. Each dash grows into the gap after it until they
+ * meet, so the dashes stay where the draft had them. Null once the stroke is solid.
+ */
+export function dashOf(bow: EdgeBow | null | undefined): [number, number] | null {
+  const gap = DRAFT_DASH[1] * (bow?.draft ?? 0);
+  return gap > 0.05 ? [DRAFT_DASH[0] + DRAFT_DASH[1] - gap, gap] : null;
 }
 
 /** SVG path data for the line being drawn. */

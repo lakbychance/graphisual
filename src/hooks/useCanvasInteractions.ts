@@ -335,13 +335,10 @@ export function useCanvasInteractions({
           endY: world.y,
         });
         const targetNode = hitTestNodes(world.x, world.y, nodes, stackingOrder);
-        if (targetNode && targetNode.id !== state.connectorNodeId) {
-          setEdgeDragTarget(targetNode.id);
-        } else {
-          setEdgeDragTarget(null);
-        }
-        // Over a node it can connect to, the line is pulled onto that node's rim.
-        const catches = targetNode && state.connectorNodeId !== undefined && canCreateEdge(edges, state.connectorNodeId, targetNode.id);
+        // Only a node the line can connect to is a target: it is highlighted, and the line is pulled onto its rim.
+        const catches = targetNode && state.connectorNodeId !== undefined && targetNode.id !== state.connectorNodeId
+          && canCreateEdge(edges, state.connectorNodeId, targetNode.id);
+        setEdgeDragTarget(catches ? targetNode.id : null);
         const rim = catches ? calculateAccurateCoords(state.startWorldX, state.startWorldY, targetNode.x, targetNode.y) : null;
         aimDraft(world, rim && { x: rim.tempX, y: rim.tempY });
         break;
