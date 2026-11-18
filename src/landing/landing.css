@@ -95,7 +95,13 @@ table { border-collapse: collapse; }
  * material. Graphite is left unclipped underneath to close any hairline gap.
  */
 .lp-track { position: relative; height: 640vh; }
-.lp-stage { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; background: #1b1c1f; }
+/*
+ * The stage is as tall as the viewport with the browser's toolbars retracted (lvh), not the
+ * live viewport (dvh). On phones the address bar slides away as the first scroll starts; a
+ * stage sized to the live viewport grows while that happens, and everything placed inside
+ * it by percentage, the graph included, visibly creeps down the page.
+ */
+.lp-stage { position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; background: #1b1c1f; }
 .lp-ground {
   --grid: transparent;
   position: absolute; inset: 0; background-size: 32px 32px;
@@ -136,7 +142,8 @@ table { border-collapse: collapse; }
 .lp-panel .lp-queue-items { margin-top: 24px; }
 
 .lp-chapters {
-  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 22px; padding: 10px 20px 13px; overflow: hidden;
+  /* Kept above the browser's bottom toolbar while that is showing. */
+  position: absolute; left: 50%; bottom: 20px; bottom: calc(20px + 100lvh - 100dvh); transform: translateX(-50%); display: flex; gap: 22px; padding: 10px 20px 13px; overflow: hidden;
   border-radius: 12px; background: #101113; color: #8a877f; font: 600 14px/1 var(--body); white-space: nowrap; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 .lp-chapters span[data-active] { color: #ebe8e1; }
