@@ -101,7 +101,37 @@ table { border-collapse: collapse; }
  * stage sized to the live viewport grows while that happens, and everything placed inside
  * it by percentage, the graph included, visibly creeps down the page.
  */
-.lp-stage { position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; background: #1b1c1f; }
+.lp-stage {
+  position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; background: #1b1c1f;
+  /*
+   * Everything continuous is a CSS variable written by the scroll loop, so nothing here
+   * needs a re-render to move: --w1 and --w2 are the two material seams (0 to 1), --draw is
+   * how far the edge being walked has been drawn, --p is progress through the track, and
+   * --s1 / --s2 rise and fall as each seam crosses (0 at rest, 1 mid-way).
+   */
+  --w1: 0; --w2: 0; --draw: 0; --p: 0; --s1: 0; --s2: 0; --lead: calc(var(--s2) * 150px);
+}
+/* Each new material enters from the left edge and pushes the last one off to the right. */
+.lp-stage :is(.lp-ground, .lp-h1)[data-material="paper"], .lp-layer[data-material="paper"] { clip-path: inset(0 0 0 calc(var(--w1) * 100%)); }
+.lp-stage .lp-h1[data-material="graphite"], .lp-layer[data-material="graphite"] { clip-path: inset(0 calc(100% - var(--w1) * 100%) 0 calc(var(--w2) * 100%)); }
+.lp-stage :is(.lp-ground, .lp-h1)[data-material="blueprint"], .lp-layer[data-material="blueprint"] { clip-path: inset(0 calc(100% - var(--w2) * 100%) 0 0); }
+.lp-layers, .lp-layer { position: absolute; inset: 0; }
+
+/* Graphite arrives as a panel: a lit leading edge, and a shadow thrown onto the paper ahead of it. */
+.lp-seam { position: absolute; top: 0; bottom: 0; width: 56px; pointer-events: none; }
+.lp-seam[data-seam="1"] { left: calc(var(--w1) * 100%); opacity: var(--s1); background: linear-gradient(90deg, rgba(20, 16, 12, 0.3), rgba(20, 16, 12, 0)); box-shadow: inset 2px 0 0 #4a4d53; }
+/* Blueprint is drafted: its rules and the graph's construction lines appear ahead of the ink. */
+.lp-seam[data-seam="2"] { left: calc(var(--w2) * 100%); width: 1px; opacity: var(--s2); background: #cfe4f7; }
+.lp-draft-ground {
+  position: absolute; inset: 0; pointer-events: none; opacity: var(--s2);
+  clip-path: inset(0 calc(100% - var(--w2) * 100% - var(--lead)) 0 calc(var(--w2) * 100%));
+  background-size: 32px 32px;
+  background-image: linear-gradient(rgba(207, 228, 247, 0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(207, 228, 247, 0.28) 1px, transparent 1px);
+}
+.lp-layer[data-draft] { pointer-events: none; opacity: var(--s2); clip-path: inset(0 calc(100% - var(--w2) * 100% - var(--lead)) 0 calc(var(--w2) * 100%)); }
+.lp-layer[data-draft] .lp-node-face { fill: none; stroke: #cfe4f7; stroke-width: 1; stroke-dasharray: 3 3; }
+.lp-layer[data-draft] .lp-edge-base { stroke: #cfe4f7; stroke-width: 1; stroke-dasharray: 3 4; }
+.lp-layer[data-draft] :is(.lp-node-body text, .lp-node-dist, .lp-node-ring, .lp-node-hatch, .lp-edge-ink) { display: none; }
 .lp-ground {
   --grid: transparent;
   position: absolute; inset: 0; background-size: 32px 32px;
@@ -128,9 +158,9 @@ table { border-collapse: collapse; }
 /* The panel beside the graph: what the current chapter has to say. */
 .lp-panel {
   position: absolute; top: 50%; right: max(var(--gutter), calc((100vw - 1296px) / 2 + var(--gutter))); width: min(38%, 500px);
-  transform: translateY(-46%); background: none !important; transition: opacity 180ms linear;
+  transform: translateY(-46%); background: none !important; transition: opacity 180ms linear, transform 260ms cubic-bezier(0.2, 0, 0, 1);
 }
-.lp-panel[data-hidden] { opacity: 0; }
+.lp-panel[data-hidden] { opacity: 0; transform: translateY(calc(-46% + 10px)); }
 .lp-opening { font-size: clamp(17px, 1.35vw, 20px); line-height: 1.5; color: var(--muted); }
 .lp-cue { margin-top: 14px; font: 600 15px/1 var(--body); color: var(--fg); }
 .lp-cue::after { content: ""; display: inline-block; width: 8px; height: 8px; margin: 0 0 3px 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); animation: lp-nudge 1.6s cubic-bezier(0.2, 0, 0, 1) infinite; }
@@ -138,19 +168,39 @@ table { border-collapse: collapse; }
 .lp-now { min-height: 2.4em; font: 500 clamp(21px, 2vw, 30px)/1.18 var(--display); letter-spacing: -0.02em; color: var(--fg); white-space: pre-line; }
 .lp-now b { font-weight: 700; }
 .lp-panel .lp-steps { margin-top: 24px; }
+.lp-yours { margin-top: 14px; color: var(--muted); }
+.lp-yours b { color: var(--fg); }
+.lp-yours + .lp-key { margin-top: 24px; }
 .lp-panel .lp-specs { margin-bottom: 28px; }
 .lp-panel .lp-queue-items { margin-top: 24px; }
 
+/* Where the stage is, and a way to jump: each chapter name is a button that scrolls to its start. */
 .lp-chapters {
   /* Kept above the browser's bottom toolbar while that is showing. */
-  position: absolute; left: 50%; bottom: 20px; bottom: calc(20px + 100lvh - 100dvh); transform: translateX(-50%); display: flex; gap: 22px; padding: 10px 20px 13px; overflow: hidden;
-  border-radius: 12px; background: #101113; color: #8a877f; font: 600 14px/1 var(--body); white-space: nowrap; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  position: absolute; left: 50%; bottom: 20px; bottom: calc(20px + 100lvh - 100dvh); transform: translateX(-50%); display: flex; gap: 2px; padding: 5px 6px 8px; overflow: hidden;
+  border-radius: 12px; background: #101113; font: 600 14px/1 var(--body); white-space: nowrap; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
-.lp-chapters span[data-active] { color: #ebe8e1; }
-.lp-chapters i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--amber); }
+.lp-chapters button { height: 34px; padding: 0 12px; border-radius: 8px; color: #8a877f; cursor: pointer; transition: color 120ms linear, background 120ms linear; }
+.lp-chapters button:hover { color: #ebe8e1; background: rgba(255, 255, 255, 0.06); }
+.lp-chapters button[aria-current] { color: #ebe8e1; }
+.lp-chapters i { position: absolute; left: 0; bottom: 0; height: 3px; width: calc(var(--p) * 100%); background: var(--amber); pointer-events: none; }
+
+/* The page-wide sound switch. It stays on screen so the sections under the stage can be heard too. */
+.lp-sound {
+  position: fixed; z-index: 30; left: 20px; bottom: 20px; display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px; border-radius: 10px; background: #2f3136; color: #ebe8e1; font: 600 14px/1 var(--body); cursor: pointer;
+  box-shadow: 0 3px 0 #0b0c0d, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+.lp-sound:active { transform: translateY(3px); box-shadow: 0 0 0 #0b0c0d, 0 0 0 1px rgba(0, 0, 0, 0.4); }
+.lp-sound[aria-pressed="true"] { background: var(--amber); color: #1b1c1f; box-shadow: 0 3px 0 #a2660f, 0 0 0 1px rgba(0, 0, 0, 0.4); }
+.lp-sound svg { width: 16px; height: 16px; }
 
 @media (max-width: 760px) {
   .lp-nav-links > a:not(.lp-key) { display: none; }
+  /* Icon only on a phone, tucked beside the chapter buttons. */
+  .lp-sound { left: auto; right: 10px; bottom: 22px; bottom: calc(22px + 100lvh - 100dvh); width: 38px; height: 38px; padding: 0; justify-content: center; gap: 0; font-size: 0; }
+  .lp-chapters { left: 10px; transform: none; }
+  .lp-chapters button { padding: 0 9px; font-size: 13px; }
   .lp-graph[data-layout="wide"] { display: none; }
   .lp-graph[data-layout="tall"] { display: block; }
   .lp-h1 { font-size: 9vw; padding-top: 14px; letter-spacing: -0.03em; }
@@ -194,6 +244,14 @@ table { border-collapse: collapse; }
 .lp-edge[data-state="walked"] .lp-edge-ink { stroke-dashoffset: 0; opacity: 1; }
 .lp-edge[data-state="path"] .lp-edge-ink { stroke-dashoffset: 0; opacity: 1; stroke: var(--g-path); stroke-width: 8; }
 .lp-edge-arrow { fill: var(--g-muted); }
+/* Scrubbed drawing: the edge about to be walked follows `--draw`, and nothing animates on its own. */
+.lp-graph[data-scrub] .lp-edge-ink { transition: none; }
+.lp-edge-draw { fill: none; stroke: var(--g-walk); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--draw, 0)); }
+.lp-edge-draw[data-state="path"] { stroke: var(--g-path); stroke-width: 8; }
+.lp-weight[data-editable] { cursor: pointer; }
+.lp-weight[data-editable]:hover circle { stroke: var(--amber); stroke-width: 2; }
+.lp-graph[data-draggable] .lp-node { cursor: grab; touch-action: none; }
+.lp-graph[data-draggable] .lp-node:active { cursor: grabbing; }
 .lp-weight circle { fill: var(--g-ground); stroke: var(--g-line); stroke-width: 1; }
 .lp-weight text { text-anchor: middle; font-size: 0.8em; font-weight: 600; fill: var(--g-muted); pointer-events: none; font-variant-numeric: tabular-nums; }
 .lp-edge[data-state="path"] .lp-weight text { fill: var(--g-label); }
@@ -281,6 +339,9 @@ table { border-collapse: collapse; }
 .lp-verdict b { color: var(--fg); }
 .lp-verdict[data-wrong] b { color: #ffd166; }
 .lp-switch { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; margin-top: 24px; padding: 0; border: 0; background: none; color: var(--fg); font: 500 16px/1.3 var(--body); text-align: left; cursor: pointer; }
+.lp-exp-keys { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+.lp-counter { padding-left: 8px; font: 600 22px/1 var(--display); font-variant-numeric: tabular-nums; color: var(--fg); }
+.lp-counter small { margin-left: 2px; font-size: 14px; font-weight: 500; opacity: 0.6; }
 .lp-switch-track { flex: none; width: 46px; height: 26px; box-sizing: border-box; border: 1px solid #f3f8fc; border-radius: 13px; padding: 3px; transition: background 160ms linear; }
 .lp-switch-thumb { display: block; width: 18px; height: 18px; border-radius: 50%; background: #f3f8fc; transition: transform 200ms cubic-bezier(0.2, 1.15, 0.3, 1), background 160ms linear; }
 .lp-switch[aria-checked="true"] .lp-switch-track { background: #ffd166; border-color: #ffd166; }

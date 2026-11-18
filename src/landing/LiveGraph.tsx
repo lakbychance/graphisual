@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { formatDistance, type Frame, type LabGraph } from "./engine";
 
 export type MaterialName = "paper" | "graphite" | "blueprint";
@@ -29,6 +29,16 @@ interface LiveGraphProps {
   showWeights?: boolean;
   /** Which stage shape this drawing is for; CSS shows the one that fits the screen. */
   layout?: "wide" | "tall";
+  /**
+   * The frame after `frame`. When given, the edge it is about to walk is drawn as a
+   * separate line whose length follows the CSS variable `--draw` (0 to 1), so a
+   * scroll position can scrub the stroke instead of the frame change animating it.
+   */
+  next?: Frame;
+  /** Let nodes be dragged (coordinates are in viewBox units). */
+  onMove?: (id: number, x: number, y: number) => void;
+  /** Let weights be clicked. */
+  onWeight?: (edgeIndex: number) => void;
 }
 
 /**
@@ -36,10 +46,46 @@ interface LiveGraphProps {
  * once per material and clipped to that material's region, so a seam can pass
  * through the drawing and each side is rendered in its own material.
  */
-export function LiveGraph({ graph, frame, label, material, width = 0, height = 0, box, radius = 22, showDistances = false, showWeights = true, layout }: LiveGraphProps) {
+export function LiveGraph({ graph, frame, label, material, width = 0, height = 0, box, radius = 22, showDistances = false, showWeights = true, layout, next, onMove, onWeight }: LiveGraphProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const regions: MaterialRegion[] = typeof material === "string" ? [{ name: material, x: 0, y: 0, w: width, h: height }] : material;
   const at = (id: number) => graph.nodes.find((n) => n.id === id) ?? graph.nodes[0];
+  const svgRef = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ id: number; dx: number; dy: number } | null>(null);
+
+  const toSvg = (event: ReactPointerEvent) => {
+    const matrix = svgRef.current?.getScreenCTM();
+    if (!matrix) return { x: 0, y: 0 };
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    return { x: point.x, y: point.y };
+  };
+  const onDown = (event: ReactPointerEvent<SVGGElement>, id: number, x: number, y: number) => {
+    if (!onMove) return;
+    const p = toSvg(event);
+    drag.current = { id, dx: p.x - x, dy: p.y - y };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onDrag = (event: ReactPointerEvent<SVGGElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const p = toSvg(event);
+    const pad = radius + 6;
+    onMove?.(d.id, Math.max(pad, Math.min(width - pad, p.x - d.dx)), Math.max(pad, Math.min(height - pad, p.y - d.dy)));
+  };
+  const onUp = () => { drag.current = null; };
+
+  // A touch that starts on a draggable node moves it instead of scrolling the page.
+  const draggable = Boolean(onMove);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !draggable) return;
+    const hold = (event: TouchEvent) => {
+      if (drag.current || (event.target as Element).closest(".lp-node")) event.preventDefault();
+    };
+    svg.addEventListener("touchstart", hold, { passive: false });
+    svg.addEventListener("touchmove", hold, { passive: false });
+    return () => { svg.removeEventListener("touchstart", hold); svg.removeEventListener("touchmove", hold); };
+  }, [draggable]);
 
   const drawing = (
     <>
@@ -58,6 +104,10 @@ export function LiveGraph({ graph, frame, label, material, width = 0, height = 0
           <g key={i} className="lp-edge" data-state={state}>
             <line className="lp-edge-base" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
             <line className="lp-edge-ink" x1={p.x} y1={p.y} x2={q.x} y2={q.y} pathLength={1} />
+            {next && next.activeEdge === i && frame.activeEdge !== i && (() => {
+              const [from, to] = next.reversed.get(i) ? [b, a] : [a, b];
+              return <line className="lp-edge-draw" data-state={next.path.has(i) ? "path" : "walked"} x1={from.x} y1={from.y} x2={to.x} y2={to.y} pathLength={1} />;
+            })()}
             {edge.directed && (
               <polygon
                 className="lp-edge-arrow"
@@ -65,7 +115,10 @@ export function LiveGraph({ graph, frame, label, material, width = 0, height = 0
               />
             )}
             {showWeights && (
-              <g className="lp-weight" transform={`translate(${(a.x + b.x) / 2 - uy * radius * 0.8} ${(a.y + b.y) / 2 + ux * radius * 0.8})`}>
+              <g
+                className="lp-weight" data-editable={onWeight ? "" : undefined} onClick={onWeight ? () => onWeight(i) : undefined}
+                transform={`translate(${(a.x + b.x) / 2 - uy * radius * 0.8} ${(a.y + b.y) / 2 + ux * radius * 0.8})`}
+              >
                 <circle r={radius * 0.56} />
                 <text dy="0.36em">{edge.weight < 0 ? `−${-edge.weight}` : edge.weight}</text>
               </g>
@@ -84,6 +137,7 @@ export function LiveGraph({ graph, frame, label, material, width = 0, height = 0
           <g
             key={node.id} className="lp-node" data-state={state} data-reached={reached ? "" : undefined}
             data-current={frame.current === node.id ? "" : undefined} transform={`translate(${node.x} ${node.y})`}
+            onPointerDown={(event) => onDown(event, node.id, node.x, node.y)} onPointerMove={onDrag} onPointerUp={onUp} onPointerCancel={onUp}
           >
             <circle className="lp-node-ring" r={radius + 8} />
             <g className="lp-node-body">
@@ -121,7 +175,9 @@ export function LiveGraph({ graph, frame, label, material, width = 0, height = 0
   }
 
   return (
-    <svg className="lp-graph" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} data-layout={layout} style={{ fontSize: radius * 0.72 }}>
+    <svg
+      ref={svgRef} className="lp-graph" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} data-layout={layout}
+      data-scrub={next ? "" : undefined} data-draggable={onMove ? "" : undefined} style={{ fontSize: radius * 0.72 }}>
       <defs>
         {hatch}
         {regions.map((r) => (
