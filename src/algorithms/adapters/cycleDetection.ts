@@ -7,16 +7,8 @@
  */
 
 import { CycleDetectionIcon } from "../icons";
-import { nid } from "../traceHelpers";
 import type { AlgorithmEvent } from "../engine";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
 const PSEUDOCODE = [
@@ -95,45 +87,6 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
   return events;
 }
 
-/**
- * Today's app steps, derived from the events: one VISIT step per node entered and one for the
- * edge that closes a cycle, then CYCLE steps round the cycle. Replaced by frames in task 0.4.
- */
-function* legacySteps(events: AlgorithmEvent[]): AlgorithmGenerator {
-  const recursion: number[] = [];
-  const items = () => recursion.map((id) => ({ id }));
-  for (const event of events) {
-    if (event.type === "settle") {
-      recursion.push(event.node);
-      yield {
-        type: StepType.VISIT,
-        edge: { from: event.via ?? -1, to: event.node },
-        trace: {
-          message: `**Exploring node ${nid(event.node)}**. Recursion depth: ${recursion.length}`,
-          dataStructure: { type: "recursion-stack", items: items(), processing: { id: event.node }, justAdded: [event.node] },
-        },
-      };
-    } else if (event.type === "finish") {
-      recursion.pop();
-    } else if (event.type === "classify" && event.kind === "back") {
-      const { from, to } = event;
-      yield {
-        type: StepType.VISIT,
-        edge: { from, to },
-        trace: {
-          message: `**Cycle detected!** Back edge **${nid(from)}→${nid(to)}** found\nNode **${nid(to)}** is in recursion stack`,
-          dataStructure: { type: "recursion-stack", items: items(), processing: { id: to } },
-        },
-      };
-    } else if (event.type === "answer" && event.kind === "cycle" && event.cycle) {
-      // The app lists the tree edges from the deepest one up, then the edge that closes the cycle.
-      const { cycle } = event;
-      for (let i = cycle.length - 1; i > 0; i--) yield { type: StepType.CYCLE, edge: { from: cycle[i - 1], to: cycle[i] } };
-      yield { type: StepType.CYCLE, edge: { from: cycle[cycle.length - 1], to: cycle[0] } };
-    }
-  }
-}
-
 const cycleDetectionAdapter: AlgorithmAdapter = {
   metadata: {
     id: "cycle-detection",
@@ -147,24 +100,8 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: cycleDetectionEvents,
 
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySteps(cycleDetectionEvents(input)),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    const steps = [...cycleDetectionAdapter.generator(input)];
-    const foundCycle = steps.some((s) => s.type === StepType.CYCLE);
-
-    if (!foundCycle) {
-      return { steps, error: "No cycle found in the graph." };
-    }
-
-    return { steps };
-  },
+  refusal: (events) =>
+    events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null) ? "No cycle found in the graph." : undefined,
 };
 
 export default cycleDetectionAdapter;

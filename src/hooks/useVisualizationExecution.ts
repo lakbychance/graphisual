@@ -5,6 +5,7 @@ import { algorithmRegistry, AlgorithmAdapter, AlgorithmInput, EdgeInfo } from ".
 import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utils/graph/graphUtils";
 import { VisualizationState } from "../constants/visualization";
 import { type EdgeType } from "../constants/graph";
+import { createRun } from "../utils/visualization/runView";
 import { useAppHaptics } from "./useAppHaptics";
 
 interface UseVisualizationExecutionReturn {
@@ -18,9 +19,10 @@ interface UseVisualizationExecutionReturn {
 /**
  * Starts a visualization run for the selected algorithm.
  *
- * Both modes share one pipeline: the algorithm runs once and produces the step list,
- * the store holds it, and `useAutoPlay` advances through it (from the start in auto
- * mode, on Play in manual mode).
+ * Both modes share one pipeline: the algorithm runs once and reports its events, the
+ * store holds them as a run of Overview steps, and `useAutoPlay` advances through it
+ * (from the start in auto mode, on Play in manual mode). A run the adapter refuses
+ * (no route, no cycle, ...) shows its message instead.
  */
 export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   const haptics = useAppHaptics();
@@ -60,16 +62,18 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
       endNodeId,
     };
 
-    const { error, steps } = currentAlgorithm.execute(input);
-    if (error) {
-      toast.error(error);
+    const events = currentAlgorithm.events(input);
+    const refusal = currentAlgorithm.refusal?.(events, input);
+    if (refusal) {
+      // Node ids are marked `{n:id}`; show each node's label.
+      toast.error(refusal.replace(/\{n:(\d+)\}/g, (_, nodeId) => data.nodes.find((n) => n.id === Number(nodeId))?.label || nodeId));
       haptics.error();
       resetVisualization();
       return;
     }
 
     selectNode(null);
-    startVisualization(steps);
+    startVisualization(createRun(id, events, [...adjacencyList.keys()]));
   }, [currentAlgorithm, haptics]);
 
   return {

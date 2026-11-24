@@ -1,6 +1,6 @@
 /**
  * Oracle check for the landing pages (see the harness's TESTING.md). Until task 0.5, the pages
- * run algorithms through their own engine (`runAlgorithm`, built on `execute()`). This checks it
+ * run algorithms through their own engine (`runAlgorithm`, built on `legacyExecute()`). This checks it
  * shows the event answer that the engine's oracle checks verify, on every page graph and every
  * experiment graph (switch on and off), and that each page lights only lines and steps it has.
  * The golden files record those answers in words, so together they hold each page's claims.
@@ -27,7 +27,7 @@ function eventAnswer(algorithmId: string, graph: LabGraph) {
     if (!directed) adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
   }
   const input = { adjacencyList, nodes: graph.nodes.map((n) => ({ id: n.id })), startNodeId: graph.start, endNodeId: graph.end };
-  const events: AlgorithmEvent[] = algorithmRegistry.get(algorithmId)!.events!(input);
+  const events: AlgorithmEvent[] = algorithmRegistry.get(algorithmId)!.events(input);
   return { events, answer: events.find((e): e is AnswerEvent => e.type === "answer")! };
 }
 

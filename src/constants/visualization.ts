@@ -14,12 +14,6 @@ export enum VisualizationMode {
   MANUAL = 'manual',
 }
 
-export enum StepType {
-  VISIT = 'visit',
-  RESULT = 'result',
-  CYCLE = 'cycle',
-}
-
 // Speed levels for visualization (multiplier display with actual ms delay)
 export const SPEED_LEVELS = [
   { multiplier: '0.5x', ms: 800 },

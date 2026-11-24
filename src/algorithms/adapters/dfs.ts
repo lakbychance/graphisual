@@ -6,8 +6,8 @@
  */
 
 import { DfsIcon } from "../icons";
-import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType } from "../types";
-import { legacySearchSteps, searchEvents } from "./search";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
+import { searchEvents } from "./search";
 
 const PSEUDOCODE = [
   "visited ← { }",
@@ -21,7 +21,7 @@ const PSEUDOCODE = [
   "            stack.push(v)",
 ];
 
-const LINES = { start: 1, loop: 2, take: 3, check: 7, add: 8 };
+const LINES = { start: 1, loop: 2, take: 3, check: 7, add: 8, finish: 6 };
 
 /** Everything DFS does on this input, as events. */
 const dfsEvents = (input: AlgorithmInput) => searchEvents(input, "stack", LINES);
@@ -38,18 +38,6 @@ const dfsAdapter: AlgorithmAdapter = {
 
   pseudocode: PSEUDOCODE,
   events: dfsEvents,
-
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySearchSteps(dfsEvents(input), "stack"),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => ({
-    steps: [...dfsAdapter.generator(input)],
-  }),
 };
 
 export default dfsAdapter;

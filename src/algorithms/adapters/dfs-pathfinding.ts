@@ -6,8 +6,9 @@
  */
 
 import { DfsPathfindingIcon } from "../icons";
-import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType, StepType } from "../types";
-import { legacySearchSteps, searchEvents } from "./search";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
+import { searchEvents } from "./search";
+import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
   "search(u):",
@@ -22,7 +23,7 @@ const PSEUDOCODE = [
   "search(source)",
 ];
 
-const LINES = { start: 9, loop: 8, take: 1, stop: 2, check: 4, add: 5, walk: 6 };
+const LINES = { start: 9, loop: 8, take: 1, stop: 2, check: 4, add: 5, walk: 6, finish: 8 };
 
 /** Everything DFS pathfinding does on this input, as events. Empty when there is no destination. */
 const dfsPathfindingEvents = (input: AlgorithmInput) =>
@@ -41,29 +42,7 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: dfsPathfindingEvents,
 
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySearchSteps(dfsPathfindingEvents(input), "stack"),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    // Validate end node
-    if (input.endNodeId === undefined) {
-      return { steps: [], error: "End node is required for pathfinding." };
-    }
-
-    const steps = [...dfsPathfindingAdapter.generator(input)];
-    const foundPath = steps.some((s) => s.type === StepType.RESULT);
-
-    if (!foundPath && input.startNodeId !== input.endNodeId) {
-      return { steps, error: "No path found between the selected nodes." };
-    }
-
-    return { steps };
-  },
+  refusal: noRoute("No path found between the selected nodes."),
 };
 
 export default dfsPathfindingAdapter;

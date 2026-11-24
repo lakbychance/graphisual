@@ -6,12 +6,8 @@
  */
 
 import type React from "react";
-import { StepType } from "../constants/visualization";
 import { type EdgeType } from "../constants/graph";
 import type { AlgorithmEvent } from "./engine/events";
-
-// Re-export StepType for convenience
-export { StepType };
 
 /**
  * Categories of graph algorithms.
@@ -63,17 +59,6 @@ export interface EdgeInfo {
 }
 
 /**
- * Edge reference in algorithm results.
- * Uses simple from/to pairs that the core maps back to full edges.
- */
-export interface EdgeRef {
-  /** Source node ID (-1 indicates start/root with no parent) */
-  from: number;
-  /** Target node ID */
-  to: number;
-}
-
-/**
  * State of a data structure for visualization in the trace panel.
  * Used to show queue/stack/etc. contents during step-through mode.
  */
@@ -89,7 +74,7 @@ export interface DataStructureState {
 }
 
 /**
- * Trace information for a single algorithm step.
+ * What the trace panel shows for one step.
  * Provides human-readable context about what the algorithm is doing.
  */
 export interface StepTrace {
@@ -97,36 +82,6 @@ export interface StepTrace {
   message: string;
   /** Optional data structure state to visualize */
   dataStructure?: DataStructureState;
-}
-
-/**
- * A single step yielded by an algorithm generator.
- * Used for step-through visualization mode.
- */
-export interface AlgorithmStep {
-  /** Step type: StepType.VISIT for traversal, StepType.RESULT for final path edges */
-  type: StepType;
-  /** The edge being visualized in this step */
-  edge: EdgeRef;
-  /** Optional trace for this step (shown in trace panel) */
-  trace?: StepTrace;
-}
-
-/**
- * Generator type for step-through algorithm execution.
- * Yields one step at a time for manual stepping.
- */
-export type AlgorithmGenerator = Generator<AlgorithmStep, void, undefined>;
-
-/**
- * Result returned by algorithm execution.
- * The visualization plays `steps` and refuses to start on `error`.
- */
-export interface AlgorithmResult {
-  /** Every step the run produced, in order (empty if the run could not start) */
-  steps: AlgorithmStep[];
-  /** Error message if algorithm cannot run on this graph */
-  error?: string;
 }
 
 /**
@@ -151,8 +106,8 @@ export interface AlgorithmMetadata {
 /**
  * The Algorithm Adapter Interface.
  *
- * Contributors implement this interface to add new algorithms.
- * Each adapter is a self-contained module with metadata and execution logic.
+ * Contributors implement this interface to add new algorithms. An adapter reports what the
+ * algorithm does as events (see `engine/events.ts`); the app plays them one Overview step at a time.
  *
  * @example
  * ```typescript
@@ -165,11 +120,11 @@ export interface AlgorithmMetadata {
  *     icon: MyIcon,
  *     inputStepHints: ['Select a start node'],
  *   },
- *   generator: function* (input) {
- *     yield { type: StepType.VISIT, edge: { from: -1, to: input.startNodeId } };
- *     // ... yield one step per highlighted edge ...
- *   },
- *   execute: (input) => ({ steps: [...myAdapter.generator(input)] }),
+ *   pseudocode: ['visit(source)'],
+ *   events: (input) => [
+ *     { type: 'settle', node: input.startNodeId, line: 0, group: 1 },
+ *     // ... one event per thing the algorithm does, then its answer ...
+ *   ],
  * };
  *
  * export default myAdapter;
@@ -178,12 +133,13 @@ export interface AlgorithmMetadata {
 export interface AlgorithmAdapter {
   /** Metadata for registration and UI */
   metadata: AlgorithmMetadata;
-  /** Yields the visualization steps in order. `execute` is built on top of this. */
-  generator: (input: AlgorithmInput) => AlgorithmGenerator;
-  /** Runs the algorithm once and returns its steps plus validation (`error`). */
-  execute: (input: AlgorithmInput) => AlgorithmResult;
-  /** Pseudocode lines that events point at (adapters ported to the event engine). */
-  pseudocode?: string[];
-  /** Reports what the algorithm did, event by event (adapters ported to the event engine). */
-  events?: (input: AlgorithmInput) => AlgorithmEvent[];
+  /** Pseudocode lines that events point at. */
+  pseudocode: string[];
+  /** Reports what the algorithm did, event by event. */
+  events: (input: AlgorithmInput) => AlgorithmEvent[];
+  /**
+   * Why the app will not play this run, if it will not: the message it shows instead (node ids
+   * marked with `nid`). Called with the run's events.
+   */
+  refusal?: (events: AlgorithmEvent[], input: AlgorithmInput) => string | undefined;
 }

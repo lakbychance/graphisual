@@ -1,13 +1,14 @@
 /**
  * Live engine for the algorithm landing pages.
  *
- * Runs the app's real algorithm adapters on a small graph and turns their step
- * stream into frames a page can scrub through: which nodes are visited, which
- * edges were walked, the best-known distances, the queue and the trace message.
+ * Runs the app's real algorithm adapters on a small graph and turns their old coarse step
+ * stream (`legacySteps.ts`, until task 0.5) into frames a page can scrub through: which nodes
+ * are visited, which edges were walked, the best-known distances, the queue and the trace message.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { algorithmRegistry, StepType, type EdgeInfo } from "@/algorithms";
+import { algorithmRegistry, type EdgeInfo } from "@/algorithms";
 import { EDGE_TYPE } from "@/constants/graph";
+import { legacyExecute, StepType } from "./legacySteps";
 
 export interface LabNode { id: number; label: string; x: number; y: number }
 export interface LabEdge { from: number; to: number; weight: number; directed?: boolean }
@@ -78,7 +79,7 @@ export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {
   };
   if (!adapter) return { frames: [ready], work: 0, cost: null, cycle: false, pathLabels: [], error: `Unknown algorithm "${algorithmId}"` };
 
-  const result = adapter.execute({
+  const result = legacyExecute(algorithmId, {
     adjacencyList: adjacency(graph),
     nodes: graph.nodes.map((n) => ({ id: n.id })),
     startNodeId: graph.start,

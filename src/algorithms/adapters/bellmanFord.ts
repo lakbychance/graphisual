@@ -9,14 +9,8 @@
 import { BellmanFordIcon } from "../icons";
 import { nid } from "../traceHelpers";
 import type { AlgorithmEvent } from "../engine";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
+import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
   "dist[source] ← 0",
@@ -110,54 +104,6 @@ function bellmanFordEvents(input: AlgorithmInput): AlgorithmEvent[] {
   return events;
 }
 
-/**
- * Today's app steps, derived from the events: the start, one VISIT step per relaxation, then
- * RESULT steps along the route. Replaced by frames in task 0.4.
- */
-function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): AlgorithmGenerator {
-  const { startNodeId: start, endNodeId: end } = input;
-  const reached = new Set<number>();
-  for (const event of events) {
-    if (event.type === "start") {
-      reached.add(event.node);
-      yield start === end
-        ? {
-          type: StepType.VISIT,
-          edge: { from: -1, to: start },
-          trace: {
-            message: `**Start and destination are the same** (node ${nid(start)})`,
-            dataStructure: { type: "distances", items: [{ id: start, value: 0 }] },
-          },
-        }
-        : {
-          type: StepType.VISIT,
-          edge: { from: -1, to: start },
-          trace: {
-            message: `**Starting at node ${nid(start)}** (distance: 0)\n**1** node reachable`,
-            dataStructure: { type: "distances", items: [], processing: { id: start, value: 0 } },
-          },
-        };
-    } else if (event.type === "relax") {
-      const { from, to, old, next } = event;
-      reached.add(to);
-      const found = to === end ? "**Found destination!** " : "";
-      yield {
-        type: StepType.VISIT,
-        edge: { from, to },
-        trace: {
-          message: `Iteration ${event.group}: ${found}Relaxed **${nid(from)}→${nid(to)}**, d: **${old === Infinity ? "∞" : old}→${next}**\n**${reached.size}** nodes reachable`,
-          dataStructure: { type: "distances", items: [], processing: { id: to, value: next } },
-        },
-      };
-    } else if (event.type === "answer" && event.kind === "route" && event.path) {
-      yield { type: StepType.RESULT, edge: { from: -1, to: start } };
-      for (let i = 1; i < event.path.length; i++) {
-        yield { type: StepType.RESULT, edge: { from: event.path[i - 1], to: event.path[i] } };
-      }
-    }
-  }
-}
-
 const bellmanFordAdapter: AlgorithmAdapter = {
   metadata: {
     id: "bellman-ford",
@@ -171,29 +117,9 @@ const bellmanFordAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: bellmanFordEvents,
 
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySteps(bellmanFordEvents(input), input),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    // Validate end node
-    if (input.endNodeId === undefined) {
-      return { steps: [], error: "End node is required for pathfinding." };
-    }
-
-    const steps = [...bellmanFordAdapter.generator(input)];
-    const foundPath = steps.some((s) => s.type === StepType.RESULT);
-
-    if (!foundPath && input.startNodeId !== input.endNodeId) {
-      return { steps, error: "Path is not possible or negative cycle detected." };
-    }
-
-    return { steps };
-  },
+  refusal: noRoute((answer) => answer.negativeCycle
+    ? "A negative cycle can lower the cost forever, so there's no shortest route"
+    : `No route from ${nid(answer.start)} to ${nid(answer.target)}`),
 };
 
 export default bellmanFordAdapter;

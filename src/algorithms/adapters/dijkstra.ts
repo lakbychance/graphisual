@@ -6,16 +6,9 @@
  */
 
 import { DijkstraIcon } from "../icons";
-import { nid } from "../traceHelpers";
-import { frameAt, stepEnds, type AlgorithmEvent, type SettleEvent } from "../engine";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
+import type { AlgorithmEvent } from "../engine";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
+import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
   "dist[source] ← 0",
@@ -101,90 +94,6 @@ function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
   }
 }
 
-/**
- * Today's app steps, derived from the events: one VISIT step per settled node (with the queue
- * after its edges are checked), then RESULT steps along the route. Replaced by frames in task 0.4.
- */
-function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId: start } = input;
-  const order = nodeOrder(input);
-
-  // Unsettled nodes with a known distance, closest first (scan order breaks ties).
-  const queueOf = (settled: readonly number[], dist: ReadonlyMap<number, number>) =>
-    order
-      .filter((id) => !settled.includes(id) && (dist.get(id) ?? Infinity) !== Infinity)
-      .map((id) => ({ id, value: dist.get(id) as number }))
-      .sort((a, b) => a.value - b.value);
-
-  let from = 0;
-  for (const end of stepEnds(events, "overview")) {
-    const group = events.slice(from, end);
-    from = end;
-    const [first] = group;
-
-    if (first.type === "answer" && first.kind === "route") {
-      if (!first.path) return;
-      yield { type: StepType.RESULT, edge: { from: -1, to: start } };
-      for (let i = 1; i < first.path.length; i++) {
-        yield { type: StepType.RESULT, edge: { from: first.path[i - 1], to: first.path[i] } };
-      }
-      return;
-    }
-    if (first.type !== "settle") continue;
-
-    const settle: SettleEvent = first;
-    const node = settle.node;
-    const value = settle.value as number;
-    const frame = frameAt(events, end);
-
-    if (settle.target && settle.via === undefined) {
-      yield {
-        type: StepType.VISIT,
-        edge: { from: -1, to: node },
-        trace: {
-          message: `**Start and destination are the same** (node ${nid(node)})`,
-          dataStructure: { type: "priority-queue", items: [], processing: { id: node, value: 0 } },
-        },
-      };
-      continue;
-    }
-
-    if (settle.target) {
-      // The app has always checked the destination's edges before stopping, so its last queue shows them.
-      const dist = new Map(frame.dist);
-      for (const edge of adjacencyList.get(node) ?? []) {
-        if (frame.settled.includes(edge.to) || !order.includes(edge.to)) continue;
-        if (value + edge.weight < (dist.get(edge.to) ?? Infinity)) dist.set(edge.to, value + edge.weight);
-      }
-      yield {
-        type: StepType.VISIT,
-        edge: { from: settle.via ?? -1, to: node },
-        trace: {
-          message: `**Found destination node ${nid(node)}!**`,
-          dataStructure: { type: "priority-queue", items: queueOf(frame.settled, dist), processing: { id: node, value } },
-        },
-      };
-      continue;
-    }
-
-    const updated = group.flatMap((e) => (e.type === "relax" ? [e.to] : []));
-    const lead = settle.via === undefined ? `**Starting at node ${nid(node)}**` : `**Visiting node ${nid(node)}**`;
-    yield {
-      type: StepType.VISIT,
-      edge: { from: settle.via ?? -1, to: node },
-      trace: {
-        message: updated.length > 0 ? `${lead}, updated **${updated.map(nid).join(", ")}**` : lead,
-        dataStructure: {
-          type: "priority-queue",
-          items: queueOf(frame.settled, frame.dist),
-          processing: { id: node, value },
-          justAdded: updated.length > 0 ? updated : undefined,
-        },
-      },
-    };
-  }
-}
-
 const dijkstraAdapter: AlgorithmAdapter = {
   metadata: {
     id: "dijkstra",
@@ -198,29 +107,7 @@ const dijkstraAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: dijkstraEvents,
 
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySteps(dijkstraEvents(input), input),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    // Validate end node
-    if (input.endNodeId === undefined) {
-      return { steps: [], error: "End node is required for pathfinding." };
-    }
-
-    const steps = [...dijkstraAdapter.generator(input)];
-    const foundPath = steps.some((s) => s.type === StepType.RESULT);
-
-    if (!foundPath && input.startNodeId !== input.endNodeId) {
-      return { steps, error: "Path is not possible for the given vertices." };
-    }
-
-    return { steps };
-  },
+  refusal: noRoute("Path is not possible for the given vertices."),
 };
 
 export default dijkstraAdapter;

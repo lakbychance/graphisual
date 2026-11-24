@@ -74,28 +74,28 @@ export const bfsDepthNeverDecreases: Rule = (events) => {
 
 /**
  * DFS discovery and finish times nest (the parenthesis theorem): a node is discovered from the
- * node on the current branch it hangs off, and finishes only after everything discovered below it.
- * Where a search reports no finish events, a node finishes when the search moves on outside its subtree.
+ * node discovered most recently among those not yet finished, and finishes (returning to the node
+ * it was discovered from) only after everything discovered below it has finished. Unless the search
+ * stops early, at its target or at a cycle, every node it discovers finishes.
  */
 export const dfsTimesNest: Rule = (events) => {
   const branch: number[] = [];
   const discovered = new Set<number>();
   for (const e of events) {
+    const top = branch[branch.length - 1];
     if (e.type === "settle") {
       if (discovered.has(e.node)) return `node ${e.node} is discovered twice`;
       discovered.add(e.node);
-      if (e.via === undefined) {
-        if (branch.length > 0) return `node ${e.node} starts a new search while ${branch[branch.length - 1]} is unfinished`;
-      } else {
-        const at = branch.lastIndexOf(e.via);
-        if (at < 0) return `node ${e.node} is discovered from ${e.via}, which is not on the current branch`;
-        branch.length = at + 1;
-      }
+      if (e.via === undefined && top !== undefined) return `node ${e.node} starts a new search while ${top} is unfinished`;
+      if (e.via !== undefined && e.via !== top) return `node ${e.node} is discovered from ${e.via}, but the deepest unfinished node is ${top}`;
       branch.push(e.node);
     } else if (e.type === "finish") {
-      const top = branch[branch.length - 1];
       if (top !== e.node) return `node ${e.node} finishes while ${top}, discovered after it, is unfinished`;
       branch.pop();
+      if (e.parent !== branch[branch.length - 1]) return `node ${e.node} returns to ${e.parent}, not to ${branch[branch.length - 1]}`;
+    } else if (e.type === "answer") {
+      const early = (e.kind === "route" && e.path !== null) || (e.kind === "cycle" && e.cycle !== null);
+      if (!early && top !== undefined) return `the search ends with ${top} unfinished`;
     }
   }
   return null;

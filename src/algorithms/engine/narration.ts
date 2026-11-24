@@ -50,6 +50,10 @@ const startWithDistance = (node: number, value: number | undefined) =>
 
 const sameStartAndEnd = (node: number) => `${nid(node)} is both the start and the destination, so the search stops right away`;
 
+/** A depth-first search is done with a node and goes back up the branch. */
+const finishSentence = ({ node, parent }: FinishEvent) =>
+  `${nid(node)} has no edges left to follow, so it is done${parent === undefined ? "" : `; go back to ${nid(parent)}`}`;
+
 /** A route answer, or why there is none (`ended` says what ran out). */
 function routeSentence(event: RouteAnswer, ended: string): string {
   const { start, target, path, cost } = event;
@@ -167,6 +171,8 @@ interface Frontier {
   joins: string;
   /** Several newly found nodes, in the order they were added. */
   joined: (nodes: number[]) => string;
+  /** What happens to a node found again while it waits (depth first only). */
+  moves?: string;
   /** Pathfinding: name each new node's parent. */
   parents: boolean;
 }
@@ -192,6 +198,7 @@ const stack = (parents: boolean): Frontier => ({
     nodes.length === 0 ? "nothing new goes on the stack"
     : nodes.length === 1 ? `${nid(nodes[0])} goes on the stack`
     : `${names(nodes)} go on the stack, with ${nid(nodes[nodes.length - 1])} on top`,
+  moves: "move it to the top of the stack",
   parents,
 });
 
@@ -201,9 +208,10 @@ function frontierVoice(frontier: Frontier): Voice {
     if (target) return `${nid(node)} is ${frontier.front} and it is the destination, so the search stops`;
     return `${nid(node)} is ${frontier.front}, so visit it`;
   };
-  const foundSentence = ({ node, from }: EnqueueEvent) => {
+  const foundSentence = ({ node, from, moved }: EnqueueEvent) => {
     if (from === undefined) return `Start at ${nid(node)}: ${frontier.begins}, and every other node is unvisited for now`;
     const parent = frontier.parents ? ` with ${nid(from)} as its parent` : "";
+    if (moved) return `${arrow(from, node)}: ${nid(node)} is ${frontier.inside} but not visited yet, so ${frontier.moves}${parent}`;
     return `${arrow(from, node)}: ${nid(node)} is new, so ${frontier.joins}${parent}`;
   };
   const voice: Voice = {
@@ -215,6 +223,7 @@ function frontierVoice(frontier: Frontier): Voice {
           return event.reason === "queued"
             ? `${arrow(event.from, event.to)}: ${nid(event.to)} is already ${frontier.inside}, so skip it`
             : `${arrow(event.from, event.to)}: ${nid(event.to)} is already visited, so skip it`;
+        case "finish": return finishSentence(event);
         case "answer": {
           const ended = `The ${frontier.name} is empty`;
           if (event.kind === "route") return routeSentence(event, ended);
@@ -229,7 +238,9 @@ function frontierVoice(frontier: Frontier): Voice {
       const [first] = events;
       if (first.type !== "settle" || first.target) return events.map((e) => voice.event(e)).join("; ");
       const added = events.flatMap((e) => (e.type === "enqueue" ? [e.node] : []));
-      return `${visitSentence(first)}; ${frontier.joined(added)}`;
+      const moved = events.flatMap((e) => (e.type === "enqueue" && e.moved ? [e.node] : []));
+      const waited = moved.length === 0 ? "" : `; ${names(moved)} ${moved.length === 1 ? "was" : "were"} already waiting lower down`;
+      return `${visitSentence(first)}; ${frontier.joined(added)}${waited}`;
     },
   };
   return voice;
@@ -242,9 +253,6 @@ function classifySentence({ from, to, kind }: ClassifyEvent): string {
   if (kind === "back") return `${arrow(from, to)}: ${nid(to)} is still in progress, so this edge closes a cycle`;
   return `${arrow(from, to)}: ${nid(to)} is already done, so skip it`;
 }
-
-const finishSentence = ({ node, parent }: FinishEvent) =>
-  `${nid(node)} has no edges left to follow, so it is done${parent === undefined ? "" : `; go back to ${nid(parent)}`}`;
 
 /** An edge check, said briefly for the Overview (the edge it came in on goes unsaid). */
 function briefCheck(event: AlgorithmEvent): string | null {

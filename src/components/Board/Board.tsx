@@ -5,12 +5,13 @@ import { algorithmRegistry } from "../../algorithms";
 import { Button, Toolbar } from "@/components/ui-sdk";
 import { IconAction } from "../ui/icon-action";
 import { Undo2, Redo2 } from "lucide-react";
-import { useGraphStore, selectStepIndex, selectStepHistory, selectIsPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
+import { useGraphStore, selectStepIndex, selectStepRun, selectIsPlaying, selectCanUndo, selectCanRedo, selectIsInStepMode, selectCanStepForward, selectCanStepBackward } from "../../store/graphStore";
 import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { useAutoPlay } from "../../hooks/useAutoPlay";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
 import { VisualizationState } from "../../constants/visualization";
+import { traceAt } from "../../utils/visualization/runView";
 
 import { MainToolbar } from "./MainToolbar";
 import { MobileControls } from "./MobileControls";
@@ -30,7 +31,7 @@ export const Board = () => {
   const visualizationInput = useGraphStore((state) => state.visualization.input);
   const hasNodes = useGraphStore((state) => state.data.nodes.length > 0);
   const stepIndex = useGraphStore(selectStepIndex);
-  const stepHistory = useGraphStore(selectStepHistory);
+  const stepRun = useGraphStore(selectStepRun);
   const isPlaying = useGraphStore(selectIsPlaying);
   const canUndo = useGraphStore(selectCanUndo);
   const canRedo = useGraphStore(selectCanRedo);
@@ -41,6 +42,7 @@ export const Board = () => {
   const [tracePanelVisible, setTracePanelVisible] = useState(true);
 
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
+  const stepTrace = traceAt(stepRun, stepIndex);
 
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
@@ -123,7 +125,7 @@ export const Board = () => {
             >
               <StepControls
                 stepIndex={stepIndex}
-                totalSteps={stepHistory.length}
+                totalSteps={stepRun.ends.length}
                 isPlaying={isPlaying}
                 canStepBackward={canStepBackward}
                 canStepForward={canStepForward}
@@ -138,11 +140,11 @@ export const Board = () => {
           )}
         </AnimatePresence>
 
-        {/* Trace Panel - Desktop only, bottom center, hidden during RESULT steps */}
+        {/* Trace Panel - Desktop only, bottom center */}
         <AnimatePresence>
-          {isInStepMode && tracePanelVisible && stepIndex >= 0 && stepHistory[stepIndex]?.trace && (
+          {isInStepMode && tracePanelVisible && stepTrace && (
             <TracePanel
-              trace={stepHistory[stepIndex].trace}
+              trace={stepTrace}
               onCollapse={() => setTracePanelVisible(false)}
             />
           )}

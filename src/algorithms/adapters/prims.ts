@@ -7,16 +7,8 @@
  */
 
 import { PrimsIcon } from "../icons";
-import { nid } from "../traceHelpers";
 import type { AlgorithmEvent, WeightedEdge } from "../engine";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
 const PSEUDOCODE = [
@@ -97,59 +89,6 @@ function primsEvents(input: AlgorithmInput): AlgorithmEvent[] {
   return events;
 }
 
-/**
- * Today's app steps, derived from the events: one VISIT step per node added to the tree, with
- * the queue after its edges are checked. Replaced by frames in task 0.4.
- */
-function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): AlgorithmGenerator {
-  // The order the app scans keys in: the graph's nodes, then any node first given a key later.
-  const order = [...input.adjacencyList.keys()];
-  if (!order.includes(input.startNodeId)) order.push(input.startNodeId);
-  const key = new Map<number, number>();
-  const tree = new Set<number>();
-  let total = 0;
-
-  for (let i = 0; i < events.length; i++) {
-    const settle = events[i];
-    if (settle.type !== "settle") continue;
-    const node = settle.node;
-    const weight = settle.via === undefined ? 0 : (settle.value as number);
-    tree.add(node);
-    total += weight;
-    const updated: number[] = [];
-    for (let j = i + 1; j < events.length && events[j].group === settle.group; j++) {
-      const e = events[j];
-      if (e.type !== "relax") continue;
-      if (!order.includes(e.to)) order.push(e.to);
-      key.set(e.to, e.next);
-      updated.push(e.to);
-    }
-
-    let message = settle.via === undefined
-      ? `**Starting at node ${nid(node)}**`
-      : `**Adding edge ${nid(settle.via)}→${nid(node)}** (weight: ${weight})`;
-    if (updated.length > 0) message += `, updated **${updated.map(nid).join(", ")}**`;
-    message += `\nMST: **${tree.size}** nodes, total weight: **${total}**`;
-
-    yield {
-      type: StepType.VISIT,
-      edge: { from: settle.via ?? -1, to: node },
-      trace: {
-        message,
-        dataStructure: {
-          type: "priority-queue",
-          items: order
-            .filter((id) => !tree.has(id) && key.has(id))
-            .map((id) => ({ id, value: key.get(id) as number }))
-            .sort((a, b) => a.value - b.value),
-          processing: { id: node, value: weight },
-          justAdded: updated.length > 0 ? updated : undefined,
-        },
-      },
-    };
-  }
-}
-
 const primsAdapter: AlgorithmAdapter = {
   metadata: {
     id: "prims",
@@ -163,29 +102,9 @@ const primsAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: primsEvents,
 
-  /**
-   * Generator for step-through mode.
-   */
-  generator: (input) => legacySteps(primsEvents(input), input),
-
-  /**
-   * Synchronous execution using generator internally.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => {
-    if (hasDirectedEdge(input)) {
-      return { steps: [], error: "MST requires an undirected graph. Found directed edges." };
-    }
-
-    const steps = [...primsAdapter.generator(input)];
-    const visitedCount = steps.filter((s) => s.type === StepType.VISIT).length;
-
-    // Check if all nodes are included (graph is connected)
-    if (visitedCount !== input.nodes.length) {
-      return { steps, error: "Graph is not connected. MST requires a connected graph." };
-    }
-
-    return { steps };
-  },
+  /** A graph in pieces still runs: the tree spans the start's piece and the answer names the rest. */
+  refusal: (_events, input) =>
+    hasDirectedEdge(input) ? "MST requires an undirected graph. Found directed edges." : undefined,
 };
 
 export default primsAdapter;

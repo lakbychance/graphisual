@@ -6,8 +6,8 @@
  */
 
 import { BfsIcon } from "../icons";
-import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType } from "../types";
-import { legacySearchSteps, searchEvents } from "./search";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
+import { searchEvents } from "./search";
 
 const PSEUDOCODE = [
   "visited ← { source }",
@@ -37,20 +37,6 @@ const bfsAdapter: AlgorithmAdapter = {
 
   pseudocode: PSEUDOCODE,
   events: bfsEvents,
-
-  /**
-   * Generator for step-through mode.
-   * Yields one step at a time for manual stepping.
-   */
-  generator: (input) => legacySearchSteps(bfsEvents(input), "queue"),
-
-  /**
-   * Synchronous execution that returns all results at once.
-   * Uses the generator internally to ensure consistency.
-   */
-  execute: (input: AlgorithmInput): AlgorithmResult => ({
-    steps: [...bfsAdapter.generator(input)],
-  }),
 };
 
 export default bfsAdapter;

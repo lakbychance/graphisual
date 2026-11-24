@@ -111,7 +111,7 @@ export function useGraphActions() {
     const s = useGraphStore.getState();
     if (!selectCanStepForward(s)) return;
     s.stopAutoPlay();
-    s.jumpToStep(s.visualization.step.history.length - 1);
+    s.jumpToStep(s.visualization.step.run.ends.length - 1);
   }, []);
 
   const togglePlay = useCallback(() => {

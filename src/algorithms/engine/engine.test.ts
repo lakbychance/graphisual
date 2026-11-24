@@ -1,7 +1,7 @@
 /**
  * The event engine's checks (see the harness's TESTING.md): oracle, rule and scrub checks on
  * the seeded random suite, and the golden narration file per algorithm. The golden files also
- * record the message the app shows when a run has no answer, and the runs the landing pages'
+ * record the message the app shows when it will not play a run, and the runs the landing pages'
  * experiments make claims about (built from the pages' own graphs).
  */
 import { describe, it, expect } from "vitest";
@@ -13,13 +13,13 @@ import bfsPathfindingAdapter from "../adapters/bfs-pathfinding";
 import dfsPathfindingAdapter from "../adapters/dfs-pathfinding";
 import cycleDetectionAdapter from "../adapters/cycleDetection";
 import primsAdapter from "../adapters/prims";
-import { StepType, type AlgorithmAdapter, type AlgorithmInput, type EdgeInfo } from "../types";
+import type { AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../types";
 import type { LabGraph } from "@/landing/engine";
 import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
 import type { LiveConfig } from "@/landing/live/types";
 import {
-  applyEvent, emptyFrame, frameAt, narrate, type AlgorithmEvent, type AnswerEvent, type Frame,
+  applyEvent, emptyFrame, frameAt, narrate, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame,
 } from ".";
 import { asUndirected, largeGraph, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
 import {
@@ -48,7 +48,7 @@ const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: R
   { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 
-const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events!(input);
+const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);
 
 function answerOf<K extends AnswerEvent["kind"]>(events: AlgorithmEvent[], kind: K) {
   return events.find((e): e is Extract<AnswerEvent, { kind: K }> => e.type === "answer" && e.kind === kind);
@@ -183,7 +183,7 @@ describe("rule checks", () => {
     for (const [name, rule] of Object.entries(rules)) {
       it(`${adapter.metadata.name}: ${name}`, () => {
         for (const { seed, input } of graphs) {
-          const violation = rule(eventsOf(adapter, input), { pseudocode: adapter.pseudocode!, input });
+          const violation = rule(eventsOf(adapter, input), { pseudocode: adapter.pseudocode, input });
           expect(violation, `seed ${seed}`).toBeNull();
         }
       });
@@ -208,42 +208,23 @@ describe("scrub check", () => {
   });
 });
 
-/* ------------------------------------------- the app's answer (temporary, task 0.4) */
+/* --------------------------------------------------------- the app's answer */
 
 /**
- * Until task 0.4, the app and the landing pages show the answer from `execute()`, whose steps each
- * adapter's `legacySteps` derives from the events. This oracle check ties those steps to the event
- * answer the checks above verify. TEMPORARY: delete it with `legacySteps` in task 0.4.
+ * The app plays a run one Overview step at a time and shows the answer held by the last step's
+ * frame, unless the adapter refuses the run. This ties both to the event answer the checks above verify.
  */
-describe("oracle check: the answer the app shows (temporary, until task 0.4)", () => {
-  const edgeKeys = (edges: Array<{ from: number; to: number }>) => edges.map(({ from, to }) => `${from}→${to}`).sort();
-
+describe("oracle check: the answer the app shows", () => {
   for (const { adapter, graphs } of ported) {
-    it(`${adapter.metadata.name}: execute() draws the event answer, and reports an error exactly when there is none`, () => {
+    it(`${adapter.metadata.name}: the last step's frame holds the event answer, and the app refuses exactly when there is none`, () => {
       for (const { seed, input } of graphs) {
         const events = eventsOf(adapter, input);
         const answer = events.find((e): e is AnswerEvent => e.type === "answer")!;
-        const { steps, error } = adapter.execute(input);
-        const drawn = (type: StepType) => steps.filter((s) => s.type === type).map((s) => s.edge);
-        let missing: boolean;
-        if (answer.kind === "route") {
-          const path = answer.path ?? [];
-          const route = path.length === 0 ? [] : [{ from: -1, to: input.startNodeId }, ...path.slice(1).map((to, i) => ({ from: path[i], to }))];
-          expect(drawn(StepType.RESULT), `seed ${seed}: route`).toEqual(route);
-          missing = answer.path === null;
-        } else if (answer.kind === "cycle") {
-          const cycle = answer.cycle ?? [];
-          expect(edgeKeys(drawn(StepType.CYCLE)), `seed ${seed}: cycle`).toEqual(edgeKeys(cycle.map((from, i) => ({ from, to: cycle[(i + 1) % cycle.length] }))));
-          missing = answer.cycle === null;
-        } else if (answer.kind === "tree") {
-          expect(edgeKeys(drawn(StepType.VISIT).filter((e) => e.from !== -1)), `seed ${seed}: tree`).toEqual(edgeKeys(answer.edges));
-          missing = answer.unreached.length > 0;
-        } else {
-          const visits = events.flatMap((e) => (e.type === "settle" ? [{ from: e.via ?? -1, to: e.node }] : []));
-          expect(drawn(StepType.VISIT), `seed ${seed}: visits`).toEqual(visits);
-          missing = false;
-        }
-        expect(error !== undefined, `seed ${seed}: error ${error}`).toBe(missing);
+        const ends = stepEnds(events, "overview");
+        expect(frameAt(events, ends[ends.length - 1]).answer, `seed ${seed}: answer on the last step`).toBe(answer);
+        const missing = (answer.kind === "route" && answer.path === null) || (answer.kind === "cycle" && answer.cycle === null);
+        const refusal = adapter.refusal?.(events, input);
+        expect(refusal !== undefined, `seed ${seed}: refusal ${refusal}`).toBe(missing);
       }
     });
   }
@@ -301,8 +282,8 @@ function transcript(adapter: AlgorithmAdapter, title: string, { input, edgeList 
     lines.push("", level === "overview" ? "### Overview" : "### Every edge", "");
     narrate(events, level, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
   }
-  const { error } = adapter.execute(input);
-  if (error) lines.push("", `The app says: ${error}`);
+  const refusal = adapter.refusal?.(events, input);
+  if (refusal) lines.push("", `The app says: ${plain(refusal)}`);
   return lines.join("\n");
 }
 

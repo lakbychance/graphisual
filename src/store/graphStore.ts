@@ -10,9 +10,8 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, VisualizationTrace } from "../components/Graph/types";
-import type { AlgorithmStep } from "../algorithms/types";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
-import { buildTrace, emptyTrace } from "../utils/visualization/buildTrace";
+import { emptyRun, emptyTrace, highlightsAt, type Run } from "../utils/visualization/runView";
 import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
@@ -24,11 +23,11 @@ import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGr
 // Types
 // ============================================================================
 
-// The steps of the current run and how far through them we are.
-// `index` is -1 before the first step is applied. `trace` is always buildTrace(history[0..index]).
+// The current run (its events, cut into Overview steps) and how far through it we are.
+// `index` is -1 before the first step is shown. `trace` is always highlightsAt(run, index).
 interface StepState {
   index: number;
-  history: AlgorithmStep[];
+  run: Run;
   isAutoPlaying: boolean;
 }
 
@@ -108,12 +107,12 @@ interface GraphActions {
   setVisualizationMode: (mode: VisualizationMode) => void;
   /** Deselect the algorithm and forget the chosen start/end nodes. */
   resetVisualization: () => void;
-  /** Remove all highlights and step history; back to IDLE. */
+  /** Remove all highlights and the run; back to IDLE. */
   clearVisualization: () => void;
 
   // === Visualization Run ===
-  /** Begin a run: store the steps, nothing applied yet (index -1). */
-  startVisualization: (steps: AlgorithmStep[]) => void;
+  /** Begin a run: store it, no step shown yet (index -1). */
+  startVisualization: (run: Run) => void;
   /** End a run keeping its highlights on screen (auto mode completion). */
   finishVisualization: () => void;
   stepForward: () => void;
@@ -150,7 +149,7 @@ const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
 
 const NO_ALGORITHM: SelectedOption = { key: 'select', text: 'Select Algorithm' };
 
-const initialStep: StepState = { index: -1, history: [], isAutoPlaying: false };
+const initialStep: StepState = { index: -1, run: emptyRun, isAutoPlaying: false };
 
 const initialVisualization: Visualization = {
   algorithm: NO_ALGORITHM,
@@ -203,20 +202,21 @@ export const useGraphStore = create<GraphStore>()(
         debounceMs?: number
       ) => withGraphBatchedAutoHistory(get, mutation, debounceMs);
 
-      // Moves the run to `index` (clamped to -1..last) and derives the highlights for steps 0..index in one update.
+      // Moves the run to `index` (clamped to -1..last) and derives that step's highlights from its frame in one update.
       const goToStep = (target: number) => {
         const { visualization, data } = get();
         const { step } = visualization;
-        const index = Math.max(-1, Math.min(target, step.history.length - 1));
+        const last = step.run.ends.length - 1;
+        const index = Math.max(-1, Math.min(target, last));
         set({
           visualization: {
             ...visualization,
-            trace: buildTrace(step.history.slice(0, index + 1), data.edges),
+            trace: highlightsAt(step.run, index, data.edges),
             step: {
               ...step,
               index,
               // Nothing left to play once the last step is on screen
-              isAutoPlaying: index >= step.history.length - 1 ? false : step.isAutoPlaying,
+              isAutoPlaying: index >= last ? false : step.isAutoPlaying,
             },
           },
         });
@@ -824,13 +824,13 @@ export const useGraphStore = create<GraphStore>()(
         // Visualization Run
         // ========================================
 
-        startVisualization: (steps) => {
+        startVisualization: (run) => {
           set({
             visualization: {
               ...get().visualization,
               trace: emptyTrace(),
               state: VisualizationState.RUNNING,
-              step: { ...initialStep, history: steps },
+              step: { ...initialStep, run },
             },
           });
         },
@@ -849,7 +849,7 @@ export const useGraphStore = create<GraphStore>()(
 
         stepForward: () => {
           const { step } = get().visualization;
-          if (step.index >= step.history.length - 1) return;
+          if (step.index >= step.run.ends.length - 1) return;
           goToStep(step.index + 1);
         },
 
@@ -895,7 +895,7 @@ export const useGraphStore = create<GraphStore>()(
 // ============================================================================
 
 export const selectStepIndex = (state: GraphStore) => state.visualization.step.index;
-export const selectStepHistory = (state: GraphStore) => state.visualization.step.history;
+export const selectStepRun = (state: GraphStore) => state.visualization.step.run;
 
 // Auto mode plays for the whole run; manual mode plays only while the user has pressed Play.
 export const selectIsPlaying = (state: GraphStore) =>
@@ -914,7 +914,7 @@ export const selectIsInStepMode = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL &&
   state.visualization.state === VisualizationState.RUNNING;
 export const selectCanStepForward = (state: GraphStore) =>
-  selectIsInStepMode(state) && state.visualization.step.index < state.visualization.step.history.length - 1;
+  selectIsInStepMode(state) && state.visualization.step.index < state.visualization.step.run.ends.length - 1;
 export const selectCanStepBackward = (state: GraphStore) =>
   selectIsInStepMode(state) && state.visualization.step.index > 0;
 

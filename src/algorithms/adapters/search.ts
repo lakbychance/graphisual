@@ -1,17 +1,19 @@
 /**
  * The search shared by BFS, DFS and their pathfinding versions: take a node from the frontier,
- * visit it, and add each neighbour not seen before. A queue gives breadth first, a stack depth first.
+ * visit it, and add its neighbours. A queue gives breadth first, a stack depth first.
  *
- * Nodes are marked seen when they join the frontier, so each joins at most once. The stack
- * pushes a node's neighbours last-first, so the first neighbour ends up on top.
+ * Breadth first marks a node seen when it joins the queue, so each joins at most once.
+ * Depth first is the textbook search: a node is visited when it is taken off the stack, and a
+ * neighbour still waiting on the stack is pushed again by the deeper node, which moves it to the
+ * top with that node as its parent. The stack pushes a node's neighbours last-first, so the first
+ * neighbour ends up on top. A node is done (it finishes) once nothing it pushed is still waiting.
  */
-import { nid } from "../traceHelpers";
-import { frameAt, stepEnds, type AlgorithmEvent } from "../engine";
-import { AlgorithmInput, AlgorithmGenerator, StepType } from "../types";
+import type { AlgorithmEvent } from "../engine";
+import type { AlgorithmInput } from "../types";
 
 export type FrontierKind = "queue" | "stack";
 
-/** Pseudocode line of each kind of event. `stop` and `walk` only for pathfinding. */
+/** Pseudocode line of each kind of event. `stop` and `walk` only for pathfinding, `finish` only for depth first. */
 export interface SearchLines {
   start: number;
   loop: number;
@@ -20,6 +22,7 @@ export interface SearchLines {
   add: number;
   stop?: number;
   walk?: number;
+  finish?: number;
 }
 
 /**
@@ -32,6 +35,12 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
   const visited: number[] = [];
   const parent = new Map<number, number>();
   const frontier = [start];
+  // Depth first: the nodes in progress, deepest last, and how many entries each has waiting on the stack.
+  const branch: number[] = [];
+  const waiting = new Map<number, number>();
+  const count = (node: number | undefined, by: number) => {
+    if (node !== undefined) waiting.set(node, (waiting.get(node) ?? 0) + by);
+  };
   let group = 0;
   const events: AlgorithmEvent[] = [{ type: "enqueue", node: start, line: lines.start, group }];
 
@@ -49,6 +58,7 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
     }
 
     visited.push(node);
+    count(parent.get(node), -1);
     if (node === target) {
       events.push({ type: "settle", node, via: parent.get(node), target: true, line: lines.stop ?? lines.take, group });
       const path = [node];
@@ -59,74 +69,40 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
     events.push({ type: "settle", node, via: parent.get(node), line: lines.take, group });
 
     const edges = adjacencyList.get(node) ?? [];
-    for (const edge of kind === "queue" ? edges : [...edges].reverse()) {
-      const to = edge.to;
-      if (seen.has(to)) {
-        events.push({ type: "skip", from: node, to, reason: visited.includes(to) ? "visited" : "queued", line: lines.check, group });
-        continue;
-      }
-      seen.add(to);
-      parent.set(to, node);
-      frontier.push(to);
-      events.push({ type: "enqueue", node: to, from: node, line: lines.add, group });
-    }
-  }
-}
-
-/**
- * Today's app steps, derived from the events: one VISIT step per visited node (with the frontier
- * after its neighbours are added), then RESULT steps along the route. Replaced by frames in task 0.4.
- */
-export function* legacySearchSteps(events: AlgorithmEvent[], kind: FrontierKind): AlgorithmGenerator {
-  let from = 0;
-  for (const end of stepEnds(events, "overview")) {
-    const group = events.slice(from, end);
-    from = end;
-    const [first] = group;
-
-    if (first.type === "answer") {
-      if (first.kind !== "route" || !first.path) return;
-      yield { type: StepType.RESULT, edge: { from: -1, to: first.start } };
-      for (let i = 1; i < first.path.length; i++) {
-        yield { type: StepType.RESULT, edge: { from: first.path[i - 1], to: first.path[i] } };
-      }
-      return;
-    }
-    if (first.type !== "settle") continue;
-
-    const node = first.node;
-    const items = frameAt(events, end).queue.map((item) => ({ id: item.id }));
-    if (first.target) {
-      yield first.via === undefined
-        ? {
-          type: StepType.VISIT,
-          edge: { from: -1, to: node },
-          trace: {
-            message: `**Start and destination are the same** (node ${nid(node)})`,
-            dataStructure: { type: kind, items: [], processing: { id: node } },
-          },
+    if (kind === "queue") {
+      for (const { to } of edges) {
+        if (seen.has(to)) {
+          events.push({ type: "skip", from: node, to, reason: visited.includes(to) ? "visited" : "queued", line: lines.check, group });
+          continue;
         }
-        : {
-          type: StepType.VISIT,
-          edge: { from: first.via, to: node },
-          trace: { message: `**Found destination node ${nid(node)}!**`, dataStructure: { type: kind, items, processing: { id: node } } },
-        };
+        seen.add(to);
+        parent.set(to, node);
+        frontier.push(to);
+        events.push({ type: "enqueue", node: to, from: node, line: lines.add, group });
+      }
       continue;
     }
 
-    const added = group.flatMap((e) => (e.type === "enqueue" ? [e.node] : []));
-    // The stack pushes last-first; the app lists what was pushed in the neighbours' own order.
-    if (kind === "stack") added.reverse();
-    const what = kind === "queue" ? "added" : "pushed";
-    yield {
-      type: StepType.VISIT,
-      edge: { from: first.via ?? -1, to: node },
-      trace: {
-        message: added.length > 0
-          ? `**Visiting node ${nid(node)}**, ${what} **${added.map(nid).join(", ")}** to ${kind}`
-          : `**Visiting node ${nid(node)}**`,
-        dataStructure: { type: kind, items, processing: { id: node }, justAdded: added.length > 0 ? added : undefined },
-      },
-    };
+    branch.push(node);
+    for (const { to } of [...edges].reverse()) {
+      if (visited.includes(to)) {
+        events.push({ type: "skip", from: node, to, reason: "visited", line: lines.check, group });
+        continue;
+      }
+      const waitingAt = frontier.indexOf(to);
+      if (waitingAt >= 0) {
+        frontier.splice(waitingAt, 1);
+        count(parent.get(to), -1);
+      }
+      parent.set(to, node);
+      count(node, 1);
+      frontier.push(to);
+      events.push({ type: "enqueue", node: to, from: node, line: lines.add, group, ...(waitingAt >= 0 && { moved: true }) });
+    }
+    // Finish every node on the branch, deepest first, that has nothing left waiting.
+    while (branch.length > 0 && !waiting.get(branch[branch.length - 1])) {
+      const done = branch.pop() as number;
+      events.push({ type: "finish", node: done, parent: branch[branch.length - 1], line: lines.finish ?? lines.loop, group });
+    }
   }
 }

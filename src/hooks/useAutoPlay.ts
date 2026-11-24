@@ -20,7 +20,7 @@ export function useAutoPlay(): void {
       const store = useGraphStore.getState();
       const { mode, step } = store.visualization;
 
-      if (step.index < step.history.length - 1) {
+      if (step.index < step.run.ends.length - 1) {
         store.stepForward();
       } else if (mode === VisualizationMode.AUTO) {
         store.finishVisualization();

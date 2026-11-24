@@ -29,13 +29,15 @@ export interface StartEvent extends Tagged {
 
 /**
  * A node joins the frontier (queue, stack or priority queue), with its value if the algorithm keeps one.
- * `from` is the node whose edge discovered it (absent for the start).
+ * `from` is the node whose edge discovered it (absent for the start). With `moved`, the node was
+ * already waiting: it moves to the back of the frontier (the top of a stack) with `from` as its new parent.
  */
 export interface EnqueueEvent extends Tagged {
   type: "enqueue";
   node: number;
   value?: number;
   from?: number;
+  moved?: boolean;
 }
 
 /**

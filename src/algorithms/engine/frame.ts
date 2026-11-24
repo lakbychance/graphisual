@@ -62,7 +62,7 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
       if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
       break;
     case "enqueue":
-      next.queue = [...frame.queue, { id: event.node, value: event.value }];
+      next.queue = [...frame.queue.filter((item) => item.id !== event.node), { id: event.node, value: event.value }];
       if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
       if (event.from !== undefined) {
         next.prev = withEntry(frame.prev, event.node, event.from);

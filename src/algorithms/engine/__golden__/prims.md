@@ -54,8 +54,6 @@ From A. Edges: A–B 4, A–C 2, C–B 1, D–E 2, D–F 3, E–F 6
  4. B is the cheapest node in the queue, at 1, so it joins the tree through C; checking its edges lowers nothing
  5. The queue is empty, so the tree is done: A – C and C – B, total weight 3; D, E and F cannot be reached from A, so the tree leaves them out
 
-The app says: Graph is not connected. MST requires a connected graph.
-
 ## Directed edges
 
 From A. Edges: A→B 3
