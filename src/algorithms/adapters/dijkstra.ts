@@ -7,225 +7,182 @@
 
 import { DijkstraIcon } from "../icons";
 import { nid } from "../traceHelpers";
+import { frameAt, stepEnds, type AlgorithmEvent, type SettleEvent } from "../engine";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
   AlgorithmResult,
   AlgorithmType,
   AlgorithmGenerator,
-  EdgeRef,
   StepType,
 } from "../types";
 
-/**
- * Generator function for step-through Dijkstra execution.
- * Yields visit steps during exploration, then result steps for the path.
- */
-function* dijkstraGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId, endNodeId } = input;
+const PSEUDOCODE = [
+  "dist[source] ← 0",
+  "queue ← { source }",
+  "while queue is not empty:",
+  "    u ← queue.extractMin()",
+  "    if u = target: stop",
+  "    for each edge (u, v, w):",
+  "        if dist[u] + w < dist[v]:",
+  "            dist[v] ← dist[u] + w",
+  "            queue.insert(v)",
+  "walk prev[] back from target",
+];
 
-  // Validate end node
-  if (endNodeId === undefined) {
-    return;
-  }
+/** Pseudocode line of each kind of event. */
+const LINE = { start: 1, loop: 2, extract: 3, check: 6, relax: 7, walk: 9 } as const;
 
-  // Handle same start and end
-  if (startNodeId === endNodeId) {
-    yield {
-      type: StepType.VISIT,
-      edge: { from: -1, to: startNodeId },
-      trace: {
-        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
-        dataStructure: { type: "priority-queue", items: [], processing: { id: startNodeId, value: 0 } },
-      },
-    };
-    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
-    return;
-  }
+/** Nodes the run knows about, in the order it scans them for the closest one. */
+function nodeOrder({ adjacencyList, startNodeId, endNodeId }: AlgorithmInput): number[] {
+  const order = [...adjacencyList.keys()];
+  for (const id of [startNodeId, endNodeId]) if (id !== undefined && !order.includes(id)) order.push(id);
+  return order;
+}
 
-  // Initialize data structures
-  const distances = new Map<number, number>();
-  const previous = new Map<number, number>();
-  const unvisited = new Set<number>();
+/** Everything Dijkstra's does on this input, as events. Empty when there is no destination. */
+function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
+  const { adjacencyList, startNodeId: start, endNodeId: end } = input;
+  if (end === undefined) return [];
 
-  // Initialize all nodes
-  adjacencyList.forEach((_, nodeId) => {
-    distances.set(nodeId, nodeId === startNodeId ? 0 : Infinity);
-    unvisited.add(nodeId);
-  });
+  const order = nodeOrder(input);
+  const dist = new Map<number, number>(order.map((id) => [id, id === start ? 0 : Infinity]));
+  const prev = new Map<number, number>();
+  const unsettled = new Set(order);
+  let group = 0;
+  const events: AlgorithmEvent[] = [{ type: "enqueue", node: start, value: 0, line: LINE.start, group }];
 
-  // Also ensure start and end nodes are in the set
-  if (!distances.has(startNodeId)) {
-    distances.set(startNodeId, 0);
-    unvisited.add(startNodeId);
-  }
-  if (!distances.has(endNodeId)) {
-    distances.set(endNodeId, Infinity);
-    unvisited.add(endNodeId);
-  }
-
-  // Helper to get priority queue state (unvisited nodes sorted by distance)
-  const getPriorityQueueState = () => {
-    return Array.from(unvisited)
-      .map((id) => ({ id, value: distances.get(id) ?? Infinity }))
-      .filter((item) => item.value !== Infinity) // Only show reachable nodes
-      .sort((a, b) => a.value - b.value);
-  };
-
-  // Process start node: relax its edges first, then yield
-  unvisited.delete(startNodeId);
-  const startNeighbors = adjacencyList.get(startNodeId) || [];
-  const startUpdatedNodes: number[] = [];
-  for (const edge of startNeighbors) {
-    if (unvisited.has(edge.to)) {
-      const newDist = edge.weight;
-      if (newDist < (distances.get(edge.to) ?? Infinity)) {
-        distances.set(edge.to, newDist);
-        previous.set(edge.to, startNodeId);
-        startUpdatedNodes.push(edge.to);
-      }
+  for (;;) {
+    group += 1;
+    // The closest unsettled node; on a tie the first one in scan order.
+    let current: number | null = null;
+    let min = Infinity;
+    for (const id of unsettled) {
+      const d = dist.get(id) ?? Infinity;
+      if (d < min) { min = d; current = id; }
     }
-  }
+    if (current === null) {
+      events.push({ type: "answer", start, target: end, path: null, line: LINE.loop, group });
+      return events;
+    }
 
-  // Build start node message
-  let startMessage = `**Starting at node ${nid(startNodeId)}**`;
-  if (startUpdatedNodes.length > 0) {
-    startMessage += `, updated **${startUpdatedNodes.map(nid).join(", ")}**`;
-  }
-
-  // Yield start node with queue state AFTER relaxation
-  yield {
-    type: StepType.VISIT,
-    edge: { from: -1, to: startNodeId },
-    trace: {
-      message: startMessage,
-      dataStructure: {
-        type: "priority-queue",
-        items: getPriorityQueueState(),
-        processing: { id: startNodeId, value: 0 },
-        justAdded: startUpdatedNodes.length > 0 ? startUpdatedNodes : undefined,
-      },
-    },
-  };
-
-  // Check if start node is the target (shouldn't happen, handled above, but just in case)
-  if (startNodeId === endNodeId) {
-    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
-    return;
-  }
-
-  while (unvisited.size > 0) {
-    // Find the unvisited node with minimum distance
-    let currentNode: number | null = null;
-    let minDistance = Infinity;
-
-    unvisited.forEach((nodeId) => {
-      const dist = distances.get(nodeId) ?? Infinity;
-      if (dist < minDistance) {
-        minDistance = dist;
-        currentNode = nodeId;
-      }
+    const ties = [...unsettled].filter((id) => id !== current && dist.get(id) === min);
+    unsettled.delete(current);
+    events.push({
+      type: "settle", node: current, value: min, via: prev.get(current), line: LINE.extract, group,
+      ...(ties.length > 0 && { ties }),
+      ...(current === end && { target: true }),
     });
 
-    // No reachable nodes left
-    if (currentNode === null || minDistance === Infinity) {
-      return; // No path found
+    if (current === end) {
+      const path = [end];
+      for (let at = prev.get(end); at !== undefined; at = prev.get(at)) path.unshift(at);
+      events.push({ type: "answer", start, target: end, path, cost: min, line: LINE.walk, group: group + 1 });
+      return events;
     }
 
-    // Remove from unvisited
-    unvisited.delete(currentNode);
-
-    // Update neighbors first to show updated distances in trace
-    const neighbors = adjacencyList.get(currentNode) || [];
-    const updatedNodes: number[] = [];
-    for (const edge of neighbors) {
-      if (unvisited.has(edge.to)) {
-        const newDist = (distances.get(currentNode) ?? Infinity) + edge.weight;
-        if (newDist < (distances.get(edge.to) ?? Infinity)) {
-          distances.set(edge.to, newDist);
-          previous.set(edge.to, currentNode);
-          updatedNodes.push(edge.to);
-        }
+    for (const edge of adjacencyList.get(current) ?? []) {
+      const old = dist.get(edge.to);
+      if (old === undefined) continue; // an edge to a node outside the graph
+      const base = { from: current, to: edge.to, weight: edge.weight, group };
+      if (!unsettled.has(edge.to)) {
+        events.push({ type: "skip", ...base, reason: "settled", line: LINE.check });
+        continue;
       }
-    }
-
-    // Build trace message
-    let message = `**Visiting node ${nid(currentNode)}**`;
-    if (updatedNodes.length > 0) {
-      message += `, updated **${updatedNodes.map(nid).join(", ")}**`;
-    }
-
-    // Found the target
-    if (currentNode === endNodeId) {
-      const prevNode = previous.get(currentNode);
-      yield {
-        type: StepType.VISIT,
-        edge: { from: prevNode ?? -1, to: currentNode },
-        trace: {
-          message: `**Found destination node ${nid(currentNode)}!**`,
-          dataStructure: {
-            type: "priority-queue",
-            items: getPriorityQueueState(),
-            processing: { id: currentNode, value: minDistance },
-          },
-        },
-      };
-
-      const resultEdges = reconstructPath(previous, startNodeId, endNodeId);
-      for (const edge of resultEdges) {
-        yield { type: StepType.RESULT, edge };
-      }
-      return;
-    }
-
-    // Yield the edge that led to this node (for animation)
-    if (currentNode !== startNodeId) {
-      const prevNode = previous.get(currentNode);
-      if (prevNode !== undefined) {
-        yield {
-          type: StepType.VISIT,
-          edge: { from: prevNode, to: currentNode },
-          trace: {
-            message,
-            dataStructure: {
-              type: "priority-queue",
-              items: getPriorityQueueState(),
-              processing: { id: currentNode, value: minDistance },
-              justAdded: updatedNodes.length > 0 ? updatedNodes : undefined,
-            },
-          },
-        };
+      const value = min + edge.weight;
+      if (value < old) {
+        dist.set(edge.to, value);
+        prev.set(edge.to, current);
+        events.push({ type: "relax", ...base, old, next: value, queue: true, line: LINE.relax });
+      } else {
+        events.push({ type: "skip", ...base, reason: "not-shorter", value, current: old, line: LINE.check });
       }
     }
   }
-  // End node not found - no result steps
 }
 
 /**
- * Reconstruct the shortest path from start to end using the previous map.
+ * Today's app steps, derived from the events: one VISIT step per settled node (with the queue
+ * after its edges are checked), then RESULT steps along the route. Replaced by frames in task 0.4.
  */
-function reconstructPath(
-  previous: Map<number, number>,
-  startNodeId: number,
-  endNodeId: number
-): EdgeRef[] {
-  const path: EdgeRef[] = [];
-  let current: number | undefined = endNodeId;
+function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): AlgorithmGenerator {
+  const { adjacencyList, startNodeId: start } = input;
+  const order = nodeOrder(input);
 
-  // Build path backwards
-  const nodeOrder: number[] = [];
-  while (current !== undefined) {
-    nodeOrder.unshift(current);
-    current = previous.get(current);
+  // Unsettled nodes with a known distance, closest first (scan order breaks ties).
+  const queueOf = (settled: readonly number[], dist: ReadonlyMap<number, number>) =>
+    order
+      .filter((id) => !settled.includes(id) && (dist.get(id) ?? Infinity) !== Infinity)
+      .map((id) => ({ id, value: dist.get(id) as number }))
+      .sort((a, b) => a.value - b.value);
+
+  let from = 0;
+  for (const end of stepEnds(events, "overview")) {
+    const group = events.slice(from, end);
+    from = end;
+    const [first] = group;
+
+    if (first.type === "answer") {
+      if (!first.path) return;
+      yield { type: StepType.RESULT, edge: { from: -1, to: start } };
+      for (let i = 1; i < first.path.length; i++) {
+        yield { type: StepType.RESULT, edge: { from: first.path[i - 1], to: first.path[i] } };
+      }
+      return;
+    }
+    if (first.type !== "settle") continue;
+
+    const settle: SettleEvent = first;
+    const node = settle.node;
+    const value = settle.value as number;
+    const frame = frameAt(events, end);
+
+    if (settle.target && settle.via === undefined) {
+      yield {
+        type: StepType.VISIT,
+        edge: { from: -1, to: node },
+        trace: {
+          message: `**Start and destination are the same** (node ${nid(node)})`,
+          dataStructure: { type: "priority-queue", items: [], processing: { id: node, value: 0 } },
+        },
+      };
+      continue;
+    }
+
+    if (settle.target) {
+      // The app has always checked the destination's edges before stopping, so its last queue shows them.
+      const dist = new Map(frame.dist);
+      for (const edge of adjacencyList.get(node) ?? []) {
+        if (frame.settled.includes(edge.to) || !order.includes(edge.to)) continue;
+        if (value + edge.weight < (dist.get(edge.to) ?? Infinity)) dist.set(edge.to, value + edge.weight);
+      }
+      yield {
+        type: StepType.VISIT,
+        edge: { from: settle.via ?? -1, to: node },
+        trace: {
+          message: `**Found destination node ${nid(node)}!**`,
+          dataStructure: { type: "priority-queue", items: queueOf(frame.settled, dist), processing: { id: node, value } },
+        },
+      };
+      continue;
+    }
+
+    const updated = group.flatMap((e) => (e.type === "relax" ? [e.to] : []));
+    const lead = settle.via === undefined ? `**Starting at node ${nid(node)}**` : `**Visiting node ${nid(node)}**`;
+    yield {
+      type: StepType.VISIT,
+      edge: { from: settle.via ?? -1, to: node },
+      trace: {
+        message: updated.length > 0 ? `${lead}, updated **${updated.map(nid).join(", ")}**` : lead,
+        dataStructure: {
+          type: "priority-queue",
+          items: queueOf(frame.settled, frame.dist),
+          processing: { id: node, value },
+          justAdded: updated.length > 0 ? updated : undefined,
+        },
+      },
+    };
   }
-
-  // Convert to edges
-  path.push({ from: -1, to: startNodeId });
-  for (let i = 0; i < nodeOrder.length - 1; i++) {
-    path.push({ from: nodeOrder[i], to: nodeOrder[i + 1] });
-  }
-
-  return path;
 }
 
 const dijkstraAdapter: AlgorithmAdapter = {
@@ -238,10 +195,13 @@ const dijkstraAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select the source node", "Now select the destination node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: dijkstraEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: dijkstraGenerator,
+  generator: (input) => legacySteps(dijkstraEvents(input), input),
 
   /**
    * Synchronous execution using generator internally.
@@ -252,7 +212,7 @@ const dijkstraAdapter: AlgorithmAdapter = {
       return { steps: [], error: "End node is required for pathfinding." };
     }
 
-    const steps = [...dijkstraGenerator(input)];
+    const steps = [...dijkstraAdapter.generator(input)];
     const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
     if (!foundPath && input.startNodeId !== input.endNodeId) {

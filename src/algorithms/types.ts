@@ -8,6 +8,7 @@
 import type React from "react";
 import { StepType } from "../constants/visualization";
 import { type EdgeType } from "../constants/graph";
+import type { AlgorithmEvent } from "./engine/events";
 
 // Re-export StepType for convenience
 export { StepType };
@@ -181,4 +182,8 @@ export interface AlgorithmAdapter {
   generator: (input: AlgorithmInput) => AlgorithmGenerator;
   /** Runs the algorithm once and returns its steps plus validation (`error`). */
   execute: (input: AlgorithmInput) => AlgorithmResult;
+  /** Pseudocode lines that events point at (adapters ported to the event engine). */
+  pseudocode?: string[];
+  /** Reports what the algorithm did, event by event (adapters ported to the event engine). */
+  events?: (input: AlgorithmInput) => AlgorithmEvent[];
 }
