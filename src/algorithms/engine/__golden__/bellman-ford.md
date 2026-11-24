@@ -117,6 +117,8 @@ From A to C. Edges: A→B 1, B→C −2, C→B 1
  8. One more pass begins, to look for a negative cycle; A → B costs 1: 0 + 1 = 1 is still no better than −1
  9. B → C costs −2: −1 − 2 = −3 still beats −2 after every round, so a negative cycle can lower distances forever and there is no shortest route
 
+The app says: Path is not possible or negative cycle detected.
+
 ## No route
 
 From A to C. Edges: A→B 3, C→B 1
@@ -127,3 +129,5 @@ From A to C. Edges: A→B 3, C→B 1
  2. Round 1 checks every edge and improves B to 3
  3. Round 2 checks every edge and improves nothing, so every distance is final and there is no negative cycle
  4. Every round is done and C was never reached, so there is no route from A to C
+
+The app says: Path is not possible or negative cycle detected.

@@ -59,3 +59,5 @@ From A to C. Edges: A→B, C→B
  3. A → B: B is new, so push it onto the stack with A as its parent
  4. B is on top of the stack, so visit it
  5. The stack is empty and C was never reached, so there is no route from A to C
+
+The app says: No path found between the selected nodes.

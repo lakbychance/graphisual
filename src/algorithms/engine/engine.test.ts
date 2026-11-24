@@ -1,6 +1,8 @@
 /**
  * The event engine's checks (see the harness's TESTING.md): oracle, rule and scrub checks on
- * the seeded random suite, and the golden narration file per algorithm.
+ * the seeded random suite, and the golden narration file per algorithm. The golden files also
+ * record the message the app shows when a run has no answer, and the runs the landing pages'
+ * experiments make claims about (built from the pages' own graphs).
  */
 import { describe, it, expect } from "vitest";
 import dijkstraAdapter from "../adapters/dijkstra";
@@ -11,8 +13,11 @@ import bfsPathfindingAdapter from "../adapters/bfs-pathfinding";
 import dfsPathfindingAdapter from "../adapters/dfs-pathfinding";
 import cycleDetectionAdapter from "../adapters/cycleDetection";
 import primsAdapter from "../adapters/prims";
-import type { AlgorithmAdapter, AlgorithmInput } from "../types";
-import { createAdjacencyList } from "../adapters/__tests__/testUtils";
+import { StepType, type AlgorithmAdapter, type AlgorithmInput, type EdgeInfo } from "../types";
+import type { LabGraph } from "@/landing/engine";
+import * as landing from "@/landing/live/configs";
+import { WEIGHTED_EDGES } from "@/landing/live/shared";
+import type { LiveConfig } from "@/landing/live/types";
 import {
   applyEvent, emptyFrame, frameAt, narrate, type AlgorithmEvent, type AnswerEvent, type Frame,
 } from ".";
@@ -203,6 +208,47 @@ describe("scrub check", () => {
   });
 });
 
+/* ------------------------------------------- the app's answer (temporary, task 0.4) */
+
+/**
+ * Until task 0.4, the app and the landing pages show the answer from `execute()`, whose steps each
+ * adapter's `legacySteps` derives from the events. This oracle check ties those steps to the event
+ * answer the checks above verify. TEMPORARY: delete it with `legacySteps` in task 0.4.
+ */
+describe("oracle check: the answer the app shows (temporary, until task 0.4)", () => {
+  const edgeKeys = (edges: Array<{ from: number; to: number }>) => edges.map(({ from, to }) => `${from}→${to}`).sort();
+
+  for (const { adapter, graphs } of ported) {
+    it(`${adapter.metadata.name}: execute() draws the event answer, and reports an error exactly when there is none`, () => {
+      for (const { seed, input } of graphs) {
+        const events = eventsOf(adapter, input);
+        const answer = events.find((e): e is AnswerEvent => e.type === "answer")!;
+        const { steps, error } = adapter.execute(input);
+        const drawn = (type: StepType) => steps.filter((s) => s.type === type).map((s) => s.edge);
+        let missing: boolean;
+        if (answer.kind === "route") {
+          const path = answer.path ?? [];
+          const route = path.length === 0 ? [] : [{ from: -1, to: input.startNodeId }, ...path.slice(1).map((to, i) => ({ from: path[i], to }))];
+          expect(drawn(StepType.RESULT), `seed ${seed}: route`).toEqual(route);
+          missing = answer.path === null;
+        } else if (answer.kind === "cycle") {
+          const cycle = answer.cycle ?? [];
+          expect(edgeKeys(drawn(StepType.CYCLE)), `seed ${seed}: cycle`).toEqual(edgeKeys(cycle.map((from, i) => ({ from, to: cycle[(i + 1) % cycle.length] }))));
+          missing = answer.cycle === null;
+        } else if (answer.kind === "tree") {
+          expect(edgeKeys(drawn(StepType.VISIT).filter((e) => e.from !== -1)), `seed ${seed}: tree`).toEqual(edgeKeys(answer.edges));
+          missing = answer.unreached.length > 0;
+        } else {
+          const visits = events.flatMap((e) => (e.type === "settle" ? [{ from: e.via ?? -1, to: e.node }] : []));
+          expect(drawn(StepType.VISIT), `seed ${seed}: visits`).toEqual(visits);
+          missing = false;
+        }
+        expect(error !== undefined, `seed ${seed}: error ${error}`).toBe(missing);
+      }
+    });
+  }
+});
+
 /* ------------------------------------------------------------ golden narration */
 
 const LABELS = ["A", "B", "C", "D", "E", "F"];
@@ -217,11 +263,14 @@ function lettered(
   edges: Array<[number, number, number]>, size: number, start: number, end?: number,
   { directed = false, weighted = true } = {},
 ): Lettered {
+  const type = directed ? "directed" : "undirected";
+  const adjacencyList = new Map<number, EdgeInfo[]>(LABELS.slice(0, size).map((_, id) => [id, []]));
+  for (const [from, to, weight] of edges) {
+    adjacencyList.get(from)!.push({ from, to, weight, type });
+    if (!directed) adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
+  }
   const input: AlgorithmInput = {
-    adjacencyList: createAdjacencyList(
-      LABELS.slice(0, size).map((_, id) => id),
-      edges.map(([from, to, weight]) => ({ from, to, weight, type: directed ? "directed" : "undirected" })),
-    ),
+    adjacencyList,
     nodes: LABELS.slice(0, size).map((_, id) => ({ id })),
     startNodeId: start,
     endNodeId: end,
@@ -231,6 +280,16 @@ function lettered(
     .join(", ");
   return { input, edgeList };
 }
+
+/** A landing page's graph, lettered the same way (its node ids are already indexes into LABELS). */
+function fromLanding({ nodes, edges, start, end }: LabGraph, weighted = true): Lettered {
+  const directed = edges.every((e) => e.directed);
+  if (!directed && edges.some((e) => e.directed)) throw new Error("A landing graph mixes directed and undirected edges");
+  return lettered(edges.map((e) => [e.from, e.to, e.weight]), nodes.length, start, end, { directed, weighted });
+}
+
+/** The graph a landing page's experiment runs on, with its toggle on or off. */
+const experiment = ({ limits }: LiveConfig, on: boolean) => fromLanding(limits.experiment.graph(on), limits.experiment.weighted(on));
 
 const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => LABELS[Number(id)]);
 
@@ -242,6 +301,8 @@ function transcript(adapter: AlgorithmAdapter, title: string, { input, edgeList 
     lines.push("", level === "overview" ? "### Overview" : "### Every edge", "");
     narrate(events, level, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
   }
+  const { error } = adapter.execute(input);
+  if (error) lines.push("", `The app says: ${error}`);
   return lines.join("\n");
 }
 
@@ -251,13 +312,9 @@ const golden = (title: string, ...sections: string[]) => [`# ${title}`, "", ...s
 const BOTH: Array<"overview" | "every-edge"> = ["overview", "every-edge"];
 
 /** The classic weighted graph the landing pages use. */
-const STANDARD: Array<[number, number, number]> = [
-  [0, 1, 4], [0, 2, 2], [2, 1, 1], [1, 3, 5], [2, 4, 9], [3, 4, 2], [3, 5, 3], [4, 5, 6],
-];
+const STANDARD = WEIGHTED_EDGES;
 /** The cycle detection page's directed graph. */
-const CYCLE_STANDARD: Array<[number, number, number]> = [
-  [0, 1, 1], [0, 2, 1], [1, 3, 1], [3, 4, 1], [4, 2, 1], [2, 1, 1], [3, 5, 1], [4, 5, 1],
-];
+const CYCLE_STANDARD = landing.cycleDetection.edges;
 const unweighted = { weighted: false };
 
 describe("golden narration", () => {
@@ -265,6 +322,7 @@ describe("golden narration", () => {
     const text = golden(
       "Dijkstra's",
       transcript(dijkstraAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5), BOTH),
+      transcript(dijkstraAdapter, "A negative edge", experiment(landing.dijkstra, true), ["overview"]),
       transcript(dijkstraAdapter, "A tie", lettered([[0, 1, 2], [0, 2, 2], [1, 3, 1], [2, 3, 3]], 4, 0, 3), ["every-edge"]),
       transcript(dijkstraAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true }), ["every-edge"]),
       transcript(dijkstraAdapter, "Start is the destination", lettered([[0, 1, 3]], 2, 0, 0), ["overview"]),
@@ -276,7 +334,7 @@ describe("golden narration", () => {
     const text = golden(
       "Bellman-Ford",
       transcript(bellmanFordAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5), BOTH),
-      transcript(bellmanFordAdapter, "A negative edge", lettered([[0, 1, 2], [0, 2, 5], [2, 1, -4], [1, 3, 1]], 4, 0, 3, { directed: true }), BOTH),
+      transcript(bellmanFordAdapter, "A negative edge", experiment(landing.bellmanFord, true), BOTH),
       transcript(bellmanFordAdapter, "A negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1]], 3, 0, 2, { directed: true }), BOTH),
       transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true }), ["overview"]),
     );
@@ -315,10 +373,7 @@ describe("golden narration", () => {
     const text = golden(
       "DFS pathfinding",
       transcript(dfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted), BOTH),
-      transcript(
-        dfsPathfindingAdapter, "A longer route than needed",
-        lettered([[0, 1, 1], [1, 2, 1], [2, 3, 1], [0, 4, 1], [4, 3, 1]], 5, 0, 3, unweighted), ["overview"],
-      ),
+      transcript(dfsPathfindingAdapter, "A longer route than needed", experiment(landing.dfsPathfinding, true), ["overview"]),
       transcript(dfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false }), ["every-edge"]),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dfs-pathfinding.md");
@@ -328,10 +383,8 @@ describe("golden narration", () => {
     const text = golden(
       "Cycle detection",
       transcript(cycleDetectionAdapter, "Standard graph", lettered(CYCLE_STANDARD, 6, 0, undefined, { directed: true, weighted: false }), BOTH),
-      transcript(
-        cycleDetectionAdapter, "No cycle",
-        lettered([[0, 1, 1], [1, 2, 1], [1, 3, 1], [0, 2, 1]], 4, 0, undefined, { directed: true, weighted: false }), BOTH,
-      ),
+      transcript(cycleDetectionAdapter, "One edge makes a cycle", experiment(landing.cycleDetection, true), ["overview"]),
+      transcript(cycleDetectionAdapter, "No cycle", experiment(landing.cycleDetection, false), BOTH),
       transcript(cycleDetectionAdapter, "Undirected", lettered([[0, 1, 1], [1, 2, 1], [2, 0, 1]], 3, 0, undefined, unweighted), ["every-edge"]),
       transcript(
         cycleDetectionAdapter, "The cycle is in another part",
@@ -342,11 +395,11 @@ describe("golden narration", () => {
   });
 
   it("Prim's", async () => {
-    const cut = STANDARD.filter(([a, b]) => !(a === 1 && b === 3) && !(a === 2 && b === 4));
     const text = golden(
       "Prim's",
       transcript(primsAdapter, "Standard graph", lettered(STANDARD, 6, 0), BOTH),
-      transcript(primsAdapter, "Disconnected graph", lettered(cut, 6, 0), ["overview"]),
+      transcript(primsAdapter, "Disconnected graph", experiment(landing.prims, true), ["overview"]),
+      transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), []),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/prims.md");
   });

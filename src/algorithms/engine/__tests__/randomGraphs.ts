@@ -5,7 +5,7 @@
 import type { AlgorithmInput, EdgeInfo } from "../../types";
 
 /** mulberry32: a tiny seeded generator. */
-function random(seed: number) {
+export function random(seed: number) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

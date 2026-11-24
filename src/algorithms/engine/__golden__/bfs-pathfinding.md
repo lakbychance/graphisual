@@ -52,6 +52,8 @@ From A to C. Edges: A→B, C→B
  4. B is at the front of the queue, so visit it
  5. The queue is empty and C was never reached, so there is no route from A to C
 
+The app says: No path found between the selected nodes.
+
 ## Start is the destination
 
 From A to A. Edges: A–B

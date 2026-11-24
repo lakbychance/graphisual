@@ -29,6 +29,18 @@ From A. Edges: A→B, A→C, B→D, D→E, E→C, C→B, D→F, E→F
 11. C → B: B is still in progress, so this edge closes a cycle
 12. Follow the edges round to read the cycle: B → D → E → C → B
 
+## One edge makes a cycle
+
+From A. Edges: A→B, B→C, B→D, C→A
+
+### Overview
+
+ 1. Start at A; every node is unvisited, and an edge back to a node still in progress means a cycle
+ 2. Visit A, which is now in progress; A → B leads to unvisited B
+ 3. Visit B, which is now in progress; B → C leads to unvisited C
+ 4. Visit C, which is now in progress; C → A leads back to A, which is still in progress, so there is a cycle
+ 5. Follow the edges round to read the cycle: A → B → C → A
+
 ## No cycle
 
 From A. Edges: A→B, B→C, B→D, A→C
@@ -62,6 +74,8 @@ From A. Edges: A→B, B→C, B→D, A→C
 12. A → C: C is already done, so skip it
 13. A has no edges left to follow, so it is done
 14. Every node is done and no edge led back to a node in progress, so the graph has no cycle
+
+The app says: No cycle found in the graph.
 
 ## Undirected
 

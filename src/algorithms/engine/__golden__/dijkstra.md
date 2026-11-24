@@ -40,6 +40,18 @@ From A to F. Edges: A–B 4, A–C 2, C–B 1, B–D 5, C–E 9, D–E 2, D–F 
 21. F is the closest node in the queue, at 11, so its distance is final; it is the destination, so the search stops
 22. Walk back from F to read the route: A → C → B → D → F, total distance 11
 
+## A negative edge
+
+From A to D. Edges: A→B 2, A→C 5, C→B −4, B→D 1
+
+### Overview
+
+ 1. Start at A with distance 0; every other node is unreached (∞) for now
+ 2. A is the closest node in the queue, at 0, so its distance is final; checking its edges improves B to 2 and C to 5
+ 3. B is the closest node in the queue, at 2, so its distance is final; checking its edges improves D to 3
+ 4. D is the closest node in the queue, at 3, so its distance is final; it is the destination, so the search stops
+ 5. Walk back from D to read the route: A → B → D, total distance 3
+
 ## A tie
 
 From A to D. Edges: A–B 2, A–C 2, B–D 1, C–D 3
@@ -70,6 +82,8 @@ From A to C. Edges: A→B 3, C→B 1
  3. A → B costs 3: 0 + 3 = 3 beats ∞, so B joins the queue at 3
  4. B is the closest node in the queue, at 3, so its distance is final
  5. The queue is empty and C was never reached, so there is no route from A to C
+
+The app says: Path is not possible for the given vertices.
 
 ## Start is the destination
 
