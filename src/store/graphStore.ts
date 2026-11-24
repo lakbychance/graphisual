@@ -23,7 +23,7 @@ import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGr
 // Types
 // ============================================================================
 
-// The current run (its events, cut into Overview steps) and how far through it we are.
+// The current run (its events, cut into steps of one change each) and how far through it we are.
 // `index` is -1 before the first step is shown. `trace` is always highlightsAt(run, index).
 interface StepState {
   index: number;

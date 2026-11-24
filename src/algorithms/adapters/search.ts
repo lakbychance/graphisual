@@ -90,6 +90,11 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
         continue;
       }
       const waitingAt = frontier.indexOf(to);
+      // A second edge to the node this one just pushed: it is already on top, with this parent.
+      if (waitingAt === frontier.length - 1 && parent.get(to) === node) {
+        events.push({ type: "skip", from: node, to, reason: "queued", line: lines.check, group });
+        continue;
+      }
       if (waitingAt >= 0) {
         frontier.splice(waitingAt, 1);
         count(parent.get(to), -1);

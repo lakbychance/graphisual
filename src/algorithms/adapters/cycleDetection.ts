@@ -30,7 +30,7 @@ const LINE = { enter: 1, parent: 3, inProgress: 4, report: 5, unvisited: 6, recu
 /**
  * Everything cycle detection does on this input, as events. A depth-first search from the start,
  * then from each node still unvisited, until an edge leads back to a node still in progress.
- * Each node visited and each node finished starts a new iteration.
+ * Each node visited (with the edge that led to it) and each node finished starts a new iteration.
  */
 function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
   const { adjacencyList, startNodeId: start } = input;
@@ -51,7 +51,8 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
       const to = edge.to;
       const seen = state.get(to);
       if (seen === undefined) {
-        events.push({ type: "classify", from: node, to, kind: "tree", line: LINE.recurse, group });
+        // The call into `to` opens its iteration, so the check that leads there belongs to its visit.
+        events.push({ type: "classify", from: node, to, kind: "tree", line: LINE.recurse, group: group + 1 });
         if (visit(to, node)) return true;
       } else if (seen === "in-progress") {
         // An undirected edge back to the parent is the edge just taken, not a cycle.

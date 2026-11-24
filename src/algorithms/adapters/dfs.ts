@@ -14,10 +14,10 @@ const PSEUDOCODE = [
   "stack ← [ source ], visited ← { }",
   "while stack is not empty:",
   "    u ← stack.pop(), visited.add(u)",
-  "    for each neighbor v, in reverse order:",
+  "    for each neighbor v, last to first:",
   "        if v is not visited:",
   "            push v, or move it to the top",
-  "    if nothing u pushed waits: u is done",
+  "    u is done once all it pushed are done",
 ];
 
 const LINES = { start: 0, loop: 1, take: 2, check: 4, add: 5, finish: 6 };

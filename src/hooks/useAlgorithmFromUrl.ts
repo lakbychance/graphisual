@@ -5,7 +5,7 @@ import { VisualizationMode } from "../constants/visualization";
 import {
   generateWeighted,
   generateRandomGraph,
-  generateCycle,
+  generateCycleWithDeadEnd,
   graphFromSpec,
   type GeneratedGraph,
 } from "../utils/graph/graphGenerator";
@@ -19,7 +19,7 @@ const graphForAlgorithm: Record<string, () => GeneratedGraph> = {
   "dfs": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
   "bfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
   "dfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
-  "cycle-detection": () => generateCycle(6),
+  "cycle-detection": generateCycleWithDeadEnd,
 };
 
 /**

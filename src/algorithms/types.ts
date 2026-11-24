@@ -107,7 +107,7 @@ export interface AlgorithmMetadata {
  * The Algorithm Adapter Interface.
  *
  * Contributors implement this interface to add new algorithms. An adapter reports what the
- * algorithm does as events (see `engine/events.ts`); the app plays them one Overview step at a time.
+ * algorithm does as events (see `engine/events.ts`); the app plays them one step (one change) at a time.
  *
  * @example
  * ```typescript

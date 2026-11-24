@@ -4,8 +4,8 @@
  * Adapters report events instead of highlight instructions. One pure reducer
  * (`frame.ts`) turns them into frames, and narration templates (`narration.ts`)
  * turn them into words. Every event names the pseudocode line it executes and
- * the iteration it belongs to, so a run can be stepped one iteration at a time
- * (Overview) or one event at a time (Every edge).
+ * the iteration it belongs to; `steps.ts` cuts a run into steps of one change each,
+ * and a check that changes nothing joins a change of its own iteration.
  */
 
 /** Tags every event carries. */

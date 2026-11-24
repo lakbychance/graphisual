@@ -291,6 +291,29 @@ export function generateCycle(nodeCount: number): GeneratedGraph {
 }
 
 /**
+ * A ring of six with a two-node dead-end tail hanging below it, for cycle detection (centered at
+ * origin, narrow enough for a phone). From any node on the ring, the search walks into the tail
+ * first, backs up out of it, and only then comes round to the edge that closes the loop.
+ */
+export function generateCycleWithDeadEnd(): GeneratedGraph {
+  const ring = 6;
+  const positions = circularLayout(ring, 0, -115, 130);
+  // The tail drops straight down from node 4, the bottom of the ring.
+  const bottom = positions[3];
+  positions.push({ x: bottom.x, y: bottom.y + 105 }, { x: bottom.x, y: bottom.y + 210 });
+
+  const nodes: GraphNode[] = positions.map((p, i) => ({ id: i + 1, x: p.x, y: p.y, r: NODE.RADIUS }));
+  const edges = new Map<number, GraphEdge[]>(nodes.map((n) => [n.id, []]));
+
+  // The tail's first edge goes into node 4's list before the ring's edges, so the search tries it first.
+  addEdgeToMap(edges, nodes[3], nodes[ring], EDGE_TYPE.UNDIRECTED);
+  for (let i = 0; i < ring; i++) addEdgeToMap(edges, nodes[i], nodes[(i + 1) % ring], EDGE_TYPE.UNDIRECTED);
+  addEdgeToMap(edges, nodes[ring], nodes[ring + 1], EDGE_TYPE.UNDIRECTED);
+
+  return { nodes, edges, nodeCounter: nodes.length };
+}
+
+/**
  * Generate a complete graph (K_n, centered at origin)
  */
 export function generateComplete(nodeCount: number): GeneratedGraph {
@@ -552,8 +575,11 @@ export function generateWeighted(): GeneratedGraph {
       y: positions[i].y,
       r: NODE.RADIUS,
     });
-    edges.set(id, []);
   }
+  // Algorithms read the edges node by node in this order. Node 6 comes late, so when Bellman-Ford
+  // finds the cheaper road through 6 to 7, 7's own roads were already checked that round: the
+  // improvement takes a second round to pass on, as it would on most real graphs.
+  for (const id of [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 6, 12]) edges.set(id, []);
 
   // Define edges with carefully chosen weights
   // Structure: [fromIdx, toIdx, weight]

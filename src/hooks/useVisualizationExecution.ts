@@ -20,7 +20,7 @@ interface UseVisualizationExecutionReturn {
  * Starts a visualization run for the selected algorithm.
  *
  * Both modes share one pipeline: the algorithm runs once and reports its events, the
- * store holds them as a run of Overview steps, and `useAutoPlay` advances through it
+ * store holds them as a run of steps (one change each), and `useAutoPlay` advances through it
  * (from the start in auto mode, on Play in manual mode). A run the adapter refuses
  * (no route, no cycle, ...) shows its message instead.
  */

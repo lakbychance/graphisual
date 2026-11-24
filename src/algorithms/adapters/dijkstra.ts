@@ -19,15 +19,16 @@ const PSEUDOCODE = [
   "    for each edge (u, v, w):",
   "        if dist[u] + w < dist[v]:",
   "            dist[v] ← dist[u] + w",
-  "            prev[v] ← u, queue.insert(v)",
+  "            prev[v] ← u",
+  "            v joins or moves up the queue",
   "walk prev[] back from target",
 ];
 
 /**
  * Pseudocode line of each kind of event. A relaxation is one event, so it points at the
- * distance it changes; the line under it runs in the same step.
+ * distance it changes; the lines under it run in the same step.
  */
-const LINE = { start: 0, loop: 2, extract: 3, stop: 4, check: 6, relax: 7, walk: 9 } as const;
+const LINE = { start: 0, loop: 2, extract: 3, stop: 4, check: 6, relax: 7, walk: 10 } as const;
 
 /** Nodes the run knows about, in the order it scans them for the closest one. */
 function nodeOrder({ adjacencyList, startNodeId, endNodeId }: AlgorithmInput): number[] {

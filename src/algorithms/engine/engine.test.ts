@@ -17,6 +17,7 @@ import type { AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../types";
 import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
 import type { LabGraph, LiveConfig } from "@/landing/live/types";
+import { generateCycleWithDeadEnd, generateWeighted, type GeneratedGraph } from "@/utils/graph/graphGenerator";
 import {
   applyEvent, emptyFrame, frameAt, narrate, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame,
 } from ".";
@@ -25,7 +26,7 @@ import {
   bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
 } from "./__tests__/oracles";
 import {
-  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, groupsOnlyIncrease, pointsAtPseudocode,
+  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, groupsOnlyIncrease, oneChangePerStep, pointsAtPseudocode,
   relaxOnlyLowers, settlesOnceInOrder, type Rule,
 } from "./__tests__/rules";
 
@@ -37,14 +38,14 @@ const signedSuite = [...suite, ...suite.map(withNegativeWeights)];
 
 /** Algorithms on the event engine, with the graphs they run on and the rules their event streams obey. */
 const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: Record<string, Rule> }> = [
-  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, relaxOnlyLowers, settlesOnceInOrder } },
-  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, relaxOnlyLowers } },
-  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, bfsDepthNeverDecreases } },
-  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, bfsDepthNeverDecreases } },
-  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, dfsTimesNest } },
-  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, dfsTimesNest } },
-  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, dfsTimesNest } },
-  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, relaxOnlyLowers, addsLightestCrossingEdge } },
+  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers, settlesOnceInOrder } },
+  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers } },
+  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
+  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
+  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
+  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
+  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
+  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 
 const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);
@@ -210,7 +211,7 @@ describe("scrub check", () => {
 /* --------------------------------------------------------- the app's answer */
 
 /**
- * The app plays a run one Overview step at a time and shows the answer held by the last step's
+ * The app plays a run one step at a time and shows the answer held by the last step's
  * frame, unless the adapter refuses the run. This ties both to the event answer the checks above verify.
  */
 describe("oracle check: the answer the app shows", () => {
@@ -219,7 +220,7 @@ describe("oracle check: the answer the app shows", () => {
       for (const { seed, input } of graphs) {
         const events = eventsOf(adapter, input);
         const answer = events.find((e): e is AnswerEvent => e.type === "answer")!;
-        const ends = stepEnds(events, "overview");
+        const ends = stepEnds(events);
         expect(frameAt(events, ends[ends.length - 1]).answer, `seed ${seed}: answer on the last step`).toBe(answer);
         const missing = (answer.kind === "route" && answer.path === null) || (answer.kind === "cycle" && answer.cycle === null);
         const refusal = adapter.refusal?.(events, input);
@@ -236,6 +237,8 @@ const LABELS = ["A", "B", "C", "D", "E", "F"];
 interface Lettered {
   input: AlgorithmInput;
   edgeList: string;
+  /** How a node is named in the transcript (a letter by default). */
+  label?: (id: number) => string;
 }
 
 /** A small graph with lettered nodes (ids are indexes into LABELS). Without `end` it has no destination. */
@@ -271,15 +274,14 @@ function fromLanding({ nodes, edges, start, end }: LabGraph, weighted = true): L
 /** The graph a landing page's experiment runs on, with its toggle on or off. */
 const experiment = ({ limits }: LiveConfig, on: boolean) => fromLanding(limits.experiment.graph(on), limits.experiment.weighted(on));
 
-const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => LABELS[Number(id)]);
-
-function transcript(adapter: AlgorithmAdapter, title: string, { input, edgeList }: Lettered, levels: Array<"overview" | "every-edge">) {
+function transcript(adapter: AlgorithmAdapter, title: string, { input, edgeList, label = (id) => LABELS[id] }: Lettered, narrated = true) {
+  const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => label(Number(id)));
   const events = eventsOf(adapter, input);
-  const ends = input.endNodeId === undefined ? "" : ` to ${LABELS[input.endNodeId]}`;
-  const lines = [`## ${title}`, "", `From ${LABELS[input.startNodeId]}${ends}. Edges: ${edgeList}`];
-  for (const level of levels) {
-    lines.push("", level === "overview" ? "### Overview" : "### Every edge", "");
-    narrate(events, level, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
+  const ends = input.endNodeId === undefined ? "" : ` to ${label(input.endNodeId)}`;
+  const lines = [`## ${title}`, "", `From ${label(input.startNodeId)}${ends}. Edges: ${edgeList}`];
+  if (narrated) {
+    lines.push("");
+    narrate(events, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
   }
   const refusal = adapter.refusal?.(events, input);
   if (refusal) lines.push("", `The app says: ${plain(refusal)}`);
@@ -289,7 +291,16 @@ function transcript(adapter: AlgorithmAdapter, title: string, { input, edgeList 
 /** A golden file: a title, then transcripts separated by blank lines. */
 const golden = (title: string, ...sections: string[]) => [`# ${title}`, "", ...sections.flatMap((s) => [s, ""])].join("\n");
 
-const BOTH: Array<"overview" | "every-edge"> = ["overview", "every-edge"];
+/**
+ * A graph the app generates when it opens an algorithm (nodes are numbered, as the app shows them).
+ * The app reads the edges node by node in the order the graph's edge map lists them, and so does this.
+ */
+function generated({ nodes, edges }: GeneratedGraph, start: number, end?: number): Lettered {
+  const adjacencyList = new Map<number, EdgeInfo[]>([...edges].map(([id, list]) => [id, list.map((e): EdgeInfo => ({ from: e.from, to: e.to, weight: e.weight, type: e.type === "directed" ? "directed" : "undirected" }))]));
+  const listed = [...edges.values()].flat().filter((e) => e.type === "directed" || e.from < e.to);
+  const edgeList = listed.map((e) => `${e.from}${e.type === "directed" ? "→" : "–"}${e.to}${e.type === "directed" ? ` ${e.weight}` : ""}`).join(", ");
+  return { input: { adjacencyList, nodes: nodes.map((n) => ({ id: n.id })), startNodeId: start, endNodeId: end }, edgeList, label: String };
+}
 
 /** The classic weighted graph the landing pages use. */
 const STANDARD = WEIGHTED_EDGES;
@@ -301,11 +312,11 @@ describe("golden narration", () => {
   it("Dijkstra's", async () => {
     const text = golden(
       "Dijkstra's",
-      transcript(dijkstraAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5), BOTH),
-      transcript(dijkstraAdapter, "A negative edge", experiment(landing.dijkstra, true), ["overview"]),
-      transcript(dijkstraAdapter, "A tie", lettered([[0, 1, 2], [0, 2, 2], [1, 3, 1], [2, 3, 3]], 4, 0, 3), ["every-edge"]),
-      transcript(dijkstraAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true }), ["every-edge"]),
-      transcript(dijkstraAdapter, "Start is the destination", lettered([[0, 1, 3]], 2, 0, 0), ["overview"]),
+      transcript(dijkstraAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5)),
+      transcript(dijkstraAdapter, "A negative edge", experiment(landing.dijkstra, true)),
+      transcript(dijkstraAdapter, "A tie", lettered([[0, 1, 2], [0, 2, 2], [1, 3, 1], [2, 3, 3]], 4, 0, 3)),
+      transcript(dijkstraAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
+      transcript(dijkstraAdapter, "Start is the destination", lettered([[0, 1, 3]], 2, 0, 0)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dijkstra.md");
   });
@@ -313,10 +324,11 @@ describe("golden narration", () => {
   it("Bellman-Ford", async () => {
     const text = golden(
       "Bellman-Ford",
-      transcript(bellmanFordAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5), BOTH),
-      transcript(bellmanFordAdapter, "A negative edge", experiment(landing.bellmanFord, true), BOTH),
-      transcript(bellmanFordAdapter, "A negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1]], 3, 0, 2, { directed: true }), BOTH),
-      transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true }), ["overview"]),
+      transcript(bellmanFordAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5)),
+      transcript(bellmanFordAdapter, "A negative edge", experiment(landing.bellmanFord, true)),
+      transcript(bellmanFordAdapter, "A negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1]], 3, 0, 2, { directed: true })),
+      transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
+      transcript(bellmanFordAdapter, "The graph the app generates", generated(generateWeighted(), 1, 12)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bellman-ford.md");
   });
@@ -324,10 +336,10 @@ describe("golden narration", () => {
   it("BFS", async () => {
     const text = golden(
       "BFS",
-      transcript(bfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted), BOTH),
-      transcript(bfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted), ["overview"]),
-      transcript(bfsAdapter, "Same graph, two orders: from A", experiment(landing.bfs, false), ["overview"]),
-      transcript(bfsAdapter, "Same graph, two orders: from F", experiment(landing.bfs, true), ["overview"]),
+      transcript(bfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted)),
+      transcript(bfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted)),
+      transcript(bfsAdapter, "Same graph, two orders: from A", experiment(landing.bfs, false)),
+      transcript(bfsAdapter, "Same graph, two orders: from F", experiment(landing.bfs, true)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bfs.md");
   });
@@ -335,10 +347,10 @@ describe("golden narration", () => {
   it("DFS", async () => {
     const text = golden(
       "DFS",
-      transcript(dfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted), BOTH),
-      transcript(dfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted), ["overview"]),
-      transcript(dfsAdapter, "Same graph, two orders: from A", experiment(landing.dfs, false), ["overview"]),
-      transcript(dfsAdapter, "Same graph, two orders: from F", experiment(landing.dfs, true), ["overview"]),
+      transcript(dfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted)),
+      transcript(dfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted)),
+      transcript(dfsAdapter, "Same graph, two orders: from A", experiment(landing.dfs, false)),
+      transcript(dfsAdapter, "Same graph, two orders: from F", experiment(landing.dfs, true)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dfs.md");
   });
@@ -346,10 +358,10 @@ describe("golden narration", () => {
   it("BFS pathfinding", async () => {
     const text = golden(
       "BFS pathfinding",
-      transcript(bfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted), BOTH),
-      transcript(bfsPathfindingAdapter, "Weights it does not see", experiment(landing.bfsPathfinding, true), ["overview"]),
-      transcript(bfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false }), ["every-edge"]),
-      transcript(bfsPathfindingAdapter, "Start is the destination", lettered([[0, 1, 1]], 2, 0, 0, unweighted), ["overview"]),
+      transcript(bfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted)),
+      transcript(bfsPathfindingAdapter, "Weights it does not see", experiment(landing.bfsPathfinding, true)),
+      transcript(bfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false })),
+      transcript(bfsPathfindingAdapter, "Start is the destination", lettered([[0, 1, 1]], 2, 0, 0, unweighted)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bfs-pathfinding.md");
   });
@@ -357,9 +369,9 @@ describe("golden narration", () => {
   it("DFS pathfinding", async () => {
     const text = golden(
       "DFS pathfinding",
-      transcript(dfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted), BOTH),
-      transcript(dfsPathfindingAdapter, "A longer route than needed", experiment(landing.dfsPathfinding, true), ["overview"]),
-      transcript(dfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false }), ["every-edge"]),
+      transcript(dfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted)),
+      transcript(dfsPathfindingAdapter, "A longer route than needed", experiment(landing.dfsPathfinding, true)),
+      transcript(dfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false })),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dfs-pathfinding.md");
   });
@@ -367,14 +379,15 @@ describe("golden narration", () => {
   it("Cycle detection", async () => {
     const text = golden(
       "Cycle detection",
-      transcript(cycleDetectionAdapter, "Standard graph", lettered(CYCLE_STANDARD, 6, 0, undefined, { directed: true, weighted: false }), BOTH),
-      transcript(cycleDetectionAdapter, "One edge makes a cycle", experiment(landing.cycleDetection, true), ["overview"]),
-      transcript(cycleDetectionAdapter, "No cycle", experiment(landing.cycleDetection, false), BOTH),
-      transcript(cycleDetectionAdapter, "Undirected", lettered([[0, 1, 1], [1, 2, 1], [2, 0, 1]], 3, 0, undefined, unweighted), ["every-edge"]),
+      transcript(cycleDetectionAdapter, "Standard graph", lettered(CYCLE_STANDARD, 6, 0, undefined, { directed: true, weighted: false })),
+      transcript(cycleDetectionAdapter, "One edge makes a cycle", experiment(landing.cycleDetection, true)),
+      transcript(cycleDetectionAdapter, "No cycle", experiment(landing.cycleDetection, false)),
+      transcript(cycleDetectionAdapter, "Undirected", lettered([[0, 1, 1], [1, 2, 1], [2, 0, 1]], 3, 0, undefined, unweighted)),
       transcript(
         cycleDetectionAdapter, "The cycle is in another part",
-        lettered([[0, 1, 1], [2, 3, 1], [3, 2, 1]], 4, 0, undefined, { directed: true, weighted: false }), ["overview"],
+        lettered([[0, 1, 1], [2, 3, 1], [3, 2, 1]], 4, 0, undefined, { directed: true, weighted: false }),
       ),
+      transcript(cycleDetectionAdapter, "The graph the app generates", generated(generateCycleWithDeadEnd(), 1)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/cycle-detection.md");
   });
@@ -382,9 +395,9 @@ describe("golden narration", () => {
   it("Prim's", async () => {
     const text = golden(
       "Prim's",
-      transcript(primsAdapter, "Standard graph", lettered(STANDARD, 6, 0), BOTH),
-      transcript(primsAdapter, "Disconnected graph", experiment(landing.prims, true), ["overview"]),
-      transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), []),
+      transcript(primsAdapter, "Standard graph", lettered(STANDARD, 6, 0)),
+      transcript(primsAdapter, "Disconnected graph", experiment(landing.prims, true)),
+      transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), false),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/prims.md");
   });

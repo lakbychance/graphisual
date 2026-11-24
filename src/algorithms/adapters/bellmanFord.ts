@@ -71,6 +71,9 @@ function bellmanFordEvents(input: AlgorithmInput): AlgorithmEvent[] {
         events.push({ type: "skip", ...edge, reason: "not-shorter", value: base + weight, current: old, line: LINE.check });
       }
     }
+    // A round that changed nothing ends the rounds: its last check is where the loop's "until no change" is decided.
+    const last = events[events.length - 1];
+    if (!changed && last.group === group) last.line = LINE.rounds;
   }
 
   group += 1;

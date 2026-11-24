@@ -1,8 +1,8 @@
 /**
  * What a landing page draws for each step of a run, read from the shared event engine.
  *
- * The page runs the app's algorithm adapters on its small graph and plays the same Overview
- * steps the app plays (`createRun`, `frameAt`), with the app's walked nodes and edges
+ * The page runs the app's algorithm adapters on its small graph and plays the same steps
+ * the app plays, one change each (`createRun`, `frameAt`), with the app's walked nodes and edges
  * (`walkedAt`), lit pseudocode line (`lineAt`), trace message and data structure (`traceAt`).
  * This module only translates them into the drawing's terms: edges by their index in the
  * page's graph, and the direction each was walked.
@@ -76,7 +76,7 @@ const emptyFrame = (): Frame => ({
 });
 
 /**
- * Runs an algorithm on a page graph: one frame per Overview step, as the app steps it, lighting
+ * Runs an algorithm on a page graph: one frame per step, as the app steps it, lighting
  * what the app's canvas lights (`walkedAt`). The answer lights the route or the cycle at once.
  */
 export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {

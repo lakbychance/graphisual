@@ -19,11 +19,11 @@ const PSEUDOCODE = [
   "while stack is not empty:",
   "    u ← stack.pop(), visited.add(u)",
   "    if u = target: stop",
-  "    for each neighbor v, in reverse order:",
+  "    for each neighbor v, last to first:",
   "        if v is not visited:",
   "            push v, or move it to the top",
   "            parent[v] ← u",
-  "    if nothing u pushed waits: u is done",
+  "    u is done once all it pushed are done",
   "walk parent[] back from target",
 ];
 

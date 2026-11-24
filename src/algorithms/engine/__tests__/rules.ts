@@ -5,6 +5,8 @@
  */
 import type { AlgorithmInput } from "../../types";
 import type { AlgorithmEvent } from "../events";
+import { applyEvent, emptyFrame, type Frame } from "../frame";
+import { stepEnds } from "../steps";
 
 export interface RuleContext {
   pseudocode: string[];
@@ -121,6 +123,42 @@ export const addsLightestCrossingEdge: Rule = (events, { input }) => {
       if (e.value !== lightest) return `node ${e.node} joins at ${e.value}, but the lightest edge out of the tree weighs ${lightest}`;
     }
     tree.add(e.node);
+  }
+  return null;
+};
+
+/**
+ * What a learner can see of a run's state: what is final, done, known, waiting, answered, and
+ * which edges closed a cycle. Not which edge was looked at last, nor edges merely checked.
+ */
+const stateOf = (f: Frame) => JSON.stringify([
+  f.settled, f.finished, [...f.dist], [...f.prev], f.queue, f.answer !== null,
+  [...f.edgeClass].filter(([, kind]) => kind === "back"),
+]);
+
+/**
+ * Each step is one change: exactly one of its events changes the state. Exceptions: a Start step
+ * may change nothing (a search with no values begins by just naming its start), and an iteration
+ * that changes nothing at all (a Bellman-Ford round with no improvement) is one step on its own.
+ */
+export const oneChangePerStep: Rule = (events) => {
+  let frame = emptyFrame;
+  let from = 0;
+  for (const end of stepEnds(events)) {
+    const step = events.slice(from, end);
+    let changed = 0;
+    for (const event of step) {
+      const next = applyEvent(frame, event);
+      if (stateOf(next) !== stateOf(frame)) changed += 1;
+      frame = next;
+    }
+    const group = step[0].group;
+    const wholeIteration = step.every((e) => e.group === group) && events[from - 1]?.group !== group && events[end]?.group !== group;
+    const allowedNone = step[0].type === "start" || wholeIteration;
+    if (changed > 1 || (changed === 0 && !allowedNone)) {
+      return `the step of events ${from}..${end - 1} (${step.map((e) => e.type).join(", ")}) makes ${changed} changes`;
+    }
+    from = end;
   }
   return null;
 };

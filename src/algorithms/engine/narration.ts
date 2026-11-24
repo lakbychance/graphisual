@@ -5,14 +5,15 @@
  * (the app's convention for hints). Node ids are marked with `nid` so the trace panel and
  * the landing pages can show each node's label.
  *
- * Each algorithm has a voice: the words for one event (the Every edge level) and for one
- * iteration (the Overview level). Voices share their sentences wherever the algorithms agree.
+ * A step is one change (see `steps.ts`), said with the checks that belong to it: by default each
+ * event's sentence in order, joined with semicolons. Voices share their sentences wherever the
+ * algorithms agree.
  */
 import { nid } from "../traceHelpers";
 import type {
   AlgorithmEvent, ClassifyEvent, EnqueueEvent, FinishEvent, RelaxEvent, RouteAnswer, SettleEvent, SkipEvent,
 } from "./events";
-import { stepEnds, type Detail } from "./steps";
+import { changes, stepEnds } from "./steps";
 
 const num = (value: number | undefined) =>
   value === undefined || value === Infinity ? "∞" : value < 0 ? `−${-value}` : String(value);
@@ -30,17 +31,10 @@ const arrow = (from: number, to: number) => `${nid(from)} → ${nid(to)}`;
 const names = (ids: number[]) => joinAnd(ids.map(nid));
 
 interface Voice {
-  /** The sentence for one event (the Every edge level). `opens` is set when the event begins an iteration. */
-  event: (event: AlgorithmEvent, opens?: boolean) => string;
-  /** The sentence for one iteration (the Overview level). */
-  group: (events: readonly AlgorithmEvent[]) => string;
-}
-
-/** Nodes whose value improved in an iteration, each named once at its last value. */
-function improvements(events: readonly AlgorithmEvent[]): string[] {
-  const improved = new Map<number, number>();
-  for (const e of events) if (e.type === "relax") improved.set(e.to, e.next);
-  return [...improved].map(([id, value]) => `${nid(id)} to ${num(value)}`);
+  /** The words for one event, a change or a check ("" when another event of the step says it). */
+  event: (event: AlgorithmEvent) => string;
+  /** The sentence for a whole step, when it is not just its events' words in order. */
+  step?: (events: readonly AlgorithmEvent[]) => string;
 }
 
 /* ---------------------------------------------------------- shared sentences */
@@ -77,11 +71,9 @@ function relaxSentence(event: RelaxEvent): string {
 }
 
 function skipSentence(event: SkipEvent): string {
-  const { from, to, weight = 0, reason, value, current, check } = event;
+  const { from, to, weight = 0, reason, value, current } = event;
   if (reason === "settled") return `${arrow(from, to)}: ${nid(to)}'s distance is already final, so skip it`;
-  if (reason === "unreached") return `${arrow(from, to)}: ${nid(from)} is still unreached (∞), so it has nothing to offer`;
   const offer = value === undefined ? "going this way" : sum(value - weight, weight, value);
-  if (check) return `${arrow(from, to)} costs ${num(weight)}: ${offer} is still no better than ${num(current)}`;
   return `${arrow(from, to)} costs ${num(weight)}: ${offer} is no better than ${num(current)}, so ${nid(to)} keeps ${num(current)}`;
 }
 
@@ -107,13 +99,6 @@ const dijkstra: Voice = {
       default: return "";
     }
   },
-  group(events) {
-    const [first] = events;
-    if (first?.type !== "settle" || events.length === 1) return events.map((e) => dijkstra.event(e)).join("; ");
-    const improved = improvements(events);
-    const checks = improved.length > 0 ? `checking its edges improves ${joinAnd(improved)}` : "checking its edges improves nothing";
-    return `${closestSentence(first)}; ${checks}`;
-  },
 };
 
 /* ------------------------------------------------------------- Bellman-Ford */
@@ -125,34 +110,56 @@ function negativeCycleSentence(event: RouteAnswer): string {
   return `${arrow(from, to)} costs ${num(weight)}: ${sum(value - weight, weight, value)} still beats ${num(current)} after every round, ${noShortestRoute}`;
 }
 
-/** Groups: 0 is the start, 1, 2, ... are the rounds, then the extra pass that looks for a negative cycle. */
+/**
+ * Skipped checks, said briefly (a round checks every edge, so a step can hold many):
+ * "A → B and B → C are no better", "B → D starts from unreached B". More than three of a kind
+ * are counted instead of named: "14 edges are no better".
+ */
+function briefSkips(events: readonly AlgorithmEvent[]): string {
+  const skips = events.filter((e): e is SkipEvent => e.type === "skip");
+  const still = skips.some((e) => e.check) ? "still " : "";
+  const parts: string[] = [];
+  for (const reason of new Set(skips.map((e) => e.reason))) {
+    const these = skips.filter((e) => e.reason === reason);
+    const edges = these.length > 3 ? `${these.length} edges` : joinAnd(these.map((e) => arrow(e.from, e.to)));
+    const one = these.length === 1;
+    parts.push(reason === "unreached"
+      ? `${edges} ${one ? `starts from unreached ${nid(these[0].from)}` : "start from unreached nodes"}`
+      : `${edges} ${one ? "is" : "are"} ${still}no better`);
+  }
+  return parts.join(", ");
+}
+
+/**
+ * Group 0 is the start, 1, 2, ... are the rounds, then the extra pass that looks for a negative cycle.
+ * Each improvement is a step, labelled with its round; a round that improves nothing is one step.
+ */
 const bellmanFord: Voice = {
-  event(event, opens) {
-    const check = event.type === "skip" ? event.check : event.type === "answer" && event.kind === "route" && event.negativeCycle !== undefined;
-    const lead = !opens ? "" : check ? "One more pass begins, to look for a negative cycle; " : `Round ${event.group} begins; `;
+  event(event) {
     switch (event.type) {
       case "start": return startWithDistance(event.node, event.value);
-      case "relax": return lead + relaxSentence(event);
-      case "skip": return lead + skipSentence(event);
+      case "relax": return relaxSentence(event);
       case "answer":
         if (event.kind !== "route") return "";
-        if (event.negativeCycle) return lead + negativeCycleSentence(event);
+        if (event.negativeCycle) return negativeCycleSentence(event);
         if (event.path?.length === 1) return `${nid(event.start)} is both the start and the destination, so the route is just ${nid(event.start)}, total distance 0`;
         return routeSentence(event, "Every round is done");
       default: return "";
     }
   },
-  group(events) {
-    const [first] = events;
-    const last = events[events.length - 1];
-    const cycle = last.type === "answer" && last.kind === "route" ? last.negativeCycle : undefined;
-    if (cycle) return `One more pass finds that ${arrow(cycle.from, cycle.to)} still improves ${nid(cycle.to)}, to ${num(cycle.value)}, ${noShortestRoute}`;
-    if (first.type === "start" || first.type === "answer") return bellmanFord.event(first);
-    if (first.type === "skip" && first.check) return "One more pass checks every edge again and nothing improves, so there is no negative cycle";
-    const improved = improvements(events);
-    return improved.length > 0
-      ? `Round ${first.group} checks every edge and improves ${joinAnd(improved)}`
-      : `Round ${first.group} checks every edge and improves nothing, so every distance is final and there is no negative cycle`;
+  step(events) {
+    const at = events.findIndex(changes);
+    const change = events[at];
+    if (!change) {
+      const [first] = events;
+      return first.type === "skip" && first.check
+        ? "One more pass checks every edge again and nothing improves, so there is no negative cycle"
+        : `Round ${first.group}: checking every edge improves nothing, so every distance is final and there is no negative cycle`;
+    }
+    const said = [briefSkips(events.slice(0, at)), bellmanFord.event(change), briefSkips(events.slice(at + 1))].filter(Boolean).join("; ");
+    if (change.type === "relax") return `Round ${change.group}: ${said}`;
+    if (change.type === "answer" && change.kind === "route" && change.negativeCycle) return `One more pass: ${said}`;
+    return said;
   },
 };
 
@@ -169,8 +176,6 @@ interface Frontier {
   begins: string;
   /** What happens to a newly found node. */
   joins: string;
-  /** Several newly found nodes, in the order they were added. */
-  joined: (nodes: number[]) => string;
   /** What happens to a node found again while it waits (depth first only). */
   moves?: string;
   /** Pathfinding: name each new node's parent. */
@@ -183,8 +188,6 @@ const queue = (parents: boolean): Frontier => ({
   front: "at the front of the queue",
   begins: "it joins the queue",
   joins: "it joins the queue",
-  joined: (nodes) =>
-    nodes.length === 0 ? "nothing new joins the queue" : `${names(nodes)} ${nodes.length === 1 ? "joins" : "join"} the queue`,
   parents,
 });
 
@@ -194,10 +197,6 @@ const stack = (parents: boolean): Frontier => ({
   front: "on top of the stack",
   begins: "it goes on the stack",
   joins: "push it onto the stack",
-  joined: (nodes) =>
-    nodes.length === 0 ? "nothing new goes on the stack"
-    : nodes.length === 1 ? `${nid(nodes[0])} goes on the stack`
-    : `${names(nodes)} go on the stack, with ${nid(nodes[nodes.length - 1])} on top`,
   moves: "move it to the top of the stack",
   parents,
 });
@@ -214,7 +213,7 @@ function frontierVoice(frontier: Frontier): Voice {
     if (moved) return `${arrow(from, node)}: ${nid(node)} is ${frontier.inside} but not visited yet, so ${frontier.moves}${parent}`;
     return `${arrow(from, node)}: ${nid(node)} is new, so ${frontier.joins}${parent}`;
   };
-  const voice: Voice = {
+  return {
     event(event) {
       switch (event.type) {
         case "enqueue": return foundSentence(event);
@@ -234,33 +233,16 @@ function frontierVoice(frontier: Frontier): Voice {
         default: return "";
       }
     },
-    group(events) {
-      const [first] = events;
-      if (first.type !== "settle" || first.target) return events.map((e) => voice.event(e)).join("; ");
-      const added = events.flatMap((e) => (e.type === "enqueue" ? [e.node] : []));
-      const moved = events.flatMap((e) => (e.type === "enqueue" && e.moved ? [e.node] : []));
-      const waited = moved.length === 0 ? "" : `; ${names(moved)} ${moved.length === 1 ? "was" : "were"} already waiting lower down`;
-      return `${visitSentence(first)}; ${frontier.joined(added)}${waited}`;
-    },
   };
-  return voice;
 }
 
 /* --------------------------------------------------------- cycle detection */
 
+/** The edge to a node already seen. The edge into an unvisited node is said by that node's visit. */
 function classifySentence({ from, to, kind }: ClassifyEvent): string {
-  if (kind === "tree") return `${arrow(from, to)}: ${nid(to)} is unvisited, so go there next`;
-  if (kind === "back") return `${arrow(from, to)}: ${nid(to)} is still in progress, so this edge closes a cycle`;
-  return `${arrow(from, to)}: ${nid(to)} is already done, so skip it`;
-}
-
-/** An edge check, said briefly for the Overview (the edge it came in on goes unsaid). */
-function briefCheck(event: AlgorithmEvent): string | null {
-  if (event.type !== "classify") return null;
-  const { from, to, kind } = event;
-  if (kind === "tree") return `${arrow(from, to)} leads to unvisited ${nid(to)}`;
+  if (kind === "tree") return "";
   if (kind === "back") return `${arrow(from, to)} leads back to ${nid(to)}, which is still in progress, so there is a cycle`;
-  return `${arrow(from, to)} leads to ${nid(to)}, which is done`;
+  return `${arrow(from, to)}: ${nid(to)} is already done, so skip it`;
 }
 
 const cycleDetection: Voice = {
@@ -270,7 +252,10 @@ const cycleDetection: Voice = {
         return event.group === 0
           ? `Start at ${nid(event.node)}; every node is unvisited, and an edge back to a node still in progress means a cycle`
           : `Every node reached so far is done; ${nid(event.node)} is still unvisited, so start again from ${nid(event.node)}`;
-      case "settle": return `Visit ${nid(event.node)}, which is now in progress`;
+      case "settle":
+        return event.via === undefined
+          ? `Visit ${nid(event.node)}, which is now in progress`
+          : `${arrow(event.via, event.node)} leads to unvisited ${nid(event.node)}, so visit it; it is now in progress`;
       case "classify": return classifySentence(event);
       case "skip": return `${arrow(event.from, event.to)}: this is the edge ${nid(event.from)} came in on, so skip it`;
       case "finish": return finishSentence(event);
@@ -281,12 +266,6 @@ const cycleDetection: Voice = {
           : "Every node is done and no edge led back to a node in progress, so the graph has no cycle";
       default: return "";
     }
-  },
-  group(events) {
-    const [first, ...rest] = events;
-    const lead = cycleDetection.event(first);
-    const checks = rest.map(briefCheck).filter((s): s is string => s !== null);
-    return checks.length > 0 ? `${lead}; ${joinAnd(checks)}` : lead;
   },
 };
 
@@ -327,12 +306,6 @@ const prims: Voice = {
       default: return "";
     }
   },
-  group(events) {
-    const [first] = events;
-    if (first.type !== "settle") return events.map((e) => prims.event(e)).join("; ");
-    const improved = improvements(events);
-    return `${cheapestSentence(first)}; checking its edges lowers ${improved.length > 0 ? joinAnd(improved) : "nothing"}`;
-  },
 };
 
 /** Each algorithm's voice, by adapter id. */
@@ -347,14 +320,14 @@ const voices: Record<string, Voice> = {
   prims,
 };
 
-/** One message per step of the run at the given detail level, in the voice of the algorithm with this id. */
-export function narrate(events: readonly AlgorithmEvent[], detail: Detail, algorithm: string): string[] {
+/** One message per step of the run (see `stepEnds`), in the voice of the algorithm with this id. */
+export function narrate(events: readonly AlgorithmEvent[], algorithm: string): string[] {
   const voice = voices[algorithm];
   if (!voice) throw new Error(`No narration for algorithm "${algorithm}"`);
   let start = 0;
-  return stepEnds(events, detail).map((end) => {
+  return stepEnds(events).map((end) => {
     const step = events.slice(start, end);
     start = end;
-    return detail === "overview" ? voice.group(step) : voice.event(step[0], step[0].group !== events[end - 2]?.group);
+    return voice.step?.(step) ?? step.map((e) => voice.event(e)).filter(Boolean).join("; ");
   });
 }
