@@ -8,165 +8,128 @@
 
 import { CycleDetectionIcon } from "../icons";
 import { nid } from "../traceHelpers";
+import type { AlgorithmEvent } from "../engine";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
   AlgorithmResult,
   AlgorithmType,
   AlgorithmGenerator,
-  AlgorithmStep,
-  EdgeRef,
   StepType,
 } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
-// Node colors for DFS
-const WHITE = 0; // Unvisited
-const GRAY = 1;  // In current recursion stack
-const BLACK = 2; // Fully processed
+const PSEUDOCODE = [
+  "visit(u):",
+  "    state[u] ← in progress",
+  "    for each neighbor v of u:",
+  "        if state[v] = in progress:",
+  "            report cycle (u → v)",
+  "        if state[v] = unvisited:",
+  "            visit(v)",
+  "    state[u] ← done",
+  "for each unvisited node u:",
+  "    visit(u)",
+];
+
+/** Pseudocode line of each kind of event. */
+const LINE = { enter: 1, inProgress: 3, report: 4, unvisited: 5, recurse: 6, done: 7, outer: 8 } as const;
 
 /**
- * Generator function for step-through cycle detection.
- * Yields visit steps during exploration, then result steps for the cycle path.
+ * Everything cycle detection does on this input, as events. A depth-first search from the start,
+ * then from each node still unvisited, until an edge leads back to a node still in progress.
+ * Each node visited and each node finished starts a new iteration.
  */
-function* cycleDetectionGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId } = input;
-  const color = new Map<number, number>();
+function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
+  const { adjacencyList, startNodeId: start } = input;
+  const state = new Map<number, "in-progress" | "done">();
   const parent = new Map<number, number>();
+  const discovered: number[] = [];
+  let group = 0;
+  const events: AlgorithmEvent[] = [{ type: "start", node: start, line: LINE.outer, group }];
 
-  // Initialize all nodes as unvisited
-  adjacencyList.forEach((_, nodeId) => {
-    color.set(nodeId, WHITE);
-  });
+  const visit = (node: number, from?: number): boolean => {
+    group += 1;
+    state.set(node, "in-progress");
+    discovered.push(node);
+    if (from !== undefined) parent.set(node, from);
+    events.push({ type: "settle", node, via: from, line: LINE.enter, group });
 
-  // Track the cycle path when found
-  let cycleEdges: EdgeRef[] = [];
-  let cycleFound = false;
-
-  // Steps to yield (collected during DFS)
-  const stepsToYield: AlgorithmStep[] = [];
-
-  // Track recursion stack for visualization
-  const recursionStack: number[] = [];
-
-  // Helper to get recursion stack state
-  const getStackState = () => {
-    return recursionStack.map((id) => ({ id }));
-  };
-
-  // Reconstruct cycle from the back edge
-  const reconstructCycle = (
-    fromNode: number,
-    toNode: number,
-    parentMap: Map<number, number>
-  ): EdgeRef[] => {
-    const cycle: EdgeRef[] = [];
-
-    // Walk back from fromNode to toNode through parent chain
-    let current = fromNode;
-    const path: number[] = [current];
-
-    while (current !== toNode && parentMap.has(current)) {
-      current = parentMap.get(current)!;
-      path.push(current);
-    }
-
-    // Create edges for the cycle
-    for (let i = 0; i < path.length - 1; i++) {
-      cycle.push({ from: path[i + 1], to: path[i] });
-    }
-    // Add the closing edge
-    cycle.push({ from: fromNode, to: toNode });
-
-    return cycle;
-  };
-
-  // DFS function
-  const dfs = (nodeId: number, parentId: number): boolean => {
-    color.set(nodeId, GRAY);
-    parent.set(nodeId, parentId);
-    recursionStack.push(nodeId);
-
-    // Record visiting this node
-    stepsToYield.push({
-      type: StepType.VISIT,
-      edge: { from: parentId, to: nodeId },
-      trace: {
-        message: `**Exploring node ${nid(nodeId)}**. Recursion depth: ${recursionStack.length}`,
-        dataStructure: {
-          type: "recursion-stack",
-          items: getStackState(),
-          processing: { id: nodeId },
-          justAdded: [nodeId],
-        },
-      },
-    });
-
-    const neighbors = adjacencyList.get(nodeId) || [];
-
-    for (const edge of neighbors) {
-      const neighborId = edge.to;
-      const neighborColor = color.get(neighborId) ?? WHITE;
-
-      if (neighborColor === WHITE) {
-        // Unvisited - continue DFS
-        if (dfs(neighborId, nodeId)) {
-          return true;
-        }
-      } else if (neighborColor === GRAY) {
-        // Back edge found - cycle detected!
-        // For undirected edges, skip if it's just the edge back to parent
-        if (edge.type === EDGE_TYPE.UNDIRECTED && neighborId === parentId) {
+    for (const edge of adjacencyList.get(node) ?? []) {
+      const to = edge.to;
+      const seen = state.get(to);
+      if (seen === undefined) {
+        events.push({ type: "classify", from: node, to, kind: "tree", line: LINE.recurse, group });
+        if (visit(to, node)) return true;
+      } else if (seen === "in-progress") {
+        // An undirected edge back to the parent is the edge just taken, not a cycle.
+        if (edge.type === EDGE_TYPE.UNDIRECTED && to === from) {
+          events.push({ type: "skip", from: node, to, reason: "parent", line: LINE.inProgress, group });
           continue;
         }
-
-        // Record the edge that completes the cycle
-        stepsToYield.push({
-          type: StepType.VISIT,
-          edge: { from: nodeId, to: neighborId },
-          trace: {
-            message: `**Cycle detected!** Back edge **${nid(nodeId)}→${nid(neighborId)}** found\nNode **${nid(neighborId)}** is in recursion stack`,
-            dataStructure: {
-              type: "recursion-stack",
-              items: getStackState(),
-              processing: { id: neighborId },
-            },
-          },
-        });
-
-        // Reconstruct the cycle path
-        cycleEdges = reconstructCycle(nodeId, neighborId, parent);
+        events.push({ type: "classify", from: node, to, kind: "back", line: LINE.report, group });
+        const cycle = [node];
+        for (let at = node; at !== to; at = parent.get(at)!) cycle.unshift(parent.get(at)!);
+        events.push({ type: "answer", kind: "cycle", cycle, line: LINE.report, group: group + 1 });
         return true;
+      } else {
+        const kind = discovered.indexOf(to) > discovered.indexOf(node) ? "forward" : "cross";
+        events.push({ type: "classify", from: node, to, kind, line: LINE.unvisited, group });
       }
-      // BLACK nodes are already fully processed, skip them
     }
 
-    color.set(nodeId, BLACK);
-    recursionStack.pop();
+    group += 1;
+    state.set(node, "done");
+    events.push({ type: "finish", node, parent: from, line: LINE.done, group });
     return false;
   };
 
-  // Start DFS from the selected node
-  cycleFound = dfs(startNodeId, -1);
-
-  // If no cycle found starting from this node, check other components
-  if (!cycleFound) {
-    adjacencyList.forEach((_, nodeId) => {
-      if (!cycleFound && color.get(nodeId) === WHITE) {
-        cycleFound = dfs(nodeId, -1);
-      }
-    });
+  if (visit(start)) return events;
+  for (const node of adjacencyList.keys()) {
+    if (state.has(node)) continue;
+    group += 1;
+    events.push({ type: "start", node, line: LINE.outer, group });
+    if (visit(node)) return events;
   }
+  events.push({ type: "answer", kind: "cycle", cycle: null, line: LINE.outer, group: group + 1 });
+  return events;
+}
 
-  // Yield all visit steps
-  for (const step of stepsToYield) {
-    yield step;
-  }
-
-  // If cycle found, yield cycle steps (distinct from path/result)
-  if (cycleFound) {
-    for (const edge of cycleEdges) {
-      yield { type: StepType.CYCLE, edge };
+/**
+ * Today's app steps, derived from the events: one VISIT step per node entered and one for the
+ * edge that closes a cycle, then CYCLE steps round the cycle. Replaced by frames in task 0.4.
+ */
+function* legacySteps(events: AlgorithmEvent[]): AlgorithmGenerator {
+  const recursion: number[] = [];
+  const items = () => recursion.map((id) => ({ id }));
+  for (const event of events) {
+    if (event.type === "settle") {
+      recursion.push(event.node);
+      yield {
+        type: StepType.VISIT,
+        edge: { from: event.via ?? -1, to: event.node },
+        trace: {
+          message: `**Exploring node ${nid(event.node)}**. Recursion depth: ${recursion.length}`,
+          dataStructure: { type: "recursion-stack", items: items(), processing: { id: event.node }, justAdded: [event.node] },
+        },
+      };
+    } else if (event.type === "finish") {
+      recursion.pop();
+    } else if (event.type === "classify" && event.kind === "back") {
+      const { from, to } = event;
+      yield {
+        type: StepType.VISIT,
+        edge: { from, to },
+        trace: {
+          message: `**Cycle detected!** Back edge **${nid(from)}→${nid(to)}** found\nNode **${nid(to)}** is in recursion stack`,
+          dataStructure: { type: "recursion-stack", items: items(), processing: { id: to } },
+        },
+      };
+    } else if (event.type === "answer" && event.kind === "cycle" && event.cycle) {
+      // The app lists the tree edges from the deepest one up, then the edge that closes the cycle.
+      const { cycle } = event;
+      for (let i = cycle.length - 1; i > 0; i--) yield { type: StepType.CYCLE, edge: { from: cycle[i - 1], to: cycle[i] } };
+      yield { type: StepType.CYCLE, edge: { from: cycle[cycle.length - 1], to: cycle[0] } };
     }
   }
 }
@@ -181,16 +144,19 @@ const cycleDetectionAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select a node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: cycleDetectionEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: cycleDetectionGenerator,
+  generator: (input) => legacySteps(cycleDetectionEvents(input)),
 
   /**
    * Synchronous execution using generator internally.
    */
   execute: (input: AlgorithmInput): AlgorithmResult => {
-    const steps = [...cycleDetectionGenerator(input)];
+    const steps = [...cycleDetectionAdapter.generator(input)];
     const foundCycle = steps.some((s) => s.type === StepType.CYCLE);
 
     if (!foundCycle) {

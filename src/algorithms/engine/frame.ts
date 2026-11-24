@@ -16,12 +16,14 @@ export interface Frame {
   line: number | null;
   /** Iteration of the last event applied (null before the first). */
   group: number | null;
-  /** The node being worked on: the one settled most recently. */
+  /** The node being worked on: the one settled most recently, or the one a depth-first search returned to. */
   current: number | null;
   /** The edge the last event looked at, if it looked at one. */
   edge: { from: number; to: number } | null;
   /** Final nodes, in the order they became final. */
   settled: readonly number[];
+  /** Nodes a depth-first search is done with, in the order it finished them. */
+  finished: readonly number[];
   /** For each settled node, the node it was reached from. */
   via: ReadonlyMap<number, number>;
   /** Best value known so far per node (distance, key or depth). Missing means ∞. */
@@ -41,6 +43,7 @@ export const emptyFrame: Frame = {
   current: null,
   edge: null,
   settled: [],
+  finished: [],
   via: new Map(),
   dist: new Map(),
   prev: new Map(),
@@ -55,9 +58,16 @@ const withEntry = <K, V>(map: ReadonlyMap<K, V>, key: K, value: V) => new Map(ma
 export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
   const next: Frame = { ...frame, line: event.line, group: event.group, edge: null };
   switch (event.type) {
+    case "start":
+      if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
+      break;
     case "enqueue":
       next.queue = [...frame.queue, { id: event.node, value: event.value }];
       if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
+      if (event.from !== undefined) {
+        next.prev = withEntry(frame.prev, event.node, event.from);
+        next.edge = { from: event.from, to: event.node };
+      }
       break;
     case "relax": {
       next.edge = { from: event.from, to: event.to };
@@ -87,6 +97,10 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
     case "classify":
       next.edge = { from: event.from, to: event.to };
       next.edgeClass = withEntry(frame.edgeClass, `${event.from}-${event.to}`, event.kind);
+      break;
+    case "finish":
+      next.current = event.parent ?? null;
+      next.finished = [...frame.finished, event.node];
       break;
     case "answer":
       next.current = null;

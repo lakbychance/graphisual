@@ -62,7 +62,7 @@ function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
       if (d < min) { min = d; current = id; }
     }
     if (current === null) {
-      events.push({ type: "answer", start, target: end, path: null, line: LINE.loop, group });
+      events.push({ type: "answer", kind: "route", start, target: end, path: null, line: LINE.loop, group });
       return events;
     }
 
@@ -77,7 +77,7 @@ function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
     if (current === end) {
       const path = [end];
       for (let at = prev.get(end); at !== undefined; at = prev.get(at)) path.unshift(at);
-      events.push({ type: "answer", start, target: end, path, cost: min, line: LINE.walk, group: group + 1 });
+      events.push({ type: "answer", kind: "route", start, target: end, path, cost: min, line: LINE.walk, group: group + 1 });
       return events;
     }
 
@@ -122,7 +122,7 @@ function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): Algorith
     from = end;
     const [first] = group;
 
-    if (first.type === "answer") {
+    if (first.type === "answer" && first.kind === "route") {
       if (!first.path) return;
       yield { type: StepType.RESULT, edge: { from: -1, to: start } };
       for (let i = 1; i < first.path.length; i++) {

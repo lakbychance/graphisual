@@ -16,11 +16,26 @@ interface Tagged {
   group: number;
 }
 
-/** A node joins the frontier (queue, stack or priority queue), with its value if the algorithm keeps one. */
+/**
+ * The run begins at `node`, with its value if the algorithm keeps one. Algorithms with a frontier
+ * begin with an enqueue instead. A later start (group > 0) restarts the search in a part of the
+ * graph the earlier searches did not reach.
+ */
+export interface StartEvent extends Tagged {
+  type: "start";
+  node: number;
+  value?: number;
+}
+
+/**
+ * A node joins the frontier (queue, stack or priority queue), with its value if the algorithm keeps one.
+ * `from` is the node whose edge discovered it (absent for the start).
+ */
 export interface EnqueueEvent extends Tagged {
   type: "enqueue";
   node: number;
   value?: number;
+  from?: number;
 }
 
 /**
@@ -42,18 +57,30 @@ export type SkipReason =
   /** `to` is already final. */
   | "settled"
   /** Going through `from` is not shorter than what `to` already has. */
-  | "not-shorter";
+  | "not-shorter"
+  /** `from` has no value yet (∞), so it has nothing to offer. */
+  | "unreached"
+  /** `to` is already waiting in the frontier. */
+  | "queued"
+  /** `to` was already visited. */
+  | "visited"
+  /** The edge is the undirected one the search just came in on. */
+  | "parent";
 
-/** The edge from -> to was checked and changed nothing. `value` is what going through it would give. */
+/**
+ * The edge from -> to was checked and changed nothing. `value` is what going through it would give.
+ * `check` marks the extra pass that looks for a negative cycle once the distances should be final.
+ */
 export interface SkipEvent extends Tagged {
   type: "skip";
   from: number;
   to: number;
-  weight: number;
+  weight?: number;
   reason: SkipReason;
   value?: number;
   /** What `to` already had. */
   current?: number;
+  check?: boolean;
 }
 
 /**
@@ -70,7 +97,11 @@ export interface SettleEvent extends Tagged {
   target?: boolean;
 }
 
-/** How a depth-first search classifies an edge it meets. */
+/**
+ * How a depth-first search classifies an edge it meets: `tree` leads to an unvisited node,
+ * `back` to a node still in progress (a cycle), `forward` to a finished descendant and
+ * `cross` to any other finished node.
+ */
 export type EdgeClass = "tree" | "back" | "forward" | "cross";
 
 export interface ClassifyEvent extends Tagged {
@@ -80,16 +111,65 @@ export interface ClassifyEvent extends Tagged {
   kind: EdgeClass;
 }
 
+/** A depth-first search is done with `node`: every edge out of it has been followed. It returns to `parent`. */
+export interface FinishEvent extends Tagged {
+  type: "finish";
+  node: number;
+  parent?: number;
+}
+
+/** An edge the answer is made of. */
+export interface WeightedEdge {
+  from: number;
+  to: number;
+  weight: number;
+}
+
 /**
- * The run's answer. `path` is the route from start to target as node ids, or null when
- * the target cannot be reached. `cost` is the route's total weight.
+ * A route answer. `path` is the route from start to target as node ids, or null when there is
+ * none. `cost` is the route's total weight (absent when the algorithm counts edges instead).
+ * `negativeCycle` is the edge that still improved after every round, when one did.
  */
-export interface AnswerEvent extends Tagged {
+export interface RouteAnswer extends Tagged {
   type: "answer";
+  kind: "route";
   start: number;
   target: number;
   path: number[] | null;
   cost?: number;
+  negativeCycle?: WeightedEdge & { value: number; current: number };
 }
 
-export type AlgorithmEvent = EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | AnswerEvent;
+/** A traversal answer: the nodes in the order they were visited, and those never reached. */
+export interface OrderAnswer extends Tagged {
+  type: "answer";
+  kind: "order";
+  start: number;
+  order: number[];
+  unreached: number[];
+}
+
+/** A spanning tree answer: its edges in the order they joined, total weight, and nodes left out. */
+export interface TreeAnswer extends Tagged {
+  type: "answer";
+  kind: "tree";
+  start: number;
+  edges: WeightedEdge[];
+  total: number;
+  unreached: number[];
+}
+
+/**
+ * A cycle answer: `cycle` walks the loop from its first node back round to it (the last edge
+ * returns to `cycle[0]`), or is null when the graph has none.
+ */
+export interface CycleAnswer extends Tagged {
+  type: "answer";
+  kind: "cycle";
+  cycle: number[] | null;
+}
+
+export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer;
+
+export type AlgorithmEvent =
+  | StartEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;

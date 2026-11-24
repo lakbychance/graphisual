@@ -66,3 +66,44 @@ export function randomGraphs(count = 200, firstSeed = 1): RandomGraph[] {
   }
   return graphs;
 }
+
+/**
+ * One larger graph: a ring of 40 nodes with a few chords, so runs are long enough for the scrub
+ * check to build a checkpoint from an earlier one. Its simple paths stay few, so the oracles stay quick.
+ */
+export function largeGraph(seed = 1000): RandomGraph {
+  const rand = random(seed);
+  const int = (n: number) => Math.floor(rand() * n);
+  const size = 40;
+  const adjacencyList = new Map<number, EdgeInfo[]>();
+  for (let id = 1; id <= size; id++) adjacencyList.set(id, []);
+  const join = (from: number, to: number) => {
+    const weight = int(10);
+    adjacencyList.get(from)!.push({ from, to, weight, type: "undirected" });
+    adjacencyList.get(to)!.push({ from: to, to: from, weight, type: "undirected" });
+  };
+  for (let id = 1; id <= size; id++) join(id, (id % size) + 1);
+  for (let c = 0; c < 4; c++) join(1 + int(size), 1 + int(size));
+  return {
+    seed,
+    input: { adjacencyList, nodes: [...adjacencyList.keys()].map((id) => ({ id })), startNodeId: 1, endNodeId: 1 + size / 2 },
+  };
+}
+
+/** The same graph with every edge undirected (for algorithms that refuse directed edges). */
+export function asUndirected({ seed, input }: RandomGraph): RandomGraph {
+  const adjacencyList = new Map<number, EdgeInfo[]>([...input.adjacencyList.keys()].map((id) => [id, []]));
+  for (const edges of input.adjacencyList.values()) {
+    for (const { from, to, weight, type } of edges) {
+      adjacencyList.get(from)!.push({ from, to, weight, type: "undirected" });
+      if (type === "directed" && from !== to) adjacencyList.get(to)!.push({ from: to, to: from, weight, type: "undirected" });
+    }
+  }
+  return { seed, input: { ...input, adjacencyList } };
+}
+
+/** The same graph with every weight lowered by 2, so some are negative (−2 to 7). */
+export function withNegativeWeights({ seed, input }: RandomGraph): RandomGraph {
+  const adjacencyList = new Map([...input.adjacencyList].map(([id, edges]) => [id, edges.map((e) => ({ ...e, weight: e.weight - 2 }))]));
+  return { seed, input: { ...input, adjacencyList } };
+}

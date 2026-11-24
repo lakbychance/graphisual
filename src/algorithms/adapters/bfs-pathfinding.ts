@@ -6,135 +6,27 @@
  */
 
 import { BfsPathfindingIcon } from "../icons";
-import { nid } from "../traceHelpers";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-  EdgeRef,
-} from "../types";
-import { Queue } from "../utils/dataStructures";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType, StepType } from "../types";
+import { legacySearchSteps, searchEvents } from "./search";
 
-/**
- * Generator function for step-through BFS pathfinding.
- * Finds shortest path between start and end nodes.
- */
-function* bfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId, endNodeId } = input;
+const PSEUDOCODE = [
+  "parent[source] ← none",
+  "queue ← [ source ]",
+  "while queue is not empty:",
+  "    u ← queue.dequeue()",
+  "    if u = target: stop",
+  "    for each neighbor v of u:",
+  "        if v has no parent:",
+  "            parent[v] ← u",
+  "            queue.enqueue(v)",
+  "walk parent[] back from target",
+];
 
-  // Validate end node
-  if (endNodeId === undefined) {
-    return;
-  }
+const LINES = { start: 1, loop: 2, take: 3, stop: 4, check: 6, add: 8, walk: 9 };
 
-  // Handle same start and end
-  if (startNodeId === endNodeId) {
-    yield {
-      type: StepType.VISIT,
-      edge: { from: -1, to: startNodeId },
-      trace: {
-        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
-        dataStructure: { type: "queue", items: [], processing: { id: startNodeId } },
-      },
-    };
-    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
-    return;
-  }
-
-  const seen = new Set<number>(); // Tracks nodes added to queue (prevents duplicates)
-  const parent = new Map<number, number>();
-  const queue = new Queue<{ from: number; to: number }>();
-
-  // Start with the initial node
-  queue.push({ from: -1, to: startNodeId });
-  seen.add(startNodeId);
-
-  let foundTarget = false;
-
-  while (!queue.isEmpty()) {
-    const current = queue.shift()!;
-    const nodeId = current.to;
-
-    // Record parent for path reconstruction
-    parent.set(nodeId, current.from);
-
-    // Check if we found the target
-    if (nodeId === endNodeId) {
-      foundTarget = true;
-      // Yield the visit step with found message
-      yield {
-        type: StepType.VISIT,
-        edge: { from: current.from, to: nodeId },
-        trace: {
-          message: `**Found destination node ${nid(nodeId)}!**`,
-          dataStructure: {
-            type: "queue",
-            items: queue.getContents().map((item) => ({ id: item.to })),
-            processing: { id: nodeId },
-          },
-        },
-      };
-      break;
-    }
-
-    // Get neighbors and add unseen ones to queue
-    const neighbors = adjacencyList.get(nodeId) || [];
-    const addedToQueue: number[] = [];
-    for (const edge of neighbors) {
-      if (!seen.has(edge.to)) {
-        seen.add(edge.to);
-        queue.push({ from: nodeId, to: edge.to });
-        addedToQueue.push(edge.to);
-      }
-    }
-
-    // Build trace message
-    let message = `**Visiting node ${nid(nodeId)}**`;
-    if (addedToQueue.length > 0) {
-      message += `, added **${addedToQueue.map(nid).join(", ")}** to queue`;
-    }
-
-    // Yield the visit step with trace
-    yield {
-      type: StepType.VISIT,
-      edge: { from: current.from, to: nodeId },
-      trace: {
-        message,
-        dataStructure: {
-          type: "queue",
-          items: queue.getContents().map((item) => ({ id: item.to })),
-          processing: { id: nodeId },
-          justAdded: addedToQueue.length > 0 ? addedToQueue : undefined,
-        },
-      },
-    };
-  }
-
-  // Reconstruct and yield the path
-  if (foundTarget) {
-    const path: EdgeRef[] = [];
-    let current = endNodeId;
-
-    // Walk backwards from end to start
-    while (current !== startNodeId) {
-      const parentNode = parent.get(current);
-      if (parentNode === undefined || parentNode === -1) break;
-      path.unshift({ from: parentNode, to: current });
-      current = parentNode;
-    }
-
-    // Add the start node
-    path.unshift({ from: -1, to: startNodeId });
-
-    // Yield path edges as result steps
-    for (const edge of path) {
-      yield { type: StepType.RESULT, edge };
-    }
-  }
-}
+/** Everything BFS pathfinding does on this input, as events. Empty when there is no destination. */
+const bfsPathfindingEvents = (input: AlgorithmInput) =>
+  input.endNodeId === undefined ? [] : searchEvents(input, "queue", LINES, input.endNodeId);
 
 const bfsPathfindingAdapter: AlgorithmAdapter = {
   metadata: {
@@ -146,10 +38,13 @@ const bfsPathfindingAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select the source node", "Now select the destination node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: bfsPathfindingEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: bfsPathfindingGenerator,
+  generator: (input) => legacySearchSteps(bfsPathfindingEvents(input), "queue"),
 
   /**
    * Synchronous execution using generator internally.
@@ -160,7 +55,7 @@ const bfsPathfindingAdapter: AlgorithmAdapter = {
       return { steps: [], error: "End node is required for pathfinding." };
     }
 
-    const steps = [...bfsPathfindingGenerator(input)];
+    const steps = [...bfsPathfindingAdapter.generator(input)];
     const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
     if (!foundPath && input.startNodeId !== input.endNodeId) {

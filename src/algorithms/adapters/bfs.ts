@@ -6,67 +6,24 @@
  */
 
 import { BfsIcon } from "../icons";
-import { nid } from "../traceHelpers";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
-import { Queue } from "../utils/dataStructures";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType } from "../types";
+import { legacySearchSteps, searchEvents } from "./search";
 
-/**
- * Generator function for step-through BFS traversal.
- * Explores the graph level by level from the start node.
- */
-function* bfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId } = input;
-  const seen = new Set<number>(); // Tracks nodes added to queue (prevents duplicates)
-  const queue = new Queue<{ from: number; to: number }>();
+const PSEUDOCODE = [
+  "visited ← { source }",
+  "queue ← [ source ]",
+  "while queue is not empty:",
+  "    u ← queue.dequeue()",
+  "    for each neighbor v of u:",
+  "        if v is not visited:",
+  "            visited.add(v)",
+  "            queue.enqueue(v)",
+];
 
-  // Start with the initial node (from: -1 indicates root)
-  queue.push({ from: -1, to: startNodeId });
-  seen.add(startNodeId);
+const LINES = { start: 1, loop: 2, take: 3, check: 5, add: 7 };
 
-  while (!queue.isEmpty()) {
-    const current = queue.shift()!;
-    const nodeId = current.to;
-
-    // Get neighbors and add unseen ones to queue
-    const neighbors = adjacencyList.get(nodeId) || [];
-    const addedToQueue: number[] = [];
-    for (const edge of neighbors) {
-      if (!seen.has(edge.to)) {
-        seen.add(edge.to);
-        queue.push({ from: nodeId, to: edge.to });
-        addedToQueue.push(edge.to);
-      }
-    }
-
-    // Build trace message
-    let message = `**Visiting node ${nid(nodeId)}**`;
-    if (addedToQueue.length > 0) {
-      message += `, added **${addedToQueue.map(nid).join(", ")}** to queue`;
-    }
-
-    // Yield the visit step with trace
-    yield {
-      type: StepType.VISIT,
-      edge: { from: current.from, to: nodeId },
-      trace: {
-        message,
-        dataStructure: {
-          type: "queue",
-          items: queue.getContents().map((item) => ({ id: item.to })),
-          processing: { id: nodeId },
-          justAdded: addedToQueue.length > 0 ? addedToQueue : undefined,
-        },
-      },
-    };
-  }
-}
+/** Everything BFS does on this input, as events. */
+const bfsEvents = (input: AlgorithmInput) => searchEvents(input, "queue", LINES);
 
 const bfsAdapter: AlgorithmAdapter = {
   metadata: {
@@ -78,18 +35,21 @@ const bfsAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select a node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: bfsEvents,
+
   /**
    * Generator for step-through mode.
    * Yields one step at a time for manual stepping.
    */
-  generator: bfsGenerator,
+  generator: (input) => legacySearchSteps(bfsEvents(input), "queue"),
 
   /**
    * Synchronous execution that returns all results at once.
    * Uses the generator internally to ensure consistency.
    */
   execute: (input: AlgorithmInput): AlgorithmResult => ({
-    steps: [...bfsGenerator(input)],
+    steps: [...bfsAdapter.generator(input)],
   }),
 };
 

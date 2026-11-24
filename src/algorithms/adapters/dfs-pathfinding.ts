@@ -6,137 +6,27 @@
  */
 
 import { DfsPathfindingIcon } from "../icons";
-import { nid } from "../traceHelpers";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-  EdgeRef,
-} from "../types";
-import { Stack } from "../utils/dataStructures";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType, StepType } from "../types";
+import { legacySearchSteps, searchEvents } from "./search";
 
-/**
- * Generator function for step-through DFS pathfinding.
- * Finds a path between start and end nodes (not necessarily shortest).
- */
-function* dfsPathfindingGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId, endNodeId } = input;
+const PSEUDOCODE = [
+  "search(u):",
+  "    visited.add(u)",
+  "    if u = target: return found",
+  "    for each neighbor v of u:",
+  "        if v is not visited:",
+  "            if search(v) = found:",
+  "                path.prepend(v)",
+  "                return found",
+  "    return not found",
+  "search(source)",
+];
 
-  // Validate end node
-  if (endNodeId === undefined) {
-    return;
-  }
+const LINES = { start: 9, loop: 8, take: 1, stop: 2, check: 4, add: 5, walk: 6 };
 
-  // Handle same start and end
-  if (startNodeId === endNodeId) {
-    yield {
-      type: StepType.VISIT,
-      edge: { from: -1, to: startNodeId },
-      trace: {
-        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
-        dataStructure: { type: "stack", items: [], processing: { id: startNodeId } },
-      },
-    };
-    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
-    return;
-  }
-
-  const seen = new Set<number>(); // Tracks nodes added to stack (prevents duplicates)
-  const parent = new Map<number, number>();
-  const stack = new Stack<{ from: number; to: number }>();
-
-  // Start with the initial node
-  stack.push({ from: -1, to: startNodeId });
-  seen.add(startNodeId);
-
-  let foundTarget = false;
-
-  while (!stack.isEmpty()) {
-    const current = stack.pop()!;
-    const nodeId = current.to;
-
-    // Record parent for path reconstruction
-    parent.set(nodeId, current.from);
-
-    // Check if we found the target
-    if (nodeId === endNodeId) {
-      foundTarget = true;
-      // Yield the visit step with found message
-      yield {
-        type: StepType.VISIT,
-        edge: { from: current.from, to: nodeId },
-        trace: {
-          message: `**Found destination node ${nid(nodeId)}!**`,
-          dataStructure: {
-            type: "stack",
-            items: stack.getContents().map((item) => ({ id: item.to })),
-            processing: { id: nodeId },
-          },
-        },
-      };
-      break;
-    }
-
-    // Get neighbors and add unseen ones to stack
-    // Reverse to maintain expected order (leftmost first)
-    const neighbors = adjacencyList.get(nodeId) || [];
-    const addedToStack: number[] = [];
-    for (let i = neighbors.length - 1; i >= 0; i--) {
-      const edge = neighbors[i];
-      if (!seen.has(edge.to)) {
-        seen.add(edge.to);
-        stack.push({ from: nodeId, to: edge.to });
-        addedToStack.unshift(edge.to); // unshift to show in natural order
-      }
-    }
-
-    // Build trace message
-    let message = `**Visiting node ${nid(nodeId)}**`;
-    if (addedToStack.length > 0) {
-      message += `, pushed **${addedToStack.map(nid).join(", ")}** to stack`;
-    }
-
-    // Yield the visit step with trace
-    yield {
-      type: StepType.VISIT,
-      edge: { from: current.from, to: nodeId },
-      trace: {
-        message,
-        dataStructure: {
-          type: "stack",
-          items: stack.getContents().map((item) => ({ id: item.to })),
-          processing: { id: nodeId },
-          justAdded: addedToStack.length > 0 ? addedToStack : undefined,
-        },
-      },
-    };
-  }
-
-  // Reconstruct and yield the path
-  if (foundTarget) {
-    const path: EdgeRef[] = [];
-    let current = endNodeId;
-
-    // Walk backwards from end to start
-    while (current !== startNodeId) {
-      const parentNode = parent.get(current);
-      if (parentNode === undefined || parentNode === -1) break;
-      path.unshift({ from: parentNode, to: current });
-      current = parentNode;
-    }
-
-    // Add the start node
-    path.unshift({ from: -1, to: startNodeId });
-
-    // Yield path edges as result steps
-    for (const edge of path) {
-      yield { type: StepType.RESULT, edge };
-    }
-  }
-}
+/** Everything DFS pathfinding does on this input, as events. Empty when there is no destination. */
+const dfsPathfindingEvents = (input: AlgorithmInput) =>
+  input.endNodeId === undefined ? [] : searchEvents(input, "stack", LINES, input.endNodeId);
 
 const dfsPathfindingAdapter: AlgorithmAdapter = {
   metadata: {
@@ -148,10 +38,13 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select the source node", "Now select the destination node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: dfsPathfindingEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: dfsPathfindingGenerator,
+  generator: (input) => legacySearchSteps(dfsPathfindingEvents(input), "stack"),
 
   /**
    * Synchronous execution using generator internally.
@@ -162,7 +55,7 @@ const dfsPathfindingAdapter: AlgorithmAdapter = {
       return { steps: [], error: "End node is required for pathfinding." };
     }
 
-    const steps = [...dfsPathfindingGenerator(input)];
+    const steps = [...dfsPathfindingAdapter.generator(input)];
     const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
     if (!foundPath && input.startNodeId !== input.endNodeId) {

@@ -8,183 +8,154 @@
 
 import { BellmanFordIcon } from "../icons";
 import { nid } from "../traceHelpers";
+import type { AlgorithmEvent } from "../engine";
 import {
   AlgorithmAdapter,
   AlgorithmInput,
   AlgorithmResult,
   AlgorithmType,
   AlgorithmGenerator,
-  EdgeRef,
-  EdgeInfo,
   StepType,
 } from "../types";
 
+const PSEUDOCODE = [
+  "dist[source] ← 0",
+  "repeat V − 1 times:",
+  "    for each edge (u, v, w):",
+  "        if dist[u] + w < dist[v]:",
+  "            dist[v] ← dist[u] + w",
+  "            prev[v] ← u",
+  "for each edge (u, v, w):",
+  "    if dist[u] + w < dist[v]:",
+  "        report a negative cycle",
+  "walk prev[] back from target",
+];
+
+/** Pseudocode line of each kind of event. */
+const LINE = { start: 0, rounds: 1, check: 3, relax: 4, cycleCheck: 7, cycle: 8, walk: 9 } as const;
+
 /**
- * Generator function for step-through Bellman-Ford execution.
- * Yields visit steps during relaxation, then result steps for the path.
+ * Everything Bellman-Ford does on this input, as events. Empty when there is no destination.
+ * Group 0 is the start and group k is round k. A round that changes nothing ends the rounds early;
+ * if every round changed something, one more pass looks for a negative cycle.
  */
-function* bellmanFordGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, nodes, startNodeId, endNodeId } = input;
-
-  // Validate end node
-  if (endNodeId === undefined) {
-    return;
+function bellmanFordEvents(input: AlgorithmInput): AlgorithmEvent[] {
+  const { adjacencyList, nodes, startNodeId: start, endNodeId: end } = input;
+  if (end === undefined) return [];
+  const events: AlgorithmEvent[] = [{ type: "start", node: start, value: 0, line: LINE.start, group: 0 }];
+  if (start === end) {
+    events.push({ type: "answer", kind: "route", start, target: end, path: [start], cost: 0, line: LINE.walk, group: 1 });
+    return events;
   }
 
-  // Handle same start and end
-  if (startNodeId === endNodeId) {
-    yield {
-      type: StepType.VISIT,
-      edge: { from: -1, to: startNodeId },
-      trace: {
-        message: `**Start and destination are the same** (node ${nid(startNodeId)})`,
-        dataStructure: { type: "distances", items: [{ id: startNodeId, value: 0 }] },
-      },
-    };
-    yield { type: StepType.RESULT, edge: { from: -1, to: startNodeId } };
-    return;
-  }
+  const edges = [...adjacencyList.values()].flat();
+  const dist = new Map<number, number>();
+  for (const node of nodes) dist.set(node.id, node.id === start ? 0 : Infinity);
+  for (const id of adjacencyList.keys()) if (!dist.has(id)) dist.set(id, id === start ? 0 : Infinity);
+  const prev = new Map<number, number>();
+  const rounds = Math.max(nodes.length, dist.size) - 1;
 
-  // Collect all edges from adjacency list
-  const allEdges: EdgeInfo[] = [];
-  adjacencyList.forEach((edges) => {
-    for (const edge of edges) {
-      allEdges.push(edge);
-    }
-  });
-
-  // Initialize distances
-  const distances = new Map<number, number>();
-  const previous = new Map<number, number>();
-
-  // Initialize all nodes to infinity, except start
-  for (const node of nodes) {
-    distances.set(node.id, node.id === startNodeId ? 0 : Infinity);
-  }
-
-  // Also ensure all nodes in adjacency list are initialized
-  adjacencyList.forEach((_, nodeId) => {
-    if (!distances.has(nodeId)) {
-      distances.set(nodeId, nodeId === startNodeId ? 0 : Infinity);
-    }
-  });
-
-  // Helper to count reachable nodes
-  const getReachableCount = () => {
-    return Array.from(distances.values()).filter((d) => d !== Infinity).length;
-  };
-
-  // Yield start node
-  yield {
-    type: StepType.VISIT,
-    edge: { from: -1, to: startNodeId },
-    trace: {
-      message: `**Starting at node ${nid(startNodeId)}** (distance: 0)\n**1** node reachable`,
-      dataStructure: {
-        type: "distances",
-        items: [],
-        processing: { id: startNodeId, value: 0 },
-      },
-    },
-  };
-
-  // Relax all edges V-1 times
-  const V = Math.max(nodes.length, distances.size);
-  for (let i = 0; i < V - 1; i++) {
-    let updated = false;
-
-    for (const edge of allEdges) {
-      const distFrom = distances.get(edge.from) ?? Infinity;
-      const distTo = distances.get(edge.to) ?? Infinity;
-      const newDist = distFrom + edge.weight;
-
-      if (distFrom !== Infinity && newDist < distTo) {
-        const oldDist = distTo === Infinity ? "∞" : distTo;
-        distances.set(edge.to, newDist);
-        previous.set(edge.to, edge.from);
-        updated = true;
-
-        const reachableCount = getReachableCount();
-
-        // Check if we found the target
-        const isTarget = edge.to === endNodeId;
-        const message = isTarget
-          ? `Iteration ${i + 1}: **Found destination!** Relaxed **${nid(edge.from)}→${nid(edge.to)}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`
-          : `Iteration ${i + 1}: Relaxed **${nid(edge.from)}→${nid(edge.to)}**, d: **${oldDist}→${newDist}**\n**${reachableCount}** nodes reachable`;
-
-        // Yield the relaxation step
-        yield {
-          type: StepType.VISIT,
-          edge: { from: edge.from, to: edge.to },
-          trace: {
-            message,
-            dataStructure: {
-              type: "distances",
-              items: [],
-              processing: { id: edge.to, value: newDist },
-            },
-          },
-        };
+  let group = 0;
+  let changed = true;
+  for (let round = 1; round <= rounds && changed; round++) {
+    group = round;
+    changed = false;
+    for (const { from, to, weight } of edges) {
+      const base = dist.get(from) ?? Infinity;
+      const old = dist.get(to) ?? Infinity;
+      const edge = { from, to, weight, group };
+      if (base === Infinity) {
+        events.push({ type: "skip", ...edge, reason: "unreached", line: LINE.check });
+      } else if (base + weight < old) {
+        dist.set(to, base + weight);
+        prev.set(to, from);
+        changed = true;
+        events.push({ type: "relax", ...edge, old, next: base + weight, line: LINE.relax });
+      } else {
+        events.push({ type: "skip", ...edge, reason: "not-shorter", value: base + weight, current: old, line: LINE.check });
       }
     }
-
-    // Early termination if no updates
-    if (!updated) break;
   }
 
-  // Check for negative weight cycles (one more iteration)
-  for (const edge of allEdges) {
-    const distFrom = distances.get(edge.from) ?? Infinity;
-    const distTo = distances.get(edge.to) ?? Infinity;
-
-    if (distFrom !== Infinity && distFrom + edge.weight < distTo) {
-      // Negative cycle detected - return without result path
-      return;
+  group += 1;
+  if (changed) {
+    // Every round changed something, so check once more: an edge that still improves means a negative cycle.
+    for (const { from, to, weight } of edges) {
+      const base = dist.get(from) ?? Infinity;
+      const current = dist.get(to) ?? Infinity;
+      const edge = { from, to, weight, group };
+      if (base === Infinity) {
+        events.push({ type: "skip", ...edge, reason: "unreached", check: true, line: LINE.cycleCheck });
+      } else if (base + weight < current) {
+        events.push({
+          type: "answer", kind: "route", start, target: end, path: null,
+          negativeCycle: { from, to, weight, value: base + weight, current }, line: LINE.cycle, group,
+        });
+        return events;
+      } else {
+        events.push({ type: "skip", ...edge, reason: "not-shorter", value: base + weight, current, check: true, line: LINE.cycleCheck });
+      }
     }
+    group += 1;
   }
 
-  // Check if end node is reachable
-  if (distances.get(endNodeId) === Infinity) {
-    return; // No path found
-  }
-
-  // Reconstruct and yield result path
-  const resultEdges = reconstructPath(previous, startNodeId, endNodeId);
-  for (const edge of resultEdges) {
-    yield { type: StepType.RESULT, edge };
-  }
+  const cost = dist.get(end) ?? Infinity;
+  const path = [end];
+  if (cost !== Infinity) for (let at = prev.get(end); at !== undefined; at = prev.get(at)) path.unshift(at);
+  const reached = cost !== Infinity && path[0] === start;
+  events.push({
+    type: "answer", kind: "route", start, target: end, path: reached ? path : null,
+    ...(reached && { cost }), line: reached ? LINE.walk : LINE.rounds, group,
+  });
+  return events;
 }
 
 /**
- * Reconstruct the shortest path from start to end using the previous map.
+ * Today's app steps, derived from the events: the start, one VISIT step per relaxation, then
+ * RESULT steps along the route. Replaced by frames in task 0.4.
  */
-function reconstructPath(
-  previous: Map<number, number>,
-  startNodeId: number,
-  endNodeId: number
-): EdgeRef[] {
-  const path: EdgeRef[] = [];
-  let current: number | undefined = endNodeId;
-
-  // Build path backwards
-  const nodeOrder: number[] = [];
-  while (current !== undefined) {
-    nodeOrder.unshift(current);
-    current = previous.get(current);
+function* legacySteps(events: AlgorithmEvent[], input: AlgorithmInput): AlgorithmGenerator {
+  const { startNodeId: start, endNodeId: end } = input;
+  const reached = new Set<number>();
+  for (const event of events) {
+    if (event.type === "start") {
+      reached.add(event.node);
+      yield start === end
+        ? {
+          type: StepType.VISIT,
+          edge: { from: -1, to: start },
+          trace: {
+            message: `**Start and destination are the same** (node ${nid(start)})`,
+            dataStructure: { type: "distances", items: [{ id: start, value: 0 }] },
+          },
+        }
+        : {
+          type: StepType.VISIT,
+          edge: { from: -1, to: start },
+          trace: {
+            message: `**Starting at node ${nid(start)}** (distance: 0)\n**1** node reachable`,
+            dataStructure: { type: "distances", items: [], processing: { id: start, value: 0 } },
+          },
+        };
+    } else if (event.type === "relax") {
+      const { from, to, old, next } = event;
+      reached.add(to);
+      const found = to === end ? "**Found destination!** " : "";
+      yield {
+        type: StepType.VISIT,
+        edge: { from, to },
+        trace: {
+          message: `Iteration ${event.group}: ${found}Relaxed **${nid(from)}→${nid(to)}**, d: **${old === Infinity ? "∞" : old}→${next}**\n**${reached.size}** nodes reachable`,
+          dataStructure: { type: "distances", items: [], processing: { id: to, value: next } },
+        },
+      };
+    } else if (event.type === "answer" && event.kind === "route" && event.path) {
+      yield { type: StepType.RESULT, edge: { from: -1, to: start } };
+      for (let i = 1; i < event.path.length; i++) {
+        yield { type: StepType.RESULT, edge: { from: event.path[i - 1], to: event.path[i] } };
+      }
+    }
   }
-
-  // Verify path starts from startNode
-  if (nodeOrder.length === 0 || nodeOrder[0] !== startNodeId) {
-    return [];
-  }
-
-  // Convert to edges
-  path.push({ from: -1, to: startNodeId });
-  for (let i = 0; i < nodeOrder.length - 1; i++) {
-    path.push({ from: nodeOrder[i], to: nodeOrder[i + 1] });
-  }
-
-  return path;
 }
 
 const bellmanFordAdapter: AlgorithmAdapter = {
@@ -197,10 +168,13 @@ const bellmanFordAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select the source node", "Now select the destination node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: bellmanFordEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: bellmanFordGenerator,
+  generator: (input) => legacySteps(bellmanFordEvents(input), input),
 
   /**
    * Synchronous execution using generator internally.
@@ -211,7 +185,7 @@ const bellmanFordAdapter: AlgorithmAdapter = {
       return { steps: [], error: "End node is required for pathfinding." };
     }
 
-    const steps = [...bellmanFordGenerator(input)];
+    const steps = [...bellmanFordAdapter.generator(input)];
     const foundPath = steps.some((s) => s.type === StepType.RESULT);
 
     if (!foundPath && input.startNodeId !== input.endNodeId) {

@@ -6,69 +6,25 @@
  */
 
 import { DfsIcon } from "../icons";
-import { nid } from "../traceHelpers";
-import {
-  AlgorithmAdapter,
-  AlgorithmInput,
-  AlgorithmResult,
-  AlgorithmType,
-  AlgorithmGenerator,
-  StepType,
-} from "../types";
-import { Stack } from "../utils/dataStructures";
+import { AlgorithmAdapter, AlgorithmInput, AlgorithmResult, AlgorithmType } from "../types";
+import { legacySearchSteps, searchEvents } from "./search";
 
-/**
- * Generator function for step-through DFS traversal.
- * Explores the graph by going as deep as possible before backtracking.
- */
-function* dfsGenerator(input: AlgorithmInput): AlgorithmGenerator {
-  const { adjacencyList, startNodeId } = input;
-  const seen = new Set<number>(); // Tracks nodes added to stack (prevents duplicates)
-  const stack = new Stack<{ from: number; to: number }>();
+const PSEUDOCODE = [
+  "visited ← { }",
+  "stack ← [ source ]",
+  "while stack is not empty:",
+  "    u ← stack.pop()",
+  "    if u is visited: continue",
+  "    visited.add(u)",
+  "    for each neighbor v of u:",
+  "        if v is not visited:",
+  "            stack.push(v)",
+];
 
-  // Start with the initial node (from: -1 indicates root)
-  stack.push({ from: -1, to: startNodeId });
-  seen.add(startNodeId);
+const LINES = { start: 1, loop: 2, take: 3, check: 7, add: 8 };
 
-  while (!stack.isEmpty()) {
-    const current = stack.pop()!;
-    const nodeId = current.to;
-
-    // Get neighbors and add unseen ones to stack
-    // Reverse to maintain expected order (leftmost first)
-    const neighbors = adjacencyList.get(nodeId) || [];
-    const addedToStack: number[] = [];
-    for (let i = neighbors.length - 1; i >= 0; i--) {
-      const edge = neighbors[i];
-      if (!seen.has(edge.to)) {
-        seen.add(edge.to);
-        stack.push({ from: nodeId, to: edge.to });
-        addedToStack.unshift(edge.to); // unshift to show in natural order
-      }
-    }
-
-    // Build trace message
-    let message = `**Visiting node ${nid(nodeId)}**`;
-    if (addedToStack.length > 0) {
-      message += `, pushed **${addedToStack.map(nid).join(", ")}** to stack`;
-    }
-
-    // Yield the visit step with trace
-    yield {
-      type: StepType.VISIT,
-      edge: { from: current.from, to: nodeId },
-      trace: {
-        message,
-        dataStructure: {
-          type: "stack",
-          items: stack.getContents().map((item) => ({ id: item.to })),
-          processing: { id: nodeId },
-          justAdded: addedToStack.length > 0 ? addedToStack : undefined,
-        },
-      },
-    };
-  }
-}
+/** Everything DFS does on this input, as events. */
+const dfsEvents = (input: AlgorithmInput) => searchEvents(input, "stack", LINES);
 
 const dfsAdapter: AlgorithmAdapter = {
   metadata: {
@@ -80,16 +36,19 @@ const dfsAdapter: AlgorithmAdapter = {
     inputStepHints: ["Select a node"],
   },
 
+  pseudocode: PSEUDOCODE,
+  events: dfsEvents,
+
   /**
    * Generator for step-through mode.
    */
-  generator: dfsGenerator,
+  generator: (input) => legacySearchSteps(dfsEvents(input), "stack"),
 
   /**
    * Synchronous execution using generator internally.
    */
   execute: (input: AlgorithmInput): AlgorithmResult => ({
-    steps: [...dfsGenerator(input)],
+    steps: [...dfsAdapter.generator(input)],
   }),
 };
 
