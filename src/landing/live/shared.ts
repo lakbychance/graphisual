@@ -1,5 +1,4 @@
-import type { LabEdge, LabGraph } from "../engine";
-import type { CompareTable, Experiment, LiveConfig } from "./types";
+import type { CompareTable, Experiment, LabEdge, LabGraph, LiveConfig } from "./types";
 
 type Point = [number, number];
 const LABELS = ["A", "B", "C", "D", "E", "F"];

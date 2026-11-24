@@ -9,19 +9,18 @@ import { DfsIcon } from "../icons";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { searchEvents } from "./search";
 
+/** A node already waiting on the stack moves to the top when found again, so the stack holds each node once. */
 const PSEUDOCODE = [
-  "visited ← { }",
-  "stack ← [ source ]",
+  "stack ← [ source ], visited ← { }",
   "while stack is not empty:",
-  "    u ← stack.pop()",
-  "    if u is visited: continue",
-  "    visited.add(u)",
-  "    for each neighbor v of u:",
+  "    u ← stack.pop(), visited.add(u)",
+  "    for each neighbor v, in reverse order:",
   "        if v is not visited:",
-  "            stack.push(v)",
+  "            push v, or move it to the top",
+  "    if nothing u pushed waits: u is done",
 ];
 
-const LINES = { start: 1, loop: 2, take: 3, check: 7, add: 8, finish: 6 };
+const LINES = { start: 0, loop: 1, take: 2, check: 4, add: 5, finish: 6 };
 
 /** Everything DFS does on this input, as events. */
 const dfsEvents = (input: AlgorithmInput) => searchEvents(input, "stack", LINES);

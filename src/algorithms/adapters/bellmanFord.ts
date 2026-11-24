@@ -13,20 +13,22 @@ import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
-  "dist[source] ← 0",
-  "repeat V − 1 times:",
+  "dist[·] ← ∞, dist[source] ← 0",
+  "repeat V − 1 times or until no change:",
   "    for each edge (u, v, w):",
   "        if dist[u] + w < dist[v]:",
   "            dist[v] ← dist[u] + w",
   "            prev[v] ← u",
-  "for each edge (u, v, w):",
-  "    if dist[u] + w < dist[v]:",
-  "        report a negative cycle",
+  "if the last round changed, check again:",
+  "    if an edge improves: negative cycle",
   "walk prev[] back from target",
 ];
 
-/** Pseudocode line of each kind of event. */
-const LINE = { start: 0, rounds: 1, check: 3, relax: 4, cycleCheck: 7, cycle: 8, walk: 9 } as const;
+/**
+ * Pseudocode line of each kind of event. A relaxation is one event, so it points at the
+ * distance it changes; the line under it runs in the same step.
+ */
+const LINE = { start: 0, rounds: 1, check: 3, relax: 4, cycleCheck: 6, cycle: 7, walk: 8 } as const;
 
 /**
  * Everything Bellman-Ford does on this input, as events. Empty when there is no destination.

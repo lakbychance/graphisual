@@ -1,9 +1,12 @@
-import type { LabGraph } from "../engine";
+export interface LabNode { id: number; label: string; x: number; y: number }
+export interface LabEdge { from: number; to: number; weight: number; directed?: boolean }
+/** A page's small graph. `end` is set for pathfinding algorithms only. */
+export interface LabGraph { nodes: LabNode[]; edges: LabEdge[]; start: number; end?: number }
 
 /** What the algorithm produces, which decides how a run is summarised. */
 export type Kind = "route" | "traversal" | "tree" | "cycle";
 
-/** Indexes (of steps or pseudocode lines) lit in each part of a run. */
+/** Indexes of the how-it-works steps lit in each part of a run. */
 export interface PhaseMap {
   ready: number[];
   explore: number[];
@@ -49,8 +52,6 @@ export interface LiveConfig {
   edges: Array<[number, number, number]>;
   /** What the table under the steps shows: best distance, or visit order. */
   ledger: "distance" | "order";
-  pseudocode: string[];
-  lines: PhaseMap;
   steps: PhaseMap;
   specs: Spec[];
   limits: { heading: string; experiment: Experiment; table: CompareTable; here: string };

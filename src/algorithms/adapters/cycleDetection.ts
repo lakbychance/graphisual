@@ -12,20 +12,20 @@ import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
 const PSEUDOCODE = [
-  "visit(u):",
+  "visit(u, parent):",
   "    state[u] ← in progress",
   "    for each neighbor v of u:",
+  "        if v = parent (undirected): skip",
   "        if state[v] = in progress:",
   "            report cycle (u → v)",
   "        if state[v] = unvisited:",
-  "            visit(v)",
+  "            visit(v, u)",
   "    state[u] ← done",
-  "for each unvisited node u:",
-  "    visit(u)",
+  "for each unvisited node u: visit(u, none)",
 ];
 
 /** Pseudocode line of each kind of event. */
-const LINE = { enter: 1, inProgress: 3, report: 4, unvisited: 5, recurse: 6, done: 7, outer: 8 } as const;
+const LINE = { enter: 1, parent: 3, inProgress: 4, report: 5, unvisited: 6, recurse: 7, done: 8, outer: 9 } as const;
 
 /**
  * Everything cycle detection does on this input, as events. A depth-first search from the start,
@@ -56,10 +56,10 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
       } else if (seen === "in-progress") {
         // An undirected edge back to the parent is the edge just taken, not a cycle.
         if (edge.type === EDGE_TYPE.UNDIRECTED && to === from) {
-          events.push({ type: "skip", from: node, to, reason: "parent", line: LINE.inProgress, group });
+          events.push({ type: "skip", from: node, to, reason: "parent", line: LINE.parent, group });
           continue;
         }
-        events.push({ type: "classify", from: node, to, kind: "back", line: LINE.report, group });
+        events.push({ type: "classify", from: node, to, kind: "back", line: LINE.inProgress, group });
         const cycle = [node];
         for (let at = node; at !== to; at = parent.get(at)!) cycle.unshift(parent.get(at)!);
         events.push({ type: "answer", kind: "cycle", cycle, line: LINE.report, group: group + 1 });

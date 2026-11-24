@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, StepBack, StepForward } from "lucide-react";
-import { runAlgorithm, usePlayback } from "./engine";
+import { usePlayback } from "./playback";
+import { runAlgorithm } from "./run";
 import { verdict, type AlgorithmLandingProps, type Entry } from "./helpers";
 import { LiveGraph } from "./LiveGraph";
 import { useSound } from "./sound";

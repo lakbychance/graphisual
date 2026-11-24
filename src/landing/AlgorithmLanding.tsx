@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import "@/algorithms";
 import "./landing.css";
-import type { LabGraph } from "./engine";
+import type { LabGraph } from "./live/types";
 import { Experiment } from "./Experiment";
 import { appLink, type AlgorithmLandingProps } from "./helpers";
 import { LiveGraph, type GraphBox } from "./LiveGraph";

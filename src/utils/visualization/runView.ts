@@ -35,53 +35,88 @@ const frameOf = (run: Run, index: number): Frame => frameAt(run.events, index < 
 /** The events that make up step `index`. */
 const eventsOf = (run: Run, index: number) => run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
 
+/** An edge walked from -> to. */
+export interface Walk {
+  from: number;
+  to: number;
+}
+
+/** What a step has walked so far, and the answer it shows (see `walkedAt`). */
+export interface Walked {
+  /** Nodes lit as visited. */
+  visited: number[];
+  /** Edges lit as walked, in the direction they were walked. */
+  walks: Walk[];
+  /** The answer's nodes and edges, when the step shows a route or a cycle. */
+  answer: { kind: "route" | "cycle"; nodes: number[]; walks: Walk[] } | null;
+}
+
 /**
- * The canvas highlights once step `index` is shown. Nodes made final are visited, through the
- * edge they were reached by; a run that never makes nodes final (Bellman-Ford) shows the nodes it
- * has reached, through their best edges. An edge back to a node in progress is walked too. The
- * answer lights the route or the cycle. Undirected edges light both ways.
+ * What is walked once step `index` is shown. Nodes made final are visited, through the edge they
+ * were reached by; a run that never makes nodes final (Bellman-Ford) shows the nodes it has reached,
+ * through their best edges. An edge back to a node in progress is walked too. The answer is the
+ * route, or the cycle walked round back to its first node. The app's canvas and the landing pages
+ * both draw from this.
+ */
+export function walkedAt(run: Run, index: number): Walked {
+  if (index < 0) return { visited: [], walks: [], answer: null };
+  const frame = frameOf(run, index);
+  const settles = run.events.some((e) => e.type === "settle");
+  const visited = settles ? [...frame.settled] : [...frame.dist.keys()];
+  const walks: Walk[] = [...(settles ? frame.via : frame.prev)].map(([to, from]) => ({ from, to }));
+  for (const [key, kind] of frame.edgeClass) {
+    if (kind !== "back") continue;
+    const [from, to] = key.split("-").map(Number);
+    walks.push({ from, to });
+  }
+
+  const { answer } = frame;
+  let shown: Walked["answer"] = null;
+  if (answer?.kind === "route" && answer.path) {
+    const { path } = answer;
+    shown = { kind: "route", nodes: path, walks: path.slice(1).map((to, i) => ({ from: path[i], to })) };
+  } else if (answer?.kind === "cycle" && answer.cycle) {
+    const { cycle } = answer;
+    shown = { kind: "cycle", nodes: cycle, walks: cycle.map((from, i) => ({ from, to: cycle[(i + 1) % cycle.length] })) };
+  }
+  return { visited, walks, answer: shown };
+}
+
+/**
+ * The canvas highlights once step `index` is shown, from `walkedAt`. Undirected edges light both ways.
  */
 export function highlightsAt(run: Run, index: number, edges: Map<number, GraphEdge[]>): VisualizationTrace {
   const trace = emptyTrace();
-  if (index < 0) return trace;
-  const frame = frameOf(run, index);
-
   const markNode = (id: number, flags: NodeVisualizationFlags) => trace.nodes.set(id, { ...trace.nodes.get(id), ...flags });
-  const markEdge = (from: number, to: number, flags: EdgeVisualizationFlags) => {
+  const markEdge = ({ from, to }: Walk, flags: EdgeVisualizationFlags) => {
     const mark = (a: number, b: number) => trace.edges.set(`${a}-${b}`, { ...trace.edges.get(`${a}-${b}`), ...flags });
     mark(from, to);
     if (edges.get(from)?.some((e) => e.to === to && e.type === EDGE_TYPE.UNDIRECTED)) mark(to, from);
   };
 
-  const traversal = { isUsedInTraversal: true };
-  if (run.events.some((e) => e.type === "settle")) {
-    for (const id of frame.settled) markNode(id, { isVisited: true });
-    for (const [to, from] of frame.via) markEdge(from, to, traversal);
-  } else {
-    for (const id of frame.dist.keys()) markNode(id, { isVisited: true });
-    for (const [to, from] of frame.prev) markEdge(from, to, traversal);
-  }
-  for (const [key, kind] of frame.edgeClass) {
-    if (kind !== "back") continue;
-    const [from, to] = key.split("-").map(Number);
-    markEdge(from, to, traversal);
-  }
-
-  const { answer } = frame;
-  if (answer?.kind === "route" && answer.path) {
-    const { path } = answer;
-    path.forEach((id, i) => {
-      markNode(id, { isInShortestPath: true });
-      if (i > 0) markEdge(path[i - 1], id, { isUsedInShortestPath: true });
-    });
-  } else if (answer?.kind === "cycle" && answer.cycle) {
-    const { cycle } = answer;
-    cycle.forEach((id, i) => {
-      markNode(id, { isInCycle: true });
-      markEdge(id, cycle[(i + 1) % cycle.length], { isUsedInCycle: true });
-    });
+  const { visited, walks, answer } = walkedAt(run, index);
+  for (const id of visited) markNode(id, { isVisited: true });
+  for (const walk of walks) markEdge(walk, { isUsedInTraversal: true });
+  if (answer?.kind === "route") {
+    for (const id of answer.nodes) markNode(id, { isInShortestPath: true });
+    for (const walk of answer.walks) markEdge(walk, { isUsedInShortestPath: true });
+  } else if (answer?.kind === "cycle") {
+    for (const id of answer.nodes) markNode(id, { isInCycle: true });
+    for (const walk of answer.walks) markEdge(walk, { isUsedInCycle: true });
   }
   return trace;
+}
+
+/**
+ * The pseudocode line step `index` lights: the line of its last event that changed something
+ * (anything but a skip), or of its last event when nothing changed.
+ */
+export function lineAt(run: Run, index: number): number | null {
+  if (index < 0 || index >= run.ends.length) return null;
+  const step = eventsOf(run, index);
+  const changed = step.filter((e) => e.type !== "skip");
+  const lit = changed.length > 0 ? changed : step;
+  return lit[lit.length - 1]?.line ?? null;
 }
 
 /* ------------------------------------------------------------- trace panel */

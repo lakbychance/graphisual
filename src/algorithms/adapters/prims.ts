@@ -11,20 +11,24 @@ import type { AlgorithmEvent, WeightedEdge } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
+/** Each node keeps one cost, the cheapest edge joining it to the tree so far, and it only ever shrinks. */
 const PSEUDOCODE = [
-  "tree ← { source }",
-  "queue ← edges leaving source",
+  "cost[·] ← ∞, cost[source] ← 0",
+  "queue ← { source }",
   "while queue is not empty:",
-  "    (u, v, w) ← queue.extractMin()",
-  "    if v is already in tree: continue",
-  "    tree.add(v), keep edge (u, v)",
-  "    for each edge (v, x, w) leaving v:",
-  "        if x is not in tree:",
-  "            queue.insert((v, x, w))",
+  "    u ← queue.extractMin(), tree.add(u)",
+  "    for each edge (u, v, w):",
+  "        if v is in tree: skip",
+  "        if w < cost[v]:",
+  "            cost[v] ← w, parent[v] ← u",
+  "            v joins or moves up the queue",
 ];
 
-/** Pseudocode line of each kind of event. */
-const LINE = { start: 0, loop: 2, add: 5, check: 7, insert: 8 } as const;
+/**
+ * Pseudocode line of each kind of event. A lowered cost is one event, so it points at the cost it
+ * changes; the queue update under it runs in the same step.
+ */
+const LINE = { start: 0, loop: 2, add: 3, inTree: 5, check: 6, lower: 7 } as const;
 
 const hasDirectedEdge = ({ adjacencyList }: AlgorithmInput) =>
   [...adjacencyList.values()].some((edges) => edges.some((edge) => edge.type === EDGE_TYPE.DIRECTED));
@@ -63,23 +67,23 @@ function primsEvents(input: AlgorithmInput): AlgorithmEvent[] {
       edges.push({ from: via, to: node, weight: min });
     }
     events.push({
-      type: "settle", node, value: min, via, line: via === undefined ? LINE.start : LINE.add, group,
+      type: "settle", node, value: min, via, line: LINE.add, group,
       ...(ties.length > 0 && { ties }),
     });
 
     for (const { to, weight } of adjacencyList.get(node) ?? []) {
       const edge = { from: node, to, weight, group };
       if (tree.has(to)) {
-        events.push({ type: "skip", ...edge, reason: "settled", line: LINE.check });
+        events.push({ type: "skip", ...edge, reason: "settled", line: LINE.inTree });
         continue;
       }
       const old = key.get(to) ?? Infinity;
       if (weight < old) {
         key.set(to, weight);
         parent.set(to, node);
-        events.push({ type: "relax", ...edge, old, next: weight, queue: true, line: LINE.insert });
+        events.push({ type: "relax", ...edge, old, next: weight, queue: true, line: LINE.lower });
       } else {
-        events.push({ type: "skip", ...edge, reason: "not-shorter", value: weight, current: old, line: LINE.insert });
+        events.push({ type: "skip", ...edge, reason: "not-shorter", value: weight, current: old, line: LINE.check });
       }
     }
   }

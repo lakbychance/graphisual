@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type PointerEvent as ReactPointerEvent } from "react";
-import { formatDistance, type Frame, type LabGraph } from "./engine";
+import type { LabGraph } from "./live/types";
+import { formatDistance, type Frame } from "./run";
 
 export type MaterialName = "paper" | "graphite" | "blueprint";
 

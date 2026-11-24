@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lit, type AlgorithmLandingProps } from "./helpers";
-import { runAlgorithm, usePlayback, type LabGraph } from "./engine";
+import type { LabGraph } from "./live/types";
+import { usePlayback } from "./playback";
+import { runAlgorithm } from "./run";
 import type { MaterialName } from "./LiveGraph";
 import { useSound } from "./sound";
 
@@ -167,7 +169,7 @@ export function useStage({ content, base, place, interactive = false }: Args) {
     /** The frame after this one, for scrubbed drawing (none while the graph runs on its own clock). */
     next: !view.unlocked && index < lastFrame ? run.frames[index + 1] : undefined,
     opening: view.chapter === "paper" && view.frame === 0 && !view.unlocked,
-    litSteps: lit(live.steps, frame), litLines: lit(live.lines, frame),
+    litSteps: lit(live.steps, frame), litLines: frame.line === null ? [] : [frame.line],
     onMove: editable ? move : undefined,
     onWeight: editable && live.weighted ? bump : undefined,
     goToChapter,

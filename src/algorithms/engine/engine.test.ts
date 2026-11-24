@@ -14,10 +14,9 @@ import dfsPathfindingAdapter from "../adapters/dfs-pathfinding";
 import cycleDetectionAdapter from "../adapters/cycleDetection";
 import primsAdapter from "../adapters/prims";
 import type { AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../types";
-import type { LabGraph } from "@/landing/engine";
 import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
-import type { LiveConfig } from "@/landing/live/types";
+import type { LabGraph, LiveConfig } from "@/landing/live/types";
 import {
   applyEvent, emptyFrame, frameAt, narrate, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame,
 } from ".";
@@ -327,6 +326,8 @@ describe("golden narration", () => {
       "BFS",
       transcript(bfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted), BOTH),
       transcript(bfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted), ["overview"]),
+      transcript(bfsAdapter, "Same graph, two orders: from A", experiment(landing.bfs, false), ["overview"]),
+      transcript(bfsAdapter, "Same graph, two orders: from F", experiment(landing.bfs, true), ["overview"]),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bfs.md");
   });
@@ -336,6 +337,8 @@ describe("golden narration", () => {
       "DFS",
       transcript(dfsAdapter, "Standard graph", lettered(STANDARD, 6, 0, undefined, unweighted), BOTH),
       transcript(dfsAdapter, "Disconnected graph", lettered([[0, 1, 1], [2, 3, 1]], 4, 0, undefined, unweighted), ["overview"]),
+      transcript(dfsAdapter, "Same graph, two orders: from A", experiment(landing.dfs, false), ["overview"]),
+      transcript(dfsAdapter, "Same graph, two orders: from F", experiment(landing.dfs, true), ["overview"]),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dfs.md");
   });
@@ -344,6 +347,7 @@ describe("golden narration", () => {
     const text = golden(
       "BFS pathfinding",
       transcript(bfsPathfindingAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5, unweighted), BOTH),
+      transcript(bfsPathfindingAdapter, "Weights it does not see", experiment(landing.bfsPathfinding, true), ["overview"]),
       transcript(bfsPathfindingAdapter, "No route", lettered([[0, 1, 1], [2, 1, 1]], 3, 0, 2, { directed: true, weighted: false }), ["every-edge"]),
       transcript(bfsPathfindingAdapter, "Start is the destination", lettered([[0, 1, 1]], 2, 0, 0, unweighted), ["overview"]),
     );

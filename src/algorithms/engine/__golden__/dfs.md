@@ -58,3 +58,33 @@ From A. Edges: A–B, C–D
  2. A is on top of the stack, so visit it; B goes on the stack
  3. B is on top of the stack, so visit it; nothing new goes on the stack
  4. The stack is empty, so every node reachable from A is visited, in the order A, B; C and D cannot be reached from A
+
+## Same graph, two orders: from A
+
+From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+### Overview
+
+ 1. Start at A: it goes on the stack, and every other node is unvisited for now
+ 2. A is on top of the stack, so visit it; C and B go on the stack, with B on top
+ 3. B is on top of the stack, so visit it; D and C go on the stack, with C on top; C was already waiting lower down
+ 4. C is on top of the stack, so visit it; E goes on the stack
+ 5. E is on top of the stack, so visit it; F and D go on the stack, with D on top; D was already waiting lower down
+ 6. D is on top of the stack, so visit it; F goes on the stack; F was already waiting lower down
+ 7. F is on top of the stack, so visit it; nothing new goes on the stack
+ 8. The stack is empty, so every node reachable from A is visited, in the order A, B, C, E, D, F
+
+## Same graph, two orders: from F
+
+From F. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+### Overview
+
+ 1. Start at F: it goes on the stack, and every other node is unvisited for now
+ 2. F is on top of the stack, so visit it; E and D go on the stack, with D on top
+ 3. D is on top of the stack, so visit it; E and B go on the stack, with B on top; E was already waiting lower down
+ 4. B is on top of the stack, so visit it; C and A go on the stack, with A on top
+ 5. A is on top of the stack, so visit it; C goes on the stack; C was already waiting lower down
+ 6. C is on top of the stack, so visit it; E goes on the stack; E was already waiting lower down
+ 7. E is on top of the stack, so visit it; nothing new goes on the stack
+ 8. The stack is empty, so every node reachable from F is visited, in the order F, D, B, A, C, E

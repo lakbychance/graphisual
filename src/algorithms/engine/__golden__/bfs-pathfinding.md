@@ -40,6 +40,21 @@ From A to F. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
 21. F is at the front of the queue and it is the destination, so the search stops
 22. Walk back from F along the parents to read the route: A → B → D → F, 3 edges
 
+## Weights it does not see
+
+From A to F. Edges: A–B 4, A–C 2, C–B 1, B–D 5, C–E 9, D–E 2, D–F 3, E–F 6
+
+### Overview
+
+ 1. Start at A: it joins the queue, and every other node is unvisited for now
+ 2. A is at the front of the queue, so visit it; B and C join the queue
+ 3. B is at the front of the queue, so visit it; D joins the queue
+ 4. C is at the front of the queue, so visit it; E joins the queue
+ 5. D is at the front of the queue, so visit it; F joins the queue
+ 6. E is at the front of the queue, so visit it; nothing new joins the queue
+ 7. F is at the front of the queue and it is the destination, so the search stops
+ 8. Walk back from F along the parents to read the route: A → B → D → F, 3 edges
+
 ## No route
 
 From A to C. Edges: A→B, C→B

@@ -52,3 +52,33 @@ From A. Edges: A–B, C–D
  2. A is at the front of the queue, so visit it; B joins the queue
  3. B is at the front of the queue, so visit it; nothing new joins the queue
  4. The queue is empty, so every node reachable from A is visited, in the order A, B; C and D cannot be reached from A
+
+## Same graph, two orders: from A
+
+From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+### Overview
+
+ 1. Start at A: it joins the queue, and every other node is unvisited for now
+ 2. A is at the front of the queue, so visit it; B and C join the queue
+ 3. B is at the front of the queue, so visit it; D joins the queue
+ 4. C is at the front of the queue, so visit it; E joins the queue
+ 5. D is at the front of the queue, so visit it; F joins the queue
+ 6. E is at the front of the queue, so visit it; nothing new joins the queue
+ 7. F is at the front of the queue, so visit it; nothing new joins the queue
+ 8. The queue is empty, so every node reachable from A is visited, in the order A, B, C, D, E, F
+
+## Same graph, two orders: from F
+
+From F. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+### Overview
+
+ 1. Start at F: it joins the queue, and every other node is unvisited for now
+ 2. F is at the front of the queue, so visit it; D and E join the queue
+ 3. D is at the front of the queue, so visit it; B joins the queue
+ 4. E is at the front of the queue, so visit it; C joins the queue
+ 5. B is at the front of the queue, so visit it; A joins the queue
+ 6. C is at the front of the queue, so visit it; nothing new joins the queue
+ 7. A is at the front of the queue, so visit it; nothing new joins the queue
+ 8. The queue is empty, so every node reachable from F is visited, in the order F, D, E, B, C, A

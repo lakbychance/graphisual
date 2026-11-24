@@ -11,19 +11,19 @@ import { searchEvents } from "./search";
 import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
-  "parent[source] ← none",
-  "queue ← [ source ]",
+  "queue ← [ source ], visited ← { source }",
   "while queue is not empty:",
   "    u ← queue.dequeue()",
   "    if u = target: stop",
   "    for each neighbor v of u:",
-  "        if v has no parent:",
+  "        if v is not visited:",
+  "            visited.add(v), queue.add(v)",
   "            parent[v] ← u",
-  "            queue.enqueue(v)",
   "walk parent[] back from target",
 ];
 
-const LINES = { start: 1, loop: 2, take: 3, stop: 4, check: 6, add: 8, walk: 9 };
+/** Adding a node is one event, so it points at the line that adds it; the parent is set in the same step. */
+const LINES = { start: 0, loop: 1, take: 2, stop: 3, check: 5, add: 6, walk: 8 };
 
 /** Everything BFS pathfinding does on this input, as events. Empty when there is no destination. */
 const bfsPathfindingEvents = (input: AlgorithmInput) =>

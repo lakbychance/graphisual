@@ -1,6 +1,8 @@
 import { Volume2, VolumeX } from "lucide-react";
 import { Message, nameOf, outcome, type AlgorithmLandingProps } from "./helpers";
-import { formatDistance, type Frame, type LabGraph } from "./engine";
+import { algorithmRegistry } from "@/algorithms";
+import type { LabGraph } from "./live/types";
+import { formatDistance, type Frame } from "./run";
 import { LiveGraph } from "./LiveGraph";
 import { useSound } from "./sound";
 import type { StageState } from "./useStage";
@@ -55,11 +57,13 @@ export function StepsList({ content, s }: { content: AlgorithmLandingProps; s: S
   );
 }
 
+/** The algorithm's own pseudocode (the one the app's events point at), with the step's line lit. */
 export function CodeBlock({ content, s }: { content: AlgorithmLandingProps; s: StageState }) {
+  const pseudocode = algorithmRegistry.get(content.live.algorithmId)?.pseudocode ?? [];
   return (
     <pre className="lp-code" aria-label="Pseudocode">
-      {content.live.pseudocode.map((line, i) => (
-        <span key={line} data-active={s.litLines.includes(i) ? "" : undefined}><i>{i + 1}</i>{line}{"\n"}</span>
+      {pseudocode.map((line, i) => (
+        <span key={i} data-active={s.litLines.includes(i) ? "" : undefined}><i>{i + 1}</i>{line}{"\n"}</span>
       ))}
     </pre>
   );

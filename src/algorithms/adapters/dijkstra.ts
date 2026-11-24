@@ -11,7 +11,7 @@ import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { noRoute } from "./refusals";
 
 const PSEUDOCODE = [
-  "dist[source] ← 0",
+  "dist[·] ← ∞, dist[source] ← 0",
   "queue ← { source }",
   "while queue is not empty:",
   "    u ← queue.extractMin()",
@@ -19,12 +19,15 @@ const PSEUDOCODE = [
   "    for each edge (u, v, w):",
   "        if dist[u] + w < dist[v]:",
   "            dist[v] ← dist[u] + w",
-  "            queue.insert(v)",
+  "            prev[v] ← u, queue.insert(v)",
   "walk prev[] back from target",
 ];
 
-/** Pseudocode line of each kind of event. */
-const LINE = { start: 1, loop: 2, extract: 3, check: 6, relax: 7, walk: 9 } as const;
+/**
+ * Pseudocode line of each kind of event. A relaxation is one event, so it points at the
+ * distance it changes; the line under it runs in the same step.
+ */
+const LINE = { start: 0, loop: 2, extract: 3, stop: 4, check: 6, relax: 7, walk: 9 } as const;
 
 /** Nodes the run knows about, in the order it scans them for the closest one. */
 function nodeOrder({ adjacencyList, startNodeId, endNodeId }: AlgorithmInput): number[] {
@@ -62,7 +65,7 @@ function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
     const ties = [...unsettled].filter((id) => id !== current && dist.get(id) === min);
     unsettled.delete(current);
     events.push({
-      type: "settle", node: current, value: min, via: prev.get(current), line: LINE.extract, group,
+      type: "settle", node: current, value: min, via: prev.get(current), line: current === end ? LINE.stop : LINE.extract, group,
       ...(ties.length > 0 && { ties }),
       ...(current === end && { target: true }),
     });

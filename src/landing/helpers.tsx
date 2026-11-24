@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { encodeGraphLink } from "@/utils/graph/graphLink";
-import { messageParts, type Frame, type LabGraph, type Run } from "./engine";
-import type { LiveConfig, PhaseMap } from "./live/types";
+import { messageParts, type Frame, type Run } from "./run";
+import type { LabGraph, LiveConfig, PhaseMap } from "./live/types";
 
 export interface AlgorithmLandingProps {
   subtitle: string;
@@ -17,11 +17,11 @@ const treeWeight = (frame: Frame, graph: LabGraph) => [...frame.traversed].reduc
 const cycleNodes = (frame: Frame, graph: LabGraph) => [...frame.pathNodes].map((id) => nameOf(graph, id)).sort().join(", ");
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-/** Which entries of a phase map a frame lights up. */
+/** Which how-it-works steps a frame lights up. */
 export function lit(map: PhaseMap, frame: Frame): number[] {
   if (frame.phase === "ready") return map.ready;
   if (frame.phase === "answer") return map.answer;
-  return /Found destination|Cycle detected/.test(frame.message) ? map.found : map.explore;
+  return frame.found ? map.found : map.explore;
 }
 
 /** The app link that opens a graph with the page's algorithm selected. */
