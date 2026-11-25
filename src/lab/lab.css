@@ -57,30 +57,7 @@
   color: var(--color-text);
   text-wrap: pretty;
 }
-.lab-muted { margin: 0; font-size: 13px; color: var(--color-text-muted); }
 
-.lab-code {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  line-height: 1.7;
-}
-.lab-code li {
-  display: flex;
-  gap: 10px;
-  padding: 0 8px;
-  border-radius: var(--radius-xs);
-  color: var(--color-text-muted);
-  white-space: pre-wrap;
-}
-.lab-code li[data-lit] {
-  color: var(--color-text);
-  background: var(--color-interactive-hover);
-  box-shadow: inset 3px 0 0 var(--color-state-change);
-}
-.lab-code code { font: inherit; }
 .lab-code-no {
   flex: none;
   min-width: 1.4em;
@@ -106,23 +83,7 @@
 }
 .lab-code-pop { padding: 8px 4px; max-width: min(440px, calc(100vw - 24px)); }
 
-.lab-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.lab-table th {
-  text-align: left;
-  font-weight: 500;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--color-divider);
-}
-.lab-table td { padding: 5px 8px; border-bottom: 1px solid var(--color-divider); }
-.lab-table tr[data-role="unseen"] td { color: var(--color-text-muted); }
-.lab-table tr[data-changed] td { background: var(--color-interactive-hover); }
-.lab-table tr[data-changed] td:first-child { box-shadow: inset 3px 0 0 var(--color-state-change); }
-.lab-table s { color: var(--color-text-muted); margin-right: 2px; }
-.lab-table-status { font-size: 12px; color: var(--color-text-muted); }
-
-.lab-scrub { position: relative; flex: 1 1 auto; min-width: 0; padding-top: 10px; }
+.lab-caption-foot .lab-scrub { flex: 1 1 auto; margin-top: 0; }
 .lab-scrub-marks { position: absolute; top: 0; left: 0; right: 0; height: 10px; }
 .lab-pin {
   position: absolute;
@@ -176,6 +137,7 @@
 
 /* ------------------------------------------------------------- Notebook */
 
+/* The app's notebook (Board/notebook.css), docked where the lab's bars leave room. */
 .lab-notebook {
   position: fixed;
   z-index: 40;
@@ -183,17 +145,7 @@
   right: 16px;
   bottom: max(16px, env(safe-area-inset-bottom));
   width: 360px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
-.lab-notebook-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.lab-notebook-head .gs-label { padding-left: 2px; }
-.lab-notebook-words { flex: none; font-size: 16px; min-height: 4.4em; }
-.lab-notebook-tabs { flex: 1 1 0; min-height: 0; gap: 10px; }
-.lab-notebook-page { flex: 1 1 0; min-height: 0; overflow: auto; }
-.lab-notebook-scrub { flex: none; margin-top: auto; }
 
 /* ---------------------------------------------------------------- Score */
 
@@ -328,11 +280,7 @@
     bottom: max(8px, env(safe-area-inset-bottom));
     width: auto;
     height: 36vh;
-    padding: 12px;
-    gap: 8px;
   }
-  .lab-notebook-words { font-size: 14px; min-height: 0; }
-  .lab-notebook-tabs { gap: 6px; }
   .lab-score {
     left: 8px;
     right: 8px;

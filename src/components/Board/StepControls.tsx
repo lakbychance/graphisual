@@ -14,6 +14,8 @@ interface StepControlsProps {
   onJumpToEnd: () => void;
   onTogglePlay: () => void;
   onStop: () => void;
+  /** Without the panel around the keys, for a surface that already has one (the notebook's head). */
+  bare?: boolean;
 }
 
 /** Icon key with a tooltip. Stays focusable while disabled so focus is not lost at either end of the run. */
@@ -37,10 +39,15 @@ function StepKey({ label, children, ...props }: { label: string; children: React
  */
 export const StepControls = ({
   stepIndex, totalSteps, isPlaying, canStepBackward, canStepForward,
-  onJumpToStart, onStepBackward, onStepForward, onJumpToEnd, onTogglePlay, onStop,
+  onJumpToStart, onStepBackward, onStepForward, onJumpToEnd, onTogglePlay, onStop, bare = false,
 }: StepControlsProps) => {
   return (
-    <div role="group" aria-label="Step controls" data-surface="panel" className="gs-toolbar gs-panel justify-around gap-1 md:gap-2">
+    <div
+      role="group"
+      aria-label="Step controls"
+      data-surface={bare ? undefined : "panel"}
+      className={bare ? "gs-toolbar gap-1" : "gs-toolbar gs-panel justify-around gap-1 md:gap-2"}
+    >
       <StepKey label="Jump to start" disabled={!canStepBackward} onClick={onJumpToStart}><SkipBack aria-hidden="true" /></StepKey>
       <StepKey label="Previous step" disabled={!canStepBackward} onClick={onStepBackward}><ChevronLeft aria-hidden="true" /></StepKey>
       <span className="gs-value text-xs md:text-sm px-2 min-w-12 whitespace-nowrap text-center" aria-live="polite">

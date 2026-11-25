@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { useIsDesktop } from "../../hooks/useMediaQuery";
+import { useRef, useCallback } from "react";
+import { useIsDesktop, useIsShortWindow } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { algorithmRegistry } from "../../algorithms";
 import { Button, Toolbar } from "@/components/ui-sdk";
@@ -11,7 +11,6 @@ import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraph
 import { useAutoPlay } from "../../hooks/useAutoPlay";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
 import { VisualizationState } from "../../constants/visualization";
-import { traceAt } from "../../utils/visualization/runView";
 
 import { MainToolbar } from "./MainToolbar";
 import { MobileControls } from "./MobileControls";
@@ -20,9 +19,8 @@ import { AlgorithmHint } from "./AlgorithmHint";
 import { StepControls } from "./StepControls";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { ZoomControls } from "./ZoomControls";
-import { TracePanel } from "./TracePanel";
-import { TraceToggle } from "./TraceToggle";
-import { AnimatePresence } from "motion/react";
+import { Notebook } from "./Notebook";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 
 export const Board = () => {
@@ -39,10 +37,8 @@ export const Board = () => {
   const canStepForward = useGraphStore(selectCanStepForward);
   const canStepBackward = useGraphStore(selectCanStepBackward);
 
-  const [tracePanelVisible, setTracePanelVisible] = useState(true);
-
   const isVisualizing = visualizationState === VisualizationState.RUNNING;
-  const stepTrace = traceAt(stepRun, stepIndex);
+  const showNotebook = isInStepMode && stepIndex >= 0 && stepRun.ends.length > 0;
 
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
@@ -58,6 +54,39 @@ export const Board = () => {
   useGraphKeyboardShortcuts(execute.handleKeyDown);
 
   const isDesktop = useIsDesktop();
+  // The notebook sits beside the graph on desktop and in a short window (a phone on its side), and
+  // under it on an upright phone. In a short window it takes the full height, and the toolbar and
+  // the settings corner it would cover wait for the run to end.
+  const isShortWindow = useIsShortWindow();
+  const notebookBeside = isDesktop || isShortWindow;
+  const runHidesToolbar = isInStepMode && (!isDesktop || isShortWindow);
+
+  // The notebook slides in from its edge (none with reduced motion).
+  const reduceMotion = useReducedMotion();
+  const enter = reduceMotion ? {} : notebookBeside ? { x: 12 } : { y: 12 };
+
+  const scrubTo = useCallback((index: number) => {
+    const store = useGraphStore.getState();
+    store.stopAutoPlay();
+    store.jumpToStep(index);
+  }, []);
+
+  const stepControls = (bare: boolean) => (
+    <StepControls
+      bare={bare}
+      stepIndex={stepIndex}
+      totalSteps={stepRun.ends.length}
+      isPlaying={isPlaying}
+      canStepBackward={canStepBackward}
+      canStepForward={canStepForward}
+      onJumpToStart={execute.jumpToStart}
+      onStepBackward={execute.stepBackward}
+      onStepForward={execute.stepForward}
+      onJumpToEnd={execute.jumpToEnd}
+      onTogglePlay={execute.togglePlay}
+      onStop={execute.stopVisualization}
+    />
+  );
 
   const getAlgorithmHintText = () => {
     const algo = algorithmRegistry.get(visualizationAlgorithm?.key || "");
@@ -98,7 +127,8 @@ export const Board = () => {
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
-        <div data-run-fit-avoid className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+        {/* On phones and in short windows the notebook takes its place during a step-mode run (everything in it waits for the run to end) */}
+        <div data-run-fit-avoid className={`${runHidesToolbar ? "hidden " : ""}fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2`}>
           {!isDesktop && (
             <MobileControls
               onUndo={execute.undo}
@@ -112,42 +142,43 @@ export const Board = () => {
           <MainToolbar graphRendererRef={graphRendererRef} />
         </div>
 
-        {/* Step controls - fixed position, top on mobile, below toolbar on desktop */}
+        {/* Step controls - along the top on upright phones; elsewhere they sit in the notebook's head */}
         {/* DOM order: After main toolbar for natural tab flow during step mode */}
         <AnimatePresence>
-          {isInStepMode && (
+          {isInStepMode && !notebookBeside && (
             <m.div
               data-run-fit-avoid
               initial={{ opacity: 0, y: -8, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed z-50 top-[max(0.75rem,env(safe-area-inset-top))] left-4 right-4 md:top-[5.5rem] min-[450px]:left-1/2 min-[450px]:right-auto min-[450px]:-translate-x-1/2"
+              className="fixed z-50 top-[max(0.75rem,env(safe-area-inset-top))] left-4 right-4 min-[450px]:left-1/2 min-[450px]:right-auto min-[450px]:-translate-x-1/2"
             >
-              <StepControls
-                stepIndex={stepIndex}
-                totalSteps={stepRun.ends.length}
-                isPlaying={isPlaying}
-                canStepBackward={canStepBackward}
-                canStepForward={canStepForward}
-                onJumpToStart={execute.jumpToStart}
-                onStepBackward={execute.stepBackward}
-                onStepForward={execute.stepForward}
-                onJumpToEnd={execute.jumpToEnd}
-                onTogglePlay={execute.togglePlay}
-                onStop={execute.stopVisualization}
-              />
+              {stepControls(false)}
             </m.div>
           )}
         </AnimatePresence>
 
-        {/* Trace Panel - Desktop only, bottom center */}
+        {/* Notebook - the step in words, then its code or state; a side panel on desktop and on a phone on its side, a card along the bottom on an upright phone */}
         <AnimatePresence>
-          {isInStepMode && tracePanelVisible && stepTrace && (
-            <TracePanel
-              trace={stepTrace}
-              onCollapse={() => setTracePanelVisible(false)}
-            />
+          {showNotebook && (
+            <m.div
+              data-run-fit-avoid={notebookBeside ? "right" : ""}
+              data-place={isShortWindow ? "full-side" : isDesktop ? "panel" : "card"}
+              className="nb-dock"
+              initial={{ opacity: 0, ...enter }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, ...enter }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <Notebook
+                run={stepRun}
+                index={stepIndex}
+                desktop={notebookBeside}
+                controls={stepControls(true)}
+                onScrub={scrubTo}
+              />
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -165,7 +196,7 @@ export const Board = () => {
         </AnimatePresence>
 
         {/* Floating Zoom & Undo Controls - Desktop only */}
-        <div className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-3">
+        <div data-run-fit-avoid className="hidden md:flex fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 gap-3">
           <Toolbar aria-label="Zoom controls">
             <ZoomControls
               onZoomIn={execute.zoomIn}
@@ -186,12 +217,9 @@ export const Board = () => {
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
         {/* Below 450px the step controls span the top during a run and would only half cover it, so it hides */}
-        <div className={`fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel ${isInStepMode ? "max-[450px]:hidden" : ""}`}>
-          <AnimatePresence>
-            {isInStepMode && !tracePanelVisible && (
-              <TraceToggle onExpand={() => setTracePanelVisible(true)} />
-            )}
-          </AnimatePresence>
+        {/* The run fit keeps the graph clear of it, except on an upright phone, where it is a small key in the corner */}
+        {/* In a short window it would sit under the notebook during a step-mode run, so it waits for the run to end */}
+        <div data-run-fit-avoid={notebookBeside ? "" : undefined} className={`${isInStepMode && isDesktop && isShortWindow ? "hidden " : ""}fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel ${isInStepMode ? "max-[450px]:hidden" : ""}`}>
           <div className="hidden md:block">
             <KeyboardShortcuts />
           </div>

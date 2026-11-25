@@ -32,3 +32,11 @@ const useMediaQuery = (query: string): boolean => {
 export const useIsDesktop = (): boolean => {
   return useMediaQuery("(min-width: 768px)");
 };
+
+/**
+ * Hook to check if viewport is short and wide, like a phone on its side, where a run's notebook
+ * takes the full height beside the graph
+ */
+export const useIsShortWindow = (): boolean => {
+  return useMediaQuery("(min-width: 560px) and (max-height: 500px)");
+};

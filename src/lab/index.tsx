@@ -105,7 +105,7 @@ export default function ReworkLab() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as Element | null;
-      if (target?.closest?.("input, textarea, [role='slider'], [role='menu'], [role='listbox']")) return;
+      if (target?.closest?.("input, textarea, [role='slider'], [role='menu'], [role='listbox'], [role='tablist']")) return;
       if (e.key === " " && target?.closest?.("button, a[href]")) return;
       const action = { ArrowRight: execute.stepForward, ArrowLeft: execute.stepBackward, Home: execute.jumpToStart, End: execute.jumpToEnd, " ": execute.togglePlay }[e.key];
       if (!action) return;

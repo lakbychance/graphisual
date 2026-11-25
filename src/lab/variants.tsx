@@ -9,14 +9,15 @@
  * - Score: the run laid out as a score, code lines down and steps across, one dot per step;
  *   the learner reads the shape of the run and scrubs it directly; state stays on the graph.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Code2 } from "lucide-react";
 import {
-  Button, Panel, Popover, PopoverContent, PopoverTrigger, SegmentedControl, SegmentedControlItem, Tabs, TabsList, TabsPanel, TabsTab,
+  Button, Panel, Popover, PopoverContent, PopoverTrigger, SegmentedControl, SegmentedControlItem,
 } from "@/components/ui-sdk";
+import { Notebook as AppNotebook } from "@/components/Board/Notebook";
 import type { GraphEdge, GraphNode } from "@/components/Graph/types";
 import type { Run } from "@/utils/visualization/runView";
-import { CodeLine, CodeList, Narration, Scrubber, StateView, Transport, type TransportProps } from "./parts";
+import { CodeLine, CodeList, Narration, ScrubMarks, Scrubber, Transport, type TransportProps } from "./parts";
 import type { CanvasOptions } from "./CanvasState";
 import type { RunSummary, StepKind, StepView, VariantId } from "./model";
 
@@ -79,31 +80,19 @@ export function Caption({ view, summary, code, desktop, transport, onScrub }: Va
 
 /* ----------------------------------------------------------------- Notebook */
 
-export function Notebook({ run, view, summary, nodes, code, name, desktop, transport, onScrub }: VariantProps) {
-  const [tab, setTab] = useState<"code" | "state">("code");
-  const lit = summary.lines[view.index] ?? null;
-  const tabs = (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as "code" | "state")} className="lab-notebook-tabs">
-      <TabsList aria-label="Notebook page">
-        <TabsTab value="code">Code</TabsTab>
-        <TabsTab value="state">State</TabsTab>
-      </TabsList>
-      <TabsPanel value="code" className="lab-notebook-page"><CodeList lines={code} lit={lit} /></TabsPanel>
-      <TabsPanel value="state" className="lab-notebook-page"><StateView run={run} view={view} nodes={nodes} /></TabsPanel>
-    </Tabs>
-  );
+/** The app's notebook (`Board/Notebook.tsx`), with the lab's transport and timeline markers. */
+export function Notebook({ run, view, summary, desktop, transport, onScrub }: VariantProps) {
   return (
-    <Panel className="lab-notebook" role="region" aria-label="Notebook">
-      {desktop && (
-        <header className="lab-notebook-head">
-          <span className="gs-label">{name}</span>
-          <Transport {...transport} />
-        </header>
-      )}
-      <Narration text={summary.narration[view.index] ?? ""} className="lab-notebook-words" />
-      {tabs}
-      <Scrubber index={view.index} total={transport.total} markers={summary.markers} onScrub={onScrub} className="lab-notebook-scrub" />
-    </Panel>
+    <div className="lab-notebook">
+      <AppNotebook
+        run={run}
+        index={view.index}
+        desktop={desktop}
+        controls={<Transport {...transport} />}
+        onScrub={onScrub}
+        marks={<ScrubMarks index={view.index} total={transport.total} markers={summary.markers} onScrub={onScrub} />}
+      />
+    </div>
   );
 }
 

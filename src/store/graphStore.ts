@@ -824,6 +824,7 @@ export const useGraphStore = create<GraphStore>()(
         // Visualization Run
         // ========================================
 
+        // A run opens on its Start step, so its first sentence shows at once.
         startVisualization: (run) => {
           set({
             visualization: {
@@ -833,6 +834,7 @@ export const useGraphStore = create<GraphStore>()(
               step: { ...initialStep, run },
             },
           });
+          goToStep(0);
         },
 
         finishVisualization: () => {

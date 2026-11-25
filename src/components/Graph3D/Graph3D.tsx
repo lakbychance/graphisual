@@ -2,9 +2,10 @@ import { useMemo, useRef, useEffect, useCallback, useState, useImperativeHandle,
 import type { Ref } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid, Environment } from "@react-three/drei";
+import type { PerspectiveCamera as ThreePerspectiveCamera } from "three";
 
 type OrbitControlsRef = ComponentRef<typeof OrbitControls>;
-import { useGraphStore } from "../../store/graphStore";
+import { selectIsInStepMode, useGraphStore } from "../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { Node3D } from "./Node3D";
 import { Edge3D } from "./Edge3D";
@@ -50,6 +51,28 @@ function CanvasCapture({ onReady }: { onReady: (canvas: HTMLCanvasElement) => vo
 const INTRO_DURATION = 0.75; // seconds
 const INTRO_TARGET_AZIMUTH = 0; // No horizontal rotation
 const INTRO_TARGET_POLAR = Math.PI - Math.PI / 2.5; // Tilt from below (graph rotates toward user)
+
+/**
+ * During a step-mode run, slides the picture left by half the width the notebook covers along the
+ * right edge (`data-run-fit-avoid="right"`), so the graph sits in the room beside it; back on Done.
+ */
+function NotebookOffset() {
+  const { camera, size } = useThree();
+  const stepping = useGraphStore(selectIsInStepMode);
+  useEffect(() => {
+    const view = camera as ThreePerspectiveCamera;
+    // Measured once the notebook has been laid out.
+    const frame = requestAnimationFrame(() => {
+      const dock = stepping ? document.querySelector<HTMLElement>("[data-run-fit-avoid='right']") : null;
+      const covered = dock ? Math.max(0, window.innerWidth - dock.offsetLeft) : 0;
+      if (covered > 0) view.setViewOffset(size.width, size.height, covered / 2, 0, size.width, size.height);
+      else view.clearViewOffset();
+      view.updateProjectionMatrix();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [camera, size.width, size.height, stepping]);
+  return null;
+}
 
 // Component to handle camera with bidirectional sync to 2D view
 function CameraController({
@@ -406,6 +429,7 @@ export function Graph3D({ ref }: { ref?: Ref<Graph3DHandle> }) {
             near={1}
             far={baseCameraDistance * 10}
           />
+          <NotebookOffset />
           <CameraController
             zoom={zoom}
             pan={pan}

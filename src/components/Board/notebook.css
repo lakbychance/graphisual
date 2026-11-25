@@ -1,0 +1,135 @@
+/* The notebook (Notebook.tsx). Colours come from theme tokens only. */
+
+/*
+ * Where the app docks it (`data-place`): on desktop a side panel under the toolbar, clear of the
+ * settings in the corner; in a short window (a phone on its side) a side panel the full height; on an
+ * upright phone a card along the bottom.
+ */
+.nb-dock {
+  position: fixed;
+  z-index: 40;
+  top: 5.5rem;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.75rem);
+  width: 360px;
+}
+.nb-dock[data-place="full-side"] {
+  top: max(0.75rem, env(safe-area-inset-top));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  width: min(340px, 55vw);
+}
+.nb-dock[data-place="card"] {
+  top: auto;
+  left: max(1rem, env(safe-area-inset-left));
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  width: auto;
+  height: max(36vh, 260px);
+}
+
+.nb {
+  height: 100%;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* When the window is too short for everything, the notebook scrolls inside itself. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nb-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.nb-head .gs-label { padding-left: 2px; }
+
+.nb-words {
+  flex: none;
+  margin: 0;
+  min-height: 4.4em;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--color-text);
+  text-wrap: pretty;
+}
+.nb-muted { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+
+.nb-tabs { flex: 1 1 0; gap: 10px; }
+/* Room for a few lines at least, so the lit line or the changed row always shows whole. */
+.nb-page { flex: 1 1 0; min-height: 96px; overflow: auto; overscroll-behavior: contain; }
+
+/* ------------------------------------------------------------------ code */
+
+.nb-code {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.nb-code li {
+  display: flex;
+  gap: 10px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+.nb-code li[data-lit] {
+  color: var(--color-text);
+  background: var(--color-interactive-hover);
+  box-shadow: inset 3px 0 0 var(--color-state-change);
+}
+.nb-code code { font: inherit; }
+.nb-code-no {
+  flex: none;
+  min-width: 1.4em;
+  text-align: right;
+  opacity: 0.6;
+  user-select: none;
+}
+
+/* ----------------------------------------------------------------- state */
+
+.nb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nb-table th {
+  /* The header stays pinned while the rows scroll. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel-bg);
+  text-align: left;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.nb-table td { padding: 5px 8px; border-bottom: 1px solid var(--color-divider); }
+.nb-table tr[data-role="unseen"] td { color: var(--color-text-muted); }
+.nb-table tr[data-changed] td { background: var(--color-interactive-hover); }
+.nb-table tr[data-changed] td:first-child { box-shadow: inset 3px 0 0 var(--color-state-change); }
+.nb-table s { color: var(--color-text-muted); margin-right: 2px; }
+.nb-table-status { font-size: 12px; color: var(--color-text-muted); }
+
+/* -------------------------------------------------------------- scrubber */
+
+.nb-scrub { position: relative; flex: none; min-width: 0; margin-top: auto; padding-top: 10px; }
+
+/* --------------------------------------------------------- short windows */
+
+/* A phone on its side: packed tighter, and a long sentence scrolls past four lines so the page keeps room. */
+@media (max-height: 560px) {
+  .nb { padding: 12px; gap: 8px; }
+  .nb-words { font-size: 14px; min-height: 0; max-height: 5.8em; overflow-y: auto; overscroll-behavior: contain; }
+  .nb-tabs { gap: 6px; }
+  .nb-page { min-height: 44px; }
+}
+
+/* ---------------------------------------------------------------- phones */
+
+@media (max-width: 767px) {
+  .nb { padding: 12px; gap: 8px; }
+  /* A long sentence scrolls past four lines, so the page below keeps room for its lit line. */
+  .nb-words { font-size: 14px; min-height: 0; max-height: 5.8em; overflow-y: auto; overscroll-behavior: contain; }
+  .nb-tabs { gap: 6px; }
+  .nb-page { min-height: 44px; }
+}
