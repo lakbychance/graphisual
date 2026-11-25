@@ -31,34 +31,6 @@ export function CodeLine({ lines, lit }: { lines: string[]; lit: number | null }
 
 /* ------------------------------------------------------------- timeline */
 
-const MARKER_COLOR: Record<Marker["kind"], string> = {
-  found: "var(--color-edge-path)",
-  negative: "var(--color-error)",
-  back: "var(--color-edge-back)",
-  round: "var(--color-text-muted)",
-};
-
-/** The run's key moments, marked above the scrubber's track. */
-export function ScrubMarks({ index, total, markers, onScrub }: {
-  index: number; total: number; markers: Marker[]; onScrub: (index: number) => void;
-}) {
-  const last = Math.max(1, total - 1);
-  return (
-    <div className="lab-scrub-marks">
-      {markers.map((m) => (
-        <Tooltip key={`${m.kind}-${m.index}`}>
-          <TooltipTrigger
-            render={<button type="button" className="lab-pin" aria-label={`${m.label}, step ${m.index + 1}`} onClick={() => onScrub(m.index)} />}
-            style={{ left: `${(m.index / last) * 100}%`, "--pin": MARKER_COLOR[m.kind] } as React.CSSProperties}
-            data-here={m.index === index || undefined}
-          />
-          <TooltipContent>{m.label}</TooltipContent>
-        </Tooltip>
-      ))}
-    </div>
-  );
-}
-
 /** The app's scrubber over the run's steps, with its key moments marked above the track. */
 export function Scrubber({ index, total, markers, onScrub, className }: {
   index: number; total: number; markers: Marker[]; onScrub: (index: number) => void; className?: string;
@@ -69,7 +41,7 @@ export function Scrubber({ index, total, markers, onScrub, className }: {
       total={total}
       onScrub={onScrub}
       className={cn("lab-scrub", className)}
-      marks={<ScrubMarks index={index} total={total} markers={markers} onScrub={onScrub} />}
+      moments={markers}
     />
   );
 }

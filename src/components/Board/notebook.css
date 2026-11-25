@@ -113,6 +113,50 @@
 /* -------------------------------------------------------------- scrubber */
 
 .nb-scrub { position: relative; flex: none; min-width: 0; margin-top: auto; padding-top: 10px; }
+.nb-scrub:has(.nb-moments) { padding-top: 0; }
+/* The track sits in by half a thumb, so the thumb stays inside the notebook at either end. */
+.nb-scrub .gs-slider-control { padding-inline: calc(var(--thumb-w) / 2); }
+
+/*
+ * Key moments, over the steps they mark (the row spans the scrubber, the marks stay inside it); each
+ * a symbol or a short text, never colour alone. They tuck into the room above the thumb, so the
+ * scrubber is no taller than without them.
+ */
+.nb-moments { position: relative; height: 16px; margin-bottom: -6px; }
+.nb-moment {
+  --ink: var(--color-text-muted);
+  position: absolute;
+  top: 0;
+  translate: -50% 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.25px var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.nb-moment svg { width: 10px; height: 10px; stroke-width: 2.5; }
+/* A finger-sized target around the small mark, reaching up (the thumb's own target is below). */
+.nb-moment::after { content: ""; position: absolute; inset: -8px -2px 0; }
+.nb-moment:hover { background: var(--color-interactive-hover); }
+.nb-moment[data-here] { background: var(--ink); color: var(--color-surface); }
+.nb-moment:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-offset); }
+.nb-moment[data-kind="negative"] { --ink: var(--color-error); }
+.nb-moment[data-kind="found"],
+.nb-moment[data-kind="answer"] { --ink: var(--color-edge-path); }
+.nb-moment[data-kind="back"] { --ink: var(--color-edge-back); }
+.nb-moment[data-kind="loop"] { --ink: var(--color-edge-cycle); }
 
 /* --------------------------------------------------------- short windows */
 

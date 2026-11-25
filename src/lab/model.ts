@@ -17,7 +17,9 @@ import {
   generateCycleWithDeadEnd, generateWeighted, graphFromSpec, type GeneratedGraph,
 } from "@/utils/graph/graphGenerator";
 import { buildRun } from "@/utils/visualization/buildRun";
-import { keepsValues, lineAt, rolesAt, runMarksAt, type NodeBadge, type NodeRole, type Run } from "@/utils/visualization/runView";
+import {
+  keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, type KeyMoment, type NodeBadge, type NodeRole, type Run,
+} from "@/utils/visualization/runView";
 import type { DrawnMark, MarkKind } from "@/components/Graph/runMarkShapes";
 import { needsDestination } from "@/utils/visualization/stepLink";
 import { decodeGraphLink } from "@/utils/graph/graphLink";
@@ -207,12 +209,8 @@ export function stepView(run: Run, index: number, nodes: GraphNode[]): StepView 
 
 /* -------------------------------------------------------- the whole run */
 
-/** Something worth finding on the timeline. */
-export interface Marker {
-  index: number;
-  kind: "found" | "negative" | "back" | "round";
-  label: string;
-}
+/** Something worth finding on the timeline: the app's key moments (see `keyMoments`). */
+export type Marker = KeyMoment;
 
 /** What a step does, in one word, for the score. */
 export type StepKind = "start" | "take" | "add" | "improve" | "back-up" | "loop" | "answer" | "check";
@@ -243,34 +241,13 @@ export function summarise(run: Run, nodes: GraphNode[]): RunSummary {
   const narration = narrate(run.events, run.algorithmId).map(name);
   const lines: Array<number | null> = [];
   const kinds: StepKind[] = [];
-  const markers: Marker[] = [];
-  let foundBack = new Set<string>();
   run.ends.forEach((_, index) => {
     const step = stepEvents(run, index);
     const change = step.find(changes);
     lines.push(lineAt(run, index));
     kinds.push(kindOf(change));
-    // Bellman-Ford: where each round after the first begins.
-    const round = step[0]?.group ?? 0;
-    const rounds = run.algorithmId === "bellman-ford" && change?.type !== "answer";
-    if (rounds && index > 0 && round > 1 && stepEvents(run, index - 1)[0]?.group !== round) {
-      markers.push({ index, kind: "round", label: `Round ${round}` });
-    }
-    for (const event of step) {
-      if (event.type === "relax" && event.weight < 0) {
-        markers.push({ index, kind: "negative", label: "Negative edge" });
-        break;
-      }
-    }
-    const found = step.some((e) => (e.type === "settle" && e.target && e.via !== undefined) || (e.type === "classify" && e.loop));
-    if (found) markers.push({ index, kind: "found", label: run.algorithmId === "cycle-detection" ? "Loop found" : "Destination found" });
-    if (run.algorithmId === "dfs" || run.algorithmId === "dfs-pathfinding") {
-      const back = new Set(runMarksAt(run, index).edges.filter((m) => m.kind === "back").map((m) => `${m.from}-${m.to}`));
-      if ([...back].some((key) => !foundBack.has(key))) markers.push({ index, kind: "back", label: "Back edge" });
-      foundBack = back;
-    }
   });
-  return { narration, lines, kinds, markers };
+  return { narration, lines, kinds, markers: keyMoments(run) };
 }
 
 /** Replaces `{n:id}` marks with the names the canvas shows. */

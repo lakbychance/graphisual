@@ -2,14 +2,16 @@
  * The notebook: what a step-mode run says beside the graph. First the step in words (the engine's
  * narration), then one page at a time, the learner's choice: Code (the algorithm's pseudocode with
  * the step's line lit) or State (the table of distances or costs, or the queue / stack). A plain
- * scrubber moves through the run. On desktop it is a side panel whose head carries the step keys;
- * on phones a card along the bottom, view-only (the step keys stay along the top).
+ * scrubber moves through the run, its key moments marked above the track (see `keyMoments`). On
+ * desktop it is a side panel whose head carries the step keys; on phones a card along the bottom,
+ * view-only (the step keys stay along the top).
  *
  * The rework lab's notebook variant is this component too.
  */
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
-import { Panel, Slider, Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui-sdk";
+import { Check, Flag, RotateCcw, type LucideIcon } from "lucide-react";
+import { Panel, Slider, Tabs, TabsList, TabsPanel, TabsTab, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
 import { frameAt, narrate } from "../../algorithms/engine";
@@ -17,7 +19,9 @@ import { num } from "../Graph/runMarkShapes";
 import type { GraphNode } from "../Graph/types";
 import { useGraphStore } from "../../store/graphStore";
 import { useSettingsStore, type NotebookPage } from "../../store/settingsStore";
-import { keepsValues, lineAt, rolesAt, runMarksAt, traceAt, type NodeRole, type Run } from "../../utils/visualization/runView";
+import {
+  keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
+} from "../../utils/visualization/runView";
 import { DataStructureVis } from "./DataStructureVis";
 import "./notebook.css";
 
@@ -120,14 +124,117 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
   return <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={label} />;
 }
 
-/** A plain scrubber over the run's steps. `marks` sit above the track. */
-export function Scrubber({ index, total, onScrub, marks, className }: {
-  index: number; total: number; onScrub: (index: number) => void; marks?: ReactNode; className?: string;
+/** The symbol a key moment's mark shows when it has no text of its own. */
+const MOMENT_ICON: Partial<Record<MomentKind, LucideIcon>> = { found: Flag, back: RotateCcw, loop: RotateCcw, answer: Check };
+
+/** A mark's least width, the gap kept between marks, and the furthest a mark may sit from its step, in px. */
+const MARK = 16;
+const GAP = 2;
+const NEAR = MARK;
+/** The least room between two round marks' steps (a mark's width free between them), so rounds read as a sparse ruler. */
+const ROUND_ROOM = 2 * (MARK + GAP);
+/** About how wide a mark is: a symbol, or its text in 10px monospace. */
+const markWidth = (m: KeyMoment) => (m.text ? Math.max(MARK, 6 + 6 * m.text.length) : MARK);
+
+/** Which marks give way first when the row is too short for all of them: rounds, then a negative edge, then a back edge or loop. */
+const RANK: Record<MomentKind, number> = { answer: 0, found: 1, loop: 2, back: 2, negative: 3, round: 4 };
+
+/**
+ * Centres for marks that want to sit at `want` (px along a row `width` wide, in step order), pushed
+ * apart just enough that none overlap; null unless every mark then lies wholly inside the row and
+ * within `NEAR` of where it wants to be.
+ */
+function place(want: number[], widths: number[], width: number): number[] | null {
+  const apart = (i: number) => (widths[i] + widths[i + 1]) / 2 + GAP;
+  const x = want.map((v, i) => Math.max(v, widths[i] / 2));
+  for (let i = 1; i < x.length; i++) x[i] = Math.max(x[i], x[i - 1] + apart(i - 1));
+  for (let i = x.length - 1; i >= 0; i--) x[i] = Math.min(x[i], i === x.length - 1 ? width - widths[i] / 2 : x[i + 1] - apart(i));
+  return x.every((v, i) => v >= widths[i] / 2 - 0.5 && Math.abs(v - want[i]) <= NEAR) ? x : null;
+}
+
+/**
+ * The marks that fit, each with its centre. Marks are taken most important first (the answer, the
+ * destination found, a back edge or loop, a negative edge, then rounds from the first), and one is
+ * left out when it would push a mark out of the row or more than `NEAR` from its step. Rounds thin
+ * out first: a round is left out when its step is within `ROUND_ROOM` of a round already kept, the
+ * later of two crowded rounds giving way.
+ */
+function fit(moments: KeyMoment[], want: number[], width: number): Array<{ moment: KeyMoment; x: number }> {
+  const order = moments.map((_, i) => i).sort((a, b) => RANK[moments[a].kind] - RANK[moments[b].kind] || a - b);
+  let kept: number[] = [];
+  let xs: number[] = [];
+  for (const i of order) {
+    const round = (k: number) => moments[k].kind === "round";
+    if (round(i) && kept.some((k) => round(k) && Math.abs(want[k] - want[i]) < ROUND_ROOM)) continue;
+    const next = [...kept, i].sort((a, b) => a - b);
+    const placed = place(next.map((k) => want[k]), next.map((k) => markWidth(moments[k])), width);
+    if (placed) {
+      kept = next;
+      xs = placed;
+    }
+  }
+  return kept.map((k, j) => ({ moment: moments[k], x: xs[j] }));
+}
+
+/**
+ * The run's key moments, marked over the scrubber's track: a tap or click jumps to one. The row spans
+ * the scrubber; each mark wants to sit over its step on the track, which is inset by half a thumb.
+ */
+function Moments({ moments, index, last, onScrub }: {
+  moments: KeyMoment[]; index: number; last: number; onScrub: (index: number) => void;
+}) {
+  const row = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, start: 0, span: 0 });
+  useLayoutEffect(() => {
+    const el = row.current;
+    const track = el?.parentElement?.querySelector(".gs-slider-track");
+    if (!el || !track) return;
+    const measure = () => {
+      const box = el.getBoundingClientRect();
+      const t = track.getBoundingClientRect();
+      setSize({ width: box.width, start: t.left - box.left, span: t.width });
+    };
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    watch.observe(track);
+    return () => watch.disconnect();
+  }, []);
+  const { width, start, span } = size;
+  const shown = width > 0 ? fit(moments, moments.map((m) => start + (m.index / last) * span), width) : [];
+  return (
+    <div className="nb-moments" ref={row} role="group" aria-label="Key moments">
+      {shown.map(({ moment: m, x }) => {
+        const Icon = MOMENT_ICON[m.kind];
+        const here = m.index === index;
+        return (
+          <Tooltip key={`${m.kind}-${m.index}`}>
+            <TooltipTrigger
+              render={<button type="button" className="nb-moment" onClick={() => onScrub(m.index)} />}
+              aria-label={`${m.label}, step ${m.index + 1}`}
+              aria-current={here ? "step" : undefined}
+              data-kind={m.kind}
+              data-here={here || undefined}
+              style={{ left: x }}
+            >
+              {Icon ? <Icon aria-hidden="true" /> : <span aria-hidden="true">{m.text}</span>}
+            </TooltipTrigger>
+            <TooltipContent side="top">{m.label}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A plain scrubber over the run's steps, with its key `moments` marked above the track. */
+export function Scrubber({ index, total, onScrub, moments, className }: {
+  index: number; total: number; onScrub: (index: number) => void; moments?: KeyMoment[]; className?: string;
 }) {
   const last = Math.max(1, total - 1);
   return (
     <div className={cn("nb-scrub", className)}>
-      {marks}
+      {moments && moments.length > 0 && <Moments moments={moments} index={index} last={last} onScrub={onScrub} />}
       <Slider
         min={0}
         max={last}
@@ -148,16 +255,15 @@ export interface NotebookProps {
   /** The step keys, in the head on desktop. */
   controls?: ReactNode;
   onScrub: (index: number) => void;
-  /** Marks above the scrubber's track. */
-  marks?: ReactNode;
 }
 
-export function Notebook({ run, index, desktop, controls, onScrub, marks }: NotebookProps) {
+export function Notebook({ run, index, desktop, controls, onScrub }: NotebookProps) {
   const nodes = useGraphStore(useShallow((s) => s.data.nodes));
   const page = useSettingsStore((s) => s.notebookPage);
   const setPage = useSettingsStore((s) => s.setNotebookPage);
   const adapter = algorithmRegistry.get(run.algorithmId);
   const narration = useMemo(() => narrate(run.events, run.algorithmId), [run]);
+  const moments = useMemo(() => keyMoments(run), [run]);
   const sentence = (narration[index] ?? "").replace(/\{n:(\d+)\}/g, (_, id) => nameOf(nodes, Number(id)));
   const lit = lineAt(run, index);
 
@@ -178,7 +284,7 @@ export function Notebook({ run, index, desktop, controls, onScrub, marks }: Note
         <TabsPanel value="code" className="nb-page"><CodeList lines={adapter?.pseudocode ?? []} lit={lit} step={index} /></TabsPanel>
         <TabsPanel value="state" className="nb-page"><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
       </Tabs>
-      <Scrubber index={index} total={run.ends.length} onScrub={onScrub} marks={marks} />
+      <Scrubber index={index} total={run.ends.length} onScrub={onScrub} moments={moments} />
     </Panel>
   );
 }

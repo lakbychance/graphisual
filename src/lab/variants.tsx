@@ -17,7 +17,7 @@ import {
 import { Notebook as AppNotebook } from "@/components/Board/Notebook";
 import type { GraphEdge, GraphNode } from "@/components/Graph/types";
 import type { Run } from "@/utils/visualization/runView";
-import { CodeLine, CodeList, Narration, ScrubMarks, Scrubber, Transport, type TransportProps } from "./parts";
+import { CodeLine, CodeList, Narration, Scrubber, Transport, type TransportProps } from "./parts";
 import type { CanvasOptions } from "./CanvasState";
 import type { RunSummary, StepKind, StepView, VariantId } from "./model";
 
@@ -80,8 +80,8 @@ export function Caption({ view, summary, code, desktop, transport, onScrub }: Va
 
 /* ----------------------------------------------------------------- Notebook */
 
-/** The app's notebook (`Board/Notebook.tsx`), with the lab's transport and timeline markers. */
-export function Notebook({ run, view, summary, desktop, transport, onScrub }: VariantProps) {
+/** The app's notebook (`Board/Notebook.tsx`), with the lab's transport. */
+export function Notebook({ run, view, desktop, transport, onScrub }: VariantProps) {
   return (
     <div className="lab-notebook">
       <AppNotebook
@@ -90,7 +90,6 @@ export function Notebook({ run, view, summary, desktop, transport, onScrub }: Va
         desktop={desktop}
         controls={<Transport {...transport} />}
         onScrub={onScrub}
-        marks={<ScrubMarks index={view.index} total={transport.total} markers={summary.markers} onScrub={onScrub} />}
       />
     </div>
   );

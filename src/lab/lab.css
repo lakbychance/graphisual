@@ -84,21 +84,6 @@
 .lab-code-pop { padding: 8px 4px; max-width: min(440px, calc(100vw - 24px)); }
 
 .lab-caption-foot .lab-scrub { flex: 1 1 auto; margin-top: 0; }
-.lab-scrub-marks { position: absolute; top: 0; left: 0; right: 0; height: 10px; }
-.lab-pin {
-  position: absolute;
-  top: 0;
-  width: 10px;
-  height: 9px;
-  margin-left: -5px;
-  padding: 0;
-  border: 0;
-  background: var(--pin);
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-  cursor: pointer;
-}
-.lab-pin[data-here] { transform: scale(1.35); transform-origin: 50% 100%; }
-
 .lab-transport { display: flex; align-items: center; gap: 2px; }
 .lab-counter {
   font-size: 13px;
@@ -210,9 +195,10 @@
   box-shadow: inset 0 0 0 1.25px var(--pin-ink);
 }
 .lab-score-pin:empty, .lab-score-pin:has(.sr-only:not(:empty)) { width: 9px; height: 9px; padding: 0; top: 4px; background: var(--pin-ink); }
-.lab-score-pin[data-kind="found"] { --pin-ink: var(--color-edge-path); }
+.lab-score-pin[data-kind="found"], .lab-score-pin[data-kind="answer"] { --pin-ink: var(--color-edge-path); }
 .lab-score-pin[data-kind="negative"] { --pin-ink: var(--color-error); }
 .lab-score-pin[data-kind="back"] { --pin-ink: var(--color-edge-back); }
+.lab-score-pin[data-kind="loop"] { --pin-ink: var(--color-edge-cycle); }
 .lab-score-pin[data-kind="round"] { --pin-ink: var(--color-text-muted); }
 
 .lab-score-grid { position: relative; cursor: ew-resize; touch-action: none; outline: none; }

@@ -101,7 +101,8 @@ const DEPTH_FIRST = new Set(["dfs", "dfs-pathfinding", "cycle-detection"]);
 
 /**
  * Each node's role once step `index` is shown, from that step's frame; nodes left out are `unseen`.
- * Waiting beats any other role, and the node being worked on is `current` until the answer.
+ * Waiting beats any other role, and the node being worked on is `current`, until the answer: the
+ * answer step has no node waiting or being worked on.
  * The app's canvas, both its renderers and the rework lab all read roles from here.
  */
 export function rolesAt(run: Run, index: number): Map<number, NodeRole> {
@@ -116,7 +117,11 @@ export function rolesAt(run: Run, index: number): Map<number, NodeRole> {
     roles.set(id, !DEPTH_FIRST.has(run.algorithmId) ? "final" : finished.has(id) ? "done" : "open");
   }
   if (!settles) for (const id of frame.dist.keys()) roles.set(id, answered ? "final" : "reached");
-  for (const { id } of frame.queue) roles.set(id, "waiting");
+  // Once the answer is in nothing is waiting any more; a node left in the queue keeps a value that may still improve.
+  for (const { id } of frame.queue) {
+    if (!answered) roles.set(id, "waiting");
+    else if (frame.dist.has(id) && !roles.has(id)) roles.set(id, "reached");
+  }
   // A relaxation works on the node it relaxes from (Bellman-Ford keeps no current node of its own).
   const current = change?.type === "relax" ? change.from : frame.current;
   if (current !== null && !answered) roles.set(current, "current");
@@ -220,9 +225,9 @@ function waitingOrder(run: Run, frame: Frame): number[] {
 
 /**
  * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
- * node's value, with the old one when this step lowered it, and its place in the queue or stack; the
- * parent links, final or best so far (Bellman-Ford keeps only each node's current best); and the
- * edge this step used. A depth-first search adds each node's discovery and finish times, the branch
+ * node's value, with the old one when this step lowered it, and its place in the queue or stack (none
+ * on the answer step); the parent links, final or best so far (Bellman-Ford keeps only each node's
+ * current best); and the edge this step used. A depth-first search adds each node's discovery and finish times, the branch
  * it is on, and the class of every other edge it has met, marking those this step classified.
  * Both renderers and the rework lab draw from this.
  */
@@ -246,9 +251,12 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   };
   if (valued) for (const [id, value] of frame.dist) badge(id).value = value;
   if (depthFirst) for (const [id, times] of frame.times) Object.assign(badge(id), times);
-  waitingOrder(run, frame).forEach((id, i) => {
-    badge(id).slot = i + 1;
-  });
+  // The answer step shows no queue or stack places.
+  if (!answered) {
+    waitingOrder(run, frame).forEach((id, i) => {
+      badge(id).slot = i + 1;
+    });
+  }
   switch (change?.type) {
     case "relax":
       Object.assign(badge(change.to), { changed: true, old: change.old });
@@ -299,6 +307,68 @@ export function lineAt(run: Run, index: number): number | null {
   if (index < 0 || index >= run.ends.length) return null;
   const step = eventsOf(run, index);
   return (step.find(changes) ?? step[step.length - 1])?.line ?? null;
+}
+
+/* ---------------------------------------------------------------- timeline */
+
+/**
+ * A kind of moment worth jumping to on the scrubber (see `keyMoments`).
+ * - `round`: a Bellman-Ford round begins
+ * - `negative`: a negative edge lowers a distance, the first time one does in the run
+ * - `found`: a search takes its destination
+ * - `back`: a depth-first search first meets an edge back to a node it is still in
+ * - `loop`: cycle detection finds its loop (that back edge)
+ * - `answer`: the run's answer
+ */
+export type MomentKind = "round" | "negative" | "found" | "back" | "loop" | "answer";
+
+export interface KeyMoment {
+  /** The step, 0 to N - 1. */
+  index: number;
+  kind: MomentKind;
+  /** A few words naming it. */
+  label: string;
+  /** What its mark shows in place of a symbol: a round's number, a negative edge's weight. */
+  text?: string;
+}
+
+/**
+ * The run's key moments, from its events, in step order: where each Bellman-Ford round begins,
+ * where a negative edge first lowers a distance, where a search takes its destination, where a
+ * depth-first search first meets a back edge (cycle detection's loop), and the answer. The app's notebook and the rework lab
+ * both mark the scrubber from this.
+ */
+export function keyMoments(run: Run): KeyMoment[] {
+  const moments: KeyMoment[] = [];
+  const rounds = run.algorithmId === "bellman-ford";
+  let negative = false;
+  let back = false;
+  for (let index = 0; index < run.ends.length; index++) {
+    const step = eventsOf(run, index);
+    const round = step[0].group;
+    const answer = step.some((e) => e.type === "answer");
+    // The extra pass that looks for a negative cycle is not a round.
+    const check = step.some((e) => e.type === "skip" && e.check);
+    if (rounds && index > 0 && round > 0 && !answer && !check && eventsOf(run, index - 1)[0].group !== round) {
+      moments.push({ index, kind: "round", label: `Round ${round}`, text: `R${round}` });
+    }
+    const lowers = rounds && !negative ? step.find((e) => e.type === "relax" && e.weight < 0) : undefined;
+    if (lowers?.type === "relax") {
+      negative = true;
+      moments.push({ index, kind: "negative", label: "Negative edge", text: signed(lowers.weight) });
+    }
+    if (step.some((e) => e.type === "settle" && e.target && e.via !== undefined)) {
+      moments.push({ index, kind: "found", label: "Destination found" });
+    }
+    if (!back && step.some((e) => e.type === "classify" && e.kind === "back")) {
+      back = true;
+      moments.push(run.algorithmId === "cycle-detection"
+        ? { index, kind: "loop", label: "Loop found" }
+        : { index, kind: "back", label: "Back edge" });
+    }
+    if (answer) moments.push({ index, kind: "answer", label: "Answer" });
+  }
+  return moments;
 }
 
 /* ------------------------------------------------------------- trace panel */
