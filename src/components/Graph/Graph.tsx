@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useMemo, useImperativeHandle, type Ref } from "react";
+import { useRef, useCallback, useEffect, useMemo, useImperativeHandle, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { Node } from "../Graph/Node/Node";
 import { NodeEdges } from "./NodeEdges";
@@ -32,7 +32,16 @@ export interface GraphHandle {
   getSvgElement: () => SVGSVGElement | null;
 }
 
-export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
+/**
+ * Extra drawing inside the graph's SVG, in graph coordinates: `under` sits above the edges and
+ * below the nodes, `over` above the nodes. The app passes none; the rework lab draws run state here.
+ */
+export interface GraphLayers {
+  under?: ReactNode;
+  over?: ReactNode;
+}
+
+export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphLayers }) {
   const haptics = useAppHaptics();
   // Subscribe to stacking order for rendering - determines z-order of nodes
   const orderedNodeIds = useGraphStore(
@@ -287,6 +296,8 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
         {/* Deleted nodes fading out and their edges recoiling; under the live nodes */}
         <LeavingLayer />
 
+        {layers?.under}
+
         {/* Nodes layer - orderedNodeIds determines z-order (last = top) */}
         {orderedNodeIds.map((nodeId) => (
           <Node
@@ -304,6 +315,8 @@ export function Graph({ ref }: { ref?: Ref<GraphHandle> }) {
             onLabelEdit={handleLabelEdit}
           />
         ))}
+
+        {layers?.over}
 
         {/* Box selection rectangle - uses same accent color as selected nodes */}
         {selectionBox && (

@@ -83,6 +83,21 @@
   --node-shadow-color: transparent;
   --color-node-stroke: #8a847a;
 
+  /* Run state on the graph (rework lab): who waits, who is being worked on, who is done,
+     what this step changed, and how a depth-first search classifies its edges. */
+  --color-state-current: #2a2520;
+  --color-state-waiting: #7a7468;
+  --color-state-done: #d3dccf;
+  --color-state-done-text: #6a645a;
+  --color-state-change: #d86840;
+  --color-state-change-text: #fff8f0;
+  --color-edge-back: #d86850;
+  --color-edge-forward: #3f86b0;
+  --color-edge-cross: #8f6aa8;
+  --color-badge: #f8f6f2;
+  --color-badge-text: #2a2520;
+  --color-badge-line: rgba(50, 45, 40, 0.32);
+
   --color-interactive-hover: rgba(50, 45, 40, 0.1);
   --color-slider-range: rgba(50, 45, 40, 0.22);
   --color-divider: rgba(50, 45, 40, 0.18);
@@ -855,6 +870,20 @@
   --node-shadow-color: transparent;
   --color-node-stroke: #8a8f99;
 
+  /* Run state on the graph (rework lab) */
+  --color-state-current: #ebe8e1;
+  --color-state-waiting: #9c9991;
+  --color-state-done: #2a3830;
+  --color-state-done-text: #8f9a8f;
+  --color-state-change: var(--amber);
+  --color-state-change-text: #1b1c1f;
+  --color-edge-back: #e88870;
+  --color-edge-forward: #6ab0e0;
+  --color-edge-cross: #b89ad8;
+  --color-badge: #2a2c30;
+  --color-badge-text: #ebe8e1;
+  --color-badge-line: rgba(255, 255, 255, 0.2);
+
   --color-interactive-hover: rgba(255, 255, 255, 0.06);
   --color-slider-range: rgba(242, 163, 58, 0.5);
   --color-divider: rgba(255, 255, 255, 0.1);
@@ -1304,6 +1333,20 @@
 
   --node-shadow-color: transparent;
   --color-node-stroke: #cfe4f7;
+
+  /* Run state on the graph (rework lab) */
+  --color-state-current: #ffffff;
+  --color-state-waiting: #b9d3ea;
+  --color-state-done: #1e5d68;
+  --color-state-done-text: #a9d6dc;
+  --color-state-change: #ffd166;
+  --color-state-change-text: #1b4f8a;
+  --color-edge-back: #ff8070;
+  --color-edge-forward: #c3a8ff;
+  --color-edge-cross: #e8f07a;
+  --color-badge: #1f5894;
+  --color-badge-text: #f3f8fc;
+  --color-badge-line: rgba(232, 243, 255, 0.6);
 
   --color-interactive-hover: rgba(255, 255, 255, 0.1);
   --color-slider-range: rgba(159, 224, 247, 0.55);

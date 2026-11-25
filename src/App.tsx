@@ -14,6 +14,15 @@ const isPlayground =
   typeof window !== "undefined" &&
   window.location.pathname.replace(/\/+$/, "") === "/theme-playground";
 
+// Design surface for the run UI: live variants side by side (`/rework-lab`). On the dev server and
+// Vercel previews only: `__REWORK_LAB__` is a build-time constant (see vite.config.ts), so a
+// production build drops both the route and the lab's code.
+const ReworkLab = __REWORK_LAB__ ? lazy(() => import("./lab")) : null;
+const isReworkLab =
+  __REWORK_LAB__ &&
+  typeof window !== "undefined" &&
+  window.location.pathname.replace(/\/+$/, "") === "/rework-lab";
+
 function App() {
   // Initialize theme system (applies data-theme attribute to document)
   useApplyTheme();
@@ -23,6 +32,10 @@ function App() {
       {isPlayground && ThemePlayground ? (
         <Suspense fallback={null}>
           <ThemePlayground />
+        </Suspense>
+      ) : isReworkLab && ReworkLab ? (
+        <Suspense fallback={null}>
+          <ReworkLab />
         </Suspense>
       ) : (
         <Board />

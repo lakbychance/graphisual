@@ -1,11 +1,37 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { reactScanPlugin, jsonldPlugin, pwaPlugin, bundleAnalyzerPlugin, prerenderPlugin } from "./plugins/vite-plugins";
 import { AUTHOR_NAME, SITE_NAME, TWITTER_HANDLE } from "./src/utils/constants";
 
-export default defineConfig({
+/**
+ * The rework lab (`/rework-lab`, `src/lab/`) is a design surface for reviewing the run UI. It exists
+ * on the dev server and on Vercel preview deploys only. `__REWORK_LAB__` is a build-time constant:
+ * a production build (Vercel production, or a plain local `pnpm build`) compiles it to `false`, so
+ * the route and every line of lab code are dropped. Vercel sets `VERCEL_ENV=preview` on preview builds.
+ */
+const reworkLab = (command: "build" | "serve") => command === "serve" || process.env.VERCEL_ENV === "preview";
+
+/**
+ * On builds that include the lab, a copy of the app's page at `rework-lab.html`, so `/rework-lab`
+ * loads the app on a static host (Vercel's `cleanUrls`) and the app opens the lab from the path.
+ */
+function reworkLabPage(): Plugin {
+  return {
+    name: "rework-lab-page",
+    apply: "build",
+    // After Vite has written the app's page into the bundle.
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const page = bundle["index.html"];
+      if (page?.type === "asset") this.emitFile({ type: "asset", fileName: "rework-lab.html", source: page.source });
+    },
+  };
+}
+
+export default defineConfig(({ command }) => ({
+  define: { __REWORK_LAB__: JSON.stringify(reworkLab(command)) },
   plugins: [
     react({
       babel: {
@@ -34,6 +60,7 @@ export default defineConfig({
       siteName: SITE_NAME,
       twitterHandle: TWITTER_HANDLE,
     }),
+    reworkLab(command) && reworkLabPage(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -66,4 +93,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
