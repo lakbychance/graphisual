@@ -873,7 +873,7 @@
   /* Run state on the graph (rework lab) */
   --color-state-current: #ebe8e1;
   --color-state-waiting: #9c9991;
-  --color-state-done: #2a3830;
+  --color-state-done: #202522;
   --color-state-done-text: #8f9a8f;
   --color-state-change: var(--amber);
   --color-state-change-text: #1b1c1f;

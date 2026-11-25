@@ -6,6 +6,9 @@ export interface SelectedOption {
   text: string;
 }
 
+/** Where a run has a node, when the canvas marks it: waiting in the queue or stack, being worked on, or done with (backed out of). */
+export type NodeRunState = "waiting" | "current" | "done";
+
 /**
  * Visualization flags for a node (stored separately from node data).
  */
@@ -13,6 +16,7 @@ export interface NodeVisualizationFlags {
   isVisited?: boolean;
   isInShortestPath?: boolean;
   isInCycle?: boolean;
+  runState?: NodeRunState;
 }
 
 /**

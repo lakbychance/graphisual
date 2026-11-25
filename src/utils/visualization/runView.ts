@@ -2,8 +2,9 @@
  * What the app shows for one step of a run, read from the engine's frames.
  *
  * A run is an algorithm's events, cut into steps of one change each (`stepEnds`). For the step on
- * screen, `highlightsAt` says which nodes and edges the canvas lights, and `traceAt` gives the
- * trace panel its message and data structure.
+ * screen, `highlightsAt` says which nodes and edges the canvas lights (and `rolesAt` how each node
+ * reads: waiting, being worked on, done), and `traceAt` gives the trace panel its message and data
+ * structure.
  */
 import { nid, signed } from "../../algorithms/traceHelpers";
 import {
@@ -11,7 +12,9 @@ import {
 } from "../../algorithms/engine";
 import type { DataStructureState, StepTrace } from "../../algorithms/types";
 import { EDGE_TYPE } from "../../constants/graph";
-import type { EdgeVisualizationFlags, GraphEdge, NodeVisualizationFlags, VisualizationTrace } from "../../components/Graph/types";
+import type {
+  EdgeVisualizationFlags, GraphEdge, NodeRunState, NodeVisualizationFlags, VisualizationTrace,
+} from "../../components/Graph/types";
 
 export interface Run {
   algorithmId: string;
@@ -87,8 +90,49 @@ export function walkedAt(run: Run, index: number): Walked {
 }
 
 /**
- * The canvas highlights once step `index` is shown, from `walkedAt`. Undirected edges light both ways.
- * An edge back to a node in progress lights in the cycle colour as soon as it is found.
+ * How a node reads once a step is shown (see `rolesAt`).
+ * - `unseen`: nothing has reached it yet
+ * - `waiting`: in the queue or on the stack
+ * - `current`: the node being worked on
+ * - `open`: a depth-first search is still inside it (on the branch)
+ * - `done`: a depth-first search has backed out of it
+ * - `final`: its value (or visit) is final
+ * - `reached`: it has a value that may still improve (Bellman-Ford)
+ */
+export type NodeRole = "unseen" | "waiting" | "current" | "open" | "done" | "final" | "reached";
+
+const DEPTH_FIRST = new Set(["dfs", "dfs-pathfinding", "cycle-detection"]);
+
+/**
+ * Each node's role once step `index` is shown, from that step's frame; nodes left out are `unseen`.
+ * Waiting beats any other role, and the node being worked on is `current` until the answer.
+ * The app's canvas, both its renderers and the rework lab all read roles from here.
+ */
+export function rolesAt(run: Run, index: number): Map<number, NodeRole> {
+  const roles = new Map<number, NodeRole>();
+  if (index < 0) return roles;
+  const frame = frameOf(run, index);
+  const change = eventsOf(run, index).find(changes);
+  const answered = frame.answer !== null;
+  const settles = run.events.some((e) => e.type === "settle");
+  const finished = new Set(frame.finished);
+  for (const id of frame.settled) {
+    roles.set(id, !DEPTH_FIRST.has(run.algorithmId) ? "final" : finished.has(id) ? "done" : "open");
+  }
+  if (!settles) for (const id of frame.dist.keys()) roles.set(id, answered ? "final" : "reached");
+  for (const { id } of frame.queue) roles.set(id, "waiting");
+  // A relaxation works on the node it relaxes from (Bellman-Ford keeps no current node of its own).
+  const current = change?.type === "relax" ? change.from : frame.current;
+  if (current !== null && !answered) roles.set(current, "current");
+  return roles;
+}
+
+/** The roles the canvas draws a mark for; the others read through the visited colour alone. */
+const isMarked = (role: NodeRole): role is NodeRunState => role === "waiting" || role === "current" || role === "done";
+
+/**
+ * The canvas highlights once step `index` is shown, from `walkedAt` and `rolesAt`. Undirected edges
+ * light both ways. An edge back to a node in progress lights in the cycle colour as soon as it is found.
  */
 export function highlightsAt(run: Run, index: number, edges: Map<number, GraphEdge[]>): VisualizationTrace {
   const trace = emptyTrace();
@@ -101,6 +145,9 @@ export function highlightsAt(run: Run, index: number, edges: Map<number, GraphEd
 
   const { visited, walks, back, answer } = walkedAt(run, index);
   for (const id of visited) markNode(id, { isVisited: true });
+  for (const [id, role] of rolesAt(run, index)) {
+    if (isMarked(role)) markNode(id, { runState: role });
+  }
   for (const walk of walks) markEdge(walk, { isUsedInTraversal: true });
   for (const walk of back) markEdge(walk, { isUsedInCycle: true });
   if (answer?.kind === "route") {

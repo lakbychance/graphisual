@@ -141,7 +141,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   });
 
   // Color state for visualization
-  const { getNodeColorState, getEdgeColorState, isEdgeFocused } = useCanvasColorState({
+  const { getNodeColorState, getNodeRunMark, getEdgeColorState, isEdgeFocused } = useCanvasColorState({
     visualizationInput,
     visualizationTrace,
     focusedEdge,
@@ -205,6 +205,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     previewEdge,
     selectionBox,
     getNodeColorState,
+    getNodeRunMark,
     getEdgeColorState,
     isEdgeFocused,
     currentAlgorithm,

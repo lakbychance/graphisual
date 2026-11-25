@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { NodeColorState, EdgeColorState } from "@/theme";
-import type { NodeVisualizationFlags, EdgeVisualizationFlags, GraphEdge } from "../components/Graph/types";
-import { resolveNodeVisState } from "../utils/visualization/nodeVisState";
+import type { NodeVisualizationFlags, EdgeVisualizationFlags, GraphEdge, NodeRunState } from "../components/Graph/types";
+import { resolveNodeRunMark, resolveNodeVisState } from "../utils/visualization/nodeVisState";
 
 interface UseCanvasColorStateProps {
   visualizationInput: { startNodeId: number; endNodeId: number } | null;
@@ -23,6 +23,11 @@ export function useCanvasColorState({
     resolveNodeVisState(nodeId, visualizationTrace.nodes.get(nodeId), visualizationInput),
   [visualizationInput, visualizationTrace.nodes]);
 
+  const getNodeRunMark = useCallback((nodeId: number): NodeRunState | null => {
+    const flags = visualizationTrace.nodes.get(nodeId);
+    return resolveNodeRunMark(flags, resolveNodeVisState(nodeId, flags, visualizationInput));
+  }, [visualizationInput, visualizationTrace.nodes]);
+
   const getEdgeColorState = useCallback((fromId: number, toId: number): EdgeColorState => {
     const flags = visualizationTrace.edges.get(`${fromId}-${toId}`);
     if (flags?.isUsedInCycle) return 'cycle';
@@ -42,5 +47,5 @@ export function useCanvasColorState({
     return false;
   }, [focusedEdge, edges]);
 
-  return { getNodeColorState, getEdgeColorState, isEdgeFocused };
+  return { getNodeColorState, getNodeRunMark, getEdgeColorState, isEdgeFocused };
 }

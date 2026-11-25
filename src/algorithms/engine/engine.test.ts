@@ -26,7 +26,7 @@ import {
   bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
 } from "./__tests__/oracles";
 import {
-  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, groupsOnlyIncrease, oneChangePerStep, pointsAtPseudocode,
+  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, doneStaysDone, groupsOnlyIncrease, oneChangePerStep, pointsAtPseudocode,
   relaxOnlyLowers, settlesOnceInOrder, type Rule,
 } from "./__tests__/rules";
 
@@ -42,9 +42,9 @@ const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: R
   { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers } },
   { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
   { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
-  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
-  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
-  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest } },
+  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
+  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
+  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
   { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 

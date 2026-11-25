@@ -3,20 +3,22 @@
  * Draws nodes with gradients, strokes, crosshatch overlay, and labels.
  */
 
-import type { GraphNode } from "../../Graph/types";
+import type { GraphNode, NodeRunState } from "../../Graph/types";
 import {
   type NodeColorState,
   getNodeGradientColors,
   getNodeStrokeColor,
   getCSSVar,
 } from "@/theme";
-import { NODE_STROKE, NODE_STATE_MARK, NODE_RING } from "../../../constants/ui";
+import { NODE_STROKE, NODE_STATE_MARK, NODE_RING, NODE_RUN_RING } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 
 interface NodeRenderOptions {
   isSelected: boolean;
   isHovered: boolean;
   colorState: NodeColorState;
+  /** Where a run has the node: a ring while waiting or worked on, a pale fill once done (as in the SVG renderer). */
+  runMark?: NodeRunState | null;
   scale?: number; // For entrance animation
   opacity?: number; // For entrance animation
   isEdgeCreateSource?: boolean; // Highlight during edge creation drag
@@ -147,6 +149,7 @@ export function drawNode(
     isSelected,
     isHovered,
     colorState,
+    runMark = null,
     scale = 1,
     opacity = 1,
     isEdgeCreateSource = false,
@@ -192,7 +195,8 @@ export function drawNode(
   // Main circle: the same flat fill the SVG renderer uses (the gradient's mid colour)
   ctx.beginPath();
   ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = getNodeGradientColors(colorState).mid;
+  const isDone = runMark === 'done';
+  ctx.fillStyle = isDone ? getCSSVar('--color-state-done') : getNodeGradientColors(colorState).mid;
   ctx.fill();
 
   // Clear shadow for stroke
@@ -223,13 +227,24 @@ export function drawNode(
     ctx.setLineDash([]);
   }
 
-  // Crosshatch overlay
-  drawCrosshatch(ctx, node, radius, pixelScale);
+  // Crosshatch overlay (a done node is flat)
+  if (!isDone) drawCrosshatch(ctx, node, radius, pixelScale);
+
+  // Run ring: dashed while the node waits in the queue or stack, solid ink while it is worked on
+  if (runMark === 'waiting' || runMark === 'current') {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.r * scale + NODE_RUN_RING.GAP, 0, Math.PI * 2);
+    ctx.strokeStyle = getCSSVar(runMark === 'current' ? '--color-state-current' : '--color-state-waiting');
+    ctx.lineWidth = runMark === 'current' ? NODE_RUN_RING.CURRENT_WIDTH : NODE_RUN_RING.WAITING_WIDTH;
+    if (runMark === 'waiting') ctx.setLineDash([...NODE_RUN_RING.WAITING_DASH]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   ctx.restore();
 
   // Label (drawn without transforms affecting it)
-  drawNodeLabel(ctx, node, radius);
+  drawNodeLabel(ctx, node, radius, isDone ? '--color-state-done-text' : '--color-text');
 }
 
 /**
@@ -238,14 +253,15 @@ export function drawNode(
 function drawNodeLabel(
   ctx: CanvasRenderingContext2D,
   node: GraphNode,
-  _radius: number
+  _radius: number,
+  colorVar: string
 ): void {
   // Match SVG: text-xs (12px) on desktop
   const fontSize = 12;
 
   ctx.save();
   ctx.font = `bold ${fontSize}px 'Outfit', system-ui, sans-serif`;
-  ctx.fillStyle = getCSSVar('--color-text');
+  ctx.fillStyle = getCSSVar(colorVar);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   // +1: canvas 'middle' sits a pixel higher than the SVG label's 'central' baseline.

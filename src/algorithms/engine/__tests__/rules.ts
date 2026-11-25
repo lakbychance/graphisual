@@ -103,6 +103,32 @@ export const dfsTimesNest: Rule = (events) => {
   return null;
 };
 
+/**
+ * Once a depth-first search is done with a node, it stays done: the node was visited first, and it
+ * never waits, is visited or is returned to again. So the canvas never shows a node as both done
+ * and waiting or being worked on.
+ */
+export const doneStaysDone: Rule = (events) => {
+  const visited = new Set<number>();
+  const done = new Set<number>();
+  for (const e of events) {
+    if (e.type === "settle") {
+      if (done.has(e.node)) return `node ${e.node} is visited after it is done`;
+      visited.add(e.node);
+    } else if (e.type === "enqueue" && done.has(e.node)) {
+      return `node ${e.node} waits again after it is done`;
+    } else if (e.type === "relax" && e.queue && done.has(e.to)) {
+      return `node ${e.to} waits again after it is done`;
+    } else if (e.type === "finish") {
+      if (!visited.has(e.node)) return `node ${e.node} is done before it is visited`;
+      if (done.has(e.node)) return `node ${e.node} is done twice`;
+      done.add(e.node);
+      if (e.parent !== undefined && done.has(e.parent)) return `node ${e.node} returns to ${e.parent}, which is already done`;
+    }
+  }
+  return null;
+};
+
 /** Prim's adds a node only through an edge that crosses out of the tree and is the lightest such edge. */
 export const addsLightestCrossingEdge: Rule = (events, { input }) => {
   const tree = new Set<number>();

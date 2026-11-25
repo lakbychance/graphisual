@@ -4,13 +4,13 @@ import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 import { EdgeConnector } from "../EdgeConnector";
-import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE, NODE_STATE_MARK, NODE_RING } from "../../../constants/ui";
+import { DRAG_THRESHOLD, STROKE_ANIMATION, NODE_STROKE, NODE_STATE_MARK, NODE_RING, NODE_RUN_RING } from "../../../constants/ui";
 import { NODE } from "../../../constants/graph";
 import { useGraphStore } from "../../../store/graphStore";
 import { useShallow } from "zustand/shallow";
 import { useIsDesktop } from "../../../hooks/useMediaQuery";
 import { useAppHaptics } from "../../../hooks/useAppHaptics";
-import { resolveNodeVisState } from "../../../utils/visualization/nodeVisState";
+import { resolveNodeRunMark, resolveNodeVisState } from "../../../utils/visualization/nodeVisState";
 
 export interface NodeProps {
   nodeId: number;
@@ -218,9 +218,12 @@ export const Node = memo(function Node(props: NodeProps) {
   const hitAreaRadius = node.r + NODE.HIT_AREA_PADDING;
 
   const visState = resolveNodeVisState(node.id, visFlags, visualizationInput);
+  // Where a run has the node: waiting or being worked on (a ring), or done with (a pale fill)
+  const runMark = resolveNodeRunMark(visFlags, visState);
+  const isDone = runMark === 'done';
 
   // Solid colors (not gradients) so Framer Motion can animate the fill smoothly
-  const getNodeFill = () => `var(--gradient-${visState}-mid)`;
+  const getNodeFill = () => isDone ? "var(--color-state-done)" : `var(--gradient-${visState}-mid)`;
 
   // Stroke color for non-selected states (selected state handled by Framer Motion animate)
   const getNodeStroke = () =>
@@ -302,16 +305,35 @@ export const Node = memo(function Node(props: NodeProps) {
           style={{ transition: prefersReducedMotion ? 'none' : `r ${STROKE_ANIMATION.DURATION}s` }}
         />
       )}
-      {/* Crosshatch pattern overlay — plain circle with CSS transition instead of motion.circle */}
-      <circle
-        cx={node.x}
-        cy={node.y}
-        r={bodyR}
-        fill="url(#crosshatch)"
-        mask="url(#sphereMask)"
-        className="pointer-events-none"
-        style={{ transition: prefersReducedMotion ? 'none' : `r ${STROKE_ANIMATION.DURATION}s` }}
-      />
+      {/* Crosshatch pattern overlay — plain circle with CSS transition instead of motion.circle. A done node is flat. */}
+      {!isDone && (
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={bodyR}
+          fill="url(#crosshatch)"
+          mask="url(#sphereMask)"
+          className="pointer-events-none"
+          style={{ transition: prefersReducedMotion ? 'none' : `r ${STROKE_ANIMATION.DURATION}s` }}
+        />
+      )}
+      {/* Run ring: dashed while the node waits in the queue or stack, solid ink while it is worked on */}
+      {(runMark === 'waiting' || runMark === 'current') && (
+        <m.circle
+          key={runMark}
+          cx={node.x}
+          cy={node.y}
+          r={node.r + NODE_RUN_RING.GAP}
+          fill="none"
+          stroke={runMark === 'current' ? "var(--color-state-current)" : "var(--color-state-waiting)"}
+          strokeWidth={runMark === 'current' ? NODE_RUN_RING.CURRENT_WIDTH : NODE_RUN_RING.WAITING_WIDTH}
+          strokeDasharray={runMark === 'waiting' ? NODE_RUN_RING.WAITING_DASH.join(' ') : undefined}
+          className="pointer-events-none"
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: STROKE_ANIMATION.DURATION }}
+        />
+      )}
       {/* Edge Connectors - only mounted on hover to avoid unnecessary renders during drag */}
       {connectorsVisible && (
         <>
@@ -349,7 +371,10 @@ export const Node = memo(function Node(props: NodeProps) {
       {/* Node label - hidden while editing to avoid overlap with portal input */}
       <text
         className="pointer-events-none select-none font-bold text-sm [text-anchor:middle] [dominant-baseline:central] [-webkit-user-select:none] [-moz-user-select:none] [-ms-user-select:none] lg:text-xs"
-        style={{ fill: 'var(--color-text)' }}
+        style={{
+          fill: isDone ? 'var(--color-state-done-text)' : 'var(--color-text)',
+          transition: prefersReducedMotion ? 'none' : `fill ${STROKE_ANIMATION.DURATION}s`,
+        }}
         x={node.x}
         y={node.y}
       >

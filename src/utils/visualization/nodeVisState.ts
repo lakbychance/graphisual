@@ -1,4 +1,4 @@
-import type { NodeVisualizationFlags } from "../../components/Graph/types";
+import type { NodeRunState, NodeVisualizationFlags } from "../../components/Graph/types";
 
 export type NodeVisState = 'start' | 'end' | 'path' | 'cycle' | 'visited' | 'default';
 
@@ -20,4 +20,15 @@ export function resolveNodeVisState(
   if (input?.endNodeId === nodeId) return 'end';
   if (flags?.isVisited) return 'visited';
   return 'default';
+}
+
+/**
+ * The run mark a node shows: a ring while it waits or is worked on, a pale fill once the run is done
+ * with it. Done shows only on a node otherwise drawn as visited, so the start and end markers and
+ * the answer keep their own look.
+ */
+export function resolveNodeRunMark(flags: NodeVisualizationFlags | undefined, visState: NodeVisState): NodeRunState | null {
+  const mark = flags?.runState;
+  if (!mark) return null;
+  return mark === 'done' && visState !== 'visited' ? null : mark;
 }

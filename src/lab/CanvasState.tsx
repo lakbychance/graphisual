@@ -1,7 +1,8 @@
 /**
  * Run state drawn on the graph itself, inside the real SVG renderer (`Graph`'s layers):
- * who waits, who is being worked on, who is done, values with what changed, depth-first times,
- * edge classes and the parent links. Only what this step changed is emphasised.
+ * values with what changed, queue places, depth-first times, edge classes and the parent links.
+ * Who waits, who is being worked on and who is done is the app's own drawing (the renderers read
+ * it from `rolesAt`). Only what this step changed is emphasised.
  *
  * Badges keep a readable size on screen whatever the zoom (they scale by 1 / zoom, within limits).
  */
@@ -177,7 +178,6 @@ function NodeMarks({ node, state, options, k, reduced, step, valued }: {
   node: GraphNode; state: NodeState; options: CanvasOptions; k: number; reduced: boolean; step: number; valued: boolean;
 }) {
   const { x, y, r } = node;
-  const label = node.label || String(node.id);
   const pop = state.changed && !reduced
     ? { initial: { opacity: 0, scale: 0.6 }, animate: { opacity: 1, scale: 1 }, transition: { duration: 0.18, ease: "easeOut" as const } }
     : {};
@@ -186,20 +186,6 @@ function NodeMarks({ node, state, options, k, reduced, step, valued }: {
 
   return (
     <g>
-      {/* A finished node goes quiet: a pale fill over the node's own, its name in muted ink. */}
-      {state.role === "done" && (
-        <>
-          <circle cx={x} cy={y} r={r - 2} fill="var(--color-state-done)" />
-          <text x={x} y={y} textAnchor="middle" dominantBaseline="central" className="font-bold text-sm lg:text-xs" fill="var(--color-state-done-text)">{label}</text>
-        </>
-      )}
-      {state.role === "waiting" && (
-        <circle cx={x} cy={y} r={r + 6} fill="none" stroke="var(--color-state-waiting)" strokeWidth={2} strokeDasharray="5 5" />
-      )}
-      {state.role === "current" && (
-        <circle cx={x} cy={y} r={r + 6} fill="none" stroke="var(--color-state-current)" strokeWidth={3} />
-      )}
-
       {showValue && (
         <m.g key={`v-${step}-${state.changed}`} {...pop} style={{ transformOrigin: `${x + r * 0.75}px ${y - r * 0.95}px` }}>
           <g transform={`translate(${x + r * 0.75} ${y - r * 0.95}) scale(${k})`}>

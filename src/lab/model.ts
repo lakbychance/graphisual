@@ -18,7 +18,7 @@ import {
   generateCycleWithDeadEnd, generateWeighted, graphFromSpec, type GeneratedGraph,
 } from "@/utils/graph/graphGenerator";
 import { buildRun } from "@/utils/visualization/buildRun";
-import { lineAt, type Run } from "@/utils/visualization/runView";
+import { lineAt, rolesAt, type NodeRole, type Run } from "@/utils/visualization/runView";
 import { needsDestination } from "@/utils/visualization/stepLink";
 import { decodeGraphLink } from "@/utils/graph/graphLink";
 
@@ -157,17 +157,8 @@ export function setupLink(setup: Pick<Setup, "variant" | "algorithm" | "graphId"
 
 /* ------------------------------------------------------------- one step */
 
-/**
- * How a node reads at a step.
- * - `unseen`: nothing has reached it yet
- * - `waiting`: in the queue or on the stack
- * - `current`: the node being worked on
- * - `open`: a depth-first search is still inside it (on the branch)
- * - `done`: a depth-first search has backed out of it
- * - `final`: its value (or visit) is final
- * - `reached`: it has a value that may still improve (Bellman-Ford)
- */
-export type Role = "unseen" | "waiting" | "current" | "open" | "done" | "final" | "reached";
+/** How a node reads at a step: the app's own roles (see `rolesAt`). */
+export type Role = NodeRole;
 
 export interface NodeState {
   role: Role;
@@ -290,7 +281,7 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
   const change = step.find(changes);
   const algorithm = run.algorithmId;
   const valued = keepsValues(algorithm);
-  const settles = run.events.some((e) => e.type === "settle");
+  const roles = rolesAt(run, index);
   const finished = new Set(frame.finished);
   const settled = new Set(frame.settled);
   const queued = slots(run, frame);
@@ -306,7 +297,6 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
     }
   }
 
-  const current = change?.type === "relax" ? change.from : frame.current;
   const changedNodes = new Set<number>();
   if (change) {
     if (change.type === "relax") changedNodes.add(change.to);
@@ -316,14 +306,8 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
 
   const states = new Map<number, NodeState>();
   for (const { id } of nodes) {
-    let role: Role = "unseen";
-    if (depthFirst(algorithm) && settled.has(id)) role = finished.has(id) ? "done" : "open";
-    else if (settled.has(id)) role = "final";
-    else if (!settles && frame.dist.has(id)) role = done ? "final" : "reached";
-    if (queued.has(id)) role = "waiting";
-    if (id === current && !done) role = "current";
     states.set(id, {
-      role,
+      role: roles.get(id) ?? "unseen",
       value: valued ? frame.dist.get(id) : undefined,
       old: change?.type === "relax" && change.to === id ? change.old : undefined,
       changed: changedNodes.has(id),

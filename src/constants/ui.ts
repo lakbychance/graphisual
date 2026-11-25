@@ -67,3 +67,15 @@ export const NODE_RING = {
   WIDTH: 1.5,
   DASH: [3, 3],
 } as const;
+
+/**
+ * Where a run has a node, drawn outside it (read by both renderers): a dashed ring while it waits
+ * in the queue or stack, a solid ink ring while it is worked on. A node the run is done with is
+ * filled pale instead, with a muted label (see `resolveNodeRunMark`).
+ */
+export const NODE_RUN_RING = {
+  GAP: 6,
+  WAITING_WIDTH: 2,
+  WAITING_DASH: [5, 5],
+  CURRENT_WIDTH: 3,
+} as const;

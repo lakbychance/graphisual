@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from "react";
-import type { GraphEdge, GraphNode } from "../components/Graph/types";
+import type { GraphEdge, GraphNode, NodeRunState } from "../components/Graph/types";
 import type { HoveredEdge, PreviewEdge, SelectionBox } from "../components/GraphCanvas/types";
 import { type EdgeColorState, type NodeColorState, getCSSVar } from "@/theme";
 import { applyViewportTransform, resetTransform } from "../components/GraphCanvas/ViewportTransform";
@@ -25,6 +25,7 @@ interface UseCanvasRenderLoopProps {
   previewEdge: PreviewEdge | null;
   selectionBox: SelectionBox | null;
   getNodeColorState: (nodeId: number) => NodeColorState;
+  getNodeRunMark: (nodeId: number) => NodeRunState | null;
   getEdgeColorState: (fromId: number, toId: number) => EdgeColorState;
   isEdgeFocused: (fromId: number, toId: number) => boolean;
   currentAlgorithm: unknown;
@@ -64,6 +65,7 @@ export function useCanvasRenderLoop({
   previewEdge,
   selectionBox,
   getNodeColorState,
+  getNodeRunMark,
   getEdgeColorState,
   isEdgeFocused,
   currentAlgorithm,
@@ -133,6 +135,7 @@ export function useCanvasRenderLoop({
         isSelected,
         isHovered: hoveredBodyNodeId === nodeId && !!currentAlgorithm && !isVisualizing,
         colorState: getNodeColorState(nodeId),
+        runMark: getNodeRunMark(nodeId),
         isEdgeCreateSource: isEdgeDragSourceNode,
         isEdgeCreateTarget: isEdgeDragTargetNode,
         pixelScale,
@@ -168,6 +171,7 @@ export function useCanvasRenderLoop({
     edgeDragSource,
     edgeDragTarget,
     getNodeColorState,
+    getNodeRunMark,
     getEdgeColorState,
     isEdgeFocused,
     previewEdge,
