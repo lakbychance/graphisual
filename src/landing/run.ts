@@ -102,7 +102,7 @@ export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {
     const walked = walkedAt(run, index);
 
     view.phase = index === 0 ? "ready" : frame.answer ? "answer" : "explore";
-    view.found = step.some((e) => (e.type === "settle" && e.target) || (e.type === "classify" && e.kind === "back"));
+    view.found = step.some((e) => (e.type === "settle" && e.target) || (e.type === "classify" && e.loop));
     view.line = lineAt(run, index);
     view.order = [...frame.settled];
     view.visited = new Set(walked.visited);
@@ -113,7 +113,7 @@ export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {
     // The edge this step walks: the last one it adds to the drawing.
     for (const e of step) {
       if (e.type === "settle" && e.via !== undefined) view.activeEdge = edgeIndex(graph, e.via, e.node);
-      else if (e.type === "classify" && e.kind === "back") view.activeEdge = edgeIndex(graph, e.from, e.to);
+      else if (e.type === "classify" && e.loop) view.activeEdge = edgeIndex(graph, e.from, e.to);
       else if (e.type === "relax" && !settles) view.activeEdge = edgeIndex(graph, e.from, e.to);
     }
     if (view.activeEdge !== null && view.activeEdge < 0) view.activeEdge = null;

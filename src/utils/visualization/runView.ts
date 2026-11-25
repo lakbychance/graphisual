@@ -253,9 +253,6 @@ export function runMarksAt(run: Run, index: number): RunMarks {
     case "relax":
       Object.assign(badge(change.to), { changed: true, old: change.old });
       break;
-    case "classify":
-      badge(change.to).changed = true;
-      break;
     case "start":
     case "enqueue":
     case "settle":
@@ -275,7 +272,7 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   }
   if (depthFirst) {
     const fresh = new Set(step.flatMap((e) =>
-      (e.type === "skip" && e.kind) || (e.type === "classify" && e.kind !== "tree") ? [`${e.from}-${e.to}`] : []));
+      e.type === "classify" && e.kind !== "tree" ? [`${e.from}-${e.to}`] : []));
     for (const [key, kind] of frame.edgeClass) {
       const [from, to] = key.split("-").map(Number);
       // A self-loop has no line to draw on; a twin of a tree edge reads as the tree edge.

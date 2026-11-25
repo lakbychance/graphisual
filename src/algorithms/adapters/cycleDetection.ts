@@ -62,7 +62,7 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
           events.push({ type: "skip", from: node, to, reason: "parent", line: LINE.parent, group });
           continue;
         }
-        events.push({ type: "classify", from: node, to, kind: "back", line: LINE.inProgress, group });
+        events.push({ type: "classify", from: node, to, kind: "back", loop: true, line: LINE.inProgress, group });
         const cycle = [node];
         for (let at = node; at !== to; at = parent.get(at)!) cycle.unshift(parent.get(at)!);
         events.push({ type: "answer", kind: "cycle", cycle, line: LINE.report, group: group + 1 });

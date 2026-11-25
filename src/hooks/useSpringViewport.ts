@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSpring } from "motion/react";
+import { useReducedMotion, useSpring } from "motion/react";
 
 interface UseSpringViewportOptions {
   zoomTarget: number;
@@ -10,7 +10,8 @@ interface UseSpringViewportOptions {
 
 /**
  * Hook to animate viewport zoom and pan using springs
- * Returns smoothly animated values that track the target values
+ * Returns smoothly animated values that track the target values.
+ * With reduced motion the view jumps straight to its target instead.
  */
 export function useSpringViewport({
   zoomTarget,
@@ -19,6 +20,7 @@ export function useSpringViewport({
   damping = 80,
 }: UseSpringViewportOptions) {
   const springConfig = { stiffness, damping };
+  const reduced = !!useReducedMotion();
 
   // Springs for zoom and pan - animating together prevents focal point drift
   const springZoom = useSpring(zoomTarget, springConfig);
@@ -30,13 +32,19 @@ export function useSpringViewport({
 
   // Update spring targets
   useEffect(() => {
-    springZoom.set(zoomTarget);
-  }, [zoomTarget, springZoom]);
+    if (reduced) springZoom.jump(zoomTarget);
+    else springZoom.set(zoomTarget);
+  }, [zoomTarget, springZoom, reduced]);
 
   useEffect(() => {
-    springPanX.set(panTarget.x);
-    springPanY.set(panTarget.y);
-  }, [panTarget, springPanX, springPanY]);
+    if (reduced) {
+      springPanX.jump(panTarget.x);
+      springPanY.jump(panTarget.y);
+    } else {
+      springPanX.set(panTarget.x);
+      springPanY.set(panTarget.y);
+    }
+  }, [panTarget, springPanX, springPanY, reduced]);
 
   // Subscribe to spring changes
   useEffect(() => {

@@ -83,12 +83,6 @@ export interface SkipEvent extends Tagged {
   /** What `to` already had. */
   current?: number;
   check?: boolean;
-  /**
-   * How a depth-first search classifies the edge it checked (`back` or `cross`; see `EdgeClass`).
-   * The check is the classification, so it changes nothing and needs no step of its own. An undirected
-   * edge back to the node's parent is the tree edge seen from below and has none.
-   */
-  kind?: EdgeClass;
 }
 
 /**
@@ -115,16 +109,21 @@ export interface SettleEvent extends Tagged {
 export type EdgeClass = "tree" | "back" | "forward" | "cross";
 
 /**
- * An edge classified (see `EdgeClass`). Cycle detection classifies every edge it meets this way, and
- * its `back` edge is the loop it reports: a change of its own (see `steps.ts`). The stack-based
- * depth-first searches classify most edges on the check itself (`SkipEvent.kind`); an edge they pushed
- * along whose node a deeper node took over is `forward`, said just before that node is visited.
+ * An edge classified (see `EdgeClass`). Every depth-first search reports each class it gives an edge
+ * this way, and a classification on its own is a check that changes nothing. The stack-based searches
+ * classify an edge to a visited node when they check it (`back` or `cross`; an undirected edge back
+ * to the node's parent is the tree edge seen from below, a plain skip); an edge they pushed along whose
+ * node a deeper node took over is `forward`, said just before that node is visited.
+ *
+ * `loop` marks the one classification that is a change of its own (see `steps.ts`): the `back` edge
+ * cycle detection reports as its cycle. Nothing else marks a loop, whatever its class.
  */
 export interface ClassifyEvent extends Tagged {
   type: "classify";
   from: number;
   to: number;
   kind: EdgeClass;
+  loop?: true;
 }
 
 /**

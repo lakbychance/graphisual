@@ -38,9 +38,9 @@ export interface Frame {
   prev: ReadonlyMap<number, number>;
   /** The frontier, in insertion order. */
   queue: readonly QueueItem[];
-  /** Classified edges, keyed `from-to`: from classify events and from checks that classify (`SkipEvent.kind`). */
+  /** Classified edges, keyed `from-to`, from classify events. */
   edgeClass: ReadonlyMap<string, EdgeClass>;
-  /** The edge a cycle search found leading back to a node still in progress (its loop), once found. */
+  /** The edge a cycle search found leading back to a node still in progress (its loop, `ClassifyEvent.loop`), once found. */
   loop: { from: number; to: number } | null;
   /** A depth-first search's discovery and finish times, per node it has visited. */
   times: ReadonlyMap<number, DepthFirstTimes>;
@@ -95,7 +95,6 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
     }
     case "skip":
       next.edge = { from: event.from, to: event.to };
-      if (event.kind !== undefined) next.edgeClass = withEntry(frame.edgeClass, `${event.from}-${event.to}`, event.kind);
       break;
     case "settle":
       next.current = event.node;
@@ -111,7 +110,7 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
     case "classify":
       next.edge = { from: event.from, to: event.to };
       next.edgeClass = withEntry(frame.edgeClass, `${event.from}-${event.to}`, event.kind);
-      if (event.kind === "back") next.loop = { from: event.from, to: event.to };
+      if (event.loop) next.loop = { from: event.from, to: event.to };
       break;
     case "finish": {
       next.current = event.parent ?? null;

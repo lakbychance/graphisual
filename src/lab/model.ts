@@ -262,7 +262,7 @@ export function summarise(run: Run, nodes: GraphNode[]): RunSummary {
         break;
       }
     }
-    const found = step.some((e) => (e.type === "settle" && e.target && e.via !== undefined) || (e.type === "classify" && e.kind === "back" && run.algorithmId === "cycle-detection"));
+    const found = step.some((e) => (e.type === "settle" && e.target && e.via !== undefined) || (e.type === "classify" && e.loop));
     if (found) markers.push({ index, kind: "found", label: run.algorithmId === "cycle-detection" ? "Loop found" : "Destination found" });
     if (run.algorithmId === "dfs" || run.algorithmId === "dfs-pathfinding") {
       const back = new Set(runMarksAt(run, index).edges.filter((m) => m.kind === "back").map((m) => `${m.from}-${m.to}`));

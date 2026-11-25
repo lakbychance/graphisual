@@ -127,6 +127,31 @@ export const SLOT_BADGE = {
   at: (node: GraphNode) => ({ x: node.x - node.r * 0.85, y: node.y - node.r * 0.85 }),
 };
 
+/** The badges a run hangs on its nodes: the widest value badge (0 for none), `d/f` times, queue places. */
+export interface RunBadges {
+  valueWidth: number;
+  times: boolean;
+  slots: boolean;
+}
+
+/** The box the nodes and their badges cover, in graph units, with badges grown by `k` (see `markScale`). */
+export function runBounds(nodes: readonly GraphNode[], badges: RunBadges, k: number) {
+  const box = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  const add = ({ x, y }: { x: number; y: number }, w: number, h: number) => {
+    box.minX = Math.min(box.minX, x - w / 2);
+    box.maxX = Math.max(box.maxX, x + w / 2);
+    box.minY = Math.min(box.minY, y - h / 2);
+    box.maxY = Math.max(box.maxY, y + h / 2);
+  };
+  for (const node of nodes) {
+    add(node, node.r * 2, node.r * 2);
+    if (badges.valueWidth > 0) add(VALUE_BADGE.at(node), badges.valueWidth * k, VALUE_BADGE.height * k);
+    if (badges.times) add(TIME_BADGE.at(node), TIME_BADGE.width * k, TIME_BADGE.height * k);
+    if (badges.slots) add(SLOT_BADGE.at(node), SLOT_BADGE.r * 2 * k, SLOT_BADGE.r * 2 * k);
+  }
+  return box;
+}
+
 /** Where a mark's chevron sits: 70% of the way along the walk, with the walk's direction there. */
 export interface MarkGeometry {
   /** The edge as the renderers draw it: a straight line between the node rims, or the directed curve. */

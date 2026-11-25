@@ -240,6 +240,8 @@ const stack = (parents: boolean): Frontier => ({
   parents,
 });
 
+const alreadyVisited = ({ from, to }: { from: number; to: number }) => `${arrow(from, to)}: ${nid(to)} is already visited, so skip it`;
+
 function frontierVoice(frontier: Frontier): Voice {
   const visitSentence = ({ node, target, via }: SettleEvent) => {
     if (target && via === undefined) return sameStartAndEnd(node);
@@ -260,7 +262,9 @@ function frontierVoice(frontier: Frontier): Voice {
         case "skip":
           return event.reason === "queued"
             ? `${arrow(event.from, event.to)}: ${nid(event.to)} is already ${frontier.inside}, so skip it`
-            : `${arrow(event.from, event.to)}: ${nid(event.to)} is already visited, so skip it`;
+            : alreadyVisited(event);
+        // An edge to a visited node is classified as it is checked; a forward edge is said by the visit it leads to.
+        case "classify": return event.kind === "forward" ? "" : alreadyVisited(event);
         case "finish": return finishSentence(event);
         case "answer": {
           const ended = `The ${frontier.name} is empty`;
@@ -278,9 +282,9 @@ function frontierVoice(frontier: Frontier): Voice {
 /* --------------------------------------------------------- cycle detection */
 
 /** The edge to a node already seen. The edge into an unvisited node is said by that node's visit. */
-function classifySentence({ from, to, kind }: ClassifyEvent): string {
+function classifySentence({ from, to, kind, loop }: ClassifyEvent): string {
   if (kind === "tree") return "";
-  if (kind === "back") return `${arrow(from, to)} leads back to ${nid(to)}, which is still in progress, so there is a cycle`;
+  if (loop) return `${arrow(from, to)} leads back to ${nid(to)}, which is still in progress, so there is a cycle`;
   return `${arrow(from, to)}: ${nid(to)} is already done, so skip it`;
 }
 

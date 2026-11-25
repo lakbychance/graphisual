@@ -7,6 +7,7 @@ import { Graph, type GraphHandle } from "../Graph/Graph";
 import { CanvasGraph, type CanvasGraphHandle } from "../GraphCanvas/CanvasGraph";
 import type { Graph3DHandle } from "../Graph3D";
 import { useSettingsStore } from "../../store/settingsStore";
+import { useRunFit } from "../../hooks/useRunFit";
 import { Button } from "@/components/ui-sdk";
 
 // Lazy load Graph3D (and Three.js) - only downloaded when user toggles 3D mode on desktop
@@ -43,6 +44,8 @@ export const GraphRenderer = ({
   ref?: Ref<GraphRendererHandle>;
 }) => {
   const renderMode = useSettingsStore((state) => state.renderMode);
+  // The flat views make room for a run's badges at the screen edge; the 3D view frames itself.
+  useRunFit(renderMode !== '3d');
 
   const graphRef = useRef<GraphHandle>(null);
   const canvasGraphRef = useRef<CanvasGraphHandle>(null);

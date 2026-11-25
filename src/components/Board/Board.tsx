@@ -98,7 +98,7 @@ export const Board = () => {
 
         {/* Toolbar - Bottom on mobile, Top on desktop */}
         {/* DOM order: Toolbar first for natural tab order (toolbar → graph → other controls) */}
-        <div className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+        <div data-run-fit-avoid className="fixed z-50 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:bottom-auto md:top-5 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-2rem)] flex flex-col gap-2">
           {!isDesktop && (
             <MobileControls
               onUndo={execute.undo}
@@ -117,6 +117,7 @@ export const Board = () => {
         <AnimatePresence>
           {isInStepMode && (
             <m.div
+              data-run-fit-avoid
               initial={{ opacity: 0, y: -8, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}

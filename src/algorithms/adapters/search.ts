@@ -100,10 +100,12 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
     branch.push(node);
     for (const { to, type } of [...edges].reverse()) {
       if (visited.includes(to)) {
-        // The undirected edge up to the parent is the tree edge itself.
-        const up = type === EDGE_TYPE.UNDIRECTED && to === parent.get(node);
-        const kind = up ? undefined : branch.includes(to) ? "back" : "cross";
-        events.push({ type: "skip", from: node, to, reason: "visited", line: lines.check, group, ...(kind && { kind }) });
+        // The undirected edge up to the parent is the tree edge itself: a plain skip.
+        if (type === EDGE_TYPE.UNDIRECTED && to === parent.get(node)) {
+          events.push({ type: "skip", from: node, to, reason: "visited", line: lines.check, group });
+        } else {
+          events.push({ type: "classify", from: node, to, kind: branch.includes(to) ? "back" : "cross", line: lines.check, group });
+        }
         continue;
       }
       const waitingAt = frontier.indexOf(to);
