@@ -27,6 +27,7 @@ import { GridBackground } from "./GridBackground";
 import { DragPreviewEdge } from "./DragPreviewEdge";
 import { dragNode, nodesMoving, releaseNode, setGraphSurface } from "@/physics/graphMotion";
 import { LeavingLayer } from "./LeavingLayer";
+import { APP_MARKS, markLayers, useRunMarks } from "./RunMarks";
 
 export interface GraphHandle {
   getSvgElement: () => SVGSVGElement | null;
@@ -34,7 +35,8 @@ export interface GraphHandle {
 
 /**
  * Extra drawing inside the graph's SVG, in graph coordinates: `under` sits above the edges and
- * below the nodes, `over` above the nodes. The app passes none; the rework lab draws run state here.
+ * below the nodes, `over` above the nodes. Without them, a run's marks are drawn there (`RunMarks`);
+ * the rework lab passes its own, so each of its variants chooses what it shows.
  */
 export interface GraphLayers {
   under?: ReactNode;
@@ -48,6 +50,7 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
     useShallow((state) => [...state.data.stackingOrder])
   );
   const nodes = useGraphStore(useShallow((state) => state.data.nodes));
+  const edges = useGraphStore((state) => state.data.edges);
   const hasSelectedNodes = useGraphStore((state) => state.selection.nodeIds.size > 0);
   const selectedEdge = useGraphStore((state) => state.selection.edge);
   const zoomTarget = useGraphStore((state) => state.viewport.zoom);
@@ -252,6 +255,13 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
     onLabelEdit: handleLabelEdit,
   });
 
+  // A run's values, queue places, parent links and this step's edge (only during a run).
+  const runMarks = useRunMarks(!layers);
+  const drawn = layers ?? (runMarks ? markLayers({
+    step: runMarks.index, valued: runMarks.marks.valued, badges: runMarks.marks.nodes, marks: runMarks.marks.edges,
+    nodes, edges, options: APP_MARKS, zoom,
+  }) : undefined);
+
   // Hide content until viewBox is ready to prevent flicker on mount
   const isReady = viewBox !== undefined;
 
@@ -296,7 +306,7 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
         {/* Deleted nodes fading out and their edges recoiling; under the live nodes */}
         <LeavingLayer />
 
-        {layers?.under}
+        {drawn?.under}
 
         {/* Nodes layer - orderedNodeIds determines z-order (last = top) */}
         {orderedNodeIds.map((nodeId) => (
@@ -316,7 +326,7 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
           />
         ))}
 
-        {layers?.over}
+        {drawn?.over}
 
         {/* Box selection rectangle - uses same accent color as selected nodes */}
         {selectionBox && (

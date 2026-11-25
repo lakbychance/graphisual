@@ -3,8 +3,9 @@
  *
  * A run is an algorithm's events, cut into steps of one change each (`stepEnds`). For the step on
  * screen, `highlightsAt` says which nodes and edges the canvas lights (and `rolesAt` how each node
- * reads: waiting, being worked on, done), and `traceAt` gives the trace panel its message and data
- * structure.
+ * reads: waiting, being worked on, done), `runMarksAt` what the graph carries beside them (values,
+ * queue places, parent links, this step's edge), and `traceAt` gives the trace panel its message and
+ * data structure.
  */
 import { nid, signed } from "../../algorithms/traceHelpers";
 import {
@@ -158,6 +159,121 @@ export function highlightsAt(run: Run, index: number, edges: Map<number, GraphEd
     for (const walk of answer.walks) markEdge(walk, { isUsedInCycle: true });
   }
   return trace;
+}
+
+/* ------------------------------------------------------- state on the graph */
+
+const VALUED = new Set(["dijkstra", "prims", "bellman-ford"]);
+
+/** The algorithms that keep a value per node: a distance, or Prim's cost. */
+export const keepsValues = (algorithmId: string) => VALUED.has(algorithmId);
+
+/** What a node carries on the graph once a step is shown (see `runMarksAt`). */
+export interface NodeBadge {
+  /** Distance or cost so far (undefined: ∞), for the algorithms that keep one. */
+  value?: number;
+  /** The value before this step, when this step lowered it. */
+  old?: number;
+  /** This step changed this node. */
+  changed: boolean;
+  /** Place in the queue or stack, 1 = taken next. */
+  slot?: number;
+}
+
+/**
+ * A link drawn over an edge, from -> to the way the search travelled.
+ * - `change`: the edge this step changed something along (back up it, for a backtrack)
+ * - `tentative`: a best-so-far parent link that may still change
+ * - `tree`: a final parent link
+ */
+export type RunMarkKind = "change" | "tentative" | "tree";
+
+export interface RunMark {
+  from: number;
+  to: number;
+  kind: RunMarkKind;
+}
+
+export interface RunMarks {
+  /** The algorithm keeps a value per node, so every node shows one (∞ until reached). */
+  valued: boolean;
+  /** Nodes with a value, a queue or stack place, or a change this step; the others carry nothing. */
+  nodes: Map<number, NodeBadge>;
+  edges: RunMark[];
+}
+
+/** Waiting nodes in the order they will be taken: cheapest first, the top of a stack first, or the front of a queue first. */
+function waitingOrder(run: Run, frame: Frame): number[] {
+  switch (run.algorithmId) {
+    case "dijkstra":
+    case "prims":
+      return byValue(frame.queue, run.nodeOrder).map((item) => item.id);
+    case "dfs":
+    case "dfs-pathfinding":
+      return [...frame.queue].reverse().map((item) => item.id);
+    default:
+      return frame.queue.map((item) => item.id);
+  }
+}
+
+/**
+ * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
+ * node's value, with the old one when this step lowered it, and its place in the queue or stack; the
+ * parent links, final or best so far (Bellman-Ford keeps only each node's current best); and the
+ * edge this step used. Both renderers and the rework lab draw from this.
+ */
+export function runMarksAt(run: Run, index: number): RunMarks {
+  const frame = frameOf(run, index);
+  const change = index < 0 ? undefined : eventsOf(run, index).find(changes);
+  const valued = keepsValues(run.algorithmId);
+  const answered = frame.answer !== null;
+  const settled = new Set(frame.settled);
+
+  const nodes = new Map<number, NodeBadge>();
+  const badge = (id: number) => {
+    const found = nodes.get(id);
+    if (found) return found;
+    const made: NodeBadge = { changed: false };
+    nodes.set(id, made);
+    return made;
+  };
+  if (valued) for (const [id, value] of frame.dist) badge(id).value = value;
+  waitingOrder(run, frame).forEach((id, i) => {
+    badge(id).slot = i + 1;
+  });
+  switch (change?.type) {
+    case "relax":
+      Object.assign(badge(change.to), { changed: true, old: change.old });
+      break;
+    case "classify":
+      badge(change.to).changed = true;
+      break;
+    case "start":
+    case "enqueue":
+    case "settle":
+    case "finish":
+      badge(change.node).changed = true;
+      break;
+  }
+
+  const edges: RunMark[] = [];
+  if (valued) {
+    for (const [to, from] of frame.prev) edges.push({ from, to, kind: settled.has(to) || answered ? "tree" : "tentative" });
+  } else {
+    for (const [to, from] of frame.via) edges.push({ from, to, kind: "tree" });
+    if (!DEPTH_FIRST.has(run.algorithmId)) {
+      for (const [to, from] of frame.prev) if (!settled.has(to)) edges.push({ from, to, kind: "tentative" });
+    }
+  }
+
+  let walk: Walk | null = null;
+  if (change?.type === "relax" || change?.type === "classify") walk = { from: change.from, to: change.to };
+  else if (change?.type === "enqueue" && change.from !== undefined) walk = { from: change.from, to: change.node };
+  else if (change?.type === "settle" && change.via !== undefined) walk = { from: change.via, to: change.node };
+  else if (change?.type === "finish" && change.parent !== undefined) walk = { from: change.node, to: change.parent };
+  if (walk && !answered) edges.push({ ...walk, kind: "change" });
+
+  return { valued, nodes, edges };
 }
 
 /**

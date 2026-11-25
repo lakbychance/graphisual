@@ -27,7 +27,7 @@ import {
 } from "./__tests__/oracles";
 import {
   addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, doneStaysDone, groupsOnlyIncrease, oneChangePerStep, pointsAtPseudocode,
-  relaxOnlyLowers, settlesOnceInOrder, type Rule,
+  parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, type Rule,
 } from "./__tests__/rules";
 
 const suite = [...randomGraphs(200), largeGraph()];
@@ -38,14 +38,14 @@ const signedSuite = [...suite, ...suite.map(withNegativeWeights)];
 
 /** Algorithms on the event engine, with the graphs they run on and the rules their event streams obey. */
 const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: Record<string, Rule> }> = [
-  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers, settlesOnceInOrder } },
-  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers } },
-  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
-  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, bfsDepthNeverDecreases } },
-  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
-  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
-  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, dfsTimesNest, doneStaysDone } },
-  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, relaxOnlyLowers, addsLightestCrossingEdge } },
+  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder } },
+  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers } },
+  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
+  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
+  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
+  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
+  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
+  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 
 const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);
@@ -183,7 +183,7 @@ describe("rule checks", () => {
     for (const [name, rule] of Object.entries(rules)) {
       it(`${adapter.metadata.name}: ${name}`, () => {
         for (const { seed, input } of graphs) {
-          const violation = rule(eventsOf(adapter, input), { pseudocode: adapter.pseudocode, input });
+          const violation = rule(eventsOf(adapter, input), { algorithmId: adapter.metadata.id, pseudocode: adapter.pseudocode, input });
           expect(violation, `seed ${seed}`).toBeNull();
         }
       });

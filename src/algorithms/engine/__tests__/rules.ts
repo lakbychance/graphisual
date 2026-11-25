@@ -7,8 +7,11 @@ import type { AlgorithmInput } from "../../types";
 import type { AlgorithmEvent } from "../events";
 import { applyEvent, emptyFrame, type Frame } from "../frame";
 import { stepEnds } from "../steps";
+import { createRun, runMarksAt } from "@/utils/visualization/runView";
 
 export interface RuleContext {
+  /** The algorithm that made the run. */
+  algorithmId: string;
   pseudocode: string[];
   /** The graph the run was on. */
   input: AlgorithmInput;
@@ -185,6 +188,35 @@ export const oneChangePerStep: Rule = (events) => {
       return `the step of events ${from}..${end - 1} (${step.map((e) => e.type).join(", ")}) makes ${changed} changes`;
     }
     from = end;
+  }
+  return null;
+};
+
+/**
+ * The parent links the canvas draws (best-so-far and final) form a tree at every step: each node
+ * shows at most one way in, the start none, each runs along a real edge in the direction the search
+ * travelled, and following them back never loops. A run that reports a negative cycle is exempt: there,
+ * best-so-far links can go round the cycle.
+ */
+export const parentLinksFormTree: Rule = (events, { algorithmId, input }) => {
+  if (events.some((e) => e.type === "answer" && e.kind === "route" && e.negativeCycle)) return null;
+  const run = createRun(algorithmId, [...events], []);
+  for (let index = 0; index < run.ends.length; index++) {
+    const parent = new Map<number, number>();
+    for (const { from, to, kind } of runMarksAt(run, index).edges) {
+      if (kind === "change") continue;
+      if (parent.has(to)) return `step ${index + 1} shows two ways into ${to}`;
+      if (to === input.startNodeId) return `step ${index + 1} shows a way into the start`;
+      if (!(input.adjacencyList.get(from) ?? []).some((e) => e.to === to)) return `step ${index + 1} links ${from} to ${to}, which is not an edge`;
+      parent.set(to, from);
+    }
+    for (const node of parent.keys()) {
+      const seen = new Set<number>();
+      for (let at: number | undefined = node; at !== undefined; at = parent.get(at)) {
+        if (seen.has(at)) return `step ${index + 1}: the links back from ${node} go round in a loop`;
+        seen.add(at);
+      }
+    }
   }
   return null;
 };

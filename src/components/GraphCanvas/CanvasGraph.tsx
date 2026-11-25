@@ -24,6 +24,7 @@ import { useElementDimensions } from "../../hooks/useElementDimensions";
 import { useCanvasColorState } from "../../hooks/useCanvasColorState";
 import { useCanvasInteractions } from "../../hooks/useCanvasInteractions";
 import { useCanvasRenderLoop } from "../../hooks/useCanvasRenderLoop";
+import { useRunMarks } from "../Graph/RunMarks";
 import { useNodeLabelEdit } from "../../hooks/useNodeLabelEdit";
 import { EdgePopup } from "../Graph/EdgePopup";
 import { useSettingsStore } from "../../store/settingsStore";
@@ -148,6 +149,9 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     edges,
   });
 
+  // A run's values, queue places, parent links and this step's edge (only during a run)
+  const runMarks = useRunMarks()?.marks ?? null;
+
   // Interactions (drag state machine, pointer handlers, hover detection)
   const {
     previewEdge,
@@ -208,6 +212,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     getNodeRunMark,
     getEdgeColorState,
     isEdgeFocused,
+    runMarks,
     currentAlgorithm,
     isVisualizing,
     theme,

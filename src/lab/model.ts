@@ -18,7 +18,8 @@ import {
   generateCycleWithDeadEnd, generateWeighted, graphFromSpec, type GeneratedGraph,
 } from "@/utils/graph/graphGenerator";
 import { buildRun } from "@/utils/visualization/buildRun";
-import { lineAt, rolesAt, type NodeRole, type Run } from "@/utils/visualization/runView";
+import { keepsValues, lineAt, rolesAt, runMarksAt, type NodeBadge, type NodeRole, type Run } from "@/utils/visualization/runView";
+import type { DrawnMark, MarkKind } from "@/components/Graph/runMarkShapes";
 import { needsDestination } from "@/utils/visualization/stepLink";
 import { decodeGraphLink } from "@/utils/graph/graphLink";
 
@@ -160,36 +161,20 @@ export function setupLink(setup: Pick<Setup, "variant" | "algorithm" | "graphId"
 /** How a node reads at a step: the app's own roles (see `rolesAt`). */
 export type Role = NodeRole;
 
-export interface NodeState {
+/** A node's badges (the app's, see `runMarksAt`), its role, and its depth-first discovery and finish times. */
+export interface NodeState extends NodeBadge {
   role: Role;
-  /** Distance or cost so far (undefined: ∞), for the algorithms that keep one. */
-  value?: number;
-  /** The value before this step, when this step changed it. */
-  old?: number;
-  /** This step changed this node. */
-  changed: boolean;
-  /** Depth-first discovery and finish times. */
   d?: number;
   f?: number;
-  /** Place in the queue or stack, 1 = taken next. */
-  slot?: number;
 }
 
 /**
- * An edge drawn over the graph's own.
- * - `change`: the edge this step looked at or walked (back up, for a backtrack)
- * - `tentative`: a best-so-far parent edge that may still change
- * - `tree`: a final parent edge, or a depth-first tree edge out of a finished node
- * - `branch`: a depth-first tree edge into a node still in progress (the current branch)
- * - `back`, `forward`, `cross`: how a depth-first search classifies a non-tree edge
+ * An edge drawn over the graph's own: the app's run marks (`change`, `tentative`, `tree`), and for a
+ * depth-first search `branch` (a tree edge into a node still in progress) and how it classifies a
+ * non-tree edge (`back`, `forward`, `cross`).
  */
-export type MarkKind = "change" | "tentative" | "tree" | "branch" | EdgeClass;
-
-export interface EdgeMark {
-  from: number;
-  to: number;
-  kind: MarkKind;
-}
+export type { MarkKind };
+export type EdgeMark = DrawnMark;
 
 export interface StepView {
   index: number;
@@ -204,7 +189,7 @@ export interface StepView {
   valued: boolean;
 }
 
-export const keepsValues = (algorithm: string) => ["dijkstra", "prims", "bellman-ford"].includes(algorithm);
+export { keepsValues };
 const depthFirst = (algorithm: string) => ["dfs", "dfs-pathfinding", "cycle-detection"].includes(algorithm);
 
 const stepEvents = (run: Run, index: number) => run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
@@ -256,23 +241,6 @@ function deriveClasses(frame: Frame, edges: Map<number, GraphEdge[]>, looked: Se
   return classes;
 }
 
-/** Priority-queue order: cheapest first, ties in the order the algorithm scans nodes. */
-function slots(run: Run, frame: Frame): Map<number, number> {
-  const rank = (id: number) => {
-    const i = run.nodeOrder.indexOf(id);
-    return i < 0 ? Infinity : i;
-  };
-  let order: number[];
-  if (run.algorithmId === "dijkstra" || run.algorithmId === "prims") {
-    order = [...frame.queue].sort((a, b) => (a.value ?? 0) - (b.value ?? 0) || rank(a.id) - rank(b.id)).map((q) => q.id);
-  } else if (run.algorithmId === "dfs" || run.algorithmId === "dfs-pathfinding") {
-    order = [...frame.queue].reverse().map((q) => q.id);
-  } else {
-    order = frame.queue.map((q) => q.id);
-  }
-  return new Map(order.map((id, i) => [id, i + 1]));
-}
-
 /** What step `index` shows. */
 export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map<number, GraphEdge[]>): StepView {
   const end = index < 0 ? 0 : run.ends[index];
@@ -280,11 +248,10 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
   const step = index < 0 ? [] : stepEvents(run, index);
   const change = step.find(changes);
   const algorithm = run.algorithmId;
-  const valued = keepsValues(algorithm);
+  const shared = runMarksAt(run, index);
   const roles = rolesAt(run, index);
   const finished = new Set(frame.finished);
   const settled = new Set(frame.settled);
-  const queued = slots(run, frame);
   const done = frame.answer !== null;
 
   // Depth-first clock: one tick per visit and per finish.
@@ -297,26 +264,15 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
     }
   }
 
-  const changedNodes = new Set<number>();
-  if (change) {
-    if (change.type === "relax") changedNodes.add(change.to);
-    if (change.type === "enqueue" || change.type === "settle" || change.type === "finish" || change.type === "start") changedNodes.add(change.node);
-    if (change.type === "classify") changedNodes.add(change.to);
-  }
-
   const states = new Map<number, NodeState>();
   for (const { id } of nodes) {
-    states.set(id, {
-      role: roles.get(id) ?? "unseen",
-      value: valued ? frame.dist.get(id) : undefined,
-      old: change?.type === "relax" && change.to === id ? change.old : undefined,
-      changed: changedNodes.has(id),
-      ...times.get(id),
-      slot: queued.get(id),
-    });
+    states.set(id, { role: roles.get(id) ?? "unseen", changed: false, ...shared.nodes.get(id), ...times.get(id) });
   }
 
-  const marks: EdgeMark[] = [];
+  // The app's marks; a depth-first search's tree edges into nodes still in progress are its branch,
+  // and it adds the classes of the other edges it has looked along.
+  const marks: EdgeMark[] = shared.edges.map((mark) =>
+    depthFirst(algorithm) && mark.kind === "tree" && settled.has(mark.to) && !finished.has(mark.to) && !done ? { ...mark, kind: "branch" } : mark);
   const classes = new Set<EdgeClass>();
   if (depthFirst(algorithm)) {
     const looked = new Set<string>();
@@ -326,31 +282,14 @@ export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map
     }
     const classified = algorithm === "cycle-detection" ? frame.edgeClass : deriveClasses(frame, edges, looked);
     for (const [key, kind] of classified) {
+      if (kind === "tree") continue;
       const [from, to] = key.split("-").map(Number);
-      if (kind === "tree") marks.push({ from, to, kind: settled.has(to) && !finished.has(to) && !done ? "branch" : "tree" });
-      else {
-        marks.push({ from, to, kind });
-        classes.add(kind);
-      }
+      marks.push({ from, to, kind });
+      classes.add(kind);
     }
-  } else if (valued) {
-    for (const [to, from] of frame.prev) {
-      marks.push({ from, to, kind: settled.has(to) || done ? "tree" : "tentative" });
-    }
-  } else {
-    for (const [to, from] of frame.via) marks.push({ from, to, kind: "tree" });
-    for (const [to, from] of frame.prev) if (!settled.has(to)) marks.push({ from, to, kind: "tentative" });
   }
 
-  // The edge this step changes something along.
-  let walk: { from: number; to: number } | null = null;
-  if (change?.type === "relax" || change?.type === "classify") walk = { from: change.from, to: change.to };
-  else if (change?.type === "enqueue" && change.from !== undefined) walk = { from: change.from, to: change.node };
-  else if (change?.type === "settle" && change.via !== undefined) walk = { from: change.via, to: change.node };
-  else if (change?.type === "finish" && change.parent !== undefined) walk = { from: change.node, to: change.parent };
-  if (walk && !done) marks.push({ ...walk, kind: "change" });
-
-  return { index, frame, change, nodes: states, marks, classes: [...classes], valued };
+  return { index, frame, change, nodes: states, marks, classes: [...classes], valued: shared.valued };
 }
 
 /* -------------------------------------------------------- the whole run */
@@ -427,9 +366,7 @@ export function labeller(nodes: GraphNode[]) {
   return (text: string) => text.replace(/\{n:(\d+)\}/g, (_, id) => names.get(Number(id)) ?? id);
 }
 
-/** A value as the narration writes it. */
-export const num = (value: number | undefined) =>
-  value === undefined || value === Infinity ? "∞" : value < 0 ? `−${-value}` : String(value);
+export { num } from "@/components/Graph/runMarkShapes";
 
 /** The adapter's pseudocode and display name. */
 export function algorithmInfo(algorithm: string) {

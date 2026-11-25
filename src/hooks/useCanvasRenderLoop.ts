@@ -6,6 +6,8 @@ import { applyViewportTransform, resetTransform } from "../components/GraphCanva
 import { drawGrid } from "../components/GraphCanvas/renderers/gridRenderer";
 import { drawNode, drawConnectors } from "../components/GraphCanvas/renderers/nodeRenderer";
 import { drawDraftEdge, drawEdge, drawSelectionBox } from "../components/GraphCanvas/renderers/edgeRenderer";
+import { drawRunBadges, drawRunEdgeMarks } from "../components/GraphCanvas/renderers/runRenderer";
+import type { RunMarks } from "@/utils/visualization/runView";
 import { bowOf, useDraftShape, useMotionFrame } from "@/physics/graphMotion";
 
 interface UseCanvasRenderLoopProps {
@@ -28,6 +30,8 @@ interface UseCanvasRenderLoopProps {
   getNodeRunMark: (nodeId: number) => NodeRunState | null;
   getEdgeColorState: (fromId: number, toId: number) => EdgeColorState;
   isEdgeFocused: (fromId: number, toId: number) => boolean;
+  /** The run's marks for the step on screen, or null outside a run. */
+  runMarks: RunMarks | null;
   currentAlgorithm: unknown;
   isVisualizing: boolean;
   theme: unknown;
@@ -68,6 +72,7 @@ export function useCanvasRenderLoop({
   getNodeRunMark,
   getEdgeColorState,
   isEdgeFocused,
+  runMarks,
   currentAlgorithm,
   isVisualizing,
   theme,
@@ -122,6 +127,8 @@ export function useCanvasRenderLoop({
 
     if (draft) drawDraftEdge(ctx, draft);
 
+    if (runMarks) drawRunEdgeMarks(ctx, runMarks, nodes, edges, zoom);
+
     for (const nodeId of orderedNodeIds) {
       const node = nodes.find((candidate) => candidate.id === nodeId);
       if (!node) continue;
@@ -145,6 +152,8 @@ export function useCanvasRenderLoop({
         drawConnectors(ctx, node, true);
       }
     }
+
+    if (runMarks) drawRunBadges(ctx, runMarks, nodes, zoom);
 
     if (selectionBox) {
       drawSelectionBox(
@@ -174,6 +183,7 @@ export function useCanvasRenderLoop({
     getNodeRunMark,
     getEdgeColorState,
     isEdgeFocused,
+    runMarks,
     previewEdge,
     draft,
     motionFrame,
