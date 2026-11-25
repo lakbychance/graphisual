@@ -61,7 +61,7 @@ From A to C. Edges: A→B 2, B→A 5, B→A 7, B→C 1, D→C 1, D→C 4
 
  1. Start at A with distance 0; every other node is unreached (∞) for now
  2. Round 1: A → B costs 2: 0 + 2 = 2 beats ∞, so B gets 2
- 3. Round 1: both B → A edges are no better; B → C costs 1: 2 + 1 = 3 beats ∞, so C gets 3; both D → C edges start from unreached D
+ 3. Round 1: two B → A edges are no better; B → C costs 1: 2 + 1 = 3 beats ∞, so C gets 3; two D → C edges start from unreached D
  4. Round 2: checking every edge improves nothing, so every distance is final and there is no negative cycle
  5. Walk back from C to read the route: A → B → C, total distance 3
 
@@ -71,9 +71,19 @@ From A to B. Edges: A→B 6, A→B 9, A→B 5, A→B 7
 
  1. Start at A with distance 0; every other node is unreached (∞) for now
  2. Round 1: A → B costs 6: 0 + 6 = 6 beats ∞, so B gets 6
- 3. Round 1: A → B costs 5: 0 + 5 = 5 beats 6, so B's distance drops to 5; the other two A → B edges are no better
+ 3. Round 1: A → B costs 5: 0 + 5 = 5 beats 6, so B's distance drops to 5; two more A → B edges are no better
  4. One more pass checks every edge again and nothing improves, so there is no negative cycle
  5. Walk back from B to read the route: A → B, total distance 5
+
+## Parallel edges around another change
+
+From A to B. Edges: A→B 1, A→B 5, A→C 1, A→B 5
+
+ 1. Start at A with distance 0; every other node is unreached (∞) for now
+ 2. Round 1: A → B costs 1: 0 + 1 = 1 beats ∞, so B gets 1
+ 3. Round 1: two A → B edges are no better; A → C costs 1: 0 + 1 = 1 beats ∞, so C gets 1
+ 4. Round 2: checking every edge improves nothing, so every distance is final and there is no negative cycle
+ 5. Walk back from B to read the route: A → B, total distance 1
 
 ## Parallel edges in a negative cycle
 
@@ -82,9 +92,9 @@ From A to B. Edges: A→B 1, B→C −2, C→B 1, C→B 3
  1. Start at A with distance 0; every other node is unreached (∞) for now
  2. Round 1: A → B costs 1: 0 + 1 = 1 beats ∞, so B gets 1
  3. Round 1: B → C costs −2: 1 − 2 = −1 beats ∞, so C gets −1
- 4. Round 1: C → B costs 1: −1 + 1 = 0 beats 1, so B's distance drops to 0; the other C → B edge is no better
+ 4. Round 1: C → B costs 1: −1 + 1 = 0 beats 1, so B's distance drops to 0; another C → B edge is no better
  5. Round 2: A → B is no better; B → C costs −2: 0 − 2 = −2 beats −1, so C's distance drops to −2
- 6. Round 2: C → B costs 1: −2 + 1 = −1 beats 0, so B's distance drops to −1; the other C → B edge is no better
+ 6. Round 2: C → B costs 1: −2 + 1 = −1 beats 0, so B's distance drops to −1; another C → B edge is no better
  7. One more pass: A → B is still no better; B → C costs −2: −1 − 2 = −3 still beats −2 after every round, so a negative cycle can lower distances forever and there is no shortest route
 
 The app says: A negative cycle can lower the cost forever, so there's no shortest route

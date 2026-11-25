@@ -67,6 +67,18 @@ From A. Edges: A→B, C→D, D→C
  9. D → C leads back to C, which is still in progress, so there is a cycle
 10. Follow the edges round to read the cycle: C → D → C
 
+## Parallel edges
+
+From A. Edges: A→B, A→C, C→B, C→B, C→A, C→B
+
+ 1. Start at A; every node is unvisited, and an edge back to a node still in progress means a cycle
+ 2. Visit A, which is now in progress
+ 3. A → B leads to unvisited B, so visit it; it is now in progress
+ 4. B has no edges left to follow, so it is done; go back to A
+ 5. A → C leads to unvisited C, so visit it; it is now in progress
+ 6. Two C → B edges: B is already done, so skip them; C → A leads back to A, which is still in progress, so there is a cycle
+ 7. Follow the edges round to read the cycle: A → C → A
+
 ## The graph the app generates
 
 From 1. Edges: 1–2, 1–6, 2–3, 3–4, 4–7, 4–5, 5–6, 7–8

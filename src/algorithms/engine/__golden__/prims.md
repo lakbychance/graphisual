@@ -44,8 +44,22 @@ From A. Edges: A–B 6, A–B 9, A–B 5, A–C 1, C–B 1, C–B 9
  5. A → C costs 1, which beats ∞, so C joins the queue at 1
  6. C is the cheapest node in the queue, at 1, so it joins the tree through A
  7. C → A: A is already in the tree, so skip it; C → B costs 1, which beats 5, so B's cost drops to 1; another C → B edge costs 9, which does not beat 1, so B keeps 1
- 8. B is the cheapest node in the queue, at 1, so it joins the tree through C; all 3 B → A edges: A is already in the tree, so skip them; both B → C edges: C is already in the tree, so skip them
+ 8. B is the cheapest node in the queue, at 1, so it joins the tree through C; 3 B → A edges: A is already in the tree, so skip them; two B → C edges: C is already in the tree, so skip them
  9. The queue is empty, so the tree is done: A – C and C – B, total weight 2
+
+## Parallel edges that cost the same
+
+From A. Edges: A–B 3, A–C 1, C–B 9, C–B 9, C–D 1, C–D 4, C–D 4
+
+ 1. Start the tree at A, at cost 0; every other node is unreached (∞) for now
+ 2. A is the cheapest node in the queue, at 0, so it joins the tree first
+ 3. A → B costs 3, which beats ∞, so B joins the queue at 3
+ 4. A → C costs 1, which beats ∞, so C joins the queue at 1
+ 5. C is the cheapest node in the queue, at 1, so it joins the tree through A
+ 6. C → A: A is already in the tree, so skip it; two C → B edges cost 9, which do not beat 3, so B keeps 3; C → D costs 1, which beats ∞, so D joins the queue at 1; two more C → D edges cost 4, which do not beat 1, so D keeps 1
+ 7. D is the cheapest node in the queue, at 1, so it joins the tree through C; 3 D → C edges: C is already in the tree, so skip them
+ 8. B is the cheapest node in the queue, at 3, so it joins the tree through A; B → A: A is already in the tree, so skip it; two B → C edges: C is already in the tree, so skip them
+ 9. The queue is empty, so the tree is done: A – C, C – D and A – B, total weight 5
 
 ## Directed edges
 

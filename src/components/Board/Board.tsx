@@ -184,7 +184,8 @@ export const Board = () => {
         </div>
 
         {/* Theme selector & keyboard shortcuts - Top left on mobile, bottom right on desktop */}
-        <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel">
+        {/* Below 450px the step controls span the top during a run and would only half cover it, so it hides */}
+        <div className={`fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel ${isInStepMode ? "max-[450px]:hidden" : ""}`}>
           <AnimatePresence>
             {isInStepMode && !tracePanelVisible && (
               <TraceToggle onExpand={() => setTracePanelVisible(true)} />

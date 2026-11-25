@@ -5,14 +5,14 @@ import { BASE_URL, OG_IMAGE } from "@/utils/constants";
 
 export const meta = {
   title: "DFS Pathfinding Visualizer | Graphisual",
-  description: "Visualize DFS pathfinding as it searches for a path between two nodes. Select source and destination, then watch DFS navigate through the graph.",
+  description: "Visualize DFS pathfinding as it uses a stack to search for a path between two nodes. Select source and destination, then watch DFS navigate through the graph.",
   ogDescription: "Visualize DFS pathfinding as it searches for a path between two nodes by exploring deeply along each branch.",
   canonical: `${BASE_URL}/algorithm/dfs-pathfinding`,
   ogImage: OG_IMAGE,
   jsonLd: makeJsonLd({
     name: "DFS Pathfinding Visualizer",
     title: "DFS Pathfinding Visualizer | Graphisual",
-    description: "Visualize DFS pathfinding as it searches for a path between two nodes. Select source and destination, then watch DFS navigate through the graph.",
+    description: "Visualize DFS pathfinding as it uses a stack to search for a path between two nodes. Select source and destination, then watch DFS navigate through the graph.",
     url: `${BASE_URL}/algorithm/dfs-pathfinding`,
     aboutName: "DFS pathfinding",
     aboutDescription: "Using Depth-First Search to find a path between two nodes by exploring as far as possible along each branch before backtracking.",
@@ -21,7 +21,7 @@ export const meta = {
     faq: [
       { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path between two nodes but not necessarily the shortest one. It explores deeply along each branch, so it may discover a longer path first. For the shortest path in unweighted graphs, use BFS instead." },
       { question: "When should I use DFS pathfinding over BFS?", answer: "Use DFS pathfinding when you only need to know if a path exists (not the shortest), when memory is limited (DFS uses less memory than BFS), or when the graph is deep and narrow where DFS can find a path faster." },
-      { question: "How does DFS pathfinding work?", answer: "DFS pathfinding starts at the source and recursively explores each unvisited neighbor as deeply as possible. If it reaches the destination, it returns the path. If a branch leads to a dead end, it backtracks and tries the next neighbor." },
+      { question: "How does DFS pathfinding work?", answer: "DFS pathfinding starts with the source on a stack. It pops the top node, marks it visited and pushes each unvisited neighbor with the current node as its parent, so it goes deep first and backtracks at a dead end. When it pops the destination, it walks the parents back to read the path." },
       { question: "What is the time complexity of DFS pathfinding?", answer: "DFS pathfinding runs in O(V + E) time in the worst case, where V is the number of vertices and E is the number of edges. However, it can terminate early if the destination is found before exploring the entire graph." },
     ],
   }),
@@ -54,7 +54,7 @@ export default function DfsPathfindingPage() {
       faq={[
         { question: "Does DFS find the shortest path?", answer: "No. DFS finds a path between two nodes but not necessarily the shortest one. It explores deeply along each branch, so it may discover a longer path first. For the shortest path in unweighted graphs, use BFS instead." },
         { question: "When should I use DFS pathfinding over BFS?", answer: "Use DFS pathfinding when you only need to know if a path exists (not the shortest), when memory is limited (DFS uses less memory than BFS), or when the graph is deep and narrow where DFS can find a path faster." },
-        { question: "How does DFS pathfinding work?", answer: "DFS pathfinding starts at the source and recursively explores each unvisited neighbor as deeply as possible. If it reaches the destination, it returns the path. If a branch leads to a dead end, it backtracks and tries the next neighbor." },
+        { question: "How does DFS pathfinding work?", answer: "DFS pathfinding starts with the source on a stack. It pops the top node, marks it visited and pushes each unvisited neighbor with the current node as its parent, so it goes deep first and backtracks at a dead end. When it pops the destination, it walks the parents back to read the path." },
         { question: "What is the time complexity of DFS pathfinding?", answer: "DFS pathfinding runs in O(V + E) time in the worst case, where V is the number of vertices and E is the number of edges. However, it can terminate early if the destination is found before exploring the entire graph." },
       ]}
     />

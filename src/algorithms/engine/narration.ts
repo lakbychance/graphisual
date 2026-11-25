@@ -26,6 +26,12 @@ const sum = (base: number, weight: number, total: number) =>
 const joinAnd = (parts: string[]) =>
   parts.length <= 1 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 
+/**
+ * How many, for parallel edges: "two", then digits. Never "both" or "all 3": a step, or a whole
+ * run, need not check every edge of the pair (D31).
+ */
+const count = (n: number) => (n === 2 ? "two" : String(n));
+
 const route = (path: number[]) => path.map(nid).join(" → ");
 const arrow = (from: number, to: number) => `${nid(from)} → ${nid(to)}`;
 const names = (ids: number[]) => joinAnd(ids.map(nid));
@@ -113,7 +119,7 @@ function negativeCycleSentence(event: RouteAnswer): string {
 /**
  * Skipped checks, said briefly (a round checks every edge, so a step can hold many):
  * "A → B and B → C are no better", "B → D starts from unreached B". Parallel edges are named once:
- * "both A → B edges and B → C are no better". More than three of a kind are counted instead of
+ * "two A → B edges and B → C are no better". More than three of a kind are counted instead of
  * named: "14 edges are no better".
  */
 function briefSkips(skips: readonly SkipEvent[]): string {
@@ -124,26 +130,30 @@ function briefSkips(skips: readonly SkipEvent[]): string {
     // How many edges join each pair, so parallel edges are named once.
     const pairs = new Map<string, number>();
     for (const e of these) pairs.set(arrow(e.from, e.to), (pairs.get(arrow(e.from, e.to)) ?? 0) + 1);
-    const edges = these.length > 3
+    const named = these.length > 3
       ? `${these.length} edges`
-      : joinAnd([...pairs].map(([pair, count]) => (count === 1 ? pair : `${count === 2 ? "both" : `all ${count}`} ${pair} edges`)));
+      : joinAnd([...pairs].map(([pair, n]) => (n === 1 ? pair : `${count(n)} ${pair} edges`)));
     const one = these.length === 1;
     const from = pairs.size === 1 ? `unreached ${nid(these[0].from)}` : "unreached nodes";
     parts.push(reason === "unreached"
-      ? `${edges} ${one ? "starts" : "start"} from ${from}`
-      : `${edges} ${one ? "is" : "are"} ${still}no better`);
+      ? `${named} ${one ? "starts" : "start"} from ${from}`
+      : `${named} ${one ? "is" : "are"} ${still}no better`);
   }
   return parts.join(", ");
 }
 
-/** Skipped edges parallel to the one that improves: "the other A → B edge is no better". */
+/**
+ * Skipped edges parallel to the one that improves, said right after it: "another A → B edge is no
+ * better", "two more A → B edges are no better". Never "the other": an earlier step of the round
+ * can hold more edges of the pair.
+ */
 function otherTwins(twins: readonly SkipEvent[]): string {
   if (twins.length === 0) return "";
   const still = twins.some((e) => e.check) ? "still " : "";
   const pair = arrow(twins[0].from, twins[0].to);
   return twins.length === 1
-    ? `the other ${pair} edge is ${still}no better`
-    : `the other ${twins.length === 2 ? "two" : twins.length} ${pair} edges are ${still}no better`;
+    ? `another ${pair} edge is ${still}no better`
+    : `${count(twins.length)} more ${pair} edges are ${still}no better`;
 }
 
 const pairOf = ({ from, to }: { from: number; to: number }) => `${from}-${to}`;
@@ -175,7 +185,7 @@ const bellmanFord: Voice = {
         ? "One more pass checks every edge again and nothing improves, so there is no negative cycle"
         : `Round ${first.group}: checking every edge improves nothing, so every distance is final and there is no negative cycle`;
     }
-    // A pair is named once per step: edges parallel to the one that changes are "the other" ones,
+    // A pair is named once per step: edges parallel to the one that changes are "more" of the pair,
     // said right after it, and a pair skipped on both sides of the change is said where it is first skipped.
     const improving = change.type === "relax" ? pairOf(change)
       : change.type === "answer" && change.kind === "route" && change.negativeCycle ? pairOf(change.negativeCycle) : null;
@@ -357,10 +367,20 @@ function namedPair(event: AlgorithmEvent): string | null {
 }
 
 /**
+ * A sentence about one edge, said for several at once: "two A → B edges cost 9: 0 + 9 = 9 is no
+ * better than 6" (the sum is no better, so that verb stays), "… cost 9, which do not beat 6".
+ */
+const plural = (text: string) => text
+  .replace(/\bcosts\b/, "cost")
+  .replace(/\bdoes not beat\b/, "do not beat")
+  .replace(/\bskip it\b/, "skip them");
+
+/**
  * A step's events said in order, joined with semicolons. Parallel edges are not named as if they
- * were one edge: the same check repeated is said once for all of them ("both B → A edges: A is
- * already in the tree, so skip them"), and a later sentence about the same pair names "another"
- * edge (a step need not hold every edge of the pair, so it is never "the other").
+ * were one edge: the same check repeated is said once for all of them, with a plain count ("3 B → A
+ * edges: A is already in the tree, so skip them"). A later sentence about the same pair names
+ * "another" edge or "two more" edges (a step need not hold every edge of the pair, so it is never
+ * "the other").
  */
 function sayEvents(voice: Voice, step: readonly AlgorithmEvent[]): string {
   const said: Array<{ pair: string | null; text: string; count: number }> = [];
@@ -372,10 +392,11 @@ function sayEvents(voice: Voice, step: readonly AlgorithmEvent[]): string {
     if (same) same.count += 1;
     else said.push({ pair, text, count: 1 });
   }
-  return said.map(({ pair, text, count }, i) => {
+  return said.map(({ pair, text, count: n }, i) => {
     if (pair === null) return text;
-    if (count > 1) return text.replace(pair, `${count === 2 ? "both" : `all ${count}`} ${pair} edges`).replace(/skip it\b/, "skip them");
-    return said.findIndex((s) => s.pair === pair) === i ? text : text.replace(pair, `another ${pair} edge`);
+    const named = said.findIndex((s) => s.pair === pair) < i;
+    if (n === 1) return named ? text.replace(pair, `another ${pair} edge`) : text;
+    return plural(text.replace(pair, `${count(n)}${named ? " more" : ""} ${pair} edges`));
   }).join("; ");
 }
 
@@ -387,6 +408,8 @@ export function narrate(events: readonly AlgorithmEvent[], algorithm: string): s
   return stepEnds(events).map((end) => {
     const step = events.slice(start, end);
     start = end;
-    return voice.step?.(step) ?? sayEvents(voice, step);
+    const said = voice.step?.(step) ?? sayEvents(voice, step);
+    // A step can open with a merged sentence ("two B → A edges: …"); every message starts with a capital.
+    return said.charAt(0).toUpperCase() + said.slice(1);
   });
 }

@@ -80,3 +80,17 @@ From A to B. Edges: A–B 6, A–B 9, A–B 5, A–C 1, C–B 1, C–B 9
  7. C → A: A's distance is already final, so skip it; C → B costs 1: 1 + 1 = 2 beats 5, so B's distance drops to 2; another C → B edge costs 9: 1 + 9 = 10 is no better than 2, so B keeps 2
  8. B is the closest node in the queue, at 2, so its distance is final; it is the destination, so the search stops
  9. Walk back from B to read the route: A → C → B, total distance 2
+
+## Parallel edges that cost the same
+
+From A to B. Edges: A–B 3, A–C 1, C–B 9, C–B 9, C–D 1, C–D 4, C–D 4
+
+ 1. Start at A with distance 0; every other node is unreached (∞) for now
+ 2. A is the closest node in the queue, at 0, so its distance is final
+ 3. A → B costs 3: 0 + 3 = 3 beats ∞, so B joins the queue at 3
+ 4. A → C costs 1: 0 + 1 = 1 beats ∞, so C joins the queue at 1
+ 5. C is the closest node in the queue, at 1, so its distance is final
+ 6. C → A: A's distance is already final, so skip it; two C → B edges cost 9: 1 + 9 = 10 is no better than 3, so B keeps 3; C → D costs 1: 1 + 1 = 2 beats ∞, so D joins the queue at 2; two more C → D edges cost 4: 1 + 4 = 5 is no better than 2, so D keeps 2
+ 7. D is the closest node in the queue, at 2, so its distance is final; 3 D → C edges: C's distance is already final, so skip them
+ 8. B is the closest node in the queue, at 3, so its distance is final; it is the destination, so the search stops
+ 9. Walk back from B to read the route: A → B, total distance 3

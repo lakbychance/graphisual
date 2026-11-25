@@ -318,6 +318,7 @@ describe("golden narration", () => {
       transcript(dijkstraAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(dijkstraAdapter, "Start is the destination", lettered([[0, 1, 3]], 2, 0, 0)),
       transcript(dijkstraAdapter, "Parallel edges", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 2, 1], [2, 1, 1], [2, 1, 9]], 3, 0, 1)),
+      transcript(dijkstraAdapter, "Parallel edges that cost the same", lettered([[0, 1, 3], [0, 2, 1], [2, 1, 9], [2, 1, 9], [2, 3, 1], [2, 3, 4], [2, 3, 4]], 4, 0, 1)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dijkstra.md");
   });
@@ -331,6 +332,7 @@ describe("golden narration", () => {
       transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(bellmanFordAdapter, "Parallel edges", lettered([[0, 1, 2], [1, 0, 5], [1, 0, 7], [1, 2, 1], [3, 2, 1], [3, 2, 4]], 4, 0, 2, { directed: true })),
       transcript(bellmanFordAdapter, "Parallel edges, one of them improves", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 1, 7]], 2, 0, 1, { directed: true })),
+      transcript(bellmanFordAdapter, "Parallel edges around another change", lettered([[0, 1, 1], [0, 1, 5], [0, 2, 1], [0, 1, 5]], 3, 0, 1, { directed: true })),
       transcript(bellmanFordAdapter, "Parallel edges in a negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1], [2, 1, 3]], 3, 0, 1, { directed: true })),
       transcript(bellmanFordAdapter, "The graph the app generates", generated(generateWeighted(), 1, 12)),
     );
@@ -391,6 +393,7 @@ describe("golden narration", () => {
         cycleDetectionAdapter, "The cycle is in another part",
         lettered([[0, 1, 1], [2, 3, 1], [3, 2, 1]], 4, 0, undefined, { directed: true, weighted: false }),
       ),
+      transcript(cycleDetectionAdapter, "Parallel edges", lettered([[0, 1, 1], [0, 2, 1], [2, 1, 1], [2, 1, 1], [2, 0, 1], [2, 1, 1]], 3, 0, undefined, { directed: true, weighted: false })),
       transcript(cycleDetectionAdapter, "The graph the app generates", generated(generateCycleWithDeadEnd(), 1)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/cycle-detection.md");
@@ -402,6 +405,7 @@ describe("golden narration", () => {
       transcript(primsAdapter, "Standard graph", lettered(STANDARD, 6, 0)),
       transcript(primsAdapter, "Disconnected graph", experiment(landing.prims, true)),
       transcript(primsAdapter, "Parallel edges", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 2, 1], [2, 1, 1], [2, 1, 9]], 3, 0)),
+      transcript(primsAdapter, "Parallel edges that cost the same", lettered([[0, 1, 3], [0, 2, 1], [2, 1, 9], [2, 1, 9], [2, 3, 1], [2, 3, 4], [2, 3, 4]], 4, 0)),
       transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), false),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/prims.md");
