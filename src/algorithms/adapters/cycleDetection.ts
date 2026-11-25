@@ -31,6 +31,7 @@ const LINE = { enter: 1, parent: 3, inProgress: 4, report: 5, unvisited: 6, recu
  * Everything cycle detection does on this input, as events. A depth-first search from the start,
  * then from each node still unvisited, until an edge leads back to a node still in progress.
  * Each node visited (with the edge that led to it) and each node finished starts a new iteration.
+ * The search keeps the textbook clock: one tick per visit and per finish, across restarts.
  */
 function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
   const { adjacencyList, startNodeId: start } = input;
@@ -38,6 +39,7 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
   const parent = new Map<number, number>();
   const discovered: number[] = [];
   let group = 0;
+  let clock = 0;
   const events: AlgorithmEvent[] = [{ type: "start", node: start, line: LINE.outer, group }];
 
   const visit = (node: number, from?: number): boolean => {
@@ -45,7 +47,7 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
     state.set(node, "in-progress");
     discovered.push(node);
     if (from !== undefined) parent.set(node, from);
-    events.push({ type: "settle", node, via: from, line: LINE.enter, group });
+    events.push({ type: "settle", node, via: from, line: LINE.enter, group, time: ++clock });
 
     for (const edge of adjacencyList.get(node) ?? []) {
       const to = edge.to;
@@ -73,7 +75,7 @@ function cycleDetectionEvents(input: AlgorithmInput): AlgorithmEvent[] {
 
     group += 1;
     state.set(node, "done");
-    events.push({ type: "finish", node, parent: from, line: LINE.done, group });
+    events.push({ type: "finish", node, parent: from, line: LINE.done, group, time: ++clock });
     return false;
   };
 

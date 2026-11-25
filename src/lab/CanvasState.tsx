@@ -1,7 +1,6 @@
 /**
  * The lab's drawing on the graph: the app's own run marks (`Graph/RunMarks.tsx`), fed from the
- * lab's step view so each variant chooses what it shows, including the depth-first extras (edge
- * classes, discovery and finish times) the app does not show yet.
+ * lab's step view so each variant chooses what it shows (edge class words, values, places).
  */
 import type { GraphEdge, GraphNode } from "@/components/Graph/types";
 import type { GraphLayers } from "@/components/Graph/Graph";

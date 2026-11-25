@@ -7,9 +7,15 @@
  * neighbour still waiting on the stack is pushed again by the deeper node, which moves it to the
  * top with that node as its parent. The stack pushes a node's neighbours last-first, so the first
  * neighbour ends up on top. A node is done (it finishes) once nothing it pushed is still waiting.
+ *
+ * Depth first also keeps the textbook clock (one tick per visit and per finish) and classifies the
+ * edges it meets: an edge to a visited node is a back edge when that node is still in progress, a
+ * cross edge when it is done; an edge pushed along whose node a deeper node took over is a forward
+ * edge once that node is visited.
  */
 import type { AlgorithmEvent } from "../engine";
 import type { AlgorithmInput } from "../types";
+import { EDGE_TYPE } from "../../constants/graph";
 
 export type FrontierKind = "queue" | "stack";
 
@@ -38,6 +44,10 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
   // Depth first: the nodes in progress, deepest last, and how many entries each has waiting on the stack.
   const branch: number[] = [];
   const waiting = new Map<number, number>();
+  // Depth first: the clock, and for each waiting node the nodes that pushed it along a directed edge.
+  let clock = 0;
+  const tick = () => (kind === "stack" ? { time: ++clock } : {});
+  const pushedBy = new Map<number, Set<number>>();
   const count = (node: number | undefined, by: number) => {
     if (node !== undefined) waiting.set(node, (waiting.get(node) ?? 0) + by);
   };
@@ -59,14 +69,18 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
 
     visited.push(node);
     count(parent.get(node), -1);
+    // Edges other nodes pushed this one along, before a deeper node took it over, lead down the branch.
+    for (const from of pushedBy.get(node) ?? []) {
+      if (from !== parent.get(node)) events.push({ type: "classify", from, to: node, kind: "forward", line: lines.take, group });
+    }
     if (node === target) {
-      events.push({ type: "settle", node, via: parent.get(node), target: true, line: lines.stop ?? lines.take, group });
+      events.push({ type: "settle", node, via: parent.get(node), target: true, line: lines.stop ?? lines.take, group, ...tick() });
       const path = [node];
       for (let at = parent.get(node); at !== undefined; at = parent.get(at)) path.unshift(at);
       events.push({ type: "answer", kind: "route", start, target, path, line: lines.walk ?? lines.loop, group: group + 1 });
       return events;
     }
-    events.push({ type: "settle", node, via: parent.get(node), line: lines.take, group });
+    events.push({ type: "settle", node, via: parent.get(node), line: lines.take, group, ...tick() });
 
     const edges = adjacencyList.get(node) ?? [];
     if (kind === "queue") {
@@ -84,12 +98,16 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
     }
 
     branch.push(node);
-    for (const { to } of [...edges].reverse()) {
+    for (const { to, type } of [...edges].reverse()) {
       if (visited.includes(to)) {
-        events.push({ type: "skip", from: node, to, reason: "visited", line: lines.check, group });
+        // The undirected edge up to the parent is the tree edge itself.
+        const up = type === EDGE_TYPE.UNDIRECTED && to === parent.get(node);
+        const kind = up ? undefined : branch.includes(to) ? "back" : "cross";
+        events.push({ type: "skip", from: node, to, reason: "visited", line: lines.check, group, ...(kind && { kind }) });
         continue;
       }
       const waitingAt = frontier.indexOf(to);
+      if (type === EDGE_TYPE.DIRECTED) pushedBy.set(to, (pushedBy.get(to) ?? new Set()).add(node));
       // A second edge to the node this one just pushed: it is already on top, with this parent.
       if (waitingAt === frontier.length - 1 && parent.get(to) === node) {
         events.push({ type: "skip", from: node, to, reason: "queued", line: lines.check, group });
@@ -107,7 +125,7 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
     // Finish every node on the branch, deepest first, that has nothing left waiting.
     while (branch.length > 0 && !waiting.get(branch[branch.length - 1])) {
       const done = branch.pop() as number;
-      events.push({ type: "finish", node: done, parent: branch[branch.length - 1], line: lines.finish ?? lines.loop, group });
+      events.push({ type: "finish", node: done, parent: branch[branch.length - 1], line: lines.finish ?? lines.loop, group, time: ++clock });
     }
   }
 }

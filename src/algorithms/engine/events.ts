@@ -83,6 +83,12 @@ export interface SkipEvent extends Tagged {
   /** What `to` already had. */
   current?: number;
   check?: boolean;
+  /**
+   * How a depth-first search classifies the edge it checked (`back` or `cross`; see `EdgeClass`).
+   * The check is the classification, so it changes nothing and needs no step of its own. An undirected
+   * edge back to the node's parent is the tree edge seen from below and has none.
+   */
+  kind?: EdgeClass;
 }
 
 /**
@@ -97,6 +103,8 @@ export interface SettleEvent extends Tagged {
   ties?: number[];
   /** The node is the one the run was looking for. */
   target?: boolean;
+  /** A depth-first search's discovery time: its clock ticks once per visit and once per finish, from 1. */
+  time?: number;
 }
 
 /**
@@ -106,6 +114,12 @@ export interface SettleEvent extends Tagged {
  */
 export type EdgeClass = "tree" | "back" | "forward" | "cross";
 
+/**
+ * An edge classified (see `EdgeClass`). Cycle detection classifies every edge it meets this way, and
+ * its `back` edge is the loop it reports: a change of its own (see `steps.ts`). The stack-based
+ * depth-first searches classify most edges on the check itself (`SkipEvent.kind`); an edge they pushed
+ * along whose node a deeper node took over is `forward`, said just before that node is visited.
+ */
 export interface ClassifyEvent extends Tagged {
   type: "classify";
   from: number;
@@ -113,11 +127,15 @@ export interface ClassifyEvent extends Tagged {
   kind: EdgeClass;
 }
 
-/** A depth-first search is done with `node`: every edge out of it has been followed. It returns to `parent`. */
+/**
+ * A depth-first search is done with `node`: every edge out of it has been followed. It returns to `parent`.
+ * `time` is its finish time on the search's clock (see `SettleEvent.time`).
+ */
 export interface FinishEvent extends Tagged {
   type: "finish";
   node: number;
   parent?: number;
+  time: number;
 }
 
 /** An edge the answer is made of. */

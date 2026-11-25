@@ -6,6 +6,12 @@
  */
 import type { AlgorithmEvent, AnswerEvent, EdgeClass } from "./events";
 
+/** A depth-first search's discovery time, and finish time once it is done with the node. */
+export interface DepthFirstTimes {
+  d: number;
+  f?: number;
+}
+
 export interface QueueItem {
   id: number;
   value?: number;
@@ -32,8 +38,12 @@ export interface Frame {
   prev: ReadonlyMap<number, number>;
   /** The frontier, in insertion order. */
   queue: readonly QueueItem[];
-  /** Classified edges, keyed `from-to`. */
+  /** Classified edges, keyed `from-to`: from classify events and from checks that classify (`SkipEvent.kind`). */
   edgeClass: ReadonlyMap<string, EdgeClass>;
+  /** The edge a cycle search found leading back to a node still in progress (its loop), once found. */
+  loop: { from: number; to: number } | null;
+  /** A depth-first search's discovery and finish times, per node it has visited. */
+  times: ReadonlyMap<number, DepthFirstTimes>;
   answer: AnswerEvent | null;
 }
 
@@ -49,6 +59,8 @@ export const emptyFrame: Frame = {
   prev: new Map(),
   queue: [],
   edgeClass: new Map(),
+  loop: null,
+  times: new Map(),
   answer: null,
 };
 
@@ -83,6 +95,7 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
     }
     case "skip":
       next.edge = { from: event.from, to: event.to };
+      if (event.kind !== undefined) next.edgeClass = withEntry(frame.edgeClass, `${event.from}-${event.to}`, event.kind);
       break;
     case "settle":
       next.current = event.node;
@@ -93,15 +106,20 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
         next.edge = { from: event.via, to: event.node };
       }
       if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
+      if (event.time !== undefined) next.times = withEntry(frame.times, event.node, { d: event.time });
       break;
     case "classify":
       next.edge = { from: event.from, to: event.to };
       next.edgeClass = withEntry(frame.edgeClass, `${event.from}-${event.to}`, event.kind);
+      if (event.kind === "back") next.loop = { from: event.from, to: event.to };
       break;
-    case "finish":
+    case "finish": {
       next.current = event.parent ?? null;
       next.finished = [...frame.finished, event.node];
+      const found = frame.times.get(event.node);
+      if (found) next.times = withEntry(frame.times, event.node, { d: found.d, f: event.time });
       break;
+    }
     case "answer":
       next.current = null;
       next.answer = event;

@@ -1,8 +1,11 @@
 /**
  * A run's state drawn on the graph by the SVG renderer: value badges (the old value struck through
  * when this step lowered it), queue or stack places, best-so-far parent links and the edge this step
- * used. Who waits, who is being worked on and who is done is the nodes' own drawing (`rolesAt`).
- * Only what this step changed is emphasised. The Canvas renderer draws the same (`runRenderer.ts`).
+ * used; for a depth-first search, each node's `d/f` times, the branch it is on and its back, forward
+ * and cross edges (dashed, in their colour, with their word). Who waits, who is being worked on and
+ * who is done is the nodes' own drawing (`rolesAt`). Only what this step changed is emphasised: a
+ * badge it changed and an edge it classified carry the change colour. The Canvas renderer draws the
+ * same (`runRenderer.ts`).
  *
  * Badges keep a readable size on screen whatever the zoom (they scale by 1 / zoom, within limits).
  */
@@ -14,7 +17,8 @@ import { selectStepIndex, selectStepRun, useGraphStore } from "@/store/graphStor
 import { VisualizationState } from "@/constants/visualization";
 import { runMarksAt, type NodeBadge, type RunMarks } from "@/utils/visualization/runView";
 import {
-  MARK_STYLE, SLOT_BADGE, VALUE_BADGE, linePath, markGeometry, markScale, num, orderMarks, type DrawnMark,
+  CLASS_PILL, CLASS_WORD, MARK_STYLE, SLOT_BADGE, TIME_BADGE, VALUE_BADGE, linePath, markGeometry, markScale, num, orderMarks,
+  placeClassWords, type DrawnMark,
 } from "./runMarkShapes";
 
 /** What the graph carries during a run. */
@@ -29,11 +33,8 @@ export interface MarkOptions {
   classWords: boolean;
 }
 
-/** The app's set: a value on every node from the start, and queue or stack places. */
-export const APP_MARKS: MarkOptions = { values: "all", times: false, slots: true, classWords: false };
-
-/** A node's badges, with a depth-first search's discovery and finish times where it keeps them. */
-export type DrawnBadge = NodeBadge & { d?: number; f?: number };
+/** The app's set: a value on every node from the start, queue or stack places, and every depth-first mark. */
+export const APP_MARKS: MarkOptions = { values: "all", times: true, slots: true, classWords: true };
 
 /** The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`. */
 export function useRunMarks(wanted = true): { index: number; marks: RunMarks } | null {
@@ -48,7 +49,7 @@ export interface MarkLayerProps {
   /** The step shown, so a changed badge pops in again on every step. */
   step: number;
   valued: boolean;
-  badges: ReadonlyMap<number, DrawnBadge>;
+  badges: ReadonlyMap<number, NodeBadge>;
   marks: readonly DrawnMark[];
   nodes: GraphNode[];
   edges: Map<number, GraphEdge[]>;
@@ -60,8 +61,6 @@ export interface MarkLayerProps {
 export function markLayers(props: MarkLayerProps): GraphLayers {
   return { under: <EdgeMarks {...props} />, over: <NodeMarks {...props} /> };
 }
-
-const CLASS_WORD: Partial<Record<DrawnMark["kind"], string>> = { back: "back", forward: "forward", cross: "cross" };
 
 /** A small arrowhead at (x, y) pointing along `angle`. */
 const Chevron = ({ x, y, angle, size, color }: { x: number; y: number; angle: number; size: number; color: string }) => (
@@ -76,17 +75,19 @@ const Chevron = ({ x, y, angle, size, color }: { x: number; y: number; angle: nu
   />
 );
 
-function EdgeMarks({ marks, nodes, edges, options, zoom }: MarkLayerProps) {
+function EdgeMarks({ marks, badges, nodes, edges, options, zoom }: MarkLayerProps) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const k = markScale(zoom);
+  const drawn = orderMarks(marks).flatMap(({ mark, chevron }) => {
+    const g = markGeometry(mark, byId, edges);
+    return g ? [{ mark, chevron, g }] : [];
+  });
+  const words = options.classWords ? placeClassWords(drawn, nodes, options.times ? badges : null, k) : new Map<DrawnMark, { x: number; y: number }>();
   return (
     <g className="pointer-events-none" aria-hidden="true">
-      {orderMarks(marks).map(({ mark, chevron }) => {
-        const g = markGeometry(mark, byId, edges);
-        if (!g) return null;
+      {drawn.map(({ mark, chevron, g }) => {
         const style = MARK_STYLE[mark.kind];
         const d = linePath(g.line);
-        const word = options.classWords ? CLASS_WORD[mark.kind] : undefined;
         const change = mark.kind === "change";
         const stroke = `var(${style.stroke})`;
         return (
@@ -114,12 +115,19 @@ function EdgeMarks({ marks, nodes, edges, options, zoom }: MarkLayerProps) {
                   fill={change ? "var(--color-state-change-text)" : "var(--color-text)"}>{g.weight}</text>
               </g>
             )}
-            {word && (
-              <g transform={`translate(${g.label.x} ${g.label.y + 16 * k}) scale(${k})`}>
-                <rect x={-22} y={-8} width={44} height={16} rx={8} fill="var(--color-badge)" stroke={stroke} strokeWidth={1.25} />
-                <text textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600} fill="var(--color-badge-text)">{word}</text>
-              </g>
-            )}
+          </g>
+        );
+      })}
+      {/* Class words go over every line, this step's edge included, so they always read. */}
+      {[...words].map(([mark, at]) => {
+        const word = CLASS_WORD[mark.kind] as string;
+        const width = CLASS_PILL.width(word);
+        return (
+          <g key={`word-${mark.kind}-${mark.from}-${mark.to}`} transform={`translate(${at.x} ${at.y}) scale(${k})`}>
+            <rect x={-width / 2} y={-CLASS_PILL.height / 2} width={width} height={CLASS_PILL.height} rx={CLASS_PILL.height / 2}
+              fill={mark.fresh ? "var(--color-state-change)" : "var(--color-badge)"} stroke={mark.fresh ? "none" : `var(${MARK_STYLE[mark.kind].stroke})`} strokeWidth={1.25} />
+            <text textAnchor="middle" dominantBaseline="central" fontSize={CLASS_PILL.fontSize} fontWeight={mark.fresh ? 700 : 600}
+              fill={mark.fresh ? "var(--color-state-change-text)" : "var(--color-badge-text)"}>{word}</text>
           </g>
         );
       })}
@@ -141,15 +149,15 @@ function NodeMarks({ step, valued, badges, nodes, options, zoom }: MarkLayerProp
 }
 
 function NodeBadges({ node, badge, options, k, reduced, step, valued }: {
-  node: GraphNode; badge: DrawnBadge; options: MarkOptions; k: number; reduced: boolean; step: number; valued: boolean;
+  node: GraphNode; badge: NodeBadge; options: MarkOptions; k: number; reduced: boolean; step: number; valued: boolean;
 }) {
-  const { x, y, r } = node;
   const pop = badge.changed && !reduced
     ? { initial: { opacity: 0, scale: 0.6 }, animate: { opacity: 1, scale: 1 }, transition: { duration: 0.18, ease: "easeOut" as const } }
     : {};
   const showValue = valued && (options.values === "all" || (options.values === "reached" && badge.value !== undefined));
   const at = VALUE_BADGE.at(node);
   const slotAt = SLOT_BADGE.at(node);
+  const timeAt = TIME_BADGE.at(node);
 
   return (
     <g>
@@ -169,10 +177,11 @@ function NodeBadges({ node, badge, options, k, reduced, step, valued }: {
       )}
 
       {options.times && badge.d !== undefined && (
-        <g transform={`translate(${x - r * 0.8} ${y + r * 0.95}) scale(${k})`}>
-          <rect x={-17} y={-9} width={34} height={18} rx={9} fill="var(--color-badge)" stroke={badge.changed ? "var(--color-state-change)" : "var(--color-badge-line)"} strokeWidth={badge.changed ? 1.5 : 1} />
-          <text textAnchor="middle" dominantBaseline="central" fontSize={10.5} fontWeight={600} className="font-mono" fill="var(--color-badge-text)">
-            {badge.d}/{badge.f ?? "·"}
+        <g transform={`translate(${timeAt.x} ${timeAt.y}) scale(${k})`}>
+          <rect x={-TIME_BADGE.width / 2} y={-TIME_BADGE.height / 2} width={TIME_BADGE.width} height={TIME_BADGE.height} rx={TIME_BADGE.height / 2}
+            fill="var(--color-badge)" stroke={badge.changed ? "var(--color-state-change)" : "var(--color-badge-line)"} strokeWidth={badge.changed ? 1.5 : 1} />
+          <text textAnchor="middle" dominantBaseline="central" fontSize={TIME_BADGE.fontSize} fontWeight={600} className="font-mono" fill="var(--color-badge-text)">
+            {TIME_BADGE.text(badge.d, badge.f)}
           </text>
         </g>
       )}

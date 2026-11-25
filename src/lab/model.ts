@@ -12,8 +12,7 @@ import { frameAt, narrate, changes, type AlgorithmEvent, type EdgeClass, type Fr
 import { COMPACT } from "@/landing/live/shared";
 import * as pages from "@/landing/live/configs";
 import type { LiveConfig } from "@/landing/live/types";
-import { EDGE_TYPE } from "@/constants/graph";
-import type { GraphEdge, GraphNode } from "@/components/Graph/types";
+import type { GraphNode } from "@/components/Graph/types";
 import {
   generateCycleWithDeadEnd, generateWeighted, graphFromSpec, type GeneratedGraph,
 } from "@/utils/graph/graphGenerator";
@@ -161,17 +160,14 @@ export function setupLink(setup: Pick<Setup, "variant" | "algorithm" | "graphId"
 /** How a node reads at a step: the app's own roles (see `rolesAt`). */
 export type Role = NodeRole;
 
-/** A node's badges (the app's, see `runMarksAt`), its role, and its depth-first discovery and finish times. */
+/** A node's badges (the app's, see `runMarksAt`, with a depth-first search's times) and its role. */
 export interface NodeState extends NodeBadge {
   role: Role;
-  d?: number;
-  f?: number;
 }
 
 /**
- * An edge drawn over the graph's own: the app's run marks (`change`, `tentative`, `tree`), and for a
- * depth-first search `branch` (a tree edge into a node still in progress) and how it classifies a
- * non-tree edge (`back`, `forward`, `cross`).
+ * An edge drawn over the graph's own: the app's run marks (see `runMarksAt`), with a depth-first
+ * search's branch and the engine's classes of the other edges it has met (`back`, `forward`, `cross`).
  */
 export type { MarkKind };
 export type EdgeMark = DrawnMark;
@@ -190,106 +186,23 @@ export interface StepView {
 }
 
 export { keepsValues };
-const depthFirst = (algorithm: string) => ["dfs", "dfs-pathfinding", "cycle-detection"].includes(algorithm);
 
 const stepEvents = (run: Run, index: number) => run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
 
-/** Edges of the graph once each: an undirected edge appears in both its nodes' lists. */
-function edgeList(edges: Map<number, GraphEdge[]>): GraphEdge[] {
-  const seen = new Set<string>();
-  const list: GraphEdge[] = [];
-  for (const out of edges.values()) {
-    for (const edge of out) {
-      const undirected = edge.type === EDGE_TYPE.UNDIRECTED;
-      const key = undirected ? [Math.min(edge.from, edge.to), Math.max(edge.from, edge.to)].join("-") : `${edge.from}>${edge.to}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      list.push(edge);
-    }
-  }
-  return list;
-}
-
-/**
- * How a stack-based depth-first search's edges classify once both their ends are visited: the
- * parent edge is a tree edge; an edge between a node and one of its ancestors is a back edge
- * (pointing up) or a forward edge (pointing down); any other is a cross edge. `looked` holds the
- * edges (`from-to`) the search has checked or pushed along so far.
- */
-function deriveClasses(frame: Frame, edges: Map<number, GraphEdge[]>, looked: Set<string>): Map<string, EdgeClass> {
-  const order = new Map(frame.settled.map((id, i) => [id, i]));
-  const isAncestor = (a: number, b: number) => {
-    for (let at = frame.via.get(b); at !== undefined; at = frame.via.get(at)) if (at === a) return true;
-    return false;
-  };
-  const classes = new Map<string, EdgeClass>();
-  for (const edge of edgeList(edges)) {
-    const { from, to } = edge;
-    if (!order.has(from) || !order.has(to) || from === to) continue;
-    // Said once the search has looked along the edge and both its ends are visited.
-    if (!looked.has(`${from}-${to}`) && !(edge.type === EDGE_TYPE.UNDIRECTED && looked.has(`${to}-${from}`))) continue;
-    const [early, late] = order.get(from)! < order.get(to)! ? [from, to] : [to, from];
-    if (frame.via.get(late) === early) {
-      classes.set(`${early}-${late}`, "tree");
-    } else if (isAncestor(early, late)) {
-      if (edge.type === EDGE_TYPE.UNDIRECTED) classes.set(`${late}-${early}`, "back");
-      else classes.set(`${from}-${to}`, from === late ? "back" : "forward");
-    } else {
-      classes.set(`${from}-${to}`, "cross");
-    }
-  }
-  return classes;
-}
-
-/** What step `index` shows. */
-export function stepView(run: Run, index: number, nodes: GraphNode[], edges: Map<number, GraphEdge[]>): StepView {
-  const end = index < 0 ? 0 : run.ends[index];
-  const frame = frameAt(run.events, end);
-  const step = index < 0 ? [] : stepEvents(run, index);
-  const change = step.find(changes);
-  const algorithm = run.algorithmId;
+/** What step `index` shows: the app's roles and run marks, depth-first times and edge classes included. */
+export function stepView(run: Run, index: number, nodes: GraphNode[]): StepView {
+  const frame = frameAt(run.events, index < 0 ? 0 : run.ends[index]);
+  const change = (index < 0 ? [] : stepEvents(run, index)).find(changes);
   const shared = runMarksAt(run, index);
   const roles = rolesAt(run, index);
-  const finished = new Set(frame.finished);
-  const settled = new Set(frame.settled);
-  const done = frame.answer !== null;
-
-  // Depth-first clock: one tick per visit and per finish.
-  const times = new Map<number, { d?: number; f?: number }>();
-  if (depthFirst(algorithm)) {
-    let clock = 0;
-    for (const event of run.events.slice(0, end)) {
-      if (event.type === "settle") times.set(event.node, { d: ++clock });
-      if (event.type === "finish") times.set(event.node, { ...times.get(event.node), f: ++clock });
-    }
-  }
 
   const states = new Map<number, NodeState>();
-  for (const { id } of nodes) {
-    states.set(id, { role: roles.get(id) ?? "unseen", changed: false, ...shared.nodes.get(id), ...times.get(id) });
-  }
+  for (const { id } of nodes) states.set(id, { role: roles.get(id) ?? "unseen", changed: false, ...shared.nodes.get(id) });
 
-  // The app's marks; a depth-first search's tree edges into nodes still in progress are its branch,
-  // and it adds the classes of the other edges it has looked along.
-  const marks: EdgeMark[] = shared.edges.map((mark) =>
-    depthFirst(algorithm) && mark.kind === "tree" && settled.has(mark.to) && !finished.has(mark.to) && !done ? { ...mark, kind: "branch" } : mark);
   const classes = new Set<EdgeClass>();
-  if (depthFirst(algorithm)) {
-    const looked = new Set<string>();
-    for (const event of run.events.slice(0, end)) {
-      if (event.type === "skip") looked.add(`${event.from}-${event.to}`);
-      if (event.type === "enqueue" && event.from !== undefined) looked.add(`${event.from}-${event.node}`);
-    }
-    const classified = algorithm === "cycle-detection" ? frame.edgeClass : deriveClasses(frame, edges, looked);
-    for (const [key, kind] of classified) {
-      if (kind === "tree") continue;
-      const [from, to] = key.split("-").map(Number);
-      marks.push({ from, to, kind });
-      classes.add(kind);
-    }
-  }
+  for (const { kind } of shared.edges) if (kind === "back" || kind === "forward" || kind === "cross") classes.add(kind);
 
-  return { index, frame, change, nodes: states, marks, classes: [...classes], valued: shared.valued };
+  return { index, frame, change, nodes: states, marks: shared.edges, classes: [...classes], valued: shared.valued };
 }
 
 /* -------------------------------------------------------- the whole run */
@@ -325,7 +238,7 @@ function kindOf(change: AlgorithmEvent | undefined): StepKind {
 }
 
 /** Narration, lit lines, step kinds and markers for every step, with node ids shown by name. */
-export function summarise(run: Run, nodes: GraphNode[], edges: Map<number, GraphEdge[]>): RunSummary {
+export function summarise(run: Run, nodes: GraphNode[]): RunSummary {
   const name = labeller(nodes);
   const narration = narrate(run.events, run.algorithmId).map(name);
   const lines: Array<number | null> = [];
@@ -352,7 +265,7 @@ export function summarise(run: Run, nodes: GraphNode[], edges: Map<number, Graph
     const found = step.some((e) => (e.type === "settle" && e.target && e.via !== undefined) || (e.type === "classify" && e.kind === "back" && run.algorithmId === "cycle-detection"));
     if (found) markers.push({ index, kind: "found", label: run.algorithmId === "cycle-detection" ? "Loop found" : "Destination found" });
     if (run.algorithmId === "dfs" || run.algorithmId === "dfs-pathfinding") {
-      const back = new Set(stepView(run, index, nodes, edges).marks.filter((m) => m.kind === "back").map((m) => `${m.from}-${m.to}`));
+      const back = new Set(runMarksAt(run, index).edges.filter((m) => m.kind === "back").map((m) => `${m.from}-${m.to}`));
       if ([...back].some((key) => !foundBack.has(key))) markers.push({ index, kind: "back", label: "Back edge" });
       foundBack = back;
     }

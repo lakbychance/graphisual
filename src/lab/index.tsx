@@ -116,8 +116,8 @@ export default function ReworkLab() {
     return () => window.removeEventListener("keydown", onKey);
   }, [execute]);
 
-  const summary = useMemo(() => (loaded ? summarise(run, nodes, edges) : null), [loaded, run, nodes, edges]);
-  const view = loaded ? stepView(run, index, nodes, edges) : null;
+  const summary = useMemo(() => (loaded ? summarise(run, nodes) : null), [loaded, run, nodes]);
+  const view = loaded ? stepView(run, index, nodes) : null;
 
   const navigate = (changes: Record<string, string | null>) => {
     const params = new URLSearchParams({ v: variant, algorithm: setup?.algorithm ?? "dijkstra" });

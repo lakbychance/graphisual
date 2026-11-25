@@ -26,8 +26,8 @@ import {
   bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
 } from "./__tests__/oracles";
 import {
-  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, doneStaysDone, groupsOnlyIncrease, oneChangePerStep, pointsAtPseudocode,
-  parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, type Rule,
+  addsLightestCrossingEdge, bfsDepthNeverDecreases, dfsTimesNest, doneStaysDone, edgeClassesMatchTimes, groupsOnlyIncrease, oneChangePerStep,
+  pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, type Rule,
 } from "./__tests__/rules";
 
 const suite = [...randomGraphs(200), largeGraph()];
@@ -42,9 +42,9 @@ const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: R
   { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers } },
   { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
   { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
-  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
-  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
-  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, doneStaysDone } },
+  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
+  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
+  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
   { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 

@@ -78,29 +78,90 @@ export const bfsDepthNeverDecreases: Rule = (events) => {
 };
 
 /**
- * DFS discovery and finish times nest (the parenthesis theorem): a node is discovered from the
- * node discovered most recently among those not yet finished, and finishes (returning to the node
- * it was discovered from) only after everything discovered below it has finished. Unless the search
- * stops early, at its target or at a cycle, every node it discovers finishes.
+ * DFS discovery and finish times nest (the parenthesis theorem), on the times the search reports:
+ * its clock ticks once per visit and once per finish, from 1. A node is discovered from the node
+ * discovered most recently among those not yet finished, and finishes (returning to the node it was
+ * discovered from) only after everything discovered below it has finished, so every node discovered
+ * inside its interval [d, f] finished inside it too. Unless the search stops early, at its target or
+ * at a cycle, every node it discovers finishes.
  */
 export const dfsTimesNest: Rule = (events) => {
   const branch: number[] = [];
-  const discovered = new Set<number>();
+  const d = new Map<number, number>();
+  const f = new Map<number, number>();
+  let clock = 0;
   for (const e of events) {
     const top = branch[branch.length - 1];
     if (e.type === "settle") {
-      if (discovered.has(e.node)) return `node ${e.node} is discovered twice`;
-      discovered.add(e.node);
+      if (d.has(e.node)) return `node ${e.node} is discovered twice`;
+      if (e.time !== ++clock) return `node ${e.node} is discovered at time ${e.time}, but the clock reads ${clock}`;
+      d.set(e.node, e.time);
       if (e.via === undefined && top !== undefined) return `node ${e.node} starts a new search while ${top} is unfinished`;
       if (e.via !== undefined && e.via !== top) return `node ${e.node} is discovered from ${e.via}, but the deepest unfinished node is ${top}`;
       branch.push(e.node);
     } else if (e.type === "finish") {
+      if (e.time !== ++clock) return `node ${e.node} finishes at time ${e.time}, but the clock reads ${clock}`;
       if (top !== e.node) return `node ${e.node} finishes while ${top}, discovered after it, is unfinished`;
+      const start = d.get(e.node)!;
+      for (const [inside, time] of d) {
+        if (time > start && !((f.get(inside) ?? Infinity) < e.time)) return `node ${inside}, discovered inside ${e.node}'s interval ${start}/${e.time}, finishes outside it`;
+      }
+      f.set(e.node, e.time);
       branch.pop();
       if (e.parent !== branch[branch.length - 1]) return `node ${e.node} returns to ${e.parent}, not to ${branch[branch.length - 1]}`;
     } else if (e.type === "answer") {
       const early = (e.kind === "route" && e.path !== null) || (e.kind === "cycle" && e.cycle !== null);
       if (!early && top !== undefined) return `the search ends with ${top} unfinished`;
+    }
+  }
+  return null;
+};
+
+/**
+ * A depth-first search's edge classes agree with its reported times (read from the run's last
+ * frame, as the canvas reads them). With d/f each node's discovery and finish times:
+ * - tree u → v (v reached from u) and forward: d[u] < d[v] < f[v] < f[u]
+ * - back: d[v] ≤ d[u] < f[u] ≤ f[v]
+ * - cross: f[v] < d[u]
+ * Every classified edge is a real edge between visited nodes. Nodes a search that stopped early never
+ * finished close in nesting order, deepest first, after the last reported time. A search that ran to
+ * the end has classified every edge out of every node it visited (an undirected edge from either side).
+ */
+export const edgeClassesMatchTimes: Rule = (events, { input }) => {
+  let frame = emptyFrame;
+  for (const e of events) frame = applyEvent(frame, e);
+  const { times, via, edgeClass, answer } = frame;
+  const last = Math.max(0, ...[...times.values()].map((t) => t.f ?? t.d));
+  const f = new Map([...times].map(([id, t]) => [id, t.f]));
+  [...times].filter(([, t]) => t.f === undefined).sort(([, a], [, b]) => b.d - a.d).forEach(([id], i) => f.set(id, last + i + 1));
+  const real = (from: number, to: number) => (input.adjacencyList.get(from) ?? []).some((e) => e.to === to);
+
+  const classes = [...edgeClass].map(([key, kind]) => {
+    const [from, to] = key.split("-").map(Number);
+    return { from, to, kind };
+  });
+  for (const [to, from] of via) classes.push({ from, to, kind: "tree" });
+  for (const { from: u, to: v, kind } of classes) {
+    const edge = `${kind} edge ${u} → ${v}`;
+    if (!real(u, v)) return `${edge} is not an edge of the graph`;
+    const du = times.get(u)?.d;
+    const dv = times.get(v)?.d;
+    if (du === undefined || dv === undefined) return `${edge} has an end with no discovery time`;
+    const fu = f.get(u)!;
+    const fv = f.get(v)!;
+    const fits = kind === "tree" ? via.get(v) === u && du < dv && fv < fu
+      : kind === "forward" ? du < dv && fv < fu
+      : kind === "back" ? dv <= du && fu <= fv
+      : fv < du;
+    if (!fits) return `${edge} does not fit the times ${u}: ${du}/${fu}, ${v}: ${dv}/${fv}`;
+  }
+
+  const complete = answer?.kind === "order" || (answer?.kind === "route" && answer.path === null) || (answer?.kind === "cycle" && answer.cycle === null);
+  if (!complete) return null;
+  const has = (from: number, to: number) => edgeClass.has(`${from}-${to}`) || via.get(to) === from;
+  for (const u of times.keys()) {
+    for (const { to: v, type } of input.adjacencyList.get(u) ?? []) {
+      if (!has(u, v) && !(type === "undirected" && has(v, u))) return `edge ${u} → ${v} is never classified`;
     }
   }
   return null;
@@ -158,11 +219,11 @@ export const addsLightestCrossingEdge: Rule = (events, { input }) => {
 
 /**
  * What a learner can see of a run's state: what is final, done, known, waiting, answered, and
- * which edges closed a cycle. Not which edge was looked at last, nor edges merely checked.
+ * which edge closed a cycle. Not which edge was looked at last, nor edges merely checked (a check
+ * that classifies an edge belongs to the step that makes it).
  */
 const stateOf = (f: Frame) => JSON.stringify([
-  f.settled, f.finished, [...f.dist], [...f.prev], f.queue, f.answer !== null,
-  [...f.edgeClass].filter(([, kind]) => kind === "back"),
+  f.settled, f.finished, [...f.dist], [...f.prev], f.queue, f.answer !== null, f.loop,
 ]);
 
 /**
@@ -204,7 +265,7 @@ export const parentLinksFormTree: Rule = (events, { algorithmId, input }) => {
   for (let index = 0; index < run.ends.length; index++) {
     const parent = new Map<number, number>();
     for (const { from, to, kind } of runMarksAt(run, index).edges) {
-      if (kind === "change") continue;
+      if (kind !== "tree" && kind !== "branch" && kind !== "tentative") continue;
       if (parent.has(to)) return `step ${index + 1} shows two ways into ${to}`;
       if (to === input.startNodeId) return `step ${index + 1} shows a way into the start`;
       if (!(input.adjacencyList.get(from) ?? []).some((e) => e.to === to)) return `step ${index + 1} links ${from} to ${to}, which is not an edge`;
