@@ -1,11 +1,9 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
-import { algorithmRegistry, AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../algorithms";
-import { hasNegativeWeights, ALGORITHMS_NO_NEGATIVE_WEIGHTS } from "../utils/graph/graphUtils";
+import { algorithmRegistry, AlgorithmAdapter } from "../algorithms";
 import { VisualizationState } from "../constants/visualization";
-import { type EdgeType } from "../constants/graph";
-import { createRun } from "../utils/visualization/runView";
+import { buildRun } from "../utils/visualization/buildRun";
 import { useAppHaptics } from "./useAppHaptics";
 
 interface UseVisualizationExecutionReturn {
@@ -38,42 +36,22 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
   const runAlgorithm = useCallback((startNodeId: number, endNodeId?: number) => {
     if (!currentAlgorithm) return;
     const { data, resetVisualization, selectNode, startVisualization } = useGraphStore.getState();
-    const { id, name } = currentAlgorithm.metadata;
+    const built = buildRun(currentAlgorithm.metadata.id, data.nodes, data.edges, startNodeId, endNodeId);
+    if (!built) return;
 
-    if (ALGORITHMS_NO_NEGATIVE_WEIGHTS.has(id) && hasNegativeWeights(data.edges)) {
-      toast.warning(`${name} doesn't support negative edge weights. Use Bellman-Ford instead.`);
-      resetVisualization();
-      return;
-    }
-
-    const adjacencyList = new Map<number, EdgeInfo[]>();
-    data.edges.forEach((edgeList, nodeId) => {
-      adjacencyList.set(nodeId, (edgeList || []).map((e) => ({
-        from: e.from,
-        to: e.to,
-        weight: e.weight,
-        type: e.type as EdgeType,
-      })));
-    });
-    const input: AlgorithmInput = {
-      adjacencyList,
-      nodes: data.nodes.map((n) => ({ id: n.id })),
-      startNodeId,
-      endNodeId,
-    };
-
-    const events = currentAlgorithm.events(input);
-    const refusal = currentAlgorithm.refusal?.(events, input);
-    if (refusal) {
-      // Node ids are marked `{n:id}`; show each node's label.
-      toast.error(refusal.replace(/\{n:(\d+)\}/g, (_, nodeId) => data.nodes.find((n) => n.id === Number(nodeId))?.label || nodeId));
-      haptics.error();
+    if ("problem" in built) {
+      if (built.severity === "warning") {
+        toast.warning(built.problem);
+      } else {
+        toast.error(built.problem);
+        haptics.error();
+      }
       resetVisualization();
       return;
     }
 
     selectNode(null);
-    startVisualization(createRun(id, events, [...adjacencyList.keys()]));
+    startVisualization(built.run);
   }, [currentAlgorithm, haptics]);
 
   return {

@@ -1,55 +1,46 @@
 import { useEffect } from "react";
+import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry } from "../algorithms";
 import { VisualizationMode } from "../constants/visualization";
-import {
-  generateWeighted,
-  generateRandomGraph,
-  generateCycleWithDeadEnd,
-  graphFromSpec,
-  type GeneratedGraph,
-} from "../utils/graph/graphGenerator";
-import { decodeGraphLink } from "../utils/graph/graphLink";
-
-const graphForAlgorithm: Record<string, () => GeneratedGraph> = {
-  "dijkstra": generateWeighted,
-  "bellman-ford": generateWeighted,
-  "prims": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.5, directed: false, weighted: true, minWeight: 1, maxWeight: 10, layout: "circular" }),
-  "bfs": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
-  "dfs": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
-  "bfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
-  "dfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
-  "cycle-detection": generateCycleWithDeadEnd,
-};
+import { buildRun } from "../utils/visualization/buildRun";
+import { decodeStepLink, needsDestination } from "../utils/visualization/stepLink";
 
 /**
- * Reads `?algorithm=` from the URL on mount, selects the algorithm,
- * loads the graph carried in `?graph=` (or generates an appropriate one),
- * and cleans the URL.
+ * Opens the moment a link carries (see `stepLink.ts`) on mount, and cleans the URL.
+ *
+ * `?algorithm=` selects the algorithm and loads the linked graph (or the algorithm's own). With
+ * `from` (and `to` where the algorithm needs one) the run starts, at the linked step, as if the
+ * learner had tapped the nodes and stepped there. Whatever the link cannot honour leaves the app
+ * waiting for the taps it still needs.
  */
 export function useAlgorithmFromUrl() {
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const algorithmParam = params.get("algorithm");
-    if (!algorithmParam) return;
+    const moment = decodeStepLink(window.location.search);
+    if (!moment) return;
+    const { algorithm, graph, from, to, step } = moment;
 
-    const algo = algorithmRegistry.get(algorithmParam);
-    if (!algo) return;
+    const store = useGraphStore.getState();
+    store.setVisualizationAlgorithm({ key: algorithm, text: algorithmRegistry.get(algorithm)!.metadata.name });
+    store.setVisualizationMode(VisualizationMode.MANUAL);
+    store.setGraph(graph.nodes, graph.edges, graph.nodeCounter);
 
-    const { setVisualizationAlgorithm, setVisualizationMode, setGraph } = useGraphStore.getState();
-
-    setVisualizationAlgorithm({
-      key: algorithmParam,
-      text: algo.metadata.name,
-    });
-
-    setVisualizationMode(VisualizationMode.MANUAL);
-
-    // A landing page can hand over the graph the visitor arranged there.
-    const linked = decodeGraphLink(params.get("graph") ?? "");
-    const generator = graphForAlgorithm[algorithmParam];
-    const graph = linked ? graphFromSpec(linked) : generator?.();
-    if (graph) setGraph(graph.nodes, graph.edges, graph.nodeCounter);
+    if (from !== null && needsDestination(algorithm) && to === null) {
+      // As after the first tap: waiting for the destination.
+      store.setVisualizationInput({ startNodeId: from, endNodeId: -1 });
+    } else if (from !== null) {
+      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined);
+      if (built && "run" in built) {
+        if (to !== null) store.setVisualizationInput({ startNodeId: from, endNodeId: to });
+        store.startVisualization(built.run);
+        store.jumpToStep((step ?? 1) - 1);
+      } else if (built) {
+        // The message tapping these nodes would show; the algorithm stays selected for another try.
+        // Sent once this first render's effects are done, so the toaster is listening.
+        const show = built.severity === "warning" ? toast.warning : toast.error;
+        window.setTimeout(() => show(built.problem));
+      }
+    }
 
     window.history.replaceState({}, "", "/");
   }, []);
