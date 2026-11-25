@@ -1,4 +1,5 @@
 import type { DataStructureState } from "../../algorithms/types";
+import { signed } from "../../algorithms/traceHelpers";
 import { cn } from "@/lib/utils";
 import * as m from 'motion/react-m';
 import { AnimatePresence, MotionConfig } from "motion/react";
@@ -72,7 +73,7 @@ const ProcessingBox = ({
     {value !== undefined ? (
       <>
         <span>{getNodeLabel(id)}</span>
-        <span className="text-[10px] opacity-75">d={value}</span>
+        <span className="text-[10px] opacity-75">d={signed(value)}</span>
       </>
     ) : (
       getNodeLabel(id)
@@ -113,7 +114,7 @@ const AnimatedItem = ({
     {showValue && item.value !== undefined ? (
       <>
         <span>{getNodeLabel(item.id)}</span>
-        <span className="text-[10px] text-(--color-text-muted)">d={item.value}</span>
+        <span className="text-[10px] text-(--color-text-muted)">d={signed(item.value)}</span>
       </>
     ) : (
       getNodeLabel(item.id)
@@ -147,7 +148,7 @@ const ItemBox = ({
     {value !== undefined ? (
       <>
         <span>{getNodeLabel(id)}</span>
-        <span className="text-[10px] text-(--color-text-muted)">d={value}</span>
+        <span className="text-[10px] text-(--color-text-muted)">d={signed(value)}</span>
       </>
     ) : (
       getNodeLabel(id)
@@ -362,7 +363,12 @@ export const DataStructureVis = ({ dataStructure, getNodeLabel = String }: DataS
   }
 
   if (dataStructure.type === "distances") {
-    const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
+    // In node order, but the node that just improved is always shown: when it falls past the
+    // first few, it takes the last visible place.
+    const improved = items.findIndex((item) => justAddedSet.has(item.id));
+    const visibleItems = improved < MAX_VISIBLE_ITEMS
+      ? items.slice(0, MAX_VISIBLE_ITEMS)
+      : [...items.slice(0, MAX_VISIBLE_ITEMS - 1), items[improved]];
     const hiddenCount = items.length - MAX_VISIBLE_ITEMS;
 
     return (
@@ -373,7 +379,7 @@ export const DataStructureVis = ({ dataStructure, getNodeLabel = String }: DataS
             <div className="flex items-center">
               <div className={cn(styles.itemBase, styles.itemProcessing, styles.itemWithValue)}>
                 <span>{getNodeLabel(processing.id)}</span>
-                <span className="text-[10px] opacity-75">d={processing.value}</span>
+                <span className="text-[10px] opacity-75">d={processing.value !== undefined && signed(processing.value)}</span>
               </div>
             </div>
           </>

@@ -137,7 +137,7 @@ export const dfsPathfinding: LiveConfig = {
   headline: ["DFS pathfinding", "visualizer"],
   edges: PLAIN_EDGES,
   ledger: "order",
-  steps: { ready: [0], explore: [2], found: [1], answer: [3] },
+  steps: { ready: [0], explore: [1, 3], found: [2], answer: [5] },
   specs: [
     { label: "Time", value: "O(V + E)", note: "stops early at the target" },
     { label: "Space", value: "O(V)", note: "the current branch" },

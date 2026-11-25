@@ -9,3 +9,6 @@
  * // Renders as: "Visiting node S, added A, B to queue" (when labels are set)
  */
 export const nid = (id: number): string => `{n:${id}}`;
+
+/** A number as the trace panel writes it: negatives with a true minus sign (−2), as the narration does. */
+export const signed = (value: number): string => (value < 0 ? `−${-value}` : String(value));

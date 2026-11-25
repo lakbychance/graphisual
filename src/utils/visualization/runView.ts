@@ -5,7 +5,7 @@
  * screen, `highlightsAt` says which nodes and edges the canvas lights, and `traceAt` gives the
  * trace panel its message and data structure.
  */
-import { nid } from "../../algorithms/traceHelpers";
+import { nid, signed } from "../../algorithms/traceHelpers";
 import {
   changes, frameAt, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame, type QueueItem,
 } from "../../algorithms/engine";
@@ -138,7 +138,7 @@ function answerMessage(answer: AnswerEvent): string {
       const edges = path.length - 1;
       const size = answer.cost === undefined
         ? `Length: **${edges}** ${edges === 1 ? "edge" : "edges"}`
-        : `Total distance: **${answer.cost}**`;
+        : `Total distance: **${signed(answer.cost)}**`;
       return `**Path found:** ${path.map(nid).join(" → ")}\n${size}`;
     }
     case "order":
@@ -279,7 +279,7 @@ const bellmanFord: StepView = (change, step, frame, run) => {
     return { message, dataStructure: { type: "distances", items: reached } };
   }
   return {
-    message: `Round ${change.group}: **Relaxed ${nid(change.from)}→${nid(change.to)}** (distance: ${change.next})\n**${reached.length}** nodes reachable`,
+    message: `Round ${change.group}: **Relaxed ${nid(change.from)}→${nid(change.to)}** (distance: ${signed(change.next)})\n**${reached.length}** nodes reachable`,
     dataStructure: { type: "distances", items: reached, justAdded: [change.to] },
   };
 };

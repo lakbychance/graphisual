@@ -33,6 +33,20 @@ From A. Edges: A–B 4, A–C 2, C–B 1, D–E 2, D–F 3, E–F 6
  7. B is the cheapest node in the queue, at 1, so it joins the tree through C; B → A: A is already in the tree, so skip it; B → C: C is already in the tree, so skip it
  8. The queue is empty, so the tree is done: A – C and C – B, total weight 3; D, E and F cannot be reached from A, so the tree leaves them out
 
+## Parallel edges
+
+From A. Edges: A–B 6, A–B 9, A–B 5, A–C 1, C–B 1, C–B 9
+
+ 1. Start the tree at A, at cost 0; every other node is unreached (∞) for now
+ 2. A is the cheapest node in the queue, at 0, so it joins the tree first
+ 3. A → B costs 6, which beats ∞, so B joins the queue at 6
+ 4. A → B costs 9, which does not beat 6, so B keeps 6; another A → B edge costs 5, which beats 6, so B's cost drops to 5
+ 5. A → C costs 1, which beats ∞, so C joins the queue at 1
+ 6. C is the cheapest node in the queue, at 1, so it joins the tree through A
+ 7. C → A: A is already in the tree, so skip it; C → B costs 1, which beats 5, so B's cost drops to 1; another C → B edge costs 9, which does not beat 1, so B keeps 1
+ 8. B is the cheapest node in the queue, at 1, so it joins the tree through C; all 3 B → A edges: A is already in the tree, so skip them; both B → C edges: C is already in the tree, so skip them
+ 9. The queue is empty, so the tree is done: A – C and C – B, total weight 2
+
 ## Directed edges
 
 From A. Edges: A→B 3

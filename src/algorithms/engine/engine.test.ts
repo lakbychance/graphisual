@@ -317,6 +317,7 @@ describe("golden narration", () => {
       transcript(dijkstraAdapter, "A tie", lettered([[0, 1, 2], [0, 2, 2], [1, 3, 1], [2, 3, 3]], 4, 0, 3)),
       transcript(dijkstraAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(dijkstraAdapter, "Start is the destination", lettered([[0, 1, 3]], 2, 0, 0)),
+      transcript(dijkstraAdapter, "Parallel edges", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 2, 1], [2, 1, 1], [2, 1, 9]], 3, 0, 1)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/dijkstra.md");
   });
@@ -328,6 +329,9 @@ describe("golden narration", () => {
       transcript(bellmanFordAdapter, "A negative edge", experiment(landing.bellmanFord, true)),
       transcript(bellmanFordAdapter, "A negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
+      transcript(bellmanFordAdapter, "Parallel edges", lettered([[0, 1, 2], [1, 0, 5], [1, 0, 7], [1, 2, 1], [3, 2, 1], [3, 2, 4]], 4, 0, 2, { directed: true })),
+      transcript(bellmanFordAdapter, "Parallel edges, one of them improves", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 1, 7]], 2, 0, 1, { directed: true })),
+      transcript(bellmanFordAdapter, "Parallel edges in a negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1], [2, 1, 3]], 3, 0, 1, { directed: true })),
       transcript(bellmanFordAdapter, "The graph the app generates", generated(generateWeighted(), 1, 12)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bellman-ford.md");
@@ -397,6 +401,7 @@ describe("golden narration", () => {
       "Prim's",
       transcript(primsAdapter, "Standard graph", lettered(STANDARD, 6, 0)),
       transcript(primsAdapter, "Disconnected graph", experiment(landing.prims, true)),
+      transcript(primsAdapter, "Parallel edges", lettered([[0, 1, 6], [0, 1, 9], [0, 1, 5], [0, 2, 1], [2, 1, 1], [2, 1, 9]], 3, 0)),
       transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), false),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/prims.md");

@@ -39,10 +39,10 @@ export default function PrimsPage() {
         ],
         steps: [
           "Start with an arbitrary node and add it to the MST",
-          "Add all edges from the MST to a priority queue",
-          "Extract the minimum-weight edge from the queue",
-          "If the edge connects to a node not yet in the MST, add that node and edge",
-          "Add all edges from the newly added node to the priority queue",
+          "Give each node one cost, its cheapest edge to the MST so far, and keep the nodes in a queue",
+          "Extract the lowest-cost node from the queue",
+          "Add that node and its cheapest edge to the MST",
+          "Lower a neighbor's cost if the edge from the new node is cheaper",
           "Repeat until all nodes are in the MST or the queue is empty",
         ],
       }}

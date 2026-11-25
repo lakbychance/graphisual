@@ -28,7 +28,7 @@ export interface Frame {
   traversed: Set<number>;
   /** The edge this step walks, drawn as the scroll moves into the step. */
   activeEdge: number | null;
-  /** Edges of the answer: the route, or the cycle. */
+  /** Edges drawn in the answer's ink: the route or the cycle, and an edge that closes a loop once found. */
   path: Set<number>;
   pathNodes: Set<number>;
   /** Per edge drawn: true when it was walked against its stored direction. */
@@ -118,6 +118,8 @@ export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {
     }
     if (view.activeEdge !== null && view.activeEdge < 0) view.activeEdge = null;
 
+    // An edge back to a node in progress is inked in the cycle colour as soon as it is found, as in the app.
+    for (const w of walked.back) walk(view.path, w);
     for (const id of walked.answer?.nodes ?? []) view.pathNodes.add(id);
     for (const w of walked.answer?.walks ?? []) walk(view.path, w);
 

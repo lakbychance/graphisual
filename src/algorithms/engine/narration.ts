@@ -112,23 +112,42 @@ function negativeCycleSentence(event: RouteAnswer): string {
 
 /**
  * Skipped checks, said briefly (a round checks every edge, so a step can hold many):
- * "A → B and B → C are no better", "B → D starts from unreached B". More than three of a kind
- * are counted instead of named: "14 edges are no better".
+ * "A → B and B → C are no better", "B → D starts from unreached B". Parallel edges are named once:
+ * "both A → B edges and B → C are no better". More than three of a kind are counted instead of
+ * named: "14 edges are no better".
  */
-function briefSkips(events: readonly AlgorithmEvent[]): string {
-  const skips = events.filter((e): e is SkipEvent => e.type === "skip");
+function briefSkips(skips: readonly SkipEvent[]): string {
   const still = skips.some((e) => e.check) ? "still " : "";
   const parts: string[] = [];
   for (const reason of new Set(skips.map((e) => e.reason))) {
     const these = skips.filter((e) => e.reason === reason);
-    const edges = these.length > 3 ? `${these.length} edges` : joinAnd(these.map((e) => arrow(e.from, e.to)));
+    // How many edges join each pair, so parallel edges are named once.
+    const pairs = new Map<string, number>();
+    for (const e of these) pairs.set(arrow(e.from, e.to), (pairs.get(arrow(e.from, e.to)) ?? 0) + 1);
+    const edges = these.length > 3
+      ? `${these.length} edges`
+      : joinAnd([...pairs].map(([pair, count]) => (count === 1 ? pair : `${count === 2 ? "both" : `all ${count}`} ${pair} edges`)));
     const one = these.length === 1;
+    const from = pairs.size === 1 ? `unreached ${nid(these[0].from)}` : "unreached nodes";
     parts.push(reason === "unreached"
-      ? `${edges} ${one ? `starts from unreached ${nid(these[0].from)}` : "start from unreached nodes"}`
+      ? `${edges} ${one ? "starts" : "start"} from ${from}`
       : `${edges} ${one ? "is" : "are"} ${still}no better`);
   }
   return parts.join(", ");
 }
+
+/** Skipped edges parallel to the one that improves: "the other A → B edge is no better". */
+function otherTwins(twins: readonly SkipEvent[]): string {
+  if (twins.length === 0) return "";
+  const still = twins.some((e) => e.check) ? "still " : "";
+  const pair = arrow(twins[0].from, twins[0].to);
+  return twins.length === 1
+    ? `the other ${pair} edge is ${still}no better`
+    : `the other ${twins.length === 2 ? "two" : twins.length} ${pair} edges are ${still}no better`;
+}
+
+const pairOf = ({ from, to }: { from: number; to: number }) => `${from}-${to}`;
+const skipsIn = (events: readonly AlgorithmEvent[]) => events.filter((e): e is SkipEvent => e.type === "skip");
 
 /**
  * Group 0 is the start, 1, 2, ... are the rounds, then the extra pass that looks for a negative cycle.
@@ -156,7 +175,17 @@ const bellmanFord: Voice = {
         ? "One more pass checks every edge again and nothing improves, so there is no negative cycle"
         : `Round ${first.group}: checking every edge improves nothing, so every distance is final and there is no negative cycle`;
     }
-    const said = [briefSkips(events.slice(0, at)), bellmanFord.event(change), briefSkips(events.slice(at + 1))].filter(Boolean).join("; ");
+    // A pair is named once per step: edges parallel to the one that changes are "the other" ones,
+    // said right after it, and a pair skipped on both sides of the change is said where it is first skipped.
+    const improving = change.type === "relax" ? pairOf(change)
+      : change.type === "answer" && change.kind === "route" && change.negativeCycle ? pairOf(change.negativeCycle) : null;
+    const before = skipsIn(events.slice(0, at));
+    const after = skipsIn(events.slice(at + 1));
+    const early = new Set(before.map(pairOf));
+    const twins = [...before, ...after].filter((e) => pairOf(e) === improving);
+    const first = [...before, ...after.filter((e) => early.has(pairOf(e)))].filter((e) => pairOf(e) !== improving);
+    const rest = after.filter((e) => !early.has(pairOf(e)) && pairOf(e) !== improving);
+    const said = [briefSkips(first), bellmanFord.event(change), otherTwins(twins), briefSkips(rest)].filter(Boolean).join("; ");
     if (change.type === "relax") return `Round ${change.group}: ${said}`;
     if (change.type === "answer" && change.kind === "route" && change.negativeCycle) return `One more pass: ${said}`;
     return said;
@@ -320,6 +349,36 @@ const voices: Record<string, Voice> = {
   prims,
 };
 
+/** The pair an event's sentence starts with, for edges it names. */
+function namedPair(event: AlgorithmEvent): string | null {
+  if (event.type === "skip" || event.type === "relax" || event.type === "classify") return arrow(event.from, event.to);
+  if (event.type === "enqueue" && event.from !== undefined) return arrow(event.from, event.node);
+  return null;
+}
+
+/**
+ * A step's events said in order, joined with semicolons. Parallel edges are not named as if they
+ * were one edge: the same check repeated is said once for all of them ("both B → A edges: A is
+ * already in the tree, so skip them"), and a later sentence about the same pair names "another"
+ * edge (a step need not hold every edge of the pair, so it is never "the other").
+ */
+function sayEvents(voice: Voice, step: readonly AlgorithmEvent[]): string {
+  const said: Array<{ pair: string | null; text: string; count: number }> = [];
+  for (const event of step) {
+    const text = voice.event(event);
+    if (!text) continue;
+    const pair = namedPair(event);
+    const same = pair === null ? undefined : said.find((s) => s.pair === pair && s.text === text);
+    if (same) same.count += 1;
+    else said.push({ pair, text, count: 1 });
+  }
+  return said.map(({ pair, text, count }, i) => {
+    if (pair === null) return text;
+    if (count > 1) return text.replace(pair, `${count === 2 ? "both" : `all ${count}`} ${pair} edges`).replace(/skip it\b/, "skip them");
+    return said.findIndex((s) => s.pair === pair) === i ? text : text.replace(pair, `another ${pair} edge`);
+  }).join("; ");
+}
+
 /** One message per step of the run (see `stepEnds`), in the voice of the algorithm with this id. */
 export function narrate(events: readonly AlgorithmEvent[], algorithm: string): string[] {
   const voice = voices[algorithm];
@@ -328,6 +387,6 @@ export function narrate(events: readonly AlgorithmEvent[], algorithm: string): s
   return stepEnds(events).map((end) => {
     const step = events.slice(start, end);
     start = end;
-    return voice.step?.(step) ?? step.map((e) => voice.event(e)).filter(Boolean).join("; ");
+    return voice.step?.(step) ?? sayEvents(voice, step);
   });
 }

@@ -38,12 +38,12 @@ export default function DfsPathfindingPage() {
           "DFS Pathfinding is useful when any path will do, or when the graph structure favors deep exploration. It uses less memory than BFS since it only needs to store the current path, not all discovered nodes at each level.",
         ],
         steps: [
-          "Start at the source node and mark it as visited",
+          "Start with the source node on a stack",
+          "Pop the top node and mark it as visited",
           "If the current node is the destination, the path is found",
-          "Explore an unvisited neighbor by recursing deeper",
-          "If the recursive call finds the destination, propagate success back",
-          "If no unvisited neighbors lead to the destination, backtrack",
+          "Push each unvisited neighbor to the top of the stack, with the current node as its parent",
           "Repeat until a path is found or all reachable nodes are exhausted",
+          "Walk the parents back from the destination to read the path",
         ],
       }}
       useCases={[
