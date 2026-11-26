@@ -19,6 +19,8 @@ export const TIMING = {
   POPUP_DELAY: 100,
   TOOLTIP_DELAY: 300,
   DEFAULT_VISUALIZATION_SPEED: 400,
+  /** How long a playing run holds the step that shows Bellman-Ford's reply to a Run it answer, so it can be read. */
+  REPLY_HOLD: 2500,
 } as const;
 
 // Self-hosted font URL (TTF for Three.js compatibility)

@@ -7,7 +7,7 @@ import type { GraphEdge, GraphNode } from "../../Graph/types";
 import type { NodeBadge, RunMarks } from "@/utils/visualization/runView";
 import { getCSSVar } from "@/theme";
 import {
-  MARK_STYLE, VALUE_BADGE, isStepEdge, markGeometry, markScale, num, orderMarks, type MarkGeometry,
+  MARK_STYLE, VALUE_BADGE, isQuiet, isStepEdge, markGeometry, markScale, num, orderMarks, type MarkGeometry,
 } from "../../Graph/runMarkShapes";
 
 /** Length of a directed edge's arrowhead, which the canvas draws its curve up to (see `edgeRenderer.ts`). */
@@ -71,7 +71,7 @@ export function drawRunEdgeMarks(
     // The weight stays readable over the drawn edge; on this step's edge it is part of the change. The edge a
     // question asks about always shows its weight, even the 1 the graph leaves unwritten.
     const ask = mark.kind === "ask";
-    if (ask || (g.weight !== null && mark.kind !== "tree")) {
+    if (ask || (g.weight !== null && !isQuiet(mark.kind))) {
       ctx.save();
       ctx.fillStyle = getCSSVar(ask ? "--color-state-current" : change ? "--color-state-change" : "--color-paper");
       ctx.beginPath();

@@ -50,7 +50,7 @@ export interface RunItState {
   /**
    * What the run said about the last pick: why it is not the one, or that it is (node ids marked), and
    * the step it was said at. In Bellman-Ford, the reply to the last answer: `yes` when it was right,
-   * `note` when it was wrong or skipped (it says what the edge does, and why).
+   * `note` when it was wrong or skipped (it says what the edge does, and why), shown on step `at` only.
    */
   said: { tone: "miss" | "yes" | "note"; text: string; at: number } | null;
 }
@@ -1103,6 +1103,11 @@ export const selectIsAwaitingPick = (state: GraphStore) => selectIsAwaitingTurn(
 /** Bellman-Ford: the event of the edge check the run waits on screen for a Yes / No about, or null. */
 export const selectAskedEdge = (state: GraphStore) =>
   selectIsAwaitingTurn(state) && asksYesNo(state.visualization.step.run) ? state.visualization.runIt!.turn!.event : null;
+/** Bellman-Ford's Run it: the step on screen is the one that shows the reply to the learner's last answer. */
+export const selectShowsReply = (state: GraphStore) => {
+  const said = state.visualization.runIt?.said;
+  return !!said && asksYesNo(state.visualization.step.run) && state.visualization.step.index === said.at;
+};
 export const selectCanStepBackward = (state: GraphStore) =>
   selectIsInStepMode(state) && state.visualization.step.index > 0;
 

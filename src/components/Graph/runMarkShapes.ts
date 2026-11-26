@@ -8,7 +8,7 @@ import { NODE_RUN_RING } from "@/constants/ui";
 import { getControlPoint } from "@/utils/geometry/calc";
 import type { GraphEdge, GraphNode } from "./types";
 
-/** A mark drawn over an edge (see `runMarksAt`): a parent link, the branch or this step's edge. */
+/** A mark drawn over an edge (see `runMarksAt`): a parent link, the branch, this step's edge or a link along the answer's cycle. */
 export type MarkKind = RunMarkKind;
 export type DrawnMark = RunMark;
 
@@ -20,7 +20,11 @@ export const MARK_STYLE: Record<MarkKind, { stroke: string; width: number; dash?
   tree: { stroke: "--color-edge-traversal", width: 2.5, opacity: 0 },
   branch: { stroke: "--color-edge-traversal", width: 6, opacity: 0.85 },
   ask: { stroke: "--color-state-current", width: 4, dash: [7, 5] },
+  cycle: { stroke: "--color-edge-traversal", width: 2.5, opacity: 0 },
 };
+
+/** A final link (a parent link, or one along the answer's cycle): its edge's own drawing carries it, weight and all. */
+export const isQuiet = (kind: MarkKind) => kind === "tree" || kind === "cycle";
 
 /** This step's edge: the change it made, the loop cycle detection found, or the edge Bellman-Ford's Run it asks about. */
 export const isStepEdge = (kind: MarkKind) => kind === "change" || kind === "loop" || kind === "ask";

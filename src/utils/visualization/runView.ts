@@ -47,13 +47,28 @@ export interface Walk {
   to: number;
 }
 
+/**
+ * On the step cycle detection finds its loop at a done node, the way back it walks: from that node up
+ * the undirected edges it was reached by, to the node in progress (the event's `through`). Empty on
+ * any other step.
+ */
+function walkBack(run: Run, index: number): Walk[] {
+  const found = index < 0 ? undefined : eventsOf(run, index).find((e) => e.type === "classify" && e.loop);
+  if (found?.type !== "classify" || !found.through) return [];
+  const path = [found.to, ...found.through];
+  return path.slice(1).map((to, i) => ({ from: path[i], to }));
+}
+
 /** What a step has walked so far, and the answer it shows (see `walkedAt`). */
 export interface Walked {
   /** Nodes lit as visited. */
   visited: number[];
   /** Edges lit as walked, in the direction they were walked. */
   walks: Walk[];
-  /** The walked edge a cycle search found leading back to a node in progress (its loop), drawn so it stands out. */
+  /**
+   * The walked edge a cycle search found leading back to a node in progress (its loop), drawn so it
+   * stands out; on the step it finds it at a done node, the undirected edges it walks back up too.
+   */
   back: Walk[];
   /** The answer's nodes and edges, when the step shows a route or a cycle. */
   answer: { kind: "route" | "cycle"; nodes: number[]; walks: Walk[] } | null;
@@ -63,7 +78,8 @@ export interface Walked {
  * What is walked once step `index` is shown. Nodes made final are visited, through the edge they
  * were reached by; a run that never makes nodes final (Bellman-Ford) shows the nodes it has reached,
  * through their best edges. The edge a cycle search found leading back to a node in progress is
- * walked too. The answer is the route, or the cycle walked round back to its first node. The app's canvas and the landing pages
+ * walked too (on the step it is found at a done node, with the way back up from there). The answer is
+ * the route, or the cycle walked round back to its first node. The app's canvas and the landing pages
  * both draw from this.
  */
 export function walkedAt(run: Run, index: number): Walked {
@@ -72,7 +88,7 @@ export function walkedAt(run: Run, index: number): Walked {
   const settles = run.events.some((e) => e.type === "settle");
   const visited = settles ? [...frame.settled] : [...frame.dist.keys()];
   const walks: Walk[] = [...(settles ? frame.via : frame.prev)].map(([to, from]) => ({ from, to }));
-  const back: Walk[] = frame.loop ? [frame.loop] : [];
+  const back: Walk[] = frame.loop ? [frame.loop, ...walkBack(run, index)] : [];
   walks.push(...back);
 
   const { answer } = frame;
@@ -183,16 +199,19 @@ export interface NodeBadge {
 /**
  * A link drawn over an edge, from -> to the way the search travelled.
  * - `change`: the edge this step changed something along (back up it, for a backtrack)
- * - `loop`: on the step cycle detection finds its loop, the edge that closes it (drawn in the cycle colour)
+ * - `loop`: on the step cycle detection finds its loop, the edge that closes it, and when that edge
+ *   reaches a done node, the undirected edges walked back up from there (all drawn in the cycle colour)
  * - `tentative`: a best-so-far parent link that may still change
  * - `tree`: a final parent link
  * - `branch`: a depth-first search's tree edge into a node it is still in (the branch it is on)
  * - `ask`: in Bellman-Ford's Run it, the edge a question asks about, while the run waits for the answer (the app adds it)
+ * - `cycle`: on cycle detection's answer, a parent link along the cycle, turned the way the answer reads
+ *   the cycle (drawn as a final parent link)
  *
  * A depth-first search's edge classes (back, forward, cross) stay in the engine for its rule checks;
  * the graph does not show them.
  */
-export type RunMarkKind = "change" | "loop" | "tentative" | "tree" | "branch" | "ask";
+export type RunMarkKind = "change" | "loop" | "tentative" | "tree" | "branch" | "ask" | "cycle";
 
 export interface RunMark {
   from: number;
@@ -211,7 +230,8 @@ export interface RunMarks {
 /**
  * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
  * node's value, with the old one when this step lowered it; the parent links, final or best so far (Bellman-Ford keeps only each node's
- * current best); and the edge this step used. A depth-first search adds the branch it is on.
+ * current best); and the edge this step used. A depth-first search adds the branch it is on. On cycle
+ * detection's answer, the links along the cycle read the way the answer does.
  * Both renderers and the rework lab draw from this.
  */
 export function runMarksAt(run: Run, index: number): RunMarks {
@@ -261,6 +281,18 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   else if (change?.type === "settle" && change.via !== undefined) walk = { from: change.via, to: change.node };
   else if (change?.type === "finish" && change.parent !== undefined) walk = { from: change.node, to: change.parent };
   if (walk && !answered) edges.push({ ...walk, kind: change?.type === "classify" && change.loop ? "loop" : "change" });
+  if (!answered) for (const back of walkBack(run, index)) edges.push({ ...back, kind: "loop" });
+
+  // The cycle reads one way round: a link the search walked the other way (back up an undirected edge) is turned.
+  const cycle = frame.answer?.kind === "cycle" ? frame.answer.cycle : null;
+  if (cycle) {
+    const reads = (from: number, to: number) => cycle.some((id, i) => id === from && cycle[(i + 1) % cycle.length] === to);
+    for (const mark of edges) {
+      if (mark.kind !== "tree") continue;
+      if (reads(mark.from, mark.to)) mark.kind = "cycle";
+      else if (reads(mark.to, mark.from)) Object.assign(mark, { from: mark.to, to: mark.from, kind: "cycle" });
+    }
+  }
 
   return { valued, nodes, edges };
 }

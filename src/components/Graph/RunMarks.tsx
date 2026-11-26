@@ -16,7 +16,7 @@ import { selectAskedEdge, selectStepIndex, selectStepRun, useGraphStore } from "
 import { VisualizationState } from "@/constants/visualization";
 import { runMarksAt, type NodeBadge, type RunMarks } from "@/utils/visualization/runView";
 import {
-  MARK_STYLE, VALUE_BADGE, isStepEdge, linePath, markGeometry, markScale, num, orderMarks, type DrawnMark,
+  MARK_STYLE, VALUE_BADGE, isQuiet, isStepEdge, linePath, markGeometry, markScale, num, orderMarks, type DrawnMark,
 } from "./runMarkShapes";
 
 /** What the graph carries during a run. */
@@ -106,7 +106,7 @@ function EdgeMarks({ marks, nodes, edges, zoom }: MarkLayerProps) {
             )}
             {/* The weight stays readable over the drawn edge; on this step's edge it is part of the change. The edge a
                 question asks about always shows its weight, even the 1 the graph leaves unwritten. */}
-            {(ask || (g.weight !== null && mark.kind !== "tree")) && (
+            {(ask || (g.weight !== null && !isQuiet(mark.kind))) && (
               <g transform={`translate(${g.label.x} ${g.label.y})`}>
                 <rect x={-12} y={-10} width={24} height={20} rx={4} fill={ask ? "var(--color-state-current)" : change ? "var(--color-state-change)" : "var(--color-paper)"} />
                 <text textAnchor="middle" dominantBaseline="central" className="font-semibold text-sm lg:text-xs"

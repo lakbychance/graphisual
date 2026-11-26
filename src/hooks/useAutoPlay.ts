@@ -1,9 +1,12 @@
 import { useEffect } from "react";
-import { useGraphStore, selectIsPlaying } from "../store/graphStore";
+import { useGraphStore, selectIsPlaying, selectShowsReply } from "../store/graphStore";
 import { VisualizationMode } from "../constants/visualization";
+import { TIMING } from "../constants/ui";
 
 /**
- * Advances the current run one step per `speed` ms while it is playing.
+ * Advances the current run one step per `speed` ms while it is playing. The step that shows
+ * Bellman-Ford's reply to a Run it answer is held longer (`TIMING.REPLY_HOLD`), long enough to read
+ * before the run's next sentence takes its place.
  *
  * Auto mode plays from the moment the run starts; manual mode plays while the user
  * has pressed Play. This is the only place the two modes behave differently: when the
@@ -16,7 +19,9 @@ export function useAutoPlay(): void {
     if (!isPlaying) return;
 
     const speed = useGraphStore.getState().visualization.speed;
-    const id = window.setInterval(() => {
+    const delay = () => (selectShowsReply(useGraphStore.getState()) ? Math.max(speed, TIMING.REPLY_HOLD) : speed);
+    let id = 0;
+    const tick = () => {
       const store = useGraphStore.getState();
       const { mode, step } = store.visualization;
 
@@ -27,8 +32,10 @@ export function useAutoPlay(): void {
       } else {
         store.stopAutoPlay();
       }
-    }, speed);
+      id = window.setTimeout(tick, delay());
+    };
+    id = window.setTimeout(tick, delay());
 
-    return () => clearInterval(id);
+    return () => clearTimeout(id);
   }, [isPlaying]);
 }

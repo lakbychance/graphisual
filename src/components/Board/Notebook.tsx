@@ -11,7 +11,8 @@
  * sentence the notebook asks what comes next, says why a pick is not the one, gives a clue after two
  * tries and names the answer after three. New graph runs it again on a fresh graph (`freshGraph.ts`).
  * Bellman-Ford has nothing to pick: its Run it stops now and then to ask, Yes or No, whether an edge
- * lowers a distance, says whether the answer is right and why, and plays on either way.
+ * lowers a distance, says whether the answer is right and why on the step that shows it, and plays on
+ * either way.
  *
  * The rework lab's notebook variant is this component too.
  */
@@ -301,8 +302,8 @@ function newGraph() {
  * what the last pick said (why it is not the one; after two tries a clue, the algorithm's rule, and
  * after three a hint naming the valid picks); between turns, what the last good pick said. With a
  * keyboard, the graph's nodes can be picked from a row of keys that shows once it has focus.
- * Bellman-Ford's turn is a Yes / No question about an edge, with Skip; between turns, what the last
- * answer got back.
+ * Bellman-Ford's turn is a Yes / No question about an edge, with Skip; what the answer got back shows
+ * on the step that shows the answer only, so the run's later sentences never sit beside it.
  */
 function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: RunItState; nodes: GraphNode[] }) {
   const pickNode = useGraphStore((s) => s.pickNode);
@@ -312,8 +313,9 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
   const playing = useGraphStore(selectIsPlaying);
   const { turn, said: last, tries } = runIt;
   const waiting = turn !== null && index === turn.limit;
-  // What the last pick said shows from the step it was said at on, never on the steps before it.
-  const said = last && index >= last.at && !(yesNo && waiting) ? last : null;
+  // What the last pick said shows from the step it was said at on, never on the steps before it;
+  // Bellman-Ford's reply only on that step, then gives way to the run's sentences.
+  const said = last && (yesNo ? index === last.at : index >= last.at) && !(yesNo && waiting) ? last : null;
   const end = run.ends.length - 1;
   const how = waiting ? (yesNo ? "" : "Click it on the graph")
     : turn !== null ? (playing ? "Playing on to your turn" : `Your turn comes at step ${turn.limit + 1}`)
