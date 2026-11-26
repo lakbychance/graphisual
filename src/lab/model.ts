@@ -8,7 +8,7 @@
  * without `graph` whose `from` is a node number opens the app's own graph, as the app does.
  */
 import { algorithmRegistry } from "@/algorithms";
-import { frameAt, narrate, changes, type AlgorithmEvent, type EdgeClass, type Frame } from "@/algorithms/engine";
+import { frameAt, narrate, changes, type AlgorithmEvent, type Frame } from "@/algorithms/engine";
 import { COMPACT } from "@/landing/live/shared";
 import * as pages from "@/landing/live/configs";
 import type { LiveConfig } from "@/landing/live/types";
@@ -162,15 +162,12 @@ export function setupLink(setup: Pick<Setup, "variant" | "algorithm" | "graphId"
 /** How a node reads at a step: the app's own roles (see `rolesAt`). */
 export type Role = NodeRole;
 
-/** A node's badges (the app's, see `runMarksAt`, with a depth-first search's times) and its role. */
+/** A node's badges (the app's, see `runMarksAt`) and its role. */
 export interface NodeState extends NodeBadge {
   role: Role;
 }
 
-/**
- * An edge drawn over the graph's own: the app's run marks (see `runMarksAt`), with a depth-first
- * search's branch and the engine's classes of the other edges it has met (`back`, `forward`, `cross`).
- */
+/** An edge drawn over the graph's own: the app's run marks (see `runMarksAt`), a depth-first search's branch included. */
 export type { MarkKind };
 export type EdgeMark = DrawnMark;
 
@@ -181,8 +178,6 @@ export interface StepView {
   change: AlgorithmEvent | undefined;
   nodes: Map<number, NodeState>;
   marks: EdgeMark[];
-  /** Kinds of non-tree edge found so far, for a legend. */
-  classes: EdgeClass[];
   /** The algorithm keeps a value per node (distance or cost). */
   valued: boolean;
 }
@@ -191,7 +186,7 @@ export { keepsValues };
 
 const stepEvents = (run: Run, index: number) => run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
 
-/** What step `index` shows: the app's roles and run marks, depth-first times and edge classes included. */
+/** What step `index` shows: the app's roles and run marks. */
 export function stepView(run: Run, index: number, nodes: GraphNode[]): StepView {
   const frame = frameAt(run.events, index < 0 ? 0 : run.ends[index]);
   const change = (index < 0 ? [] : stepEvents(run, index)).find(changes);
@@ -201,10 +196,7 @@ export function stepView(run: Run, index: number, nodes: GraphNode[]): StepView 
   const states = new Map<number, NodeState>();
   for (const { id } of nodes) states.set(id, { role: roles.get(id) ?? "unseen", changed: false, ...shared.nodes.get(id) });
 
-  const classes = new Set<EdgeClass>();
-  for (const { kind } of shared.edges) if (kind === "back" || kind === "forward" || kind === "cross") classes.add(kind);
-
-  return { index, frame, change, nodes: states, marks: shared.edges, classes: [...classes], valued: shared.valued };
+  return { index, frame, change, nodes: states, marks: shared.edges, valued: shared.valued };
 }
 
 /* -------------------------------------------------------- the whole run */

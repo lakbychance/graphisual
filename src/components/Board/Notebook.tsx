@@ -125,7 +125,7 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
 }
 
 /** The symbol a key moment's mark shows when it has no text of its own. */
-const MOMENT_ICON: Partial<Record<MomentKind, LucideIcon>> = { found: Flag, back: RotateCcw, loop: RotateCcw, answer: Check };
+const MOMENT_ICON: Partial<Record<MomentKind, LucideIcon>> = { found: Flag, loop: RotateCcw, answer: Check };
 
 /** A mark's least width, the gap kept between marks, and the furthest a mark may sit from its step, in px. */
 const MARK = 16;
@@ -136,8 +136,8 @@ const ROUND_ROOM = 2 * (MARK + GAP);
 /** About how wide a mark is: a symbol, or its text in 10px monospace. */
 const markWidth = (m: KeyMoment) => (m.text ? Math.max(MARK, 6 + 6 * m.text.length) : MARK);
 
-/** Which marks give way first when the row is too short for all of them: rounds, then a negative edge, then a back edge or loop. */
-const RANK: Record<MomentKind, number> = { answer: 0, found: 1, loop: 2, back: 2, negative: 3, round: 4 };
+/** Which marks give way first when the row is too short for all of them: rounds, then a negative edge, then a loop. */
+const RANK: Record<MomentKind, number> = { answer: 0, found: 1, loop: 2, negative: 3, round: 4 };
 
 /**
  * Centres for marks that want to sit at `want` (px along a row `width` wide, in step order), pushed

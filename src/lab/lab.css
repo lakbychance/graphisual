@@ -197,7 +197,6 @@
 .lab-score-pin:empty, .lab-score-pin:has(.sr-only:not(:empty)) { width: 9px; height: 9px; padding: 0; top: 4px; background: var(--pin-ink); }
 .lab-score-pin[data-kind="found"], .lab-score-pin[data-kind="answer"] { --pin-ink: var(--color-edge-path); }
 .lab-score-pin[data-kind="negative"] { --pin-ink: var(--color-error); }
-.lab-score-pin[data-kind="back"] { --pin-ink: var(--color-edge-back); }
 .lab-score-pin[data-kind="loop"] { --pin-ink: var(--color-edge-cycle); }
 .lab-score-pin[data-kind="round"] { --pin-ink: var(--color-text-muted); }
 

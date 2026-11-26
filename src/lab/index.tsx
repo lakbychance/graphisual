@@ -242,12 +242,8 @@ const KEY: Array<{ swatch: React.ReactNode; word: string }> = [
   { swatch: <circle cx="14" cy="10" r="7" fill="var(--color-state-done)" stroke="var(--color-node-stroke)" />, word: "Done: the search has backed out of it" },
   { swatch: <rect x="2" y="3" width="24" height="14" rx="7" fill="var(--color-state-change)" />, word: "Changed this step (old value struck through)" },
   { swatch: <path d="M2 10 H26" stroke="var(--color-state-change)" strokeWidth="4" strokeLinecap="round" />, word: "The edge this step uses (arrow: which way)" },
-  { swatch: <><rect x="1" y="3" width="26" height="14" rx="7" fill="var(--color-badge)" stroke="var(--color-badge-line)" /><text x="14" y="10.5" textAnchor="middle" dominantBaseline="central" fontSize="8" fontWeight="700" fill="var(--color-badge-text)">3/8</text></>, word: "Depth-first: found at time 3, done at 8" },
   { swatch: <path d="M2 10 H26" stroke="var(--color-edge-traversal)" strokeWidth="2.5" strokeDasharray="5 4" />, word: "Best way in so far, may still change" },
   { swatch: <path d="M2 10 H26" stroke="var(--color-edge-traversal)" strokeWidth="5" />, word: "The branch a depth-first search is in" },
-  { swatch: <path d="M2 10 H26" stroke="var(--color-edge-back)" strokeWidth="3" strokeDasharray="8 4" />, word: "Back edge: leads to a node still in progress" },
-  { swatch: <path d="M2 10 H26" stroke="var(--color-edge-forward)" strokeWidth="3" strokeDasharray="3 4" />, word: "Forward edge: to a finished node below" },
-  { swatch: <path d="M2 10 H26" stroke="var(--color-edge-cross)" strokeWidth="3" strokeDasharray="1 5" strokeLinecap="round" />, word: "Cross edge: to a finished node elsewhere" },
 ];
 
 function Legend({ desktop }: { desktop: boolean }) {

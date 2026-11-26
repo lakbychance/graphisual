@@ -5,7 +5,7 @@
  * - Caption: the graph carries everything; one caption under it says the step and shows its line
  *   of code; the scrubber sits in the caption.
  * - Notebook: a side notebook says the step, then shows the code or the state (one at a time);
- *   the graph carries roles, changes and depth-first marks, the notebook the full table.
+ *   the graph carries roles, changes and the depth-first branch, the notebook the full table.
  * - Score: the run laid out as a score, code lines down and steps across, one dot per step;
  *   the learner reads the shape of the run and scrubs it directly; state stays on the graph.
  */
@@ -36,9 +36,9 @@ export interface VariantProps {
 
 /** What each variant draws on the graph. */
 export const CANVAS: Record<VariantId, CanvasOptions> = {
-  caption: { values: "all", times: true, slots: true, classWords: true },
-  notebook: { values: "reached", times: true, slots: false, classWords: false },
-  score: { values: "reached", times: true, slots: true, classWords: true },
+  caption: { values: "all", slots: true },
+  notebook: { values: "reached", slots: false },
+  score: { values: "reached", slots: true },
 };
 
 /**
@@ -103,7 +103,7 @@ const KIND: Record<StepKind, { color: string; word: string }> = {
   add: { color: "var(--color-tint-start)", word: "add" },
   improve: { color: "var(--color-state-change)", word: "improve" },
   "back-up": { color: "var(--color-text-muted)", word: "back up" },
-  loop: { color: "var(--color-edge-back)", word: "edge back" },
+  loop: { color: "var(--color-edge-cycle)", word: "edge back" },
   answer: { color: "var(--color-edge-path)", word: "answer" },
   check: { color: "var(--color-node-stroke)", word: "check" },
 };

@@ -350,8 +350,8 @@ export const parentLinksFormTree: Rule = (events, { algorithmId, input }) => {
  * The key moments the scrubber marks (see `keyMoments`) are exactly the ones the events hold, no
  * more and no fewer: each Bellman-Ford round's first step (not the extra pass that checks for a
  * negative cycle, nor the answer); the step of the run's first relaxation along a negative edge
- * (Bellman-Ford); every step that takes the destination after the start; the step of the first back
- * edge a depth-first search meets, or cycle detection's loop; and the answer, on the last step.
+ * (Bellman-Ford); every step that takes the destination after the start; the step of cycle
+ * detection's loop (its first back edge); and the answer, on the last step.
  */
 export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   const run = createRun(algorithmId, [...events], []);
@@ -373,7 +373,6 @@ export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   if (algorithmId === "bellman-ford" && negative >= 0) mark(stepAt(negative), "negative");
   const loop = events.findIndex((e) => e.type === "classify" && e.kind === "back");
   if (loop >= 0 && algorithmId === "cycle-detection") mark(stepAt(loop), "loop");
-  if (loop >= 0 && (algorithmId === "dfs" || algorithmId === "dfs-pathfinding")) mark(stepAt(loop), "back");
 
   const marked = keyMoments(run).map((m) => `${m.index} ${m.kind}`);
   if (new Set(marked).size !== marked.length) return "a moment is marked twice";

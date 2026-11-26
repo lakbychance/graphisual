@@ -155,7 +155,6 @@
 .nb-moment[data-kind="negative"] { --ink: var(--color-error); }
 .nb-moment[data-kind="found"],
 .nb-moment[data-kind="answer"] { --ink: var(--color-edge-path); }
-.nb-moment[data-kind="back"] { --ink: var(--color-edge-back); }
 .nb-moment[data-kind="loop"] { --ink: var(--color-edge-cycle); }
 
 /* --------------------------------------------------------- short windows */

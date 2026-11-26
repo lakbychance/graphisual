@@ -1,14 +1,13 @@
 /**
  * A run's state drawn on the Canvas renderer, as the SVG renderer draws it (`Graph/RunMarks.tsx`):
- * best-so-far parent links, a depth-first search's branch and edge classes (with their words) and
- * this step's edge (under the nodes), then value badges, queue or stack places and `d/f` times (over them).
+ * best-so-far parent links, a depth-first search's branch and this step's edge or loop (under the nodes),
+ * then value badges and queue or stack places (over them).
  */
 import type { GraphEdge, GraphNode } from "../../Graph/types";
 import type { NodeBadge, RunMarks } from "@/utils/visualization/runView";
 import { getCSSVar } from "@/theme";
 import {
-  CLASS_PILL, CLASS_WORD, MARK_STYLE, SLOT_BADGE, TIME_BADGE, VALUE_BADGE, markGeometry, markScale, num, orderMarks, placeClassWords,
-  type MarkGeometry,
+  MARK_STYLE, SLOT_BADGE, VALUE_BADGE, isStepEdge, markGeometry, markScale, num, orderMarks, type MarkGeometry,
 } from "../../Graph/runMarkShapes";
 
 /** Length of a directed edge's arrowhead, which the canvas draws its curve up to (see `edgeRenderer.ts`). */
@@ -26,7 +25,7 @@ const strokeLine = (ctx: CanvasRenderingContext2D, { x1, y1, x2, y2, cx, cy }: M
   ctx.stroke();
 };
 
-/** Parent links, edge classes and the edge this step used, with their chevrons, weights and class words. */
+/** Parent links, the branch and the edge this step used, with their chevrons and weights. */
 export function drawRunEdgeMarks(
   ctx: CanvasRenderingContext2D,
   marks: RunMarks,
@@ -40,18 +39,9 @@ export function drawRunEdgeMarks(
     const g = markGeometry(mark, byId, edges);
     return g ? [{ mark, chevron, g }] : [];
   });
-  const words = placeClassWords(drawn, nodes, marks.nodes, k);
   for (const { mark, chevron, g } of drawn) {
     const style = MARK_STYLE[mark.kind];
     const change = mark.kind === "change";
-    // A dashed mark hides the plain edge under it, so its dashes read cleanly.
-    if (style.dash && mark.kind !== "tentative") {
-      ctx.save();
-      ctx.strokeStyle = getCSSVar("--color-paper");
-      ctx.lineWidth = style.width + 1;
-      strokeLine(ctx, g.line);
-      ctx.restore();
-    }
     ctx.save();
     ctx.globalAlpha = style.opacity ?? 1;
     ctx.strokeStyle = getCSSVar(style.stroke);
@@ -70,7 +60,7 @@ export function drawRunEdgeMarks(
       ctx.moveTo(-size, -size * 0.8);
       ctx.lineTo(size * 0.6, 0);
       ctx.lineTo(-size, size * 0.8);
-      ctx.strokeStyle = getCSSVar(change ? "--color-state-change" : "--color-edge-traversal");
+      ctx.strokeStyle = getCSSVar(isStepEdge(mark.kind) ? style.stroke : "--color-edge-traversal");
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -93,34 +83,9 @@ export function drawRunEdgeMarks(
       ctx.restore();
     }
   }
-
-  // Class words go over every line, this step's edge included, so they always read.
-  for (const [mark, at] of words) {
-    const word = CLASS_WORD[mark.kind] as string;
-    const { height, fontSize } = CLASS_PILL;
-    const width = CLASS_PILL.width(word);
-    ctx.save();
-    ctx.translate(at.x, at.y);
-    ctx.scale(k, k);
-    ctx.beginPath();
-    ctx.roundRect(-width / 2, -height / 2, width, height, height / 2);
-    ctx.fillStyle = getCSSVar(mark.fresh ? "--color-state-change" : "--color-badge");
-    ctx.fill();
-    if (!mark.fresh) {
-      ctx.strokeStyle = getCSSVar(MARK_STYLE[mark.kind].stroke);
-      ctx.lineWidth = 1.25;
-      ctx.stroke();
-    }
-    ctx.font = `${mark.fresh ? 700 : 600} ${fontSize}px 'Outfit', system-ui, sans-serif`;
-    ctx.fillStyle = getCSSVar(mark.fresh ? "--color-state-change-text" : "--color-badge-text");
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(word, 0, 0.5);
-    ctx.restore();
-  }
 }
 
-/** Value badges (every node, ∞ until reached), queue or stack places on waiting nodes, and depth-first `d/f` times. */
+/** Value badges (every node, ∞ until reached) and queue or stack places on waiting nodes. */
 export function drawRunBadges(ctx: CanvasRenderingContext2D, marks: RunMarks, nodes: GraphNode[], zoom: number): void {
   const k = markScale(zoom);
   const mono = getCSSVar("--font-mono");
@@ -146,30 +111,7 @@ export function drawRunBadges(ctx: CanvasRenderingContext2D, marks: RunMarks, no
       ctx.fillText(String(badge.slot), 0, 0.5);
       ctx.restore();
     }
-    if (badge.d !== undefined) drawTimeBadge(ctx, node, badge, k, mono);
   }
-}
-
-/** A depth-first search's discovery / finish times under a node (`d/·` until it is done). */
-function drawTimeBadge(ctx: CanvasRenderingContext2D, node: GraphNode, badge: NodeBadge, k: number, mono: string) {
-  const { width, height, fontSize } = TIME_BADGE;
-  const at = TIME_BADGE.at(node);
-  ctx.save();
-  ctx.translate(at.x, at.y);
-  ctx.scale(k, k);
-  ctx.beginPath();
-  ctx.roundRect(-width / 2, -height / 2, width, height, height / 2);
-  ctx.fillStyle = getCSSVar("--color-badge");
-  ctx.fill();
-  ctx.strokeStyle = getCSSVar(badge.changed ? "--color-state-change" : "--color-badge-line");
-  ctx.lineWidth = badge.changed ? 1.5 : 1;
-  ctx.stroke();
-  ctx.font = `600 ${fontSize}px ${mono}`;
-  ctx.fillStyle = getCSSVar("--color-badge-text");
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(TIME_BADGE.text(badge.d as number, badge.f), 0, 0.5);
-  ctx.restore();
 }
 
 /** A value beside a node; when this step lowered it, the old value struck through, then the new one. */

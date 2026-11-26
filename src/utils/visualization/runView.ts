@@ -4,12 +4,12 @@
  * A run is an algorithm's events, cut into steps of one change each (`stepEnds`). For the step on
  * screen, `highlightsAt` says which nodes and edges the canvas lights (and `rolesAt` how each node
  * reads: waiting, being worked on, done), `runMarksAt` what the graph carries beside them (values,
- * queue places, parent links, this step's edge, a depth-first search's times and edge classes), and
+ * queue places, parent links, a depth-first search's branch, this step's edge), and
  * `traceAt` gives the trace panel its message and data structure.
  */
 import { nid, signed } from "../../algorithms/traceHelpers";
 import {
-  changes, frameAt, stepEnds, type AlgorithmEvent, type AnswerEvent, type EdgeClass, type Frame, type QueueItem,
+  changes, frameAt, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame, type QueueItem,
 } from "../../algorithms/engine";
 import type { DataStructureState, StepTrace } from "../../algorithms/types";
 import { EDGE_TYPE } from "../../constants/graph";
@@ -178,33 +178,31 @@ export interface NodeBadge {
   changed: boolean;
   /** Place in the queue or stack, 1 = taken next. */
   slot?: number;
-  /** A depth-first search's discovery time, and finish time once it is done with the node. */
-  d?: number;
-  f?: number;
 }
 
 /**
  * A link drawn over an edge, from -> to the way the search travelled.
  * - `change`: the edge this step changed something along (back up it, for a backtrack)
+ * - `loop`: on the step cycle detection finds its loop, the edge that closes it (drawn in the cycle colour)
  * - `tentative`: a best-so-far parent link that may still change
  * - `tree`: a final parent link
  * - `branch`: a depth-first search's tree edge into a node it is still in (the branch it is on)
- * - `back`, `forward`, `cross`: how a depth-first search classified an edge (see `EdgeClass`)
+ *
+ * A depth-first search's edge classes (back, forward, cross) stay in the engine for its rule checks;
+ * the graph does not show them.
  */
-export type RunMarkKind = "change" | "tentative" | "tree" | "branch" | Exclude<EdgeClass, "tree">;
+export type RunMarkKind = "change" | "loop" | "tentative" | "tree" | "branch";
 
 export interface RunMark {
   from: number;
   to: number;
   kind: RunMarkKind;
-  /** A class this step gave the edge. */
-  fresh?: boolean;
 }
 
 export interface RunMarks {
   /** The algorithm keeps a value per node, so every node shows one (∞ until reached). */
   valued: boolean;
-  /** Nodes with a value, a queue or stack place, depth-first times, or a change this step; the others carry nothing. */
+  /** Nodes with a value, a queue or stack place, or a change this step; the others carry nothing. */
   nodes: Map<number, NodeBadge>;
   edges: RunMark[];
 }
@@ -227,8 +225,7 @@ function waitingOrder(run: Run, frame: Frame): number[] {
  * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
  * node's value, with the old one when this step lowered it, and its place in the queue or stack (none
  * on the answer step); the parent links, final or best so far (Bellman-Ford keeps only each node's
- * current best); and the edge this step used. A depth-first search adds each node's discovery and finish times, the branch
- * it is on, and the class of every other edge it has met, marking those this step classified.
+ * current best); and the edge this step used. A depth-first search adds the branch it is on.
  * Both renderers and the rework lab draw from this.
  */
 export function runMarksAt(run: Run, index: number): RunMarks {
@@ -250,7 +247,6 @@ export function runMarksAt(run: Run, index: number): RunMarks {
     return made;
   };
   if (valued) for (const [id, value] of frame.dist) badge(id).value = value;
-  if (depthFirst) for (const [id, times] of frame.times) Object.assign(badge(id), times);
   // The answer step shows no queue or stack places.
   if (!answered) {
     waitingOrder(run, frame).forEach((id, i) => {
@@ -278,23 +274,13 @@ export function runMarksAt(run: Run, index: number): RunMarks {
       for (const [to, from] of frame.prev) if (!settled.has(to)) edges.push({ from, to, kind: "tentative" });
     }
   }
-  if (depthFirst) {
-    const fresh = new Set(step.flatMap((e) =>
-      e.type === "classify" && e.kind !== "tree" ? [`${e.from}-${e.to}`] : []));
-    for (const [key, kind] of frame.edgeClass) {
-      const [from, to] = key.split("-").map(Number);
-      // A self-loop has no line to draw on; a twin of a tree edge reads as the tree edge.
-      if (kind === "tree" || from === to || frame.via.get(to) === from) continue;
-      edges.push({ from, to, kind, ...(fresh.has(key) && { fresh: true }) });
-    }
-  }
 
   let walk: Walk | null = null;
   if (change?.type === "relax" || change?.type === "classify") walk = { from: change.from, to: change.to };
   else if (change?.type === "enqueue" && change.from !== undefined) walk = { from: change.from, to: change.node };
   else if (change?.type === "settle" && change.via !== undefined) walk = { from: change.via, to: change.node };
   else if (change?.type === "finish" && change.parent !== undefined) walk = { from: change.node, to: change.parent };
-  if (walk && !answered) edges.push({ ...walk, kind: "change" });
+  if (walk && !answered) edges.push({ ...walk, kind: change?.type === "classify" && change.loop ? "loop" : "change" });
 
   return { valued, nodes, edges };
 }
@@ -316,11 +302,10 @@ export function lineAt(run: Run, index: number): number | null {
  * - `round`: a Bellman-Ford round begins
  * - `negative`: a negative edge lowers a distance, the first time one does in the run
  * - `found`: a search takes its destination
- * - `back`: a depth-first search first meets an edge back to a node it is still in
- * - `loop`: cycle detection finds its loop (that back edge)
+ * - `loop`: cycle detection finds its loop (an edge back to a node still in progress)
  * - `answer`: the run's answer
  */
-export type MomentKind = "round" | "negative" | "found" | "back" | "loop" | "answer";
+export type MomentKind = "round" | "negative" | "found" | "loop" | "answer";
 
 export interface KeyMoment {
   /** The step, 0 to N - 1. */
@@ -334,15 +319,16 @@ export interface KeyMoment {
 
 /**
  * The run's key moments, from its events, in step order: where each Bellman-Ford round begins,
- * where a negative edge first lowers a distance, where a search takes its destination, where a
- * depth-first search first meets a back edge (cycle detection's loop), and the answer. The app's notebook and the rework lab
+ * where a negative edge first lowers a distance, where a search takes its destination, where cycle
+ * detection finds its loop, and the answer. The app's notebook and the rework lab
  * both mark the scrubber from this.
  */
 export function keyMoments(run: Run): KeyMoment[] {
   const moments: KeyMoment[] = [];
   const rounds = run.algorithmId === "bellman-ford";
+  const cycles = run.algorithmId === "cycle-detection";
   let negative = false;
-  let back = false;
+  let loop = false;
   for (let index = 0; index < run.ends.length; index++) {
     const step = eventsOf(run, index);
     const round = step[0].group;
@@ -360,11 +346,9 @@ export function keyMoments(run: Run): KeyMoment[] {
     if (step.some((e) => e.type === "settle" && e.target && e.via !== undefined)) {
       moments.push({ index, kind: "found", label: "Destination found" });
     }
-    if (!back && step.some((e) => e.type === "classify" && e.kind === "back")) {
-      back = true;
-      moments.push(run.algorithmId === "cycle-detection"
-        ? { index, kind: "loop", label: "Loop found" }
-        : { index, kind: "back", label: "Back edge" });
+    if (cycles && !loop && step.some((e) => e.type === "classify" && e.kind === "back")) {
+      loop = true;
+      moments.push({ index, kind: "loop", label: "Loop found" });
     }
     if (answer) moments.push({ index, kind: "answer", label: "Answer" });
   }
