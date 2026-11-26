@@ -236,7 +236,7 @@ export default function ReworkLab() {
 /* --------------------------------------------------------------- the key */
 
 const KEY: Array<{ swatch: React.ReactNode; word: string }> = [
-  { swatch: <circle cx="14" cy="10" r="6" fill="none" stroke="var(--color-state-waiting)" strokeWidth="2" strokeDasharray="3 3" />, word: "Waiting in the queue or stack (number: taken next)" },
+  { swatch: <circle cx="14" cy="10" r="6" fill="none" stroke="var(--color-state-waiting)" strokeWidth="2" strokeDasharray="3 3" />, word: "Waiting in the queue or stack" },
   { swatch: <circle cx="14" cy="10" r="6" fill="none" stroke="var(--color-state-current)" strokeWidth="2.5" />, word: "Being worked on" },
   { swatch: <circle cx="14" cy="10" r="7" fill="var(--gradient-visited-mid)" stroke="var(--color-tint-visited)" />, word: "Visited, final or still in progress" },
   { swatch: <circle cx="14" cy="10" r="7" fill="var(--color-state-done)" stroke="var(--color-node-stroke)" />, word: "Done: the search has backed out of it" },

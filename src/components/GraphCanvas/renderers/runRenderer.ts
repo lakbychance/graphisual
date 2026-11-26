@@ -1,13 +1,13 @@
 /**
  * A run's state drawn on the Canvas renderer, as the SVG renderer draws it (`Graph/RunMarks.tsx`):
  * best-so-far parent links, a depth-first search's branch and this step's edge or loop (under the nodes),
- * then value badges and queue or stack places (over them).
+ * then value badges (over them).
  */
 import type { GraphEdge, GraphNode } from "../../Graph/types";
 import type { NodeBadge, RunMarks } from "@/utils/visualization/runView";
 import { getCSSVar } from "@/theme";
 import {
-  MARK_STYLE, SLOT_BADGE, VALUE_BADGE, isStepEdge, markGeometry, markScale, num, orderMarks, type MarkGeometry,
+  MARK_STYLE, VALUE_BADGE, isStepEdge, markGeometry, markScale, num, orderMarks, type MarkGeometry,
 } from "../../Graph/runMarkShapes";
 
 /** Length of a directed edge's arrowhead, which the canvas draws its curve up to (see `edgeRenderer.ts`). */
@@ -85,32 +85,13 @@ export function drawRunEdgeMarks(
   }
 }
 
-/** Value badges (every node, ∞ until reached) and queue or stack places on waiting nodes. */
+/** Value badges (every node, ∞ until reached). */
 export function drawRunBadges(ctx: CanvasRenderingContext2D, marks: RunMarks, nodes: GraphNode[], zoom: number): void {
   const k = markScale(zoom);
   const mono = getCSSVar("--font-mono");
   for (const node of nodes) {
     const badge: NodeBadge = marks.nodes.get(node.id) ?? { changed: false };
     if (marks.valued) drawValueBadge(ctx, node, badge, k, mono);
-    if (badge.slot !== undefined) {
-      const at = SLOT_BADGE.at(node);
-      ctx.save();
-      ctx.translate(at.x, at.y);
-      ctx.scale(k, k);
-      ctx.beginPath();
-      ctx.arc(0, 0, SLOT_BADGE.r, 0, Math.PI * 2);
-      ctx.fillStyle = getCSSVar("--color-badge");
-      ctx.fill();
-      ctx.strokeStyle = getCSSVar("--color-state-waiting");
-      ctx.lineWidth = 1.25;
-      ctx.stroke();
-      ctx.font = `700 ${SLOT_BADGE.fontSize}px 'Outfit', system-ui, sans-serif`;
-      ctx.fillStyle = getCSSVar("--color-badge-text");
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(badge.slot), 0, 0.5);
-      ctx.restore();
-    }
   }
 }
 

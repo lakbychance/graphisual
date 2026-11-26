@@ -149,7 +149,7 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
     edges,
   });
 
-  // A run's values, queue places, parent links and this step's edge (only during a run)
+  // A run's values, parent links and this step's edge (only during a run)
   const runMarks = useRunMarks()?.marks ?? null;
 
   // Interactions (drag state machine, pointer handlers, hover detection)

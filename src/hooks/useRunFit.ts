@@ -37,10 +37,7 @@ function badgesOf(run: Run): RunBadges {
       }
     }
   }
-  return {
-    valueWidth,
-    slots: run.events.some((e) => e.type === "enqueue"),
-  };
+  return { valueWidth };
 }
 
 /** How far the floating bars and panels reach in from each edge of the screen, in pixels. */
@@ -76,7 +73,7 @@ export function runFit(
   nodes: readonly GraphNode[], badges: RunBadges, size: Size, view: View, insets: Insets = NO_INSETS, minZoom: number = ZOOM.MIN,
 ): View | null {
   if (nodes.length === 0 || shows(runBounds(nodes, badges, markScale(view.zoom)), view, size, insets, GUTTER)) return null;
-  const bodies = runBounds(nodes, { valueWidth: 0, slots: false }, 1);
+  const bodies = runBounds(nodes, { valueWidth: 0 }, 1);
   if (!isOpeningView(view) && !shows(bodies, view, size, NO_INSETS, 0)) return null;
   const centred = (zoom: number) => {
     const box = runBounds(nodes, badges, markScale(zoom));

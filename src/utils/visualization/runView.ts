@@ -4,7 +4,7 @@
  * A run is an algorithm's events, cut into steps of one change each (`stepEnds`). For the step on
  * screen, `highlightsAt` says which nodes and edges the canvas lights (and `rolesAt` how each node
  * reads: waiting, being worked on, done), `runMarksAt` what the graph carries beside them (values,
- * queue places, parent links, a depth-first search's branch, this step's edge), and
+ * parent links, a depth-first search's branch, this step's edge), and
  * `traceAt` gives the trace panel its message and data structure.
  */
 import { nid, signed } from "../../algorithms/traceHelpers";
@@ -178,8 +178,6 @@ export interface NodeBadge {
   old?: number;
   /** This step changed this node. */
   changed: boolean;
-  /** Place in the queue or stack, 1 = taken next. */
-  slot?: number;
 }
 
 /**
@@ -204,39 +202,14 @@ export interface RunMark {
 export interface RunMarks {
   /** The algorithm keeps a value per node, so every node shows one (∞ until reached). */
   valued: boolean;
-  /** Nodes with a value, a queue or stack place, or a change this step; the others carry nothing. */
+  /** Nodes with a value or a change this step; the others carry nothing. */
   nodes: Map<number, NodeBadge>;
   edges: RunMark[];
 }
 
 /**
- * Waiting nodes in the order they will be taken: cheapest first, the top of a stack first, or the
- * front of a queue first. Where a learner's pick steered the run's next decision away from the
- * default (`steer`), the node they picked comes first, as it is the one taken next.
- */
-function waitingOrder(run: Run, frame: Frame, shown: number): number[] {
-  let order: number[];
-  switch (run.algorithmId) {
-    case "dijkstra":
-    case "prims":
-      order = byValue(frame.queue, run.nodeOrder).map((item) => item.id);
-      break;
-    case "dfs":
-    case "dfs-pathfinding":
-      order = [...frame.queue].reverse().map((item) => item.id);
-      break;
-    default:
-      order = frame.queue.map((item) => item.id);
-  }
-  const next = run.events.slice(shown).find((e) => e.type === "decide");
-  if (next?.type !== "decide" || next.node === next.options[0] || !order.includes(next.node)) return order;
-  return [next.node, ...order.filter((id) => id !== next.node)];
-}
-
-/**
  * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
- * node's value, with the old one when this step lowered it, and its place in the queue or stack (none
- * on the answer step); the parent links, final or best so far (Bellman-Ford keeps only each node's
+ * node's value, with the old one when this step lowered it; the parent links, final or best so far (Bellman-Ford keeps only each node's
  * current best); and the edge this step used. A depth-first search adds the branch it is on.
  * Both renderers and the rework lab draw from this.
  */
@@ -259,12 +232,6 @@ export function runMarksAt(run: Run, index: number): RunMarks {
     return made;
   };
   if (valued) for (const [id, value] of frame.dist) badge(id).value = value;
-  // The answer step shows no queue or stack places.
-  if (!answered) {
-    waitingOrder(run, frame, index < 0 ? 0 : run.ends[index]).forEach((id, i) => {
-      badge(id).slot = i + 1;
-    });
-  }
   switch (change?.type) {
     case "relax":
       Object.assign(badge(change.to), { changed: true, old: change.old });

@@ -255,7 +255,7 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
     onLabelEdit: handleLabelEdit,
   });
 
-  // A run's values, queue places, parent links and this step's edge (only during a run).
+  // A run's values, parent links and this step's edge (only during a run).
   const runMarks = useRunMarks(!layers);
   const drawn = layers ?? (runMarks ? markLayers({
     step: runMarks.index, valued: runMarks.marks.valued, badges: runMarks.marks.nodes, marks: runMarks.marks.edges,

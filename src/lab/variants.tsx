@@ -36,9 +36,9 @@ export interface VariantProps {
 
 /** What each variant draws on the graph. */
 export const CANVAS: Record<VariantId, CanvasOptions> = {
-  caption: { values: "all", slots: true },
-  notebook: { values: "reached", slots: false },
-  score: { values: "reached", slots: true },
+  caption: { values: "all" },
+  notebook: { values: "reached" },
+  score: { values: "reached" },
 };
 
 /**

@@ -1,5 +1,5 @@
 /**
- * The shapes of a run's marks on the graph (value badges, queue places, parent links, the branch,
+ * The shapes of a run's marks on the graph (value badges, parent links, the branch,
  * this step's edge), shared by the SVG and Canvas renderers so both draw them alike.
  */
 import type { RunMark, RunMarkKind } from "@/utils/visualization/runView";
@@ -39,17 +39,9 @@ export const VALUE_BADGE = {
   at: (node: GraphNode) => ({ x: node.x + node.r * 0.75, y: node.y - node.r * 0.95 }),
 };
 
-/** Queue or stack place badge (a small disc at the node's top left), before scaling. */
-export const SLOT_BADGE = {
-  r: 8.5,
-  fontSize: 10,
-  at: (node: GraphNode) => ({ x: node.x - node.r * 0.85, y: node.y - node.r * 0.85 }),
-};
-
-/** The badges a run hangs on its nodes: the widest value badge (0 for none), queue places. */
+/** The badges a run hangs on its nodes: the widest value badge (0 for none). */
 export interface RunBadges {
   valueWidth: number;
-  slots: boolean;
 }
 
 /** The box the nodes and their badges cover, in graph units, with badges grown by `k` (see `markScale`). */
@@ -64,7 +56,6 @@ export function runBounds(nodes: readonly GraphNode[], badges: RunBadges, k: num
   for (const node of nodes) {
     add(node, node.r * 2, node.r * 2);
     if (badges.valueWidth > 0) add(VALUE_BADGE.at(node), badges.valueWidth * k, VALUE_BADGE.height * k);
-    if (badges.slots) add(SLOT_BADGE.at(node), SLOT_BADGE.r * 2 * k, SLOT_BADGE.r * 2 * k);
   }
   return box;
 }

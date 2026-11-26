@@ -1,10 +1,10 @@
 /**
  * A run's state drawn on the graph by the SVG renderer: value badges (the old value struck through
- * when this step lowered it), queue or stack places, best-so-far parent links and the edge this step
- * used; for a depth-first search, the branch it is on. Who waits, who is being worked on and who is
- * done is the nodes' own drawing (`rolesAt`). Only what this step changed is emphasised: a badge it
- * changed and the edge it used carry the change colour (the cycle colour for the edge that closes
- * cycle detection's loop). The Canvas renderer draws the same (`runRenderer.ts`).
+ * when this step lowered it), best-so-far parent links and the edge this step used; for a
+ * depth-first search, the branch it is on. Who waits, who is being worked on and who is done is the
+ * nodes' own drawing (`rolesAt`). Only what this step changed is emphasised: a badge it changed and
+ * the edge it used carry the change colour (the cycle colour for the edge that closes cycle
+ * detection's loop). The Canvas renderer draws the same (`runRenderer.ts`).
  *
  * Badges keep a readable size on screen whatever the zoom (they scale by 1 / zoom, within limits).
  */
@@ -16,34 +16,25 @@ import { selectStepIndex, selectStepRun, useGraphStore } from "@/store/graphStor
 import { VisualizationState } from "@/constants/visualization";
 import { runMarksAt, type NodeBadge, type RunMarks } from "@/utils/visualization/runView";
 import {
-  MARK_STYLE, SLOT_BADGE, VALUE_BADGE, isStepEdge, linePath, markGeometry, markScale, num, orderMarks, type DrawnMark,
+  MARK_STYLE, VALUE_BADGE, isStepEdge, linePath, markGeometry, markScale, num, orderMarks, type DrawnMark,
 } from "./runMarkShapes";
 
 /** What the graph carries during a run. */
 export interface MarkOptions {
   /** Value badges: on every node (∞ included), only on reached nodes, or none. */
   values: "all" | "reached" | "none";
-  /** Queue or stack place on each waiting node. */
-  slots: boolean;
 }
 
-/** The app's set: a value on every node from the start, and queue or stack places. */
-export const APP_MARKS: MarkOptions = { values: "all", slots: true };
+/** The app's set: a value on every node from the start. */
+export const APP_MARKS: MarkOptions = { values: "all" };
 
-/**
- * The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`.
- * In Run it the queue and stack places are left off throughout: place 1 would give the next pick away.
- */
+/** The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`. */
 export function useRunMarks(wanted = true): { index: number; marks: RunMarks } | null {
   const run = useGraphStore(selectStepRun);
   const index = useGraphStore(selectStepIndex);
   const running = useGraphStore((s) => s.visualization.state === VisualizationState.RUNNING);
-  const runningItYourself = useGraphStore((s) => s.visualization.runIt !== null);
   if (!wanted || !running || run.ends.length === 0) return null;
-  const marks = runMarksAt(run, index);
-  if (!runningItYourself) return { index, marks };
-  const nodes = new Map([...marks.nodes].map(([id, { slot: _slot, ...badge }]) => [id, badge]));
-  return { index, marks: { ...marks, nodes } };
+  return { index, marks: runMarksAt(run, index) };
 }
 
 export interface MarkLayerProps {
@@ -141,7 +132,6 @@ function NodeBadges({ node, badge, options, k, reduced, step, valued }: {
     : {};
   const showValue = valued && (options.values === "all" || (options.values === "reached" && badge.value !== undefined));
   const at = VALUE_BADGE.at(node);
-  const slotAt = SLOT_BADGE.at(node);
 
   return (
     <g>
@@ -151,13 +141,6 @@ function NodeBadges({ node, badge, options, k, reduced, step, valued }: {
             <ValueBadge text={num(badge.value)} old={badge.changed ? badge.old : undefined} muted={badge.value === undefined} />
           </g>
         </m.g>
-      )}
-
-      {options.slots && badge.slot !== undefined && (
-        <g transform={`translate(${slotAt.x} ${slotAt.y}) scale(${k})`}>
-          <circle r={SLOT_BADGE.r} fill="var(--color-badge)" stroke="var(--color-state-waiting)" strokeWidth={1.25} />
-          <text textAnchor="middle" dominantBaseline="central" fontSize={SLOT_BADGE.fontSize} fontWeight={700} fill="var(--color-badge-text)">{badge.slot}</text>
-        </g>
       )}
     </g>
   );
