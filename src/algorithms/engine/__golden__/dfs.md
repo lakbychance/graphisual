@@ -27,6 +27,35 @@ From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
 21. A has no edges left to follow, so it is done
 22. The stack is empty, so every node reachable from A is visited, in the order A, B, C, E, D, F
 
+## Standard graph, steered to C first
+
+From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+Steered: takes A, C, then goes on as usual
+
+ 1. Start at A: it goes on the stack, and every other node is unvisited for now
+ 2. A is on top of the stack, so visit it
+ 3. A → C: C is new, so push it onto the stack
+ 4. A → B: B is new, so push it onto the stack
+ 5. B and C came from A, so either can be on top of the stack; visit C
+ 6. C → E: E is new, so push it onto the stack
+ 7. C → B: B is on the stack but not visited yet, so move it to the top of the stack; C → A: A is already visited, so skip it
+ 8. B is on top of the stack, so visit it
+ 9. B → D: D is new, so push it onto the stack; B → C: C is already visited, so skip it; B → A: A is already visited, so skip it
+10. D is on top of the stack, so visit it
+11. D → F: F is new, so push it onto the stack
+12. D → E: E is on the stack but not visited yet, so move it to the top of the stack; D → B: B is already visited, so skip it
+13. E is on top of the stack, so visit it
+14. E → F: F is on the stack but not visited yet, so move it to the top of the stack; E → D: D is already visited, so skip it; E → C: C is already visited, so skip it
+15. F is on top of the stack, so visit it
+16. F → E: E is already visited, so skip it; F → D: D is already visited, so skip it; F has no edges left to follow, so it is done; go back to E
+17. E has no edges left to follow, so it is done; go back to D
+18. D has no edges left to follow, so it is done; go back to B
+19. B has no edges left to follow, so it is done; go back to C
+20. C has no edges left to follow, so it is done; go back to A
+21. A has no edges left to follow, so it is done
+22. The stack is empty, so every node reachable from A is visited, in the order A, C, B, D, E, F
+
 ## Disconnected graph
 
 From A. Edges: A–B, C–D

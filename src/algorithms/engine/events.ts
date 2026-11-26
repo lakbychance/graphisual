@@ -5,7 +5,8 @@
  * (`frame.ts`) turns them into frames, and narration templates (`narration.ts`)
  * turn them into words. Every event names the pseudocode line it executes and
  * the iteration it belongs to; `steps.ts` cuts a run into steps of one change each,
- * and a check that changes nothing joins a change of its own iteration.
+ * and a check that changes nothing joins a change of its own iteration. Where the run could go more
+ * than one way it reports a `decide` event, and a policy picks the way (`choices.ts`).
  */
 
 /** Tags every event carries. */
@@ -87,7 +88,8 @@ export interface SkipEvent extends Tagged {
 
 /**
  * `node` leaves the frontier and is final. `via` is the node it was reached from (absent for the start).
- * `ties` lists other frontier nodes that were exactly as good, if any.
+ * `ties`, when the run could have taken any of several nodes here, lists them all in the order the run
+ * considers them, `node` among them (the `decide` event before this one holds the same choice).
  */
 export interface SettleEvent extends Tagged {
   type: "settle";
@@ -136,6 +138,36 @@ export interface FinishEvent extends Tagged {
   parent?: number;
   time: number;
 }
+
+/**
+ * What a decision chooses: `next` is the node taken next (from the frontier, or, in cycle
+ * detection, the neighbour whose edge is followed next: one to go into, or one in progress that
+ * closes a loop); `restart` is where a new search starts.
+ */
+export type DecideKind = "next" | "restart";
+
+/**
+ * The run chose `node` among `options`: every choice that is valid here, in the order the run
+ * considers them (the default policy takes the first). A decision changes nothing on its own: the
+ * change right after it takes `node` (a settle, a start, or the loop found on the edge back to it),
+ * and the decision belongs to that step.
+ * Runs report every decision, forced ones (a single option) included.
+ */
+export interface DecideEvent extends Tagged {
+  type: "decide";
+  kind: DecideKind;
+  options: number[];
+  node: number;
+}
+
+/** A decision about to be made: what is chosen, and every valid option in the order the run considers them. */
+export interface Decision {
+  kind: DecideKind;
+  options: readonly number[];
+}
+
+/** Picks one of a decision's options (see `choices.ts`). */
+export type ChoicePolicy = (decision: Decision) => number;
 
 /** An edge the answer is made of. */
 export interface WeightedEdge {
@@ -191,4 +223,4 @@ export interface CycleAnswer extends Tagged {
 export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer;
 
 export type AlgorithmEvent =
-  | StartEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;
+  | StartEvent | DecideEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;

@@ -12,8 +12,17 @@
  * edges it meets: an edge to a visited node is a back edge when that node is still in progress, a
  * cross edge when it is done; an edge pushed along whose node a deeper node took over is a forward
  * edge once that node is visited.
+ *
+ * Which node to take next is a decision. Neither search fixes the order a node's neighbours are
+ * checked in, so any order is valid; it shows up as a choice among the nodes waiting together. The
+ * nodes one node added are next to each other in the frontier (each node adds once, when it is
+ * visited, and a node another one takes over leaves its place), so the valid choices are the waiting
+ * nodes that came from the same node as the one the frontier would give next: the front of the queue,
+ * or the top of the stack. Taking another of them is the same search with that node's neighbours
+ * checked in another order. Nothing else is valid: any other waiting node would break first in,
+ * first out (queue) or last in, first out (stack).
  */
-import type { AlgorithmEvent } from "../engine";
+import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy } from "../engine";
 import type { AlgorithmInput } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
@@ -34,8 +43,12 @@ export interface SearchLines {
 /**
  * Everything the search does on this input, as events. With a `target` it stops when the target
  * is taken from the frontier and answers with the route; without one it visits everything reachable.
+ * `choose` picks the node taken next among the valid ones (by default the front of the queue or the
+ * top of the stack).
  */
-export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: SearchLines, target?: number): AlgorithmEvent[] {
+export function searchEvents(
+  input: AlgorithmInput, kind: FrontierKind, lines: SearchLines, target?: number, choose: ChoicePolicy = firstOption,
+): AlgorithmEvent[] {
   const { adjacencyList, nodes, startNodeId: start } = input;
   const seen = new Set([start]);
   const visited: number[] = [];
@@ -56,8 +69,10 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
 
   for (;;) {
     group += 1;
-    const node = kind === "queue" ? frontier.shift() : frontier.pop();
-    if (node === undefined) {
+    // The nodes that came from the same node as the next one, front to back (queue) or top down (stack).
+    const order = kind === "queue" ? frontier : [...frontier].reverse();
+    const together = order.filter((id) => parent.get(id) === parent.get(order[0]));
+    if (together.length === 0) {
       if (target === undefined) {
         const unreached = nodes.map((n) => n.id).filter((id) => !visited.includes(id));
         events.push({ type: "answer", kind: "order", start, order: visited, unreached, line: lines.loop, group });
@@ -67,6 +82,9 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
       return events;
     }
 
+    const node = decide(events, choose, "next", together, { line: lines.take, group });
+    frontier.splice(frontier.indexOf(node), 1);
+    const ties = together.length > 1 ? { ties: together } : {};
     visited.push(node);
     count(parent.get(node), -1);
     // Edges other nodes pushed this one along, before a deeper node took it over, lead down the branch.
@@ -74,13 +92,13 @@ export function searchEvents(input: AlgorithmInput, kind: FrontierKind, lines: S
       if (from !== parent.get(node)) events.push({ type: "classify", from, to: node, kind: "forward", line: lines.take, group });
     }
     if (node === target) {
-      events.push({ type: "settle", node, via: parent.get(node), target: true, line: lines.stop ?? lines.take, group, ...tick() });
+      events.push({ type: "settle", node, via: parent.get(node), target: true, line: lines.stop ?? lines.take, group, ...ties, ...tick() });
       const path = [node];
       for (let at = parent.get(node); at !== undefined; at = parent.get(at)) path.unshift(at);
       events.push({ type: "answer", kind: "route", start, target, path, line: lines.walk ?? lines.loop, group: group + 1 });
       return events;
     }
-    events.push({ type: "settle", node, via: parent.get(node), line: lines.take, group, ...tick() });
+    events.push({ type: "settle", node, via: parent.get(node), line: lines.take, group, ...ties, ...tick() });
 
     const edges = adjacencyList.get(node) ?? [];
     if (kind === "queue") {

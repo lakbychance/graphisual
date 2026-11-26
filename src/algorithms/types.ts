@@ -7,7 +7,7 @@
 
 import type React from "react";
 import { type EdgeType } from "../constants/graph";
-import type { AlgorithmEvent } from "./engine/events";
+import type { AlgorithmEvent, ChoicePolicy } from "./engine/events";
 
 /**
  * Categories of graph algorithms.
@@ -135,8 +135,12 @@ export interface AlgorithmAdapter {
   metadata: AlgorithmMetadata;
   /** Pseudocode lines that events point at. */
   pseudocode: string[];
-  /** Reports what the algorithm did, event by event. */
-  events: (input: AlgorithmInput) => AlgorithmEvent[];
+  /**
+   * Reports what the algorithm did, event by event. Where it could go more than one way it reports a
+   * `decide` event and goes the way `choose` picks (the first option when no policy is given, see
+   * `engine/choices.ts`). An algorithm that never has a choice ignores `choose`.
+   */
+  events: (input: AlgorithmInput, choose?: ChoicePolicy) => AlgorithmEvent[];
   /**
    * Why the app will not play this run, if it will not: the message it shows instead (node ids
    * marked with `nid`). Called with the run's events.

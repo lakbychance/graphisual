@@ -6,6 +6,7 @@
  */
 
 import { DfsIcon } from "../icons";
+import type { ChoicePolicy } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { searchEvents } from "./search";
 
@@ -23,7 +24,7 @@ const PSEUDOCODE = [
 const LINES = { start: 0, loop: 1, take: 2, check: 4, add: 5, finish: 6 };
 
 /** Everything DFS does on this input, as events. */
-const dfsEvents = (input: AlgorithmInput) => searchEvents(input, "stack", LINES);
+const dfsEvents = (input: AlgorithmInput, choose?: ChoicePolicy) => searchEvents(input, "stack", LINES, undefined, choose);
 
 const dfsAdapter: AlgorithmAdapter = {
   metadata: {

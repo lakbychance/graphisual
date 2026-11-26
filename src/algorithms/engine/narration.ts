@@ -86,8 +86,8 @@ function skipSentence(event: SkipEvent): string {
 function closestSentence(event: SettleEvent): string {
   const { node, value, ties = [], target, via } = event;
   if (target && via === undefined) return sameStartAndEnd(node);
-  const choice = ties.length > 0
-    ? `${names([node, ...ties])} tie for closest at ${num(value)}, so take ${nid(node)} and make its distance final`
+  const choice = ties.length > 1
+    ? `${names(ties)} tie for closest at ${num(value)}, so take ${nid(node)} and make its distance final`
     : `${nid(node)} is the closest node in the queue, at ${num(value)}, so its distance is final`;
   return target ? `${choice}; it is the destination, so the search stops` : choice;
 }
@@ -243,8 +243,15 @@ const stack = (parents: boolean): Frontier => ({
 const alreadyVisited = ({ from, to }: { from: number; to: number }) => `${arrow(from, to)}: ${nid(to)} is already visited, so skip it`;
 
 function frontierVoice(frontier: Frontier): Voice {
-  const visitSentence = ({ node, target, via }: SettleEvent) => {
+  const visitSentence = ({ node, target, via, ties = [] }: SettleEvent) => {
     if (target && via === undefined) return sameStartAndEnd(node);
+    // A node taken from among those that came from the same node, though another was next: any of them can be.
+    if (via !== undefined && ties.length > 1 && ties[0] !== node) {
+      const choice = `${names(ties)} came from ${nid(via)}, so ${ties.length === 2 ? "either" : "any of them"} can be ${frontier.front}`;
+      return target
+        ? `${choice}; take ${nid(node)}, and it is the destination, so the search stops`
+        : `${choice}; visit ${nid(node)}`;
+    }
     if (target) return `${nid(node)} is ${frontier.front} and it is the destination, so the search stops`;
     return `${nid(node)} is ${frontier.front}, so visit it`;
   };
@@ -317,8 +324,8 @@ const cycleDetection: Voice = {
 function cheapestSentence({ node, value, ties = [], via }: SettleEvent): string {
   if (via === undefined) return `${nid(node)} is the cheapest node in the queue, at ${num(value)}, so it joins the tree first`;
   const joins = `it joins the tree through ${nid(via)}`;
-  return ties.length > 0
-    ? `${names([node, ...ties])} tie for cheapest at ${num(value)}, so take ${nid(node)}; ${joins}`
+  return ties.length > 1
+    ? `${names(ties)} tie for cheapest at ${num(value)}, so take ${nid(node)}; ${joins}`
     : `${nid(node)} is the cheapest node in the queue, at ${num(value)}, so ${joins}`;
 }
 

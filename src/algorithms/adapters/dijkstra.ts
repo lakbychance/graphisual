@@ -6,7 +6,7 @@
  */
 
 import { DijkstraIcon } from "../icons";
-import type { AlgorithmEvent } from "../engine";
+import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { noRoute } from "./refusals";
 
@@ -37,8 +37,12 @@ function nodeOrder({ adjacencyList, startNodeId, endNodeId }: AlgorithmInput): n
   return order;
 }
 
-/** Everything Dijkstra's does on this input, as events. Empty when there is no destination. */
-function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
+/**
+ * Everything Dijkstra's does on this input, as events. Empty when there is no destination.
+ * Which node to take next is a decision: every unsettled node at the least distance is valid, and
+ * `choose` picks one (by default the first in scan order).
+ */
+function dijkstraEvents(input: AlgorithmInput, choose: ChoicePolicy = firstOption): AlgorithmEvent[] {
   const { adjacencyList, startNodeId: start, endNodeId: end } = input;
   if (end === undefined) return [];
 
@@ -51,23 +55,20 @@ function dijkstraEvents(input: AlgorithmInput): AlgorithmEvent[] {
 
   for (;;) {
     group += 1;
-    // The closest unsettled node; on a tie the first one in scan order.
-    let current: number | null = null;
+    // The closest unsettled nodes, in scan order.
     let min = Infinity;
-    for (const id of unsettled) {
-      const d = dist.get(id) ?? Infinity;
-      if (d < min) { min = d; current = id; }
-    }
-    if (current === null) {
+    for (const id of unsettled) min = Math.min(min, dist.get(id) ?? Infinity);
+    if (min === Infinity) {
       events.push({ type: "answer", kind: "route", start, target: end, path: null, line: LINE.loop, group });
       return events;
     }
 
-    const ties = [...unsettled].filter((id) => id !== current && dist.get(id) === min);
+    const closest = [...unsettled].filter((id) => dist.get(id) === min);
+    const current = decide(events, choose, "next", closest, { line: LINE.extract, group });
     unsettled.delete(current);
     events.push({
       type: "settle", node: current, value: min, via: prev.get(current), line: current === end ? LINE.stop : LINE.extract, group,
-      ...(ties.length > 0 && { ties }),
+      ...(closest.length > 1 && { ties: closest }),
       ...(current === end && { target: true }),
     });
 

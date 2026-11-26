@@ -6,6 +6,7 @@
  */
 
 import { BfsPathfindingIcon } from "../icons";
+import type { ChoicePolicy } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { searchEvents } from "./search";
 import { noRoute } from "./refusals";
@@ -26,8 +27,8 @@ const PSEUDOCODE = [
 const LINES = { start: 0, loop: 1, take: 2, stop: 3, check: 5, add: 6, walk: 8 };
 
 /** Everything BFS pathfinding does on this input, as events. Empty when there is no destination. */
-const bfsPathfindingEvents = (input: AlgorithmInput) =>
-  input.endNodeId === undefined ? [] : searchEvents(input, "queue", LINES, input.endNodeId);
+const bfsPathfindingEvents = (input: AlgorithmInput, choose?: ChoicePolicy) =>
+  input.endNodeId === undefined ? [] : searchEvents(input, "queue", LINES, input.endNodeId, choose);
 
 const bfsPathfindingAdapter: AlgorithmAdapter = {
   metadata: {

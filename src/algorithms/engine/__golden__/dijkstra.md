@@ -47,6 +47,23 @@ From A to D. Edges: A–B 2, A–C 2, B–D 1, C–D 3
  8. D is the closest node in the queue, at 3, so its distance is final; it is the destination, so the search stops
  9. Walk back from D to read the route: A → B → D, total distance 3
 
+## A tie, steered to the other node
+
+From A to D. Edges: A–B 2, A–C 2, B–D 1, C–D 3
+
+Steered: takes A, C, then goes on as usual
+
+ 1. Start at A with distance 0; every other node is unreached (∞) for now
+ 2. A is the closest node in the queue, at 0, so its distance is final
+ 3. A → B costs 2: 0 + 2 = 2 beats ∞, so B joins the queue at 2
+ 4. A → C costs 2: 0 + 2 = 2 beats ∞, so C joins the queue at 2
+ 5. B and C tie for closest at 2, so take C and make its distance final
+ 6. C → A: A's distance is already final, so skip it; C → D costs 3: 2 + 3 = 5 beats ∞, so D joins the queue at 5
+ 7. B is the closest node in the queue, at 2, so its distance is final
+ 8. B → A: A's distance is already final, so skip it; B → D costs 1: 2 + 1 = 3 beats 5, so D's distance drops to 3
+ 9. D is the closest node in the queue, at 3, so its distance is final; it is the destination, so the search stops
+10. Walk back from D to read the route: A → B → D, total distance 3
+
 ## No route
 
 From A to C. Edges: A→B 3, C→B 1

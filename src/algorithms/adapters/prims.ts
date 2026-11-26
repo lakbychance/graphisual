@@ -7,7 +7,7 @@
  */
 
 import { PrimsIcon } from "../icons";
-import type { AlgorithmEvent, WeightedEdge } from "../engine";
+import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy, type WeightedEdge } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
 
@@ -36,9 +36,10 @@ const hasDirectedEdge = ({ adjacencyList }: AlgorithmInput) =>
 /**
  * Everything Prim's does on this input, as events. Empty for a graph with directed edges.
  * Each node keeps the cost of the cheapest edge joining it to the tree; the cheapest node joins next.
- * The tree spans what the start can reach.
+ * The tree spans what the start can reach. Which node joins next is a decision: every node at the
+ * least cost is valid, and `choose` picks one (by default the first in key order).
  */
-function primsEvents(input: AlgorithmInput): AlgorithmEvent[] {
+function primsEvents(input: AlgorithmInput, choose: ChoicePolicy = firstOption): AlgorithmEvent[] {
   const { adjacencyList, nodes, startNodeId: start } = input;
   if (hasDirectedEdge(input)) return [];
 
@@ -52,14 +53,14 @@ function primsEvents(input: AlgorithmInput): AlgorithmEvent[] {
   const events: AlgorithmEvent[] = [{ type: "enqueue", node: start, value: 0, line: LINE.start, group }];
 
   for (let i = 0; i < nodes.length; i++) {
-    // The cheapest node not yet in the tree; on a tie the first one in key order.
-    let node: number | null = null;
+    // The cheapest nodes not yet in the tree, in key order.
     let min = Infinity;
-    for (const [id, k] of key) if (!tree.has(id) && k < min) { min = k; node = id; }
-    if (node === null) break;
+    for (const [id, k] of key) if (!tree.has(id)) min = Math.min(min, k);
+    if (min === Infinity) break;
 
     group += 1;
-    const ties = [...key].flatMap(([id, k]) => (id !== node && !tree.has(id) && k === min ? [id] : []));
+    const cheapest = [...key].flatMap(([id, k]) => (!tree.has(id) && k === min ? [id] : []));
+    const node = decide(events, choose, "next", cheapest, { line: LINE.add, group });
     const via = parent.get(node);
     tree.add(node);
     if (via !== undefined) {
@@ -68,7 +69,7 @@ function primsEvents(input: AlgorithmInput): AlgorithmEvent[] {
     }
     events.push({
       type: "settle", node, value: min, via, line: LINE.add, group,
-      ...(ties.length > 0 && { ties }),
+      ...(cheapest.length > 1 && { ties: cheapest }),
     });
 
     for (const { to, weight } of adjacencyList.get(node) ?? []) {

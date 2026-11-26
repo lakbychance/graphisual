@@ -6,6 +6,7 @@
  */
 
 import { DfsPathfindingIcon } from "../icons";
+import type { ChoicePolicy } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { searchEvents } from "./search";
 import { noRoute } from "./refusals";
@@ -30,8 +31,8 @@ const PSEUDOCODE = [
 const LINES = { start: 0, loop: 1, take: 2, stop: 3, check: 5, add: 6, finish: 8, walk: 9 };
 
 /** Everything DFS pathfinding does on this input, as events. Empty when there is no destination. */
-const dfsPathfindingEvents = (input: AlgorithmInput) =>
-  input.endNodeId === undefined ? [] : searchEvents(input, "stack", LINES, input.endNodeId);
+const dfsPathfindingEvents = (input: AlgorithmInput, choose?: ChoicePolicy) =>
+  input.endNodeId === undefined ? [] : searchEvents(input, "stack", LINES, input.endNodeId, choose);
 
 const dfsPathfindingAdapter: AlgorithmAdapter = {
   metadata: {

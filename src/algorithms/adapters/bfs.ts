@@ -6,6 +6,7 @@
  */
 
 import { BfsIcon } from "../icons";
+import type { ChoicePolicy } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { searchEvents } from "./search";
 
@@ -21,7 +22,7 @@ const PSEUDOCODE = [
 const LINES = { start: 0, loop: 1, take: 2, check: 4, add: 5 };
 
 /** Everything BFS does on this input, as events. */
-const bfsEvents = (input: AlgorithmInput) => searchEvents(input, "queue", LINES);
+const bfsEvents = (input: AlgorithmInput, choose?: ChoicePolicy) => searchEvents(input, "queue", LINES, undefined, choose);
 
 const bfsAdapter: AlgorithmAdapter = {
   metadata: {

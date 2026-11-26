@@ -18,6 +18,26 @@ From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
 12. F is at the front of the queue, so visit it; F → D: D is already visited, so skip it; F → E: E is already visited, so skip it
 13. The queue is empty, so every node reachable from A is visited, in the order A, B, C, D, E, F
 
+## Standard graph, steered to C first
+
+From A. Edges: A–B, A–C, C–B, B–D, C–E, D–E, D–F, E–F
+
+Steered: takes A, C, then goes on as usual
+
+ 1. Start at A: it joins the queue, and every other node is unvisited for now
+ 2. A is at the front of the queue, so visit it
+ 3. A → B: B is new, so it joins the queue
+ 4. A → C: C is new, so it joins the queue
+ 5. B and C came from A, so either can be at the front of the queue; visit C
+ 6. C → A: A is already visited, so skip it; C → B: B is already in the queue, so skip it; C → E: E is new, so it joins the queue
+ 7. B is at the front of the queue, so visit it
+ 8. B → A: A is already visited, so skip it; B → C: C is already visited, so skip it; B → D: D is new, so it joins the queue
+ 9. E is at the front of the queue, so visit it
+10. E → C: C is already visited, so skip it; E → D: D is already in the queue, so skip it; E → F: F is new, so it joins the queue
+11. D is at the front of the queue, so visit it; D → B: B is already visited, so skip it; D → E: E is already visited, so skip it; D → F: F is already in the queue, so skip it
+12. F is at the front of the queue, so visit it; F → D: D is already visited, so skip it; F → E: E is already visited, so skip it
+13. The queue is empty, so every node reachable from A is visited, in the order A, C, B, E, D, F
+
 ## Disconnected graph
 
 From A. Edges: A–B, C–D

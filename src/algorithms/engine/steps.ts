@@ -5,14 +5,15 @@
  * improves, a depth-first search backs up out of a node, cycle detection finds its loop (a classify
  * event marked `loop`), the run starts or answers. A check that changes nothing (a skip, or any other
  * classification of an edge) gets no step of its own: it belongs to the next change of its iteration, or
- * to the iteration's last change when none follows. An iteration that changes nothing at all
+ * to the iteration's last change when none follows. So does a decision (a `decide` event), which
+ * always comes just before the change that takes the node it chose. An iteration that changes nothing at all
  * (a Bellman-Ford round with no improvement) is one step.
  */
 import type { AlgorithmEvent } from "./events";
 
-/** Whether an event changes the run's state. Checks that change nothing return false. */
+/** Whether an event changes the run's state. Checks and decisions, which change nothing, return false. */
 export const changes = (event: AlgorithmEvent): boolean =>
-  event.type === "skip" ? false : event.type === "classify" ? event.loop === true : true;
+  event.type === "skip" || event.type === "decide" ? false : event.type === "classify" ? event.loop === true : true;
 
 /**
  * For each step, how many events have been applied once that step is shown.

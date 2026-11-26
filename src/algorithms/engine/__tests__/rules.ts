@@ -4,9 +4,9 @@
  * Rules are shared: an algorithm lists the ones that apply to it.
  */
 import type { AlgorithmInput } from "../../types";
-import type { AlgorithmEvent } from "../events";
+import type { AlgorithmEvent, DecideEvent } from "../events";
 import { applyEvent, emptyFrame, type Frame } from "../frame";
-import { stepEnds } from "../steps";
+import { changes, stepEnds } from "../steps";
 import { createRun, keyMoments, runMarksAt, type MomentKind } from "@/utils/visualization/runView";
 
 export interface RuleContext {
@@ -23,6 +23,70 @@ export type Rule = (events: readonly AlgorithmEvent[], context: RuleContext) => 
 export const pointsAtPseudocode: Rule = (events, { pseudocode }) => {
   const bad = events.find((e) => !Number.isInteger(e.line) || !pseudocode[e.line]?.trim());
   return bad ? `${bad.type} event points at line ${bad.line}, which does not exist` : null;
+};
+
+/**
+ * The valid choices at a decision, read from what the learner sees just before it (see the adapters):
+ * - Dijkstra's and Prim's: every waiting node at the least value;
+ * - BFS and DFS: the waiting nodes that came from the same node as the front of the queue, or the
+ *   top of the stack (any order of a node's neighbours is a valid search);
+ * - cycle detection: every neighbour of the node being worked on that is unvisited, or still in
+ *   progress along an edge other than the undirected one back to its parent (each such edge is
+ *   still to check: checking it would have gone into the node or ended the run), or, to start
+ *   again, every unvisited node.
+ */
+function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, { adjacencyList }: AlgorithmInput): number[] {
+  const unvisited = (ids: number[]) => [...new Set(ids)].filter((id) => !frame.settled.includes(id));
+  switch (algorithmId) {
+    case "dijkstra":
+    case "prims": {
+      const least = Math.min(...frame.queue.map((item) => item.value ?? Infinity));
+      return frame.queue.filter((item) => item.value === least).map((item) => item.id);
+    }
+    case "bfs":
+    case "bfs-pathfinding":
+    case "dfs":
+    case "dfs-pathfinding": {
+      const queue = algorithmId.startsWith("bfs") ? frame.queue : [...frame.queue].reverse();
+      if (queue.length === 0) return [];
+      const from = frame.prev.get(queue[0].id);
+      return queue.filter((item) => frame.prev.get(item.id) === from).map((item) => item.id);
+    }
+    case "cycle-detection": {
+      if (kind === "restart") return unvisited([...adjacencyList.keys()]);
+      const node = frame.current ?? NaN;
+      const inProgress = (id: number) => frame.settled.includes(id) && !frame.finished.includes(id);
+      const parent = frame.via.get(node);
+      const open = (adjacencyList.get(node) ?? []).filter(({ to, type }) =>
+        !frame.settled.includes(to) || (inProgress(to) && !(type === "undirected" && to === parent)));
+      return [...new Set(open.map((e) => e.to))];
+    }
+    default:
+      return [];
+  }
+}
+
+/**
+ * Each decision offers exactly the valid choices (see `validChoices`), each once, and the change
+ * right after it takes the node it chose (or, in cycle detection, finds the loop on the edge to it). So a learner's pick is accepted exactly when it is valid.
+ */
+export const decisionsAreHonest: Rule = (events, { algorithmId, input }) => {
+  let frame = emptyFrame;
+  for (let i = 0; i < events.length; frame = applyEvent(frame, events[i]), i++) {
+    const e = events[i];
+    if (e.type !== "decide") continue;
+    const next = events.slice(i + 1).find(changes);
+    const takes = next?.type === "settle" || next?.type === "start" ? next.node : next?.type === "classify" ? next.to : undefined;
+    if (takes !== e.node) {
+      return `decision ${i} picks ${e.node}, but the change after it does not take ${e.node}`;
+    }
+    const valid = validChoices(algorithmId, e, frame, input);
+    const offered = new Set(e.options);
+    if (!offered.has(e.node) || offered.size !== e.options.length || offered.size !== valid.length || valid.some((id) => !offered.has(id))) {
+      return `decision ${i} offers ${e.options.join(", ")}, but the valid choices are ${valid.join(", ")}`;
+    }
+  }
+  return null;
 };
 
 /** Iteration groups never go backwards, so steps can be cut by group. */
