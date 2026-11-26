@@ -8,19 +8,21 @@
  *
  * On desktop the head also switches between watching the run and running it yourself (Run it, see
  * `runIt.ts`): the run plays on its own to each decision a learner could get wrong, and below the
- * sentence the notebook asks what comes next, says why a pick is not the one, and hints after two tries.
+ * sentence the notebook asks what comes next, says why a pick is not the one, gives a clue after two
+ * tries and names the answer after three. New graph runs it again on a fresh graph (`freshGraph.ts`).
  *
  * The rework lab's notebook variant is this component too.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
+import { toast } from "sonner";
 import { Check, Flag, RotateCcw, type LucideIcon } from "lucide-react";
 import {
   Button, Panel, SegmentedControl, SegmentedControlItem, Slider, Tabs, TabsList, TabsPanel, TabsTab, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
+import { clue, frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
 import { num } from "../Graph/runMarkShapes";
 import type { GraphNode } from "../Graph/types";
 import { selectIsPlaying, selectRunIt, useGraphStore, type RunItState } from "../../store/graphStore";
@@ -286,11 +288,27 @@ function ModeSwitch({ run, runIt }: { run: Run; runIt: RunItState | null }) {
   );
 }
 
+const NEW_GRAPH_TOAST = "new-graph";
+
+/** Asks the store for a fresh graph; while the learner's own graph is put aside behind fresh ones, offers it back on every press. */
+function newGraph() {
+  const store = useGraphStore.getState();
+  const ownBehind = store.newRunItGraph(Math.floor(Math.random() * 2 ** 31));
+  if (!ownBehind) {
+    toast.dismiss(NEW_GRAPH_TOAST);
+    return;
+  }
+  toast("Your graph is put aside for a new one", {
+    id: NEW_GRAPH_TOAST,
+    action: { label: "Bring it back", onClick: () => useGraphStore.getState().bringBackOwnGraph() },
+  });
+}
+
 /**
  * Run it's part of the notebook, under the step's sentence: at the learner's turn, the question and
- * what the last pick said (why it is not the one, and after two tries a hint naming the valid picks);
- * between turns, what the last good pick said. With a keyboard, the graph's nodes can be picked from
- * a row of keys that shows once it has focus.
+ * what the last pick said (why it is not the one; after two tries a clue, the algorithm's rule, and
+ * after three a hint naming the valid picks); between turns, what the last good pick said. With a
+ * keyboard, the graph's nodes can be picked from a row of keys that shows once it has focus.
  */
 function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: RunItState; nodes: GraphNode[] }) {
   const pickNode = useGraphStore((s) => s.pickNode);
@@ -315,7 +333,11 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
           <p className="nb-turn-ask">{named(nodes, question(run.algorithmId, decision, frameAt(run.events, turn.event)))}</p>
         )}
         {waiting && said?.tone === "miss" && <p className="nb-turn-miss">{named(nodes, said.text)}</p>}
-        {waiting && decision && tries >= 2 && <p className="nb-turn-hint">{named(nodes, hint(run.algorithmId, decision))}</p>}
+        {waiting && decision && tries >= 2 && (
+          <p className="nb-turn-hint">
+            {named(nodes, tries === 2 ? clue(run.algorithmId, decision, frameAt(run.events, turn.event)) : hint(run.algorithmId, decision))}
+          </p>
+        )}
       </div>
       {waiting && (
         <div className="nb-pick" role="group" aria-label="Pick a node">
@@ -328,7 +350,10 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
       )}
       <div className="nb-turn-foot">
         <p className="nb-turn-how">{how}</p>
-        <Button variant="ghost" size="sm" onClick={restart}>Start over</Button>
+        <div className="nb-turn-keys">
+          <Button variant="ghost" size="sm" onClick={restart}>Start over</Button>
+          <Button variant="ghost" size="sm" onClick={newGraph}>New graph</Button>
+        </div>
       </div>
     </section>
   );

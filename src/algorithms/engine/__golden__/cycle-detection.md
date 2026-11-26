@@ -39,7 +39,7 @@ From A. Edges: A→B, B→C, B→D, A→C
  9. A has no edges left to follow, so it is done
 10. Every node is done and no edge led back to a node in progress, so the graph has no cycle
 
-The app says: No cycle found in the graph.
+In Auto mode the app says: No cycle found in the graph. In Step mode the run plays to its answer
 
 ## Undirected
 
@@ -133,4 +133,4 @@ From A. Edges: A–B, B→C, A→C
  7. A has no edges left to follow, so it is done
  8. Every node is done and no edge led back to a node in progress, so the graph has no cycle
 
-The app says: No cycle found in the graph.
+In Auto mode the app says: No cycle found in the graph. In Step mode the run plays to its answer

@@ -58,7 +58,7 @@ function toFollow(events: readonly AlgorithmEvent[], at: number, node: number, g
  */
 export const CATALOGUE = {
   dijkstra: ["final", "unreached", "neighbour", "edge-weight", "label-order", "farther", "other"],
-  prims: ["in-tree", "unreached", "closest-to-start", "neighbour", "label-order", "dearer", "other"],
+  prims: ["in-tree", "unreached", "neighbour", "label-order", "dearer", "other"],
   bfs: ["visited", "unseen", "deeper", "other-parent", "other"],
   dfs: ["visited", "unseen", "wide", "other"],
   "cycle-detection": ["self", "wrong-way", "not-neighbour", "came-in", "followed", "finished", "searched", "other"],
@@ -134,7 +134,34 @@ export function accepted(decision: DecideEvent, pick: number, frame: Frame, algo
   return `${yes} — ${also}, and the run follows your pick`;
 }
 
-/** A gentle hint after a few wrong tries: the valid picks, by name. */
+/** Each algorithm's rule, put as a clue. */
+const CLUE: Record<Family, string> = {
+  dijkstra: "the closest waiting node wins — closest to the start, counting the whole route",
+  prims: "the cheapest edge leaving the tree wins — from whichever tree node it leaves",
+  bfs: "first in, first out — the node at the front of the queue goes next, or one that joined with it",
+  dfs: "last in, first out — the newest node on the stack goes next, or one pushed with it",
+  "cycle-detection": "the search goes on to a node not yet visited, or back to one still in progress, which closes a loop — but never straight back along the edge it came in on",
+};
+
+/**
+ * Cycle detection's clue where a finished node closes the loop: on a graph that mixes one-way and
+ * two-way edges, a finished node leads back up the two-way edges it and its ancestors came in on.
+ */
+const CLUE_THROUGH_FINISHED =
+  "the search goes on to a node not yet visited, or back to one still in progress, which closes a loop — a finished node closes one too when its two-way edges lead back to a node in progress";
+
+/**
+ * The first hint, after two wrong tries: the algorithm's rule, as a clue (D49), read from the frame
+ * the learner sees at `decision`, so it never rules out a valid pick.
+ */
+export function clue(algorithmId: string, decision: DecideEvent, frame: Frame): string {
+  if (decision.kind === "restart") return "A hint: a new search starts at a node no search has reached yet";
+  const family = familyOf(algorithmId) ?? "dijkstra";
+  if (family === "cycle-detection" && decision.options.some((o) => frame.finished.includes(o))) return `A hint: ${CLUE_THROUGH_FINISHED}`;
+  return `A hint: ${CLUE[family]}`;
+}
+
+/** The second hint, after three wrong tries: the valid picks, by name. */
 export function hint(algorithmId: string, decision: DecideEvent): string {
   const { options } = decision;
   const names = options.length === 1 ? nid(options[0]) : `${options.slice(0, -1).map(nid).join(", ")} or ${nid(options[options.length - 1])}`;
@@ -196,17 +223,6 @@ function priority(tree: boolean): Classify {
     const value = frame.dist.get(pick);
     const current = frame.current;
 
-    if (tree) {
-      // The cost of the route from the start through the tree to a waiting node: what Dijkstra would weigh.
-      const fromStart = (id: number): number => {
-        const via = frame.via.get(id) ?? frame.prev.get(id);
-        return (frame.dist.get(id) ?? 0) + (via === undefined ? 0 : fromStart(via));
-      };
-      const route = fromStart(pick);
-      if (route < fromStart(first) && queue.every((id) => route <= fromStart(id))) {
-        return { kind: "closest-to-start", text: `${P} is closest to the start, but Prim's only weighs the one edge that joins a node — ${O} joins for ${num(best)}, ${P} for ${num(value)}` };
-      }
-    }
     if (current !== null && leadsTo(graph, current, pick)) {
       const away = decision.options.find((o) => !leadsTo(graph, current, o));
       if (away !== undefined) {
@@ -292,7 +308,7 @@ const cycleDetection: Classify = ({ frame, pick, decision, graph }) => {
   if (frame.finished.includes(pick)) {
     return frame.via.get(pick) === node
       ? { kind: "followed", text: `The search already went from ${U} into ${P} and finished it — nothing new is there` }
-      : { kind: "finished", text: `${P} is already finished, so it can't close a loop — a loop needs an edge back to a node still in progress` };
+      : { kind: "finished", text: `${P} is already finished and nothing from it leads back to a node still in progress, so it can't close a loop` };
   }
   return null;
 };

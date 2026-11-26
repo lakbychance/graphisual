@@ -10,6 +10,7 @@ import type { GraphEdge, GraphNode } from "../../components/Graph/types";
 import { encodeGraphLink } from "../graph/graphLink";
 import type { GeneratedGraph } from "../graph/graphGenerator";
 import { buildRun } from "./buildRun";
+import { freshGraph } from "./freshGraph";
 import { decodeStepLink, encodeStepLink, needsDestination, type Moment } from "./stepLink";
 
 const ALGORITHMS = ["dijkstra", "bellman-ford", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "prims"];
@@ -55,7 +56,7 @@ const seen = (graph: GeneratedGraph) =>
 /** The run's narration with each node named as the canvas shows it. */
 function narration(moment: Moment): string[] {
   const { algorithm, graph, from, to } = moment;
-  const built = buildRun(algorithm, graph.nodes, graph.edges, from!, to ?? undefined);
+  const built = buildRun(algorithm, graph.nodes, graph.edges, from!, to ?? undefined, { stepMode: true });
   if (!built || !("run" in built)) return [];
   return narrate(built.run.events, algorithm).map((line) => line.replace(/\{n:(\d+)\}/g, (_, id) => nameOf(graph, Number(id))));
 }
@@ -63,19 +64,24 @@ function narration(moment: Moment): string[] {
 describe("step link", () => {
   const suite = [...randomGraphs(200), largeGraph()];
 
-  it.each(ALGORITHMS)("round-trips the graph, endpoints and step, and opens on the same run (%s)", (algorithm) => {
+  it.each(ALGORITHMS)("round-trips the graph, endpoints and step, and opens on the same run, Run it's fresh graphs included (%s)", (algorithm) => {
     const pick = random(7);
     let playable = 0;
-    for (const graphCase of suite) {
+    const cases = suite.map((graphCase) => ({
+      where: `seed ${graphCase.seed}`,
       // Prim's refuses directed edges, so it runs on the graphs drawn undirected.
-      const graph = appGraph(graphCase, algorithm === "prims");
-      const from = graphCase.input.startNodeId;
-      const to = needsDestination(algorithm) ? graphCase.input.endNodeId! : null;
-      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined);
+      graph: appGraph(graphCase, algorithm === "prims"),
+      from: graphCase.input.startNodeId,
+      to: needsDestination(algorithm) ? graphCase.input.endNodeId! : null,
+    }));
+    for (let seed = 1; seed <= 30; seed++) {
+      const fresh = freshGraph(algorithm, seed);
+      if (fresh) cases.push({ where: `fresh graph ${seed}`, ...fresh });
+    }
+    for (const { where, graph, from, to } of cases) {
+      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
       const total = built && "run" in built ? built.run.ends.length : 0;
       const moment: Moment = { algorithm, graph, from, to, step: total > 0 ? 1 + Math.floor(pick() * total) : null };
-
-      const where = `seed ${graphCase.seed}`;
       const link = encodeStepLink(moment);
       expect(link, where).not.toBeNull();
       const decoded = decodeStepLink(link!.slice(1));
@@ -129,7 +135,7 @@ describe("step link: malformed input", () => {
   const open = (query: string) => decodeStepLink(`?${query}`);
   const steps = (query: string) => {
     const moment = open(query)!;
-    const built = buildRun(moment.algorithm, moment.graph.nodes, moment.graph.edges, moment.from!, moment.to ?? undefined);
+    const built = buildRun(moment.algorithm, moment.graph.nodes, moment.graph.edges, moment.from!, moment.to ?? undefined, { stepMode: true });
     return built && "run" in built ? built.run.ends.length : 0;
   };
 

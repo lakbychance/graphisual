@@ -1,7 +1,8 @@
 /**
  * Editor integrity (see the harness's TESTING.md): seeded random editing sessions, driven the way
  * the UI drives the store, keep the graph consistent after every action, each action is one undo
- * step, and undo/redo walk all the way back to the empty graph and forward again.
+ * step, and undo/redo walk all the way back to the empty graph and forward again. Run it's New graph
+ * puts a consistent, cleanly drawn graph in place, one undo step each.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGraphStore } from "./graphStore";
@@ -9,7 +10,12 @@ import { useGraphHistoryStore } from "./graphHistoryStore";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { EDGE_TYPE } from "../constants/graph";
+import { VisualizationMode } from "../constants/visualization";
 import { random } from "../algorithms/engine/__tests__/randomGraphs";
+import { buildRun } from "../utils/visualization/buildRun";
+import { FRESH_ALGORITHMS } from "../utils/visualization/freshGraph";
+import { needsDestination } from "../utils/visualization/stepLink";
+import type { Run } from "../utils/visualization/runView";
 
 const store = () => useGraphStore.getState();
 
@@ -152,6 +158,117 @@ describe("editor integrity", () => {
       expect(graphState(), `seed ${seed}: undo reaches the empty graph`).toBe(empty);
       for (let i = 0; i < undos; i++) store().redo();
       expect(graphState(), `seed ${seed}: as many redos come back to the last graph`).toBe(last);
+    }
+  });
+
+  it("New graph puts a fresh graph in place, drawn cleanly, with Run it waiting for the learner; undo walks back through each to the learner's own, and Bring it back returns to it however many fresh graphs are on top", () => {
+    type Point = { x: number; y: number };
+    const cross = (o: Point, a: Point, b: Point) => Math.sign((a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x));
+    /** How far point p is from segment ab. */
+    const away = (p: Point, a: Point, b: Point) => {
+      const [dx, dy] = [b.x - a.x, b.y - a.y];
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+    };
+    /** Describes the first way the graph on screen is not drawn cleanly, or returns null. */
+    const untidy = (): string | null => {
+      const { nodes, edges } = store().data;
+      const at = new Map(nodes.map((n) => [n.id, n]));
+      const xs = nodes.map((n) => n.x);
+      const ys = nodes.map((n) => n.y);
+      if (Math.max(...xs) - Math.min(...xs) > 640 || Math.max(...ys) - Math.min(...ys) > 420) return "wider or taller than the canvas box";
+      if (new Set(nodes.map((n) => n.label)).size !== nodes.length) return "two nodes share a name";
+      for (const a of nodes) {
+        for (const b of nodes) if (a.id < b.id && Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r + 30) return `nodes ${a.id} and ${b.id} crowd`;
+      }
+      const lines = [...edges.values()].flat();
+      for (const e of lines) {
+        // A one-way edge bows out by up to half a radius.
+        const room = (n: { r: number }) => n.r + (e.type === EDGE_TYPE.DIRECTED ? n.r / 2 : 0) + 10;
+        const near = nodes.find((n) => n.id !== e.from && n.id !== e.to && away(n, at.get(e.from)!, at.get(e.to)!) < room(n));
+        if (near) return `edge ${e.from}–${e.to} runs through node ${near.id}`;
+        for (const f of lines) {
+          if ([f.from, f.to].some((id) => id === e.from || id === e.to)) continue;
+          const [a, b, c, d] = [e.from, e.to, f.from, f.to].map((id) => at.get(id)!);
+          if (cross(c, d, a) * cross(c, d, b) < 0 && cross(a, b, c) * cross(a, b, d) < 0) return `edges ${e.from}–${e.to} and ${f.from}–${f.to} cross`;
+        }
+      }
+      return null;
+    };
+
+    for (const algorithm of FRESH_ALGORITHMS) {
+      store().resetGraph();
+      useGraphHistoryStore.setState({ past: [], future: [] });
+      // The learner's own graph, a triangle, with a run of it on screen.
+      for (const [x, y] of [[0, 0], [200, 0], [100, 150]]) store().addNode(x, y);
+      const [a, b, c] = store().data.nodes;
+      for (const [from, to] of [[a, b], [b, c], [c, a]]) {
+        store().addEdge(from, to);
+        store().updateEdgeType(from.id, to.id, EDGE_TYPE.UNDIRECTED);
+      }
+      // An edit that changes nothing (a weight set to what it was): the history records the graph as it stands.
+      store().updateEdgeWeight(a.id, b.id, store().data.edges.get(a.id)!.find((e) => e.to === b.id)!.weight);
+      /** Starts a run of the graph on screen, as a learner tapping A (and B) does. */
+      const runIt = () => {
+        const { nodes, edges } = store().data;
+        const [from, to] = [nodes[0].id, nodes[1].id];
+        const built = buildRun(algorithm, nodes, edges, from, needsDestination(algorithm) ? to : undefined, { stepMode: true });
+        store().setVisualizationMode(VisualizationMode.MANUAL);
+        store().startVisualization((built as { run: Run }).run);
+      };
+      runIt();
+
+      const shown = [graphState()];
+      // Bring it back straight after the first fresh graph, then again after a second.
+      expect(store().newRunItGraph(500), `${algorithm}: put aside`).toBe(true);
+      store().bringBackOwnGraph();
+      expect(graphState(), `${algorithm}: brought back after one`).toBe(shown[0]);
+      runIt();
+      for (const seed of [501, 502]) expect(store().newRunItGraph(seed), `${algorithm}: put aside again`).toBe(true);
+      store().bringBackOwnGraph();
+      expect(graphState(), `${algorithm}: brought back after two`).toBe(shown[0]);
+      runIt();
+      for (let seed = 1; seed <= 40; seed++) {
+        const at = `${algorithm} seed ${seed}`;
+        expect(store().newRunItGraph(seed), `${at}: the learner's own graph is put aside`).toBe(true);
+        expect(inconsistency(), at).toBeNull();
+        expect(untidy(), at).toBeNull();
+        expect(graphState(), `${at}: a different graph`).not.toBe(shown[shown.length - 1]);
+        expect(store().visualization.step.run.algorithmId, at).toBe(algorithm);
+        expect(store().visualization.runIt?.turn, `${at}: Run it waits for the learner`).not.toBeNull();
+        shown.push(graphState());
+      }
+      for (let i = shown.length - 2; i >= 0; i--) {
+        store().undo();
+        expect(graphState(), `${algorithm}: undo ${shown.length - 1 - i}`).toBe(shown[i]);
+      }
+
+      // Back to the fresh graphs by redo: they are still fresh, and the learner's own graph is behind them.
+      for (let i = 0; i < 3; i++) store().redo();
+      runIt();
+      expect(store().newRunItGraph(1000), `${algorithm}: after redo`).toBe(true);
+      runIt();
+      expect(store().newRunItGraph(1001), `${algorithm}: again`).toBe(true);
+      store().bringBackOwnGraph();
+      expect(graphState(), `${algorithm}: brought back`).toBe(shown[0]);
+      // The learner's own graph again: New graph puts it aside afresh.
+      runIt();
+      expect(store().newRunItGraph(1002), `${algorithm}: put aside afresh`).toBe(true);
+      store().bringBackOwnGraph();
+      expect(graphState(), `${algorithm}: brought back again`).toBe(shown[0]);
+
+      // New graph, then the learner undoes back to their own graph by hand and edits it: Bring it
+      // back (its toast still up) leaves the edit alone.
+      runIt();
+      expect(store().newRunItGraph(1003), `${algorithm}: put aside before an undo by hand`).toBe(true);
+      store().undo();
+      expect(graphState(), `${algorithm}: undone by hand`).toBe(shown[0]);
+      store().addNode(320, 300);
+      const edited = graphState();
+      store().bringBackOwnGraph();
+      expect(graphState(), `${algorithm}: the edit stays`).toBe(edited);
+      store().undo();
+      expect(graphState(), `${algorithm}: the edit is one undo step`).toBe(shown[0]);
     }
   });
 });

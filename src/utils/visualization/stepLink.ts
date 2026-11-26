@@ -159,7 +159,7 @@ export function decodeStepLink(search: string): Moment | null {
   const moment: Moment = { algorithm, graph, from, to, step: null };
   if (from === null || (needsDestination(algorithm) && to === null)) return moment;
 
-  const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined);
+  const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
   if (!built || !("run" in built)) return moment;
   const total = built.run.ends.length;
   const asked = Number(params.get("step") ?? "");

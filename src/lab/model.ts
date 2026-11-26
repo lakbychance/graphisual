@@ -132,7 +132,8 @@ export function readSetup(search: string): SetupResult {
   };
   const from = named(fromName) ?? graph.nodes[0].id;
   const to = pathfinding ? named(toName) ?? graph.nodes[graph.nodes.length - 1].id : null;
-  const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined);
+  // The lab steps through runs as the app's Step mode does, so a search that finds no cycle plays to its answer.
+  const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
   if (!built) return { problem: "Unknown algorithm" };
   if ("problem" in built) return { problem: built.problem.replace(/\.$/, "") };
   const total = built.run.ends.length;

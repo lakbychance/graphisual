@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry, AlgorithmAdapter } from "../algorithms";
-import { VisualizationState } from "../constants/visualization";
+import { VisualizationMode, VisualizationState } from "../constants/visualization";
 import { buildRun } from "../utils/visualization/buildRun";
 import { useAppHaptics } from "./useAppHaptics";
 
@@ -35,8 +35,9 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
 
   const runAlgorithm = useCallback((startNodeId: number, endNodeId?: number) => {
     if (!currentAlgorithm) return;
-    const { data, resetVisualization, selectNode, startVisualization } = useGraphStore.getState();
-    const built = buildRun(currentAlgorithm.metadata.id, data.nodes, data.edges, startNodeId, endNodeId);
+    const { data, visualization, resetVisualization, selectNode, startVisualization } = useGraphStore.getState();
+    const stepMode = visualization.mode === VisualizationMode.MANUAL;
+    const built = buildRun(currentAlgorithm.metadata.id, data.nodes, data.edges, startNodeId, endNodeId, { stepMode });
     if (!built) return;
 
     if ("problem" in built) {

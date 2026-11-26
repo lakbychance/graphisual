@@ -18,8 +18,10 @@ import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
 import type { LabGraph, LiveConfig } from "@/landing/live/types";
 import { generateCycleWithDeadEnd, generateWeighted, type GeneratedGraph } from "@/utils/graph/graphGenerator";
+import { buildRun } from "@/utils/visualization/buildRun";
+import { FRESH_ALGORITHMS, freshGraph } from "@/utils/visualization/freshGraph";
 import {
-  applyEvent, asks, CATALOGUE, changes, emptyFrame, familyOf, frameAt, misconception, narrate, stepEnds, steer,
+  accepted, applyEvent, asks, CATALOGUE, changes, clue, emptyFrame, familyOf, frameAt, misconception, narrate, stepEnds, steer,
   type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
 } from ".";
 import { nid } from "../traceHelpers";
@@ -364,12 +366,14 @@ describe("steering check: the misconception catalogue", () => {
     expect(missed(dijkstraAdapter, route, "A C B E").kind).toBe("farther");
   });
 
-  it("Prim's: a node already in the tree, the node closest to the start, and a neighbour of the node just added", () => {
+  it("Prim's: a node already in the tree, a neighbour of the node just added, label order, and a dearer edge", () => {
     expect(missed(primsAdapter, named("A-B:1 A-C:2 B-D:5", "A"), "A B A").kind).toBe("in-tree");
-    expect(missed(primsAdapter, named("A-B:9 A-C:2 C-D:8", "A"), "A C B")).toEqual({
-      kind: "closest-to-start", text: `${nid(2)} is closest to the start, but Prim's only weighs the one edge that joins a node — ${nid(4)} joins for 8, ${nid(2)} for 9`,
-    });
     expect(missed(primsAdapter, named("A-B:1 A-C:2 B-D:5", "A"), "A B D").kind).toBe("neighbour");
+    // B is nearer the start than D, but Prim's does not weigh routes: B is named for coming first by name.
+    expect(missed(primsAdapter, named("A-B:9 A-C:2 C-D:8", "A"), "A C B")).toEqual({
+      kind: "label-order", text: `${nid(2)} comes first by name, but Prim's goes by cost — ${nid(4)} joins for 8, ${nid(2)} for 9`,
+    });
+    expect(missed(primsAdapter, named("A-B:1 A-C:5 A-D:2", "A"), "A D").kind).toBe("dearer");
   });
 
   it("BFS: a visited node, an unseen one, a node a level deeper, and one as far out from another parent", () => {
@@ -401,7 +405,91 @@ describe("steering check: the misconception catalogue", () => {
     const apart = named("A>B C>D D>C", "A");
     expect(missed(cycleDetectionAdapter, apart, "B A").kind).toBe("searched");
   });
+
+  it("Cycle detection on a mixed graph: a finished node whose two-way edges lead back closes the loop, the clue allows it, and a finished node with no way back is named for that", () => {
+    // A–B and B–C two-way, A→C one-way; C→D one-way, so D is finished with no way back; A→D too.
+    const mixed = named("A-B B-C A>C C>D A>D", "A");
+    const run = (choose: ChoicePolicy) => cycleDetectionAdapter.events(mixed.input, choose);
+    const [A, C, D] = ["A", "C", "D"].map(mixed.id);
+    const { events, rejected } = steer(run, "B C D C".split(" ").map(mixed.id));
+    expect(rejected, "C is a valid pick").toBeNull();
+    const at = events.map((e) => e.type).lastIndexOf("decide");
+    const decision = events[at] as DecideEvent;
+    const frame = frameAt(events, at);
+    expect(frame.current).toBe(A);
+    expect(decision.options).toEqual([C]);
+    expect(frame.finished).toContain(C);
+    expect(accepted(decision, C, frame, "cycle-detection")).toBe(`Yes, ${nid(C)} closes the loop`);
+    expect(clue("cycle-detection", decision, frame)).toBe(
+      "A hint: the search goes on to a node not yet visited, or back to one still in progress, which closes a loop — a finished node closes one too when its two-way edges lead back to a node in progress",
+    );
+    expect(missed(cycleDetectionAdapter, mixed, "B C D D")).toEqual({
+      kind: "finished", text: `${nid(D)} is already finished and nothing from it leads back to a node still in progress, so it can't close a loop`,
+    });
+  });
+
+  it("Cycle detection on random graphs: the clue never rules out a valid pick, and a finished pick is named for having no way back only when nothing from it leads back to a node in progress", () => {
+    let finishedOptions = 0;
+    let finishedNamed = 0;
+    for (const { seed, input } of randomGraphs(3000)) {
+      const graph = input.adjacencyList;
+      const events = cycleDetectionAdapter.events(input, pickThenRandom([], random(seed)));
+      events.forEach((event, at) => {
+        if (event.type !== "decide" || event.kind !== "next") return;
+        const frame = frameAt(events, at);
+        const node = frame.current as number;
+        const inProgress = (id: number) => frame.settled.includes(id) && !frame.finished.includes(id);
+        const words = clue("cycle-detection", event, frame);
+        for (const option of event.options) {
+          const where = `seed ${seed}: ${option} from ${node} at event ${at}`;
+          if (!frame.finished.includes(option)) {
+            expect(!frame.settled.includes(option) || inProgress(option), `${where}: unvisited or in progress`).toBe(true);
+            continue;
+          }
+          finishedOptions += 1;
+          expect(leadsBack(graph, frame, node, option), `${where}: leads back`).toBe(true);
+          expect(words, `${where}: the clue allows a finished node`).toContain("a finished node closes one too");
+        }
+        const decision = events.slice(0, at).filter((e) => e.type === "decide").length;
+        for (const pick of input.nodes.map((n) => n.id).filter((n) => !event.options.includes(n))) {
+          const named = misconception("cycle-detection", events, { choice: pick, decision, event: at, decide: event }, graph);
+          if (named.kind !== "finished") continue;
+          finishedNamed += 1;
+          expect(leadsBack(graph, frame, node, pick), `seed ${seed}: ${pick} from ${node} at event ${at}: nothing leads back`).toBe(false);
+        }
+      });
+    }
+    expect(finishedOptions, "finished nodes that close a loop").toBeGreaterThan(10);
+    expect(finishedNamed, "finished picks named").toBeGreaterThan(100);
+  });
 });
+
+/**
+ * Whether going from `node` to the finished node `pick` can close a loop: along one of `node`'s
+ * edges to `pick`, then on through finished nodes to a node still in progress, without using that
+ * edge again (two-way edges between the same two nodes count as one). From the node in progress,
+ * the search's own path leads down to `node`.
+ */
+function leadsBack(graph: AlgorithmInput["adjacencyList"], frame: Frame, node: number, pick: number): boolean {
+  const inProgress = (id: number) => frame.settled.includes(id) && !frame.finished.includes(id);
+  return (graph.get(node) ?? []).filter((e) => e.to === pick).some((first) => {
+    const same = (e: EdgeInfo) => first.type === "undirected" && e.type === "undirected" && e.from === pick && e.to === node;
+    const seen = new Set([pick]);
+    const pending = [pick];
+    while (pending.length > 0) {
+      const at = pending.pop()!;
+      for (const e of graph.get(at) ?? []) {
+        if (same(e)) continue;
+        if (inProgress(e.to)) return true;
+        if (frame.finished.includes(e.to) && !seen.has(e.to)) {
+          seen.add(e.to);
+          pending.push(e.to);
+        }
+      }
+    }
+    return false;
+  });
+}
 
 /** Every order of a list. */
 const permutations = <T,>(items: readonly T[]): T[][] => items.length <= 1
@@ -431,19 +519,105 @@ function orderings(input: AlgorithmInput): AlgorithmInput[] | null {
 /** A run as the learner follows it: its changes, in order (the checks between them aside). */
 const changesOf = (events: readonly AlgorithmEvent[]) => JSON.stringify(events.filter(changes));
 
-/** The runs every sequence of valid picks gives (see `changesOf`). */
-function everySteeredRun(run: (choose: ChoicePolicy) => AlgorithmEvent[]): Set<string> {
-  const runs = new Set<string>();
+/** The runs every sequence of valid picks gives, as events. */
+function steeredRuns(run: (choose: ChoicePolicy) => AlgorithmEvent[]): AlgorithmEvent[][] {
+  const runs: AlgorithmEvent[][] = [];
   const pending: number[][] = [[]];
   while (pending.length > 0) {
     const picks = pending.pop()!;
     const { events } = steer(run, picks);
     const next = events.filter((e): e is DecideEvent => e.type === "decide")[picks.length];
     if (next) for (const option of next.options) pending.push([...picks, option]);
-    else runs.add(changesOf(events));
+    else runs.push(events);
   }
   return runs;
 }
+
+/** The runs every sequence of valid picks gives (see `changesOf`). */
+const everySteeredRun = (run: (choose: ChoicePolicy) => AlgorithmEvent[]) => new Set(steeredRuns(run).map(changesOf));
+
+/**
+ * The lures a fresh graph promises (see `freshGraph.ts`): per algorithm, the misconceptions a wrong
+ * pick is named for that make it tempting. Dijkstra's and Prim's neighbour also hangs off the node
+ * just taken by its lightest edge to a waiting node; cycle detection's one-way edge leads back to the
+ * node just come from.
+ */
+const LURE_KINDS: Record<string, string[]> = {
+  dijkstra: ["neighbour"], prims: ["neighbour"], bfs: ["other-parent"], dfs: ["wide"],
+  "cycle-detection": ["finished", "followed", "came-in", "wrong-way"],
+};
+
+/** Fresh graphs checked per algorithm; Prim's over a thousand (D54). */
+const SEEDS = 100;
+const PRIMS_SEEDS = 1000;
+
+describe("steering check: fresh graphs", () => {
+  for (const id of FRESH_ALGORITHMS) {
+    it(`${id}: every fresh graph is valid input that the app plays, and every run of it a learner can make matches the oracle and waits for the learner at a tie and at a lure`, () => {
+      const adapter = ported.find((p) => p.adapter.metadata.id === id)!.adapter;
+      const family = familyOf(id)!;
+      const loops = { none: 0, reachable: 0, behind: 0 };
+      const seeds = id === "prims" ? PRIMS_SEEDS : SEEDS;
+      for (let seed = 1; seed <= seeds; seed++) {
+        const fresh = freshGraph(id, seed);
+        expect(fresh, `seed ${seed}`).not.toBeNull();
+        const { graph, from, to } = fresh!;
+        const built = buildRun(id, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
+        expect(built && "run" in built, `seed ${seed}: the app plays it`).toBe(true);
+        const input = (built as { run: { input: AlgorithmInput } }).run.input;
+        const ids = input.nodes.map((n) => n.id);
+        const edges = [...input.adjacencyList.values()].flat();
+        expect(ids.length >= 5 && ids.length <= 8, `seed ${seed}: ${ids.length} nodes`).toBe(true);
+        // Weighted graphs keep to 2 and up: the canvas leaves a weight of 1 unwritten.
+        const least = id === "dijkstra" || id === "prims" ? 2 : 0;
+        expect(edges.every((e) => e.weight >= least), `seed ${seed}: weights`).toBe(true);
+        if (id === "prims") {
+          expect(edges.every((e) => e.type === "undirected"), `seed ${seed}: undirected`).toBe(true);
+          expect(reachable(input, from).size, `seed ${seed}: connected`).toBe(ids.length);
+        }
+        if (to !== null) expect(reachable(input, from).has(to), `seed ${seed}: destination reachable`).toBe(true);
+        if (id === "cycle-detection") {
+          const events = adapter.events(input);
+          const kind = !hasCycle(input) ? "none" : events.some((e) => e.type === "decide" && e.kind === "restart") ? "behind" : "reachable";
+          loops[kind] += 1;
+        }
+
+        const run = (choose: ChoicePolicy) => adapter.events(input, choose);
+        /** Whether picking `wrong` at the decision `events[at]` is rejected and named for a lure. */
+        const lures = (events: AlgorithmEvent[], at: number, wrong: number) => {
+          const k = picksOf(events.slice(0, at)).length;
+          const { events: steered, rejected } = steer(run, [...picksOf(events).slice(0, k), wrong]);
+          if (!rejected) return false;
+          const { kind } = misconception(id, steered, rejected, input.adjacencyList);
+          if (!LURE_KINDS[family].includes(kind)) return false;
+          if (kind === "wrong-way") {
+            const { current } = frameAt(steered, rejected.event);
+            const cameIn = steered.slice(0, rejected.event).filter((e) => e.type === "settle" && e.node === current);
+            return cameIn.length > 0 && (cameIn[cameIn.length - 1] as { via?: number }).via === wrong;
+          }
+          if (family !== "dijkstra" && family !== "prims") return true;
+          const { current, queue } = frameAt(steered, rejected.event);
+          const out = (input.adjacencyList.get(current!) ?? []).filter((e) => queue.some((item) => item.id === e.to));
+          return out.some((e) => e.to === wrong && e.weight === Math.min(...out.map((o) => o.weight)));
+        };
+        steeredRuns(run).forEach((events, r) => {
+          const at = `seed ${seed}, run ${r}`;
+          oracles[id](at, input, events);
+          const turns = events.flatMap((e, i) => (e.type === "decide" && asks(id, events, i, input.adjacencyList) ? [i] : []));
+          expect(turns.some((i) => (events[i] as DecideEvent).options.length > 1), `${at}: a tie`).toBe(true);
+          const lured = turns.some((i) => ids.some((wrong) => !(events[i] as DecideEvent).options.includes(wrong) && lures(events, i, wrong)));
+          expect(lured, `${at}: a lure`).toBe(true);
+        });
+      }
+      // Cycle detection mixes it up (D53): about one graph in three has no loop; a loop is sometimes in reach of the first search, sometimes behind a new one.
+      if (id === "cycle-detection") {
+        expect(loops.none / seeds, JSON.stringify(loops)).toBeGreaterThan(0.2);
+        expect(loops.none / seeds, JSON.stringify(loops)).toBeLessThan(0.5);
+        expect(Math.min(loops.reachable, loops.behind), JSON.stringify(loops)).toBeGreaterThan(5);
+      }
+    });
+  }
+});
 
 describe("rule checks", () => {
   for (const { adapter, graphs, rules } of ported) {
@@ -561,7 +735,9 @@ function transcript(
     narrate(events, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
   }
   const refusal = adapter.refusal?.(events, input);
-  if (refusal) lines.push("", `The app says: ${plain(refusal)}`);
+  // A search that finds no cycle plays to its answer in Step mode; only Auto mode shows the message (see `buildRun`).
+  const noCycle = events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);
+  if (refusal) lines.push("", noCycle ? `In Auto mode the app says: ${plain(refusal)} In Step mode the run plays to its answer` : `The app says: ${plain(refusal)}`);
   return lines.join("\n");
 }
 

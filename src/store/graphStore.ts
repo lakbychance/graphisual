@@ -13,6 +13,8 @@ import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, VisualizationTrace
 import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { emptyRun, emptyTrace, highlightsAt, type Run } from "../utils/visualization/runView";
 import { canRunIt, decidedBy, steerRun, takenAt, turnFrom, type Turn } from "../utils/visualization/runIt";
+import { freshGraph } from "../utils/visualization/freshGraph";
+import { buildRun } from "../utils/visualization/buildRun";
 import { accepted, frameAt, misconception, type DecideEvent } from "../algorithms/engine";
 import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
@@ -144,6 +146,15 @@ interface GraphActions {
   pickNode: (nodeId: number) => void;
   /** Run it again from the start, with no picks. */
   restartRunIt: () => void;
+  /**
+   * Run it on a fresh graph of the run's algorithm, made from `seed` (see `freshGraph.ts`): it
+   * replaces the graph (one undo step) and the run plays on to the learner's first turn. Returns
+   * whether the learner's own graph (anything but a fresh graph left as it came) is now behind one
+   * or more fresh ones, to be brought back with `bringBackOwnGraph`.
+   */
+  newRunItGraph: (seed: number) => boolean;
+  /** Undoes back to the learner's own graph that New graph put aside (see `newRunItGraph`). */
+  bringBackOwnGraph: () => void;
 
   // === UI Actions ===
   setViewportZoom: (zoom: number) => void;
@@ -159,6 +170,23 @@ type GraphStore = GraphState & GraphActions;
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/** How a graph looks on the canvas: two graphs that look the same have the same look. */
+const lookOf = ({ nodes, edges }: Pick<GraphData, "nodes" | "edges">) =>
+  JSON.stringify([nodes.map((n) => [n.x, n.y, n.label]), [...edges].map(([id, list]) => [id, list.map((e) => [e.to, e.weight, e.type])])]);
+
+/**
+ * The looks of the fresh graphs Run it has put on the canvas: a graph that looks like one is a fresh
+ * graph left as it came (back by undo or redo, too), not the learner's own.
+ */
+const freshLooks = new Set<string>();
+
+/**
+ * Where the learner's own graph sits in the undo history once New graph has put it aside (its index
+ * in the past steps): undoing until that many steps are left brings it back. Null when New graph has
+ * not put one aside.
+ */
+let ownGraphAt: number | null = null;
 
 const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
   nodes: snapshot.nodes,
@@ -949,6 +977,48 @@ export const useGraphStore = create<GraphStore>()(
           const shown = { ...visualization, runIt: fresh, step: { ...step, run } };
           set({ visualization: { ...shown, step: { ...shown.step, isAutoPlaying: 0 < lastShown(shown) } } });
           goToStep(0);
+        },
+
+        newRunItGraph: (seed) => {
+          const { visualization, data } = get();
+          const algorithmId = visualization.step.run.algorithmId;
+          const shown = lookOf(data);
+          let fresh = freshGraph(algorithmId, seed);
+          // A different graph from the one on screen, however the seeds fall.
+          for (let next = seed + 1; fresh && lookOf(fresh.graph) === shown && next < seed + 10; next++) fresh = freshGraph(algorithmId, next);
+          if (!fresh) return ownGraphAt !== null;
+          const { graph, from, to } = fresh;
+          const built = buildRun(algorithmId, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
+          if (!built || !("run" in built)) return ownGraphAt !== null;
+          // A fresh graph on screen keeps the learner's own where it was in the history, while it is still behind.
+          const own = !freshLooks.has(shown);
+          if (!own && ownGraphAt !== null && useGraphHistoryStore.getState().past.length <= ownGraphAt) ownGraphAt = null;
+          get().setGraph(graph.nodes, graph.edges, graph.nodeCounter);
+          // The learner's own graph is now the last step in the history: put there by this change, or
+          // already there when the step before it looked the same (the history keeps no repeats).
+          if (own) ownGraphAt = useGraphHistoryStore.getState().past.length - 1;
+          freshLooks.add(lookOf(graph));
+          if (to !== null) get().setVisualizationInput({ startNodeId: from, endNodeId: to });
+          get().startVisualization(built.run);
+          get().setRunItMode(true);
+          return ownGraphAt !== null;
+        },
+
+        bringBackOwnGraph: () => {
+          if (ownGraphAt === null) return;
+          const history = useGraphHistoryStore.getState;
+          // The graph that came after the learner's own: still a fresh graph unless the learner went
+          // back to their own and edited it (or edited further back), which leaves nothing put aside.
+          const { past, future } = history();
+          const after = ownGraphAt + 1;
+          const next = after < past.length ? snapshotToData(past[after])
+            : after === past.length ? get().data
+            : future[after - past.length - 1] && snapshotToData(future[after - past.length - 1]);
+          if (!next || !freshLooks.has(lookOf(next))) {
+            ownGraphAt = null;
+            return;
+          }
+          while (history().past.length > ownGraphAt) get().undo();
         },
 
         // ========================================

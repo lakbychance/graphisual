@@ -11,12 +11,18 @@ import { createRun, type Run } from "./runView";
 /** A run to play, or the message the app shows instead (`warning` before running, `error` after). */
 export type BuiltRun = { run: Run } | { problem: string; severity: "warning" | "error" };
 
+/**
+ * `stepMode`: the run is for Step mode, where the notebook says its answer in words. There a cycle
+ * detection that finds no cycle plays to its end ("…so the graph has no cycle") instead of showing
+ * the message; Auto mode, with no notebook, keeps the message.
+ */
 export function buildRun(
   algorithmId: string,
   nodes: GraphNode[],
   edges: Map<number, GraphEdge[]>,
   startNodeId: number,
   endNodeId?: number,
+  { stepMode = false }: { stepMode?: boolean } = {},
 ): BuiltRun | null {
   const algorithm = algorithmRegistry.get(algorithmId);
   if (!algorithm) return null;
@@ -38,7 +44,8 @@ export function buildRun(
   const input = { adjacencyList, nodes: nodes.map((n) => ({ id: n.id })), startNodeId, endNodeId };
 
   const events = algorithm.events(input);
-  const refusal = algorithm.refusal?.(events, input);
+  const noCycle = events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);
+  const refusal = stepMode && noCycle ? undefined : algorithm.refusal?.(events, input);
   if (refusal) {
     // Node ids are marked `{n:id}`; show each node's label.
     const problem = refusal.replace(/\{n:(\d+)\}/g, (_, nodeId) => nodes.find((n) => n.id === Number(nodeId))?.label || nodeId);

@@ -29,7 +29,7 @@ export function useAlgorithmFromUrl() {
       // As after the first tap: waiting for the destination.
       store.setVisualizationInput({ startNodeId: from, endNodeId: -1 });
     } else if (from !== null) {
-      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined);
+      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
       if (built && "run" in built) {
         if (to !== null) store.setVisualizationInput({ startNodeId: from, endNodeId: to });
         store.startVisualization(built.run);
