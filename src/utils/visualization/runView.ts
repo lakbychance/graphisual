@@ -302,7 +302,7 @@ export function lineAt(run: Run, index: number): number | null {
  * - `round`: a Bellman-Ford round begins
  * - `negative`: a negative edge lowers a distance, the first time one does in the run
  * - `found`: a search takes its destination
- * - `loop`: cycle detection finds its loop (an edge back to a node still in progress)
+ * - `loop`: cycle detection finds its loop (an edge that closes a cycle at a node still in progress)
  * - `answer`: the run's answer
  */
 export type MomentKind = "round" | "negative" | "found" | "loop" | "answer";
@@ -346,7 +346,7 @@ export function keyMoments(run: Run): KeyMoment[] {
     if (step.some((e) => e.type === "settle" && e.target && e.via !== undefined)) {
       moments.push({ index, kind: "found", label: "Destination found" });
     }
-    if (cycles && !loop && step.some((e) => e.type === "classify" && e.kind === "back")) {
+    if (cycles && !loop && step.some((e) => e.type === "classify" && e.loop)) {
       loop = true;
       moments.push({ index, kind: "loop", label: "Loop found" });
     }
@@ -473,11 +473,20 @@ const cycleDetection: StepView = (change, _step, frame) => {
       return { message: `**Exploring node ${nid(change.node)}**. Recursion depth: ${branch.length}`, dataStructure: ds(change.node, [change.node]) };
     case "finish":
       return { message: `**Backtracking from node ${nid(change.node)}**. Recursion depth: ${branch.length}`, dataStructure: ds(frame.current) };
-    case "classify":
+    case "classify": {
+      if (!change.through) {
+        return {
+          message: `**Cycle detected!** Back edge **${nid(change.from)}→${nid(change.to)}** found\nNode **${nid(change.to)}** is in recursion stack`,
+          dataStructure: ds(change.to),
+        };
+      }
+      const closes = change.through[change.through.length - 1];
+      const back = [change.to, ...change.through].map(nid).join("–");
       return {
-        message: `**Cycle detected!** Back edge **${nid(change.from)}→${nid(change.to)}** found\nNode **${nid(change.to)}** is in recursion stack`,
-        dataStructure: ds(change.to),
+        message: `**Cycle detected!** Edge **${nid(change.from)}→${nid(change.to)}** reaches done node **${nid(change.to)}**, whose undirected way in **${back}** leads back\nNode **${nid(closes)}** is in recursion stack`,
+        dataStructure: ds(closes),
       };
+    }
     default: {
       const node = change?.type === "start" ? change.node : -1;
       const message = change?.group === 0 ? startMessage(node) : `**Starting again at node ${nid(node)}**`;

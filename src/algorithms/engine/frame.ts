@@ -40,7 +40,7 @@ export interface Frame {
   queue: readonly QueueItem[];
   /** Classified edges, keyed `from-to`, from classify events. */
   edgeClass: ReadonlyMap<string, EdgeClass>;
-  /** The edge a cycle search found leading back to a node still in progress (its loop, `ClassifyEvent.loop`), once found. */
+  /** The edge a cycle search found closing a loop back to a node still in progress (`ClassifyEvent.loop`), once found. */
   loop: { from: number; to: number } | null;
   /** A depth-first search's discovery and finish times, per node it has visited. */
   times: ReadonlyMap<number, DepthFirstTimes>;

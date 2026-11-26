@@ -152,10 +152,18 @@ const oracles: Record<string, Oracle> = {
     const cycle = answerOf(events, "cycle")?.cycle ?? null;
     expect(cycle !== null, `${at}: cycle found`).toBe(hasCycle(input));
     if (!cycle) return;
+    // A real cycle (see `hasCycle`): distinct nodes, each joined to the next by an edge that may be
+    // walked that way, and two nodes joined by more than the one undirected edge.
+    expect(new Set(cycle).size, `${at}: no node twice in ${cycle.join(", ")}`).toBe(cycle.length);
+    const ways = (from: number, to: number) => (input.adjacencyList.get(from) ?? []).filter((e) => e.to === to);
     cycle.forEach((from, i) => {
       const to = cycle[(i + 1) % cycle.length];
-      expect((input.adjacencyList.get(from) ?? []).some((e) => e.to === to), `${at}: edge ${from}→${to} exists`).toBe(true);
+      expect(ways(from, to).length > 0, `${at}: edge ${from}→${to} exists`).toBe(true);
     });
+    if (cycle.length === 2) {
+      const [a, b] = cycle;
+      expect([...ways(a, b), ...ways(b, a)].some((e) => e.type === "directed"), `${at}: ${a} and ${b} joined by a directed edge`).toBe(true);
+    }
   },
 
   prims(at, input, events) {
@@ -190,7 +198,7 @@ describe("oracle check", () => {
 
   it("DFS pathfinding finds a real route exactly when one exists", () => oracleCheck(dfsPathfindingAdapter, suite));
 
-  it("Cycle detection finds a real cycle exactly when a depth-first colouring does", () => oracleCheck(cycleDetectionAdapter, suite));
+  it("Cycle detection finds a real cycle exactly when one exists, directed, undirected or mixed", () => oracleCheck(cycleDetectionAdapter, suite));
 
   it("Prim's tree weighs the same as Kruskal's minimum spanning tree of the start's part of the graph", () =>
     oracleCheck(primsAdapter, undirectedSuite));
@@ -214,22 +222,13 @@ function pickThenRandom(picks: readonly number[], rand: () => number): ChoicePol
 /** Bellman-Ford makes no choices: it checks the edges in one fixed order every round. */
 const steerable = ported.filter(({ adapter }) => adapter.metadata.id !== "bellman-ford");
 
-/**
- * The graphs a steered run must still answer correctly. Cycle detection leaves out graphs that mix
- * directed and undirected edges: there, whether a depth-first colouring finds a cycle depends on
- * the order it meets the edges in (its oracle shares the default order), so another valid order
- * can miss one. Directed or undirected throughout, any order finds a cycle exactly when there is one.
- */
-const mixed = ({ input }: RandomGraph) => new Set([...input.adjacencyList.values()].flat().map((e) => e.type)).size > 1;
-const answeredWhenSteered = (id: string, graphs: RandomGraph[]) => (id === "cycle-detection" ? graphs.filter((g) => !mixed(g)) : graphs);
-
 describe("steering check", () => {
   for (const { adapter, graphs, rules } of steerable) {
     const { id, name } = adapter.metadata;
     const context = (input: AlgorithmInput) => ({ algorithmId: id, pseudocode: adapter.pseudocode, input });
 
     it(`${name}: taking any other valid option at any decision, then random valid ones, still matches the oracle and obeys every rule`, () => {
-      for (const { seed, input } of answeredWhenSteered(id, graphs)) {
+      for (const { seed, input } of graphs) {
         const rand = random(seed);
         const base = eventsOf(adapter, input);
         const picks = picksOf(base);
@@ -270,13 +269,17 @@ describe("steering check", () => {
     });
   }
 
-  it("Cycle detection: steering reaches exactly the runs that some order of the edge lists and of the restarts gives", () => {
+  it("Cycle detection: steering reaches exactly the runs that some order of the edge lists and of the restarts gives, and each finds a cycle exactly when one exists", () => {
     let checked = 0;
-    for (const graph of answeredWhenSteered("cycle-detection", suite)) {
+    for (const graph of suite) {
       const inputs = orderings(graph.input);
       if (!inputs) continue;
       checked += 1;
-      const ordered = new Set(inputs.map((input) => changesOf(cycleDetectionAdapter.events(input))));
+      const ordered = new Set(inputs.map((input, i) => {
+        const events = cycleDetectionAdapter.events(input);
+        oracles["cycle-detection"](`seed ${graph.seed}, order ${i}`, input, events);
+        return changesOf(events);
+      }));
       const steered = everySteeredRun((choose) => cycleDetectionAdapter.events(graph.input, choose));
       expect(steered, `seed ${graph.seed}`).toEqual(ordered);
     }
@@ -389,16 +392,18 @@ interface Lettered {
   label?: (id: number) => string;
 }
 
-/** A small graph with lettered nodes (ids are indexes into LABELS). Without `end` it has no destination. */
+/**
+ * A small graph with lettered nodes (ids are indexes into LABELS). Without `end` it has no destination.
+ * An edge may name its own type, for a graph that mixes directed and undirected edges.
+ */
 function lettered(
-  edges: Array<[number, number, number]>, size: number, start: number, end?: number,
+  edges: Array<[number, number, number, EdgeInfo["type"]?]>, size: number, start: number, end?: number,
   { directed = false, weighted = true } = {},
 ): Lettered {
-  const type = directed ? "directed" : "undirected";
   const adjacencyList = new Map<number, EdgeInfo[]>(LABELS.slice(0, size).map((_, id) => [id, []]));
-  for (const [from, to, weight] of edges) {
+  for (const [from, to, weight, type = directed ? "directed" : "undirected"] of edges) {
     adjacencyList.get(from)!.push({ from, to, weight, type });
-    if (!directed) adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
+    if (type === "undirected") adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
   }
   const input: AlgorithmInput = {
     adjacencyList,
@@ -407,7 +412,8 @@ function lettered(
     endNodeId: end,
   };
   const edgeList = edges
-    .map(([from, to, weight]) => `${LABELS[from]}${directed ? "→" : "–"}${LABELS[to]}${weighted ? ` ${weight < 0 ? `−${-weight}` : weight}` : ""}`)
+    .map(([from, to, weight, type = directed ? "directed" : "undirected"]) =>
+      `${LABELS[from]}${type === "directed" ? "→" : "–"}${LABELS[to]}${weighted ? ` ${weight < 0 ? `−${-weight}` : weight}` : ""}`)
     .join(", ");
   return { input, edgeList };
 }
@@ -553,6 +559,18 @@ describe("golden narration", () => {
       ),
       transcript(cycleDetectionAdapter, "Parallel edges", lettered([[0, 1, 1], [0, 2, 1], [2, 1, 1], [2, 1, 1], [2, 0, 1], [2, 1, 1]], 3, 0, undefined, { directed: true, weighted: false })),
       transcript(cycleDetectionAdapter, "The graph the app generates", generated(generateCycleWithDeadEnd(), 1)),
+      transcript(
+        cycleDetectionAdapter, "Mixed: the loop closes at a node already done",
+        lettered([[0, 2, 1, "undirected"], [0, 1, 1, "directed"], [1, 2, 1, "undirected"]], 3, 0, undefined, unweighted),
+      ),
+      transcript(
+        cycleDetectionAdapter, "Mixed: a directed and an undirected edge between the same two nodes",
+        lettered([[0, 1, 1, "undirected"], [0, 1, 1, "directed"]], 2, 0, undefined, unweighted),
+      ),
+      transcript(
+        cycleDetectionAdapter, "Mixed: no cycle",
+        lettered([[0, 1, 1, "undirected"], [1, 2, 1, "directed"], [0, 2, 1, "directed"]], 3, 0, undefined, unweighted),
+      ),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/cycle-detection.md");
   });

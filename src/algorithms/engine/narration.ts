@@ -289,8 +289,14 @@ function frontierVoice(frontier: Frontier): Voice {
 /* --------------------------------------------------------- cycle detection */
 
 /** The edge to a node already seen. The edge into an unvisited node is said by that node's visit. */
-function classifySentence({ from, to, kind, loop }: ClassifyEvent): string {
+function classifySentence({ from, to, kind, loop, through }: ClassifyEvent): string {
   if (kind === "tree") return "";
+  if (loop && through) {
+    const back = [to, ...through].map(nid).join(" – ");
+    const edges = through.length === 1 ? "an undirected edge, and walking back along it" : "undirected edges, and walking back along them";
+    return `${arrow(from, to)}: ${nid(to)} is already done, but it was reached along ${edges}, ${back}, `
+      + `leads to ${nid(through[through.length - 1])}, which is still in progress, so there is a cycle`;
+  }
   if (loop) return `${arrow(from, to)} leads back to ${nid(to)}, which is still in progress, so there is a cycle`;
   return `${arrow(from, to)}: ${nid(to)} is already done, so skip it`;
 }

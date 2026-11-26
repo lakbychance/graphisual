@@ -117,8 +117,11 @@ export type EdgeClass = "tree" | "back" | "forward" | "cross";
  * to the node's parent is the tree edge seen from below, a plain skip); an edge they pushed along whose
  * node a deeper node took over is `forward`, said just before that node is visited.
  *
- * `loop` marks the one classification that is a change of its own (see `steps.ts`): the `back` edge
- * cycle detection reports as its cycle. Nothing else marks a loop, whatever its class.
+ * `loop` marks the one classification that is a change of its own (see `steps.ts`): the edge cycle
+ * detection reports as closing its cycle. Nothing else marks a loop, whatever its class. That edge is
+ * `back`, or, in a graph that mixes directed and undirected edges, may lead to a done node whose
+ * undirected ways in climb back up to a node in progress: `through` lists the nodes that climb passes,
+ * ending at the one in progress.
  */
 export interface ClassifyEvent extends Tagged {
   type: "classify";
@@ -126,6 +129,7 @@ export interface ClassifyEvent extends Tagged {
   to: number;
   kind: EdgeClass;
   loop?: true;
+  through?: number[];
 }
 
 /**

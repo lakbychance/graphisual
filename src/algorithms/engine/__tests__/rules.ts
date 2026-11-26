@@ -30,10 +30,12 @@ export const pointsAtPseudocode: Rule = (events, { pseudocode }) => {
  * - Dijkstra's and Prim's: every waiting node at the least value;
  * - BFS and DFS: the waiting nodes that came from the same node as the front of the queue, or the
  *   top of the stack (any order of a node's neighbours is a valid search);
- * - cycle detection: every neighbour of the node being worked on that is unvisited, or still in
- *   progress along an edge other than the undirected one back to its parent (each such edge is
- *   still to check: checking it would have gone into the node or ended the run), or, to start
- *   again, every unvisited node.
+ * - cycle detection: every neighbour of the node being worked on that is unvisited; still in
+ *   progress along an edge other than the one it came in on (the undirected edge back to its
+ *   parent, when it came in on one: a parent with a directed edge to it sends it along that); or
+ *   done, along an edge other than the one that neighbour came in on, with the undirected ways in of
+ *   it and its ancestors leading back up to a node in progress. Each such edge is still to check:
+ *   checking it would have gone into the node or ended the run. To start again: every unvisited node.
  */
 function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, { adjacencyList }: AlgorithmInput): number[] {
   const unvisited = (ids: number[]) => [...new Set(ids)].filter((id) => !frame.settled.includes(id));
@@ -56,9 +58,21 @@ function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, 
       if (kind === "restart") return unvisited([...adjacencyList.keys()]);
       const node = frame.current ?? NaN;
       const inProgress = (id: number) => frame.settled.includes(id) && !frame.finished.includes(id);
-      const parent = frame.via.get(node);
+      const cameUndirected = (id: number) => {
+        const parent = frame.via.get(id);
+        return parent !== undefined && !(adjacencyList.get(parent) ?? []).some((e) => e.to === id && e.type === "directed");
+      };
+      const cameIn = (from: number, to: number, type: string) => type === "undirected" && frame.via.get(to) === from && cameUndirected(to);
+      const climbs = (to: number) => {
+        for (let at = to; cameUndirected(at);) {
+          at = frame.via.get(at)!;
+          if (inProgress(at)) return true;
+        }
+        return false;
+      };
       const open = (adjacencyList.get(node) ?? []).filter(({ to, type }) =>
-        !frame.settled.includes(to) || (inProgress(to) && !(type === "undirected" && to === parent)));
+        !frame.settled.includes(to)
+        || (inProgress(to) ? !cameIn(to, node, type) : !cameIn(node, to, type) && climbs(to)));
       return [...new Set(open.map((e) => e.to))];
     }
     default:
@@ -351,7 +365,7 @@ export const parentLinksFormTree: Rule = (events, { algorithmId, input }) => {
  * more and no fewer: each Bellman-Ford round's first step (not the extra pass that checks for a
  * negative cycle, nor the answer); the step of the run's first relaxation along a negative edge
  * (Bellman-Ford); every step that takes the destination after the start; the step of cycle
- * detection's loop (its first back edge); and the answer, on the last step.
+ * detection's loop (the edge marked as closing it); and the answer, on the last step.
  */
 export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   const run = createRun(algorithmId, [...events], []);
@@ -371,7 +385,7 @@ export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   });
   const negative = events.findIndex((e) => e.type === "relax" && e.weight < 0);
   if (algorithmId === "bellman-ford" && negative >= 0) mark(stepAt(negative), "negative");
-  const loop = events.findIndex((e) => e.type === "classify" && e.kind === "back");
+  const loop = events.findIndex((e) => e.type === "classify" && e.loop);
   if (loop >= 0 && algorithmId === "cycle-detection") mark(stepAt(loop), "loop");
 
   const marked = keyMoments(run).map((m) => `${m.index} ${m.kind}`);

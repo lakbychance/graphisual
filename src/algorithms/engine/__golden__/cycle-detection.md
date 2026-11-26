@@ -96,3 +96,41 @@ From 1. Edges: 1–2, 1–6, 2–3, 3–4, 4–7, 4–5, 5–6, 7–8
 11. 5 → 6 leads to unvisited 6, so visit it; it is now in progress
 12. 6 → 5: this is the edge 6 came in on, so skip it; 6 → 1 leads back to 1, which is still in progress, so there is a cycle
 13. Follow the edges round to read the cycle: 1 → 2 → 3 → 4 → 5 → 6 → 1
+
+## Mixed: the loop closes at a node already done
+
+From A. Edges: A–C, A→B, B–C
+
+ 1. Start at A; every node is unvisited, and an edge back to a node still in progress means a cycle
+ 2. Visit A, which is now in progress
+ 3. A → C leads to unvisited C, so visit it; it is now in progress; C → A: this is the edge C came in on, so skip it
+ 4. C → B leads to unvisited B, so visit it; it is now in progress; B → C: this is the edge B came in on, so skip it
+ 5. B has no edges left to follow, so it is done; go back to C
+ 6. C has no edges left to follow, so it is done; go back to A
+ 7. A → B: B is already done, but it was reached along undirected edges, and walking back along them, B – C – A, leads to A, which is still in progress, so there is a cycle
+ 8. Follow the edges round to read the cycle: A → B → C → A
+
+## Mixed: a directed and an undirected edge between the same two nodes
+
+From A. Edges: A–B, A→B
+
+ 1. Start at A; every node is unvisited, and an edge back to a node still in progress means a cycle
+ 2. Visit A, which is now in progress
+ 3. A → B leads to unvisited B, so visit it; it is now in progress
+ 4. B → A leads back to A, which is still in progress, so there is a cycle
+ 5. Follow the edges round to read the cycle: A → B → A
+
+## Mixed: no cycle
+
+From A. Edges: A–B, B→C, A→C
+
+ 1. Start at A; every node is unvisited, and an edge back to a node still in progress means a cycle
+ 2. Visit A, which is now in progress
+ 3. A → B leads to unvisited B, so visit it; it is now in progress; B → A: this is the edge B came in on, so skip it
+ 4. B → C leads to unvisited C, so visit it; it is now in progress
+ 5. C has no edges left to follow, so it is done; go back to B
+ 6. B has no edges left to follow, so it is done; go back to A; A → C: C is already done, so skip it
+ 7. A has no edges left to follow, so it is done
+ 8. Every node is done and no edge led back to a node in progress, so the graph has no cycle
+
+The app says: No cycle found in the graph.

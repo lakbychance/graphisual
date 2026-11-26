@@ -66,23 +66,24 @@ export function hasReachableNegativeCycle(input: AlgorithmInput): boolean {
 }
 
 /**
- * Whether a depth-first colouring finds a cycle: from the start, then from every node still
- * white, an edge to a grey node (one still being explored) is a cycle, except the undirected
- * edge back to the node just come from.
+ * Whether the graph has a cycle: a closed walk that never uses an edge twice, following directed
+ * edges only their way and undirected edges either way. Undirected edges between the same two nodes
+ * count as one edge, so going out and back along them is not a cycle; with a directed edge involved,
+ * two nodes are enough (A→B and B→A, or A→B and B–A). A self-loop, directed or not, is a cycle.
+ *
+ * Such a walk exists exactly when a simple one does (cut it where it first meets a node again, and
+ * the shorter loop still uses no edge twice), so this tries every simple cycle, each walked from its
+ * smallest node through larger ones. No order of the edges or nodes matters to the answer.
  */
-export function hasCycle({ adjacencyList, startNodeId }: AlgorithmInput): boolean {
-  const colour = new Map<number, "grey" | "black">();
-  const visit = (node: number, parent?: number): boolean => {
-    colour.set(node, "grey");
-    for (const edge of adjacencyList.get(node) ?? []) {
-      const c = colour.get(edge.to);
-      if (c === "grey" && !(edge.type === "undirected" && edge.to === parent)) return true;
-      if (c === undefined && visit(edge.to, node)) return true;
-    }
-    colour.set(node, "black");
-    return false;
-  };
-  return [startNodeId, ...adjacencyList.keys()].some((node) => !colour.has(node) && visit(node));
+export function hasCycle({ adjacencyList }: AlgorithmInput): boolean {
+  const edges = (from: number) => adjacencyList.get(from) ?? [];
+  // Back to the first node from the last: one node is a self-loop; two need edges that are not the
+  // same undirected one; three or more are always edges of their own.
+  const closes = (path: number[], type: string) => path.length !== 2 || type === "directed"
+    || edges(path[0]).some((e) => e.to === path[1] && e.type === "directed");
+  const walk = (path: number[]): boolean => edges(path[path.length - 1]).some(({ to, type }) =>
+    to === path[0] ? closes(path, type) : to > path[0] && !path.includes(to) && walk([...path, to]));
+  return [...adjacencyList.keys()].some((first) => walk([first]));
 }
 
 /** Weight of a minimum spanning tree of the start's part of an undirected graph, by plain Kruskal. */
