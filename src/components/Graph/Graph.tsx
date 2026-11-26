@@ -205,9 +205,9 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
     const target = event.target as SVGSVGElement;
     const isNode = target.tagName === "circle";
 
-    // Algorithm mode - delegate to shared hook (body click only, not hit area ring)
-    if (currentAlgorithm && isNode && !isVisualizing && !target.id.startsWith("hit-")) {
-      const nodeId = parseInt(target.id);
+    // Algorithm mode - delegate to shared hook (body click only, not hit area ring); during a run it picks in Run it (the ring too)
+    if (currentAlgorithm && isNode && (isVisualizing || !target.id.startsWith("hit-"))) {
+      const nodeId = parseInt(target.id.replace(/^hit-/, ""));
       handleNodeClick(nodeId);
       return;
     }

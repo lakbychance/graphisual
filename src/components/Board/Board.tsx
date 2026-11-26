@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { useIsDesktop, useIsShortWindow } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { algorithmRegistry } from "../../algorithms";
@@ -60,6 +60,13 @@ export const Board = () => {
   const isShortWindow = useIsShortWindow();
   const notebookBeside = isDesktop || isShortWindow;
   const runHidesToolbar = isInStepMode && (!isDesktop || isShortWindow);
+  // Run it is for the side panel on desktop and wide windows in the flat views; phones (upright, or on their
+  // side) only watch for now (D8), and the 3D view stays view-only.
+  const runItHere = isDesktop && !isShortWindow && !is3DMode;
+  const runningItYourself = useGraphStore((state) => state.visualization.runIt !== null);
+  useEffect(() => {
+    if (!runItHere && runningItYourself) useGraphStore.getState().setRunItMode(false);
+  }, [runItHere, runningItYourself]);
 
   // The notebook slides in from its edge (none with reduced motion).
   const reduceMotion = useReducedMotion();
@@ -175,6 +182,7 @@ export const Board = () => {
                 run={stepRun}
                 index={stepIndex}
                 desktop={notebookBeside}
+                runItHere={runItHere}
                 controls={stepControls(true)}
                 onScrub={scrubTo}
               />

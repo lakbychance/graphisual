@@ -19,9 +19,10 @@ import { WEIGHTED_EDGES } from "@/landing/live/shared";
 import type { LabGraph, LiveConfig } from "@/landing/live/types";
 import { generateCycleWithDeadEnd, generateWeighted, type GeneratedGraph } from "@/utils/graph/graphGenerator";
 import {
-  applyEvent, changes, emptyFrame, frameAt, narrate, stepEnds, steer,
+  applyEvent, asks, CATALOGUE, changes, emptyFrame, familyOf, frameAt, misconception, narrate, stepEnds, steer,
   type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
 } from ".";
+import { nid } from "../traceHelpers";
 import { asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
 import {
   bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
@@ -267,6 +268,32 @@ describe("steering check", () => {
         });
       }
     });
+
+    it(`${name}: every pick that is not valid, at every decision, is named for a misconception from its catalogue (never the fallback), and the run waits for the learner at every decision with more than one valid option or a way on that closes the loop`, () => {
+      const family = familyOf(id)!;
+      for (const { seed, input } of graphs) {
+        const run = (choose: ChoicePolicy) => adapter.events(input, choose);
+        const base = run(pickThenRandom([], random(seed)));
+        const picks = picksOf(base);
+        base.forEach((decision, event) => {
+          if (decision.type !== "decide") return;
+          const k = picksOf(base.slice(0, event)).length;
+          // A choice of several, or a way on that closes cycle detection's loop, is always the learner's to make.
+          const closesLoop = id === "cycle-detection" && decision.kind === "next" && decision.options.some((o) => frameAt(base, event).settled.includes(o));
+          if (decision.options.length > 1 || closesLoop) expect(asks(id, base, event, input.adjacencyList), `seed ${seed}: decision ${k} asked`).toBe(true);
+          for (const wrong of input.nodes.map((n) => n.id).filter((n) => !decision.options.includes(n))) {
+            const { events, rejected } = steer(run, [...picks.slice(0, k), wrong]);
+            const at = `seed ${seed}: ${wrong} at decision ${k}`;
+            expect(rejected, at).not.toBeNull();
+            const named = misconception(id, events, rejected!, input.adjacencyList);
+            expect(CATALOGUE[family] as readonly string[], at).toContain(named.kind);
+            expect(named.kind, at).not.toBe("other");
+            expect(named.text, `${at}: names the pick`).toContain(nid(wrong));
+          }
+        });
+      }
+    });
+
   }
 
   it("Cycle detection: steering reaches exactly the runs that some order of the edge lists and of the restarts gives, and each finds a cycle exactly when one exists", () => {
@@ -284,6 +311,95 @@ describe("steering check", () => {
       expect(steered, `seed ${graph.seed}`).toEqual(ordered);
     }
     expect(checked, "graphs small enough to try every order").toBeGreaterThan(50);
+  });
+});
+
+/**
+ * A small graph with lettered nodes (A is id 1, B id 2, ...): edges "A-B:4" (undirected) or "A>B:4"
+ * (directed), weight 1 when left out, in the order given.
+ */
+function named(spec: string, start: string, end?: string) {
+  const id = (name: string) => name.charCodeAt(0) - 64;
+  const adjacencyList = new Map<number, EdgeInfo[]>();
+  const add = (name: string) => {
+    if (!adjacencyList.has(id(name))) adjacencyList.set(id(name), []);
+  };
+  for (const edge of spec.split(/\s+/).filter(Boolean)) {
+    const [, from, kind, to, w] = /^(\w)([->])(\w)(?::(\d+))?$/.exec(edge)!;
+    add(from);
+    add(to);
+    const weight = Number(w ?? 1);
+    const type = kind === "-" ? "undirected" : "directed";
+    adjacencyList.get(id(from))!.push({ from: id(from), to: id(to), weight, type });
+    if (type === "undirected") adjacencyList.get(id(to))!.push({ from: id(to), to: id(from), weight, type });
+  }
+  for (const name of [start, end]) if (name) add(name);
+  const input: AlgorithmInput = {
+    adjacencyList, nodes: [...adjacencyList.keys()].map((n) => ({ id: n })), startNodeId: id(start), endNodeId: end ? id(end) : undefined,
+  };
+  return { input, id, label: (n: number) => String.fromCharCode(64 + n) };
+}
+
+/** Steers `adapter` on the lettered graph through `picks` (one per decision, forced ones included; the last one wrong) and names the wrong one. */
+function missed(adapter: AlgorithmAdapter, graph: ReturnType<typeof named>, picks: string) {
+  const { events, rejected } = steer((choose) => adapter.events(graph.input, choose), picks.split(" ").map(graph.id));
+  expect(rejected?.decision, `${picks}: rejected at the last pick`).toBe(picks.split(" ").length - 1);
+  return misconception(adapter.metadata.id, events, rejected!, graph.input.adjacencyList, graph.label);
+}
+
+describe("steering check: the misconception catalogue", () => {
+  const route = named("A-B:4 A-C:2 C-B:1 B-D:5 C-E:9 D-E:2 D-F:3 E-F:6", "A", "F");
+
+  it("Dijkstra's: an already-final node, an unreached one, a neighbour of the node just taken, the shortest last edge, and label order", () => {
+    expect(missed(dijkstraAdapter, route, "A C A").kind).toBe("final");
+    expect(missed(dijkstraAdapter, route, "A D").kind).toBe("unreached");
+    expect(missed(dijkstraAdapter, route, "A B")).toEqual({
+      kind: "label-order", text: `${nid(2)} comes first by name, but Dijkstra goes by distance — ${nid(3)} is at 2, ${nid(2)} at 4`,
+    });
+    expect(missed(dijkstraAdapter, named("A-B:1 A-C:2 B-D:5", "A", "D"), "A B D")).toEqual({
+      kind: "neighbour", text: `${nid(4)} is next to ${nid(2)}, but ${nid(3)} is closer to the start overall — Dijkstra always takes the closest node in the whole queue`,
+    });
+    // A is the start; B at 10, C at 12, D at 14, E at 15; F hangs off C by an edge of 4 (16 in all).
+    expect(missed(dijkstraAdapter, named("A-C:12 C-F:4 A-B:10 A-D:14 A-E:15", "A", "F"), "A B C D F").kind).toBe("edge-weight");
+    expect(missed(dijkstraAdapter, route, "A C B E").kind).toBe("farther");
+  });
+
+  it("Prim's: a node already in the tree, the node closest to the start, and a neighbour of the node just added", () => {
+    expect(missed(primsAdapter, named("A-B:1 A-C:2 B-D:5", "A"), "A B A").kind).toBe("in-tree");
+    expect(missed(primsAdapter, named("A-B:9 A-C:2 C-D:8", "A"), "A C B")).toEqual({
+      kind: "closest-to-start", text: `${nid(2)} is closest to the start, but Prim's only weighs the one edge that joins a node — ${nid(4)} joins for 8, ${nid(2)} for 9`,
+    });
+    expect(missed(primsAdapter, named("A-B:1 A-C:2 B-D:5", "A"), "A B D").kind).toBe("neighbour");
+  });
+
+  it("BFS: a visited node, an unseen one, a node a level deeper, and one as far out from another parent", () => {
+    const tree = named("A-B A-C B-D C-E", "A");
+    expect(missed(bfsAdapter, tree, "A A").kind).toBe("visited");
+    expect(missed(bfsAdapter, tree, "A D").kind).toBe("unseen");
+    expect(missed(bfsAdapter, tree, "A B D").kind).toBe("deeper");
+    expect(missed(bfsAdapter, tree, "A B C E")).toEqual({
+      kind: "other-parent", text: `${nid(5)} is just as far out, but ${nid(4)} joined the queue first — a queue serves nodes in the order they arrived`,
+    });
+  });
+
+  it("DFS: a node waiting from further up instead of the top of the stack", () => {
+    expect(missed(dfsAdapter, named("A-B A-C B-D B-E", "A"), "A B C")).toEqual({
+      kind: "wide", text: `${nid(3)} waits from ${nid(1)}, further up, but DFS goes deep first — it takes ${nid(4)}, the newest node on the stack`,
+    });
+  });
+
+  it("Cycle detection: the edge it came in on, a node it already finished, a finished node elsewhere, no edge, a one-way edge, itself, and a restart at a searched node", () => {
+    const triangle = named("A-B B-C C-A", "A");
+    expect(missed(cycleDetectionAdapter, triangle, "B C B").kind).toBe("came-in");
+    const tail = named("A-D A-B B-C C-A", "A");
+    expect(missed(cycleDetectionAdapter, tail, "D D").kind).toBe("followed");
+    expect(missed(cycleDetectionAdapter, tail, "D B C D").kind).toBe("not-neighbour");
+    const directed = named("A>B A>C C>D C>B", "A");
+    expect(missed(cycleDetectionAdapter, directed, "B C B").kind).toBe("finished");
+    expect(missed(cycleDetectionAdapter, directed, "B C A").kind).toBe("wrong-way");
+    expect(missed(cycleDetectionAdapter, directed, "B C C").kind).toBe("self");
+    const apart = named("A>B C>D D>C", "A");
+    expect(missed(cycleDetectionAdapter, apart, "B A").kind).toBe("searched");
   });
 });
 

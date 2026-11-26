@@ -148,10 +148,17 @@ export function useCanvasInteractions({
       return;
     }
 
+    // During a run a click anywhere on a node's hit area picks it (Run it)
+    const pickNode = hitNode ?? (currentAlgorithm && isVisualizing ? hitTestNodes(world.x, world.y, nodes, stackingOrder) : null);
+    if (!hitNode && pickNode) {
+      handleNodeClick(pickNode.id);
+      return;
+    }
+
     // Node body interaction (selection, drag, algorithm click)
     if (hitNode) {
-      // Algorithm mode - click to select
-      if (currentAlgorithm && !isVisualizing) {
+      // Algorithm mode - click to select (during a run, to pick in Run it)
+      if (currentAlgorithm) {
         handleNodeClick(hitNode.id);
         return;
       }

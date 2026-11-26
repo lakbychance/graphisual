@@ -141,8 +141,8 @@ export function useGraphActions() {
     if (e.key === "Escape" && (isElementInPopup(e.target as Element) || isAnyPopupOpen())) return;
     // Space on a focused button presses that button; it must not toggle play as well.
     if (e.key === " " && (e.target as Element | null)?.closest?.("button, [role='button'], a[href]")) return;
-    // Arrows, Home and End move between tabs while one has focus (the notebook's Code / State).
-    if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key) && (e.target as Element | null)?.closest?.("[role='tablist']")) return;
+    // Arrows, Home and End move between tabs or segments while one has focus (the notebook's Code / State, Watch / Run it).
+    if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key) && (e.target as Element | null)?.closest?.("[role='tablist'], [role='radiogroup']")) return;
 
     const s = useGraphStore.getState();
     const { visualization } = s;

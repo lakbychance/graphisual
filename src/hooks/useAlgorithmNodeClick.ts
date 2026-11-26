@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useVisualizationExecution } from "./useVisualizationExecution";
 import { AlgorithmType } from "../algorithms";
 import { useAppHaptics } from "./useAppHaptics";
+import { selectIsAwaitingPick, useGraphStore } from "../store/graphStore";
 
 /**
  * Return type for the useAlgorithmNodeClick hook.
@@ -17,6 +18,7 @@ interface UseAlgorithmNodeClickReturn {
  * This abstracts the shared click handling behavior between 2D and 3D views:
  * - For pathfinding algorithms: first click selects start node, second click selects end node and runs
  * - For traversal/tree algorithms: single click runs the algorithm from that node
+ * - During a run, in Run it: a click picks the node the run waits for (`pickNode`); otherwise nothing
  *
  * USAGE:
  * Call in Graph.tsx and Graph3D.tsx to get consistent click handling.
@@ -32,7 +34,15 @@ export function useAlgorithmNodeClick(): UseAlgorithmNodeClickReturn {
   } = useVisualizationExecution();
 
   const handleNodeClick = useCallback((nodeId: number) => {
-    if (!currentAlgorithm || isVisualizing) return;
+    if (isVisualizing) {
+      const store = useGraphStore.getState();
+      if (selectIsAwaitingPick(store)) {
+        haptics.light();
+        store.pickNode(nodeId);
+      }
+      return;
+    }
+    if (!currentAlgorithm) return;
 
     const algoType = currentAlgorithm.metadata.type;
 

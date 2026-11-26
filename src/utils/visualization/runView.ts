@@ -11,7 +11,7 @@ import { nid, signed } from "../../algorithms/traceHelpers";
 import {
   changes, frameAt, stepEnds, type AlgorithmEvent, type AnswerEvent, type Frame, type QueueItem,
 } from "../../algorithms/engine";
-import type { DataStructureState, StepTrace } from "../../algorithms/types";
+import type { AlgorithmInput, DataStructureState, StepTrace } from "../../algorithms/types";
 import { EDGE_TYPE } from "../../constants/graph";
 import type {
   EdgeVisualizationFlags, GraphEdge, NodeRunState, NodeVisualizationFlags, VisualizationTrace,
@@ -24,12 +24,14 @@ export interface Run {
   ends: number[];
   /** The order the algorithm scans nodes in, which breaks ties in a priority queue. */
   nodeOrder: number[];
+  /** What the algorithm was given, so the run can be made again following a learner's picks (the app's runs). */
+  input?: AlgorithmInput;
 }
 
 export const emptyRun: Run = { algorithmId: "", events: [], ends: [], nodeOrder: [] };
 
-export const createRun = (algorithmId: string, events: AlgorithmEvent[], nodeOrder: number[]): Run =>
-  ({ algorithmId, events, ends: stepEnds(events), nodeOrder });
+export const createRun = (algorithmId: string, events: AlgorithmEvent[], nodeOrder: number[], input?: AlgorithmInput): Run =>
+  ({ algorithmId, events, ends: stepEnds(events), nodeOrder, ...(input && { input }) });
 
 export const emptyTrace = (): VisualizationTrace => ({ nodes: new Map(), edges: new Map() });
 
@@ -207,18 +209,28 @@ export interface RunMarks {
   edges: RunMark[];
 }
 
-/** Waiting nodes in the order they will be taken: cheapest first, the top of a stack first, or the front of a queue first. */
-function waitingOrder(run: Run, frame: Frame): number[] {
+/**
+ * Waiting nodes in the order they will be taken: cheapest first, the top of a stack first, or the
+ * front of a queue first. Where a learner's pick steered the run's next decision away from the
+ * default (`steer`), the node they picked comes first, as it is the one taken next.
+ */
+function waitingOrder(run: Run, frame: Frame, shown: number): number[] {
+  let order: number[];
   switch (run.algorithmId) {
     case "dijkstra":
     case "prims":
-      return byValue(frame.queue, run.nodeOrder).map((item) => item.id);
+      order = byValue(frame.queue, run.nodeOrder).map((item) => item.id);
+      break;
     case "dfs":
     case "dfs-pathfinding":
-      return [...frame.queue].reverse().map((item) => item.id);
+      order = [...frame.queue].reverse().map((item) => item.id);
+      break;
     default:
-      return frame.queue.map((item) => item.id);
+      order = frame.queue.map((item) => item.id);
   }
+  const next = run.events.slice(shown).find((e) => e.type === "decide");
+  if (next?.type !== "decide" || next.node === next.options[0] || !order.includes(next.node)) return order;
+  return [next.node, ...order.filter((id) => id !== next.node)];
 }
 
 /**
@@ -249,7 +261,7 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   if (valued) for (const [id, value] of frame.dist) badge(id).value = value;
   // The answer step shows no queue or stack places.
   if (!answered) {
-    waitingOrder(run, frame).forEach((id, i) => {
+    waitingOrder(run, frame, index < 0 ? 0 : run.ends[index]).forEach((id, i) => {
       badge(id).slot = i + 1;
     });
   }

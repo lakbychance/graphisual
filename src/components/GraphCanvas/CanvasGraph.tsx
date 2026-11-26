@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useShallow } from "zustand/shallow";
-import { useGraphStore, selectIsInStepMode } from "../../store/graphStore";
+import { useGraphStore, selectIsAwaitingPick, selectIsInStepMode } from "../../store/graphStore";
 import { useSpringViewport } from "../../hooks/useSpringViewport";
 import { useVisualizationExecution } from "../../hooks/useVisualizationExecution";
 import { useAlgorithmNodeClick } from "../../hooks/useAlgorithmNodeClick";
@@ -244,12 +244,15 @@ export function CanvasGraph({ ref }: { ref?: Ref<CanvasGraphHandle> }) {
   const handleReverseEdge = useGraphStore((state) => state.reverseEdge);
   const handleDeleteEdge = useGraphStore((state) => state.deleteEdge);
 
+  const awaitingPick = useGraphStore(selectIsAwaitingPick);
+
   // Compute cursor
   const getCursor = () => {
     const interactionCursor = getCursorStyle();
     if (interactionCursor) return interactionCursor;
     if (hoveredEdge) return 'pointer';
-    if (hoveredNodeId !== null) return 'default';
+    // A node can be picked while Run it waits for the learner.
+    if (hoveredNodeId !== null) return awaitingPick ? 'pointer' : 'default';
     return 'crosshair';
   };
 

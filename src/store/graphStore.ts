@@ -12,6 +12,8 @@ import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, VisualizationTrace } from "../components/Graph/types";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { emptyRun, emptyTrace, highlightsAt, type Run } from "../utils/visualization/runView";
+import { canRunIt, decidedBy, steerRun, takenAt, turnFrom, type Turn } from "../utils/visualization/runIt";
+import { accepted, frameAt, misconception, type DecideEvent } from "../algorithms/engine";
 import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
@@ -31,6 +33,21 @@ interface StepState {
   isAutoPlaying: boolean;
 }
 
+/**
+ * Run it yourself (see `runIt.ts`): the learner picks the next node where the run waits for them.
+ * `picks` holds the node taken at each decision so far (the learner's, forced ones filled in);
+ * the run is the algorithm steered by them. Absent while watching.
+ */
+export interface RunItState {
+  picks: number[];
+  /** The decision the run waits at next, and the last step it shows before it; null when none is left. */
+  turn: Turn | null;
+  /** Wrong picks at this turn so far. */
+  tries: number;
+  /** What the run said about the last pick: why it is not the one, or that it is (node ids marked), and the step it was said at. */
+  said: { tone: "miss" | "yes"; text: string; at: number } | null;
+}
+
 interface Visualization {
   algorithm: SelectedOption | undefined;
   trace: VisualizationTrace;
@@ -39,6 +56,7 @@ interface Visualization {
   speed: number;
   mode: VisualizationMode;
   step: StepState;
+  runIt: RunItState | null;
 }
 
 // Viewport state (zoom + pan)
@@ -120,6 +138,12 @@ interface GraphActions {
   jumpToStep: (index: number) => void;
   startAutoPlay: () => void;
   stopAutoPlay: () => void;
+  /** Watch the run, or run it yourself from the step on screen (the run plays on to the learner's first turn). */
+  setRunItMode: (on: boolean) => void;
+  /** The learner picks `nodeId` at the turn the run waits at; nothing happens anywhere else. */
+  pickNode: (nodeId: number) => void;
+  /** Run it again from the start, with no picks. */
+  restartRunIt: () => void;
 
   // === UI Actions ===
   setViewportZoom: (zoom: number) => void;
@@ -159,6 +183,7 @@ const initialVisualization: Visualization = {
   speed: TIMING.DEFAULT_VISUALIZATION_SPEED,
   mode: VisualizationMode.AUTO,
   step: initialStep,
+  runIt: null,
 };
 
 const initialViewport: Viewport = {
@@ -202,11 +227,11 @@ export const useGraphStore = create<GraphStore>()(
         debounceMs?: number
       ) => withGraphBatchedAutoHistory(get, mutation, debounceMs);
 
-      // Moves the run to `index` (clamped to -1..last) and derives that step's highlights from its frame in one update.
+      // Moves the run to `index` (clamped to -1..last, or to the learner's turn in Run it) and derives that step's highlights from its frame in one update.
       const goToStep = (target: number) => {
         const { visualization, data } = get();
         const { step } = visualization;
-        const last = step.run.ends.length - 1;
+        const last = lastShown(visualization);
         const index = Math.max(-1, Math.min(target, last));
         set({
           visualization: {
@@ -215,7 +240,7 @@ export const useGraphStore = create<GraphStore>()(
             step: {
               ...step,
               index,
-              // Nothing left to play once the last step is on screen
+              // Nothing left to play once the last step (or the learner's turn) is on screen
               isAutoPlaying: index >= last ? false : step.isAutoPlaying,
             },
           },
@@ -816,6 +841,7 @@ export const useGraphStore = create<GraphStore>()(
               state: VisualizationState.IDLE,
               input: null,
               step: initialStep,
+              runIt: null,
             },
           });
         },
@@ -832,6 +858,7 @@ export const useGraphStore = create<GraphStore>()(
               trace: emptyTrace(),
               state: VisualizationState.RUNNING,
               step: { ...initialStep, run },
+              runIt: null,
             },
           });
           goToStep(0);
@@ -845,13 +872,15 @@ export const useGraphStore = create<GraphStore>()(
               algorithm: NO_ALGORITHM,
               input: null,
               step: initialStep,
+              runIt: null,
             },
           });
         },
 
         stepForward: () => {
-          const { step } = get().visualization;
-          if (step.index >= step.run.ends.length - 1) return;
+          const { visualization } = get();
+          const { step } = visualization;
+          if (step.index >= lastShown(visualization)) return;
           goToStep(step.index + 1);
         },
 
@@ -871,6 +900,55 @@ export const useGraphStore = create<GraphStore>()(
         stopAutoPlay: () => {
           const { visualization } = get();
           set({ visualization: { ...visualization, step: { ...visualization.step, isAutoPlaying: false } } });
+        },
+
+        setRunItMode: (on) => {
+          const { visualization } = get();
+          const { step } = visualization;
+          if (!on) {
+            set({ visualization: { ...visualization, runIt: null, step: { ...step, isAutoPlaying: false } } });
+            return;
+          }
+          if (visualization.runIt || !canRunIt(step.run)) return;
+          // The decisions already on screen stand as made; the run plays on to the learner's first turn.
+          const index = Math.max(0, step.index);
+          const picks = takenAt(step.run).slice(0, decidedBy(step.run, index));
+          const turn = turnFrom(step.run, picks.length);
+          const runIt: RunItState = { picks, turn, tries: 0, said: null };
+          set({ visualization: { ...visualization, runIt, step: { ...step, isAutoPlaying: index < lastShown({ ...visualization, runIt }) } } });
+        },
+
+        pickNode: (nodeId) => {
+          const { visualization, data } = get();
+          const { runIt, step } = visualization;
+          const turn = runIt?.turn;
+          if (!runIt || !turn || step.index !== turn.limit) return;
+          const picks = [...takenAt(step.run).slice(0, turn.decision), nodeId];
+          const steered = steerRun(step.run, picks);
+          if (steered.rejected) {
+            const label = (id: number) => data.nodes.find((n) => n.id === id)?.label || String(id);
+            const { text } = misconception(step.run.algorithmId, steered.run.events, steered.rejected, step.run.input!.adjacencyList, label);
+            set({ visualization: { ...visualization, runIt: { ...runIt, tries: runIt.tries + 1, said: { tone: "miss", text, at: step.index } } } });
+            return;
+          }
+          const decision = step.run.events[turn.event] as DecideEvent;
+          const text = accepted(decision, nodeId, frameAt(step.run.events, turn.event), step.run.algorithmId);
+          const next: RunItState = { picks, turn: turnFrom(steered.run, picks.length), tries: 0, said: { tone: "yes", text, at: step.index + 1 } };
+          const shown = { ...visualization, runIt: next, step: { ...step, run: steered.run } };
+          // Show the pick taken, then play on to the next turn.
+          set({ visualization: { ...shown, step: { ...shown.step, isAutoPlaying: step.index + 1 < lastShown(shown) } } });
+          goToStep(step.index + 1);
+        },
+
+        restartRunIt: () => {
+          const { visualization } = get();
+          const { runIt, step } = visualization;
+          if (!runIt) return;
+          const { run } = steerRun(step.run, []);
+          const fresh: RunItState = { picks: [], turn: turnFrom(run, 0), tries: 0, said: null };
+          const shown = { ...visualization, runIt: fresh, step: { ...step, run } };
+          set({ visualization: { ...shown, step: { ...shown.step, isAutoPlaying: 0 < lastShown(shown) } } });
+          goToStep(0);
         },
 
         // ========================================
@@ -896,6 +974,12 @@ export const useGraphStore = create<GraphStore>()(
 // Selectors (for optimized re-renders)
 // ============================================================================
 
+/** The furthest step the run may show: the last, or in Run it the one before the learner's turn. */
+function lastShown(visualization: Visualization): number {
+  const turn = visualization.runIt?.turn;
+  return turn ? turn.limit : visualization.step.run.ends.length - 1;
+}
+
 export const selectStepIndex = (state: GraphStore) => state.visualization.step.index;
 export const selectStepRun = (state: GraphStore) => state.visualization.step.run;
 
@@ -916,7 +1000,13 @@ export const selectIsInStepMode = (state: GraphStore) =>
   state.visualization.mode === VisualizationMode.MANUAL &&
   state.visualization.state === VisualizationState.RUNNING;
 export const selectCanStepForward = (state: GraphStore) =>
-  selectIsInStepMode(state) && state.visualization.step.index < state.visualization.step.run.ends.length - 1;
+  selectIsInStepMode(state) && state.visualization.step.index < lastShown(state.visualization);
+export const selectRunIt = (state: GraphStore) => state.visualization.runIt;
+/** The run waits on screen for the learner's pick. */
+export const selectIsAwaitingPick = (state: GraphStore) => {
+  const turn = state.visualization.runIt?.turn;
+  return !!turn && selectIsInStepMode(state) && state.visualization.step.index === turn.limit;
+};
 export const selectCanStepBackward = (state: GraphStore) =>
   selectIsInStepMode(state) && state.visualization.step.index > 0;
 

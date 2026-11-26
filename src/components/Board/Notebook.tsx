@@ -6,26 +6,36 @@
  * desktop it is a side panel whose head carries the step keys; on phones a card along the bottom,
  * view-only (the step keys stay along the top).
  *
+ * On desktop the head also switches between watching the run and running it yourself (Run it, see
+ * `runIt.ts`): the run plays on its own to each decision a learner could get wrong, and below the
+ * sentence the notebook asks what comes next, says why a pick is not the one, and hints after two tries.
+ *
  * The rework lab's notebook variant is this component too.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
 import { Check, Flag, RotateCcw, type LucideIcon } from "lucide-react";
-import { Panel, Slider, Tabs, TabsList, TabsPanel, TabsTab, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
+import {
+  Button, Panel, SegmentedControl, SegmentedControlItem, Slider, Tabs, TabsList, TabsPanel, TabsTab, Tooltip, TooltipContent, TooltipTrigger,
+} from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { frameAt, narrate } from "../../algorithms/engine";
+import { frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
 import { num } from "../Graph/runMarkShapes";
 import type { GraphNode } from "../Graph/types";
-import { useGraphStore } from "../../store/graphStore";
+import { selectIsPlaying, selectRunIt, useGraphStore, type RunItState } from "../../store/graphStore";
 import { useSettingsStore, type NotebookPage } from "../../store/settingsStore";
 import {
   keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
 } from "../../utils/visualization/runView";
+import { canRunIt } from "../../utils/visualization/runIt";
 import { DataStructureVis } from "./DataStructureVis";
 import "./notebook.css";
 
 const nameOf = (nodes: readonly GraphNode[], id: number) => nodes.find((n) => n.id === id)?.label || String(id);
+
+/** Text with node ids marked (`nid`), each shown as its node's label. */
+const named = (nodes: readonly GraphNode[], text: string) => text.replace(/\{n:(\d+)\}/g, (_, id) => nameOf(nodes, Number(id)));
 
 /** Scrolls the notebook page holding `row` just enough to show it whole (below a pinned header), never the screen behind it. */
 function keepInView(row: Element | null | undefined) {
@@ -247,35 +257,122 @@ export function Scrubber({ index, total, onScrub, moments, className }: {
   );
 }
 
+/**
+ * Watch the run, or run it yourself. Offered for every algorithm that makes choices; Bellman-Ford
+ * checks its edges in one fixed order, so its Run it stays off, saying why.
+ */
+function ModeSwitch({ run, runIt }: { run: Run; runIt: RunItState | null }) {
+  const setRunItMode = useGraphStore((s) => s.setRunItMode);
+  const steerable = canRunIt(run);
+  const runItem = <SegmentedControlItem value="run" disabled={!steerable}>Run it</SegmentedControlItem>;
+  return (
+    <SegmentedControl
+      aria-label="Run mode"
+      value={runIt ? "run" : "watch"}
+      onValueChange={(v) => v && setRunItMode(v === "run")}
+      // A click leaves no focus on the switch, so the arrow keys go on stepping the run (with a keyboard, Tab to it).
+      onClick={(e) => {
+        if (e.detail > 0) (document.activeElement as HTMLElement | null)?.blur();
+      }}
+    >
+      <SegmentedControlItem value="watch">Watch</SegmentedControlItem>
+      {steerable ? runItem : (
+        <Tooltip>
+          <TooltipTrigger render={<span className="nb-mode-off" tabIndex={0} />}>{runItem}</TooltipTrigger>
+          <TooltipContent>{`${algorithmRegistry.get(run.algorithmId)?.metadata.name ?? "This algorithm"} checks every edge in a fixed order, so there is nothing to pick`}</TooltipContent>
+        </Tooltip>
+      )}
+    </SegmentedControl>
+  );
+}
+
+/**
+ * Run it's part of the notebook, under the step's sentence: at the learner's turn, the question and
+ * what the last pick said (why it is not the one, and after two tries a hint naming the valid picks);
+ * between turns, what the last good pick said. With a keyboard, the graph's nodes can be picked from
+ * a row of keys that shows once it has focus.
+ */
+function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: RunItState; nodes: GraphNode[] }) {
+  const pickNode = useGraphStore((s) => s.pickNode);
+  const restart = useGraphStore((s) => s.restartRunIt);
+  const playing = useGraphStore(selectIsPlaying);
+  const { turn, said: last, tries } = runIt;
+  const waiting = turn !== null && index === turn.limit;
+  // What the last pick said shows from the step it was said at on, never on the steps before it.
+  const said = last && index >= last.at ? last : null;
+  const end = run.ends.length - 1;
+  const how = waiting ? "Click it on the graph"
+    : turn !== null ? (playing ? "Playing on to your turn" : `Your turn comes at step ${turn.limit + 1}`)
+    : index === end ? (last ? "That's the whole run, picked your way" : "Nothing is left to pick in this run")
+    : playing ? "Playing on to the end" : "";
+  const decision = turn ? (run.events[turn.event] as DecideEvent) : null;
+  const keys = [...nodes].sort((a, b) => nameOf(nodes, a.id).localeCompare(nameOf(nodes, b.id), undefined, { numeric: true }));
+  return (
+    <section className="nb-turn" aria-label="Your turn" data-waiting={waiting || undefined}>
+      <div aria-live="polite" className="nb-turn-words">
+        {said?.tone === "yes" && <p className="nb-turn-yes">{named(nodes, said.text)}</p>}
+        {waiting && decision && (
+          <p className="nb-turn-ask">{named(nodes, question(run.algorithmId, decision, frameAt(run.events, turn.event)))}</p>
+        )}
+        {waiting && said?.tone === "miss" && <p className="nb-turn-miss">{named(nodes, said.text)}</p>}
+        {waiting && decision && tries >= 2 && <p className="nb-turn-hint">{named(nodes, hint(run.algorithmId, decision))}</p>}
+      </div>
+      {waiting && (
+        <div className="nb-pick" role="group" aria-label="Pick a node">
+          {keys.map((node) => (
+            <button key={node.id} type="button" className="nb-pick-key" onClick={() => pickNode(node.id)}>
+              {nameOf(nodes, node.id)}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="nb-turn-foot">
+        <p className="nb-turn-how">{how}</p>
+        <Button variant="ghost" size="sm" onClick={restart}>Start over</Button>
+      </div>
+    </section>
+  );
+}
+
 export interface NotebookProps {
   run: Run;
   /** The step on screen, 0 to N - 1. */
   index: number;
   desktop: boolean;
+  /** Whether Run it is offered here (desktop and wide windows, not phones). */
+  runItHere?: boolean;
   /** The step keys, in the head on desktop. */
   controls?: ReactNode;
   onScrub: (index: number) => void;
 }
 
-export function Notebook({ run, index, desktop, controls, onScrub }: NotebookProps) {
+export function Notebook({ run, index, desktop, runItHere = false, controls, onScrub }: NotebookProps) {
   const nodes = useGraphStore(useShallow((s) => s.data.nodes));
   const page = useSettingsStore((s) => s.notebookPage);
   const setPage = useSettingsStore((s) => s.setNotebookPage);
   const adapter = algorithmRegistry.get(run.algorithmId);
   const narration = useMemo(() => narrate(run.events, run.algorithmId), [run]);
-  const moments = useMemo(() => keyMoments(run), [run]);
-  const sentence = (narration[index] ?? "").replace(/\{n:(\d+)\}/g, (_, id) => nameOf(nodes, Number(id)));
+  const runIt = useGraphStore(selectRunIt);
+  const allMoments = useMemo(() => keyMoments(run), [run]);
+  // In Run it the run past the learner's turn is not decided yet: its moments are left off.
+  const limit = runIt?.turn?.limit;
+  const moments = limit === undefined ? allMoments : allMoments.filter((m) => m.index <= limit);
+  const sentence = named(nodes, narration[index] ?? "");
   const lit = lineAt(run, index);
 
   return (
     <Panel className="nb" role="region" aria-label="Notebook">
       {desktop && (
         <header className="nb-head">
-          <span className="gs-label">{adapter?.metadata.name}</span>
+          <div className="nb-head-row">
+            <span className="gs-label">{adapter?.metadata.name}</span>
+            {runItHere && <ModeSwitch run={run} runIt={runIt} />}
+          </div>
           {controls}
         </header>
       )}
       <Narration text={sentence} />
+      {runItHere && runIt && <Turn run={run} index={index} runIt={runIt} nodes={nodes} />}
       <Tabs value={page} onValueChange={(v) => setPage(v as NotebookPage)} className="nb-tabs">
         <TabsList aria-label="Notebook page">
           <TabsTab value="code">Code</TabsTab>

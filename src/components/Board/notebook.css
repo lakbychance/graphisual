@@ -39,6 +39,69 @@
 }
 .nb-head { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .nb-head .gs-label { padding-left: 2px; }
+/* The algorithm's name, and Watch / Run it at the far end of the same line. */
+.nb-head-row { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.nb-mode-off { display: inline-flex; }
+
+/* ------------------------------------------------------------------ run it */
+
+/*
+ * The learner's turn, under the step's sentence: the question, then what the last pick said. Calm
+ * throughout: a wrong pick reads in the text colour, set off only by a rule, never alarm red.
+ */
+.nb-turn {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-interactive-hover);
+}
+.nb-turn[data-waiting] { box-shadow: inset 3px 0 0 var(--color-state-current); }
+.nb-turn-words { display: flex; flex-direction: column; gap: 4px; }
+.nb-turn-words p { margin: 0; text-wrap: pretty; }
+.nb-turn-ask { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--color-text); }
+.nb-turn-how { font-size: 12.5px; color: var(--color-text-muted); }
+.nb-turn-yes { font-size: 13.5px; line-height: 1.4; color: var(--color-text-muted); }
+.nb-turn-miss,
+.nb-turn-hint {
+  margin-top: 4px !important;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+.nb-turn-hint { border-top: 0; padding-top: 0; margin-top: 0 !important; color: var(--color-text-muted); font-size: 13.5px; }
+.nb-turn-foot { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -2px -6px -4px 0; }
+.nb-turn-foot .nb-turn-how { margin: 0; }
+
+/* Keys to pick a node with the keyboard: out of sight until one of them has focus. */
+.nb-pick { display: flex; flex-wrap: wrap; gap: 4px; }
+.nb-pick:not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.nb-pick-key {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.nb-pick-key:hover { background: var(--color-surface-hover); }
+.nb-pick-key:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-offset); }
 
 .nb-words {
   flex: none;

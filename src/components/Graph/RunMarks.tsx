@@ -30,13 +30,20 @@ export interface MarkOptions {
 /** The app's set: a value on every node from the start, and queue or stack places. */
 export const APP_MARKS: MarkOptions = { values: "all", slots: true };
 
-/** The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`. */
+/**
+ * The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`.
+ * In Run it the queue and stack places are left off throughout: place 1 would give the next pick away.
+ */
 export function useRunMarks(wanted = true): { index: number; marks: RunMarks } | null {
   const run = useGraphStore(selectStepRun);
   const index = useGraphStore(selectStepIndex);
   const running = useGraphStore((s) => s.visualization.state === VisualizationState.RUNNING);
+  const runningItYourself = useGraphStore((s) => s.visualization.runIt !== null);
   if (!wanted || !running || run.ends.length === 0) return null;
-  return { index, marks: runMarksAt(run, index) };
+  const marks = runMarksAt(run, index);
+  if (!runningItYourself) return { index, marks };
+  const nodes = new Map([...marks.nodes].map(([id, { slot: _slot, ...badge }]) => [id, badge]));
+  return { index, marks: { ...marks, nodes } };
 }
 
 export interface MarkLayerProps {

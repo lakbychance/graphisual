@@ -44,5 +44,5 @@ export function buildRun(
     const problem = refusal.replace(/\{n:(\d+)\}/g, (_, nodeId) => nodes.find((n) => n.id === Number(nodeId))?.label || nodeId);
     return { problem, severity: "error" };
   }
-  return { run: createRun(id, events, [...adjacencyList.keys()]) };
+  return { run: createRun(id, events, [...adjacencyList.keys()], input) };
 }
