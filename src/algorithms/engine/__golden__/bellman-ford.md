@@ -17,6 +17,20 @@ From A to F. Edges: A–B 4, A–C 2, C–B 1, B–D 5, C–E 9, D–E 2, D–F 
 11. Round 3: checking every edge improves nothing, so every distance is final and there is no negative cycle
 12. Walk back from F to read the route: A → C → B → D → F, total distance 11
 
+## Standard graph, in Run it
+
+From A to F. Edges: A–B 4, A–C 2, C–B 1, B–D 5, C–E 9, D–E 2, D–F 3, E–F 6
+
+Asks 2 times in 12 steps
+
+After step 4: Does C → B lower B's distance?
+- Yes: Right, it does — 2 + 1 = 3, which beats 4
+- No: It does — 2 + 1 = 3, which beats 4
+
+After step 8: Does D → E lower E's distance?
+- Yes: Right, it does — 8 + 2 = 10, which beats 11
+- No: It does — 8 + 2 = 10, which beats 11
+
 ## A negative edge
 
 From A to D. Edges: A→B 2, A→C 5, C→B −4, B→D 1
@@ -29,6 +43,16 @@ From A to D. Edges: A→B 2, A→C 5, C→B −4, B→D 1
  6. Round 2: A → B and A → C are no better; B → D costs 1: 1 + 1 = 2 beats 3, so D's distance drops to 2; C → B is no better
  7. Round 3: checking every edge improves nothing, so every distance is final and there is no negative cycle
  8. Walk back from D to read the route: A → C → B → D, total distance 2
+
+## A negative edge, in Run it
+
+From A to D. Edges: A→B 2, A→C 5, C→B −4, B→D 1
+
+Asks 1 time in 8 steps
+
+After step 4: Does C → B lower B's distance?
+- Yes: Right, it does — 5 − 4 = 1, which beats 2
+- No: It does — 5 − 4 = 1, which beats 2
 
 ## A negative cycle
 
@@ -126,3 +150,25 @@ From 1 to 12. Edges: 1→2 4, 1→5 2, 1→6 6, 2→3 3, 2→6 5, 2→7 9, 3→4
 21. Round 2: 5 edges are no better; 11 → 12 costs 2: 12 + 2 = 14 beats 15, so 12's distance drops to 14; 6 → 7 and 6 → 10 are no better
 22. Round 3: checking every edge improves nothing, so every distance is final and there is no negative cycle
 23. Walk back from 12 to read the route: 1 → 6 → 7 → 11 → 12, total distance 14
+
+## The graph the app generates, in Run it
+
+From 1 to 12. Edges: 1→2 4, 1→5 2, 1→6 6, 2→3 3, 2→6 5, 2→7 9, 3→4 8, 3→7 4, 3→6 3, 4→8 3, 4→12 12, 5→6 7, 5→9 15, 5→10 8, 7→8 3, 7→11 4, 7→10 5, 8→12 5, 8→11 6, 9→10 12, 10→11 3, 11→12 2, 6→7 2, 6→10 6
+
+Asks 4 times in 23 steps
+
+After step 5: Does 2 → 6 lower 6's distance?
+- No: Right, it doesn't — 4 + 5 = 9, which is no better than 6
+- Yes: It doesn't — 4 + 5 = 9, which is no better than 6
+
+After step 10: Does 5 → 6 lower 6's distance?
+- No: Right, it doesn't — 2 + 7 = 9, which is no better than 6
+- Yes: It doesn't — 2 + 7 = 9, which is no better than 6
+
+After step 14: Does 8 → 12 lower 12's distance?
+- Yes: Right, it does — 14 + 5 = 19, which beats 27
+- No: It does — 14 + 5 = 19, which beats 27
+
+After step 18: Does 7 → 8 lower 8's distance?
+- Yes: Right, it does — 8 + 3 = 11, which beats 14
+- No: It does — 8 + 3 = 11, which beats 14

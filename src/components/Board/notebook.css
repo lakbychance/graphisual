@@ -41,12 +41,12 @@
 .nb-head .gs-label { padding-left: 2px; }
 /* The algorithm's name, and Watch / Run it at the far end of the same line. */
 .nb-head-row { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
-.nb-mode-off { display: inline-flex; }
 
 /* ------------------------------------------------------------------ run it */
 
 /*
- * The learner's turn, under the step's sentence: the question, then what the last pick said. Calm
+ * The learner's turn, under the step's sentence: the question, then what the last pick or answer
+ * got back. Calm
  * throughout: a wrong pick reads in the text colour, set off only by a rule, never alarm red.
  */
 .nb-turn {
@@ -74,10 +74,16 @@
   line-height: 1.45;
   color: var(--color-text);
 }
+/* Bellman-Ford's reply to a wrong or skipped answer stands alone, with no question above it to set it off from. */
+.nb-turn-words > .nb-turn-miss:first-child { border-top: 0; padding-top: 0; margin-top: 0 !important; }
 .nb-turn-hint { border-top: 0; padding-top: 0; margin-top: 0 !important; color: var(--color-text-muted); font-size: 13.5px; }
 .nb-turn-foot { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -2px -6px -4px 0; }
 .nb-turn-foot .nb-turn-how { margin: 0; text-wrap: balance; }
 .nb-turn-keys { flex: none; display: flex; gap: 2px; }
+
+/* Bellman-Ford's Yes / No, side by side under its question (Skip at the far end of the row). */
+.nb-answer { display: flex; gap: 6px; }
+.nb-answer .gs-button { min-width: 64px; }
 
 /* Keys to pick a node with the keyboard: out of sight until one of them has focus. */
 .nb-pick { display: flex; flex-wrap: wrap; gap: 4px; }

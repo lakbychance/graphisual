@@ -187,11 +187,12 @@ export interface NodeBadge {
  * - `tentative`: a best-so-far parent link that may still change
  * - `tree`: a final parent link
  * - `branch`: a depth-first search's tree edge into a node it is still in (the branch it is on)
+ * - `ask`: in Bellman-Ford's Run it, the edge a question asks about, while the run waits for the answer (the app adds it)
  *
  * A depth-first search's edge classes (back, forward, cross) stay in the engine for its rule checks;
  * the graph does not show them.
  */
-export type RunMarkKind = "change" | "loop" | "tentative" | "tree" | "branch";
+export type RunMarkKind = "change" | "loop" | "tentative" | "tree" | "branch" | "ask";
 
 export interface RunMark {
   from: number;

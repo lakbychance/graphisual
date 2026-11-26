@@ -12,7 +12,7 @@ import { useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 import type { GraphEdge, GraphNode } from "./types";
 import type { GraphLayers } from "./Graph";
-import { selectStepIndex, selectStepRun, useGraphStore } from "@/store/graphStore";
+import { selectAskedEdge, selectStepIndex, selectStepRun, useGraphStore } from "@/store/graphStore";
 import { VisualizationState } from "@/constants/visualization";
 import { runMarksAt, type NodeBadge, type RunMarks } from "@/utils/visualization/runView";
 import {
@@ -28,13 +28,20 @@ export interface MarkOptions {
 /** The app's set: a value on every node from the start. */
 export const APP_MARKS: MarkOptions = { values: "all" };
 
-/** The step on screen's marks, or null outside a run (badges are never shown while editing) or when not `wanted`. */
+/**
+ * The step on screen's marks, or null outside a run (badges are never shown while editing) or when not
+ * `wanted`. While Bellman-Ford's Run it waits at a question about an edge, that edge is marked too (`ask`).
+ */
 export function useRunMarks(wanted = true): { index: number; marks: RunMarks } | null {
   const run = useGraphStore(selectStepRun);
   const index = useGraphStore(selectStepIndex);
   const running = useGraphStore((s) => s.visualization.state === VisualizationState.RUNNING);
+  const asked = useGraphStore(selectAskedEdge);
   if (!wanted || !running || run.ends.length === 0) return null;
-  return { index, marks: runMarksAt(run, index) };
+  const marks = runMarksAt(run, index);
+  const checked = asked === null ? null : run.events[asked];
+  if (checked && (checked.type === "relax" || checked.type === "skip")) marks.edges.push({ from: checked.from, to: checked.to, kind: "ask" });
+  return { index, marks };
 }
 
 export interface MarkLayerProps {
@@ -80,6 +87,7 @@ function EdgeMarks({ marks, nodes, edges, zoom }: MarkLayerProps) {
         const style = MARK_STYLE[mark.kind];
         const d = linePath(g.line);
         const change = mark.kind === "change";
+        const ask = mark.kind === "ask";
         const stroke = `var(${style.stroke})`;
         return (
           <g key={`${mark.kind}-${mark.from}-${mark.to}`}>
@@ -96,12 +104,13 @@ function EdgeMarks({ marks, nodes, edges, zoom }: MarkLayerProps) {
               <Chevron x={g.chevron.x} y={g.chevron.y} angle={g.chevron.angle} size={5 * k}
                 color={isStepEdge(mark.kind) ? stroke : "var(--color-edge-traversal)"} />
             )}
-            {/* The weight stays readable over the drawn edge; on this step's edge it is part of the change. */}
-            {g.weight !== null && mark.kind !== "tree" && (
+            {/* The weight stays readable over the drawn edge; on this step's edge it is part of the change. The edge a
+                question asks about always shows its weight, even the 1 the graph leaves unwritten. */}
+            {(ask || (g.weight !== null && mark.kind !== "tree")) && (
               <g transform={`translate(${g.label.x} ${g.label.y})`}>
-                <rect x={-12} y={-10} width={24} height={20} rx={4} fill={change ? "var(--color-state-change)" : "var(--color-paper)"} />
+                <rect x={-12} y={-10} width={24} height={20} rx={4} fill={ask ? "var(--color-state-current)" : change ? "var(--color-state-change)" : "var(--color-paper)"} />
                 <text textAnchor="middle" dominantBaseline="central" className="font-semibold text-sm lg:text-xs"
-                  fill={change ? "var(--color-state-change-text)" : "var(--color-text)"}>{g.weight}</text>
+                  fill={ask ? "var(--color-paper)" : change ? "var(--color-state-change-text)" : "var(--color-text)"}>{ask ? g.cost : g.weight}</text>
               </g>
             )}
           </g>

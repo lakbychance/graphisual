@@ -10,6 +10,8 @@
  * `runIt.ts`): the run plays on its own to each decision a learner could get wrong, and below the
  * sentence the notebook asks what comes next, says why a pick is not the one, gives a clue after two
  * tries and names the answer after three. New graph runs it again on a fresh graph (`freshGraph.ts`).
+ * Bellman-Ford has nothing to pick: its Run it stops now and then to ask, Yes or No, whether an edge
+ * lowers a distance, says whether the answer is right and why, and plays on either way.
  *
  * The rework lab's notebook variant is this component too.
  */
@@ -22,7 +24,7 @@ import {
 } from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { clue, frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
+import { clue, edgeQuestion, edgeQuestions, frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
 import { num } from "../Graph/runMarkShapes";
 import type { GraphNode } from "../Graph/types";
 import { selectIsPlaying, selectRunIt, useGraphStore, type RunItState } from "../../store/graphStore";
@@ -30,7 +32,7 @@ import { useSettingsStore, type NotebookPage } from "../../store/settingsStore";
 import {
   keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
 } from "../../utils/visualization/runView";
-import { canRunIt } from "../../utils/visualization/runIt";
+import { asksYesNo, canRunIt } from "../../utils/visualization/runIt";
 import { DataStructureVis } from "./DataStructureVis";
 import "./notebook.css";
 
@@ -259,14 +261,9 @@ export function Scrubber({ index, total, onScrub, moments, className }: {
   );
 }
 
-/**
- * Watch the run, or run it yourself. Offered for every algorithm that makes choices; Bellman-Ford
- * checks its edges in one fixed order, so its Run it stays off, saying why.
- */
+/** Watch the run, or run it yourself. */
 function ModeSwitch({ run, runIt }: { run: Run; runIt: RunItState | null }) {
   const setRunItMode = useGraphStore((s) => s.setRunItMode);
-  const steerable = canRunIt(run);
-  const runItem = <SegmentedControlItem value="run" disabled={!steerable}>Run it</SegmentedControlItem>;
   return (
     <SegmentedControl
       aria-label="Run mode"
@@ -278,12 +275,7 @@ function ModeSwitch({ run, runIt }: { run: Run; runIt: RunItState | null }) {
       }}
     >
       <SegmentedControlItem value="watch">Watch</SegmentedControlItem>
-      {steerable ? runItem : (
-        <Tooltip>
-          <TooltipTrigger render={<span className="nb-mode-off" tabIndex={0} />}>{runItem}</TooltipTrigger>
-          <TooltipContent>{`${algorithmRegistry.get(run.algorithmId)?.metadata.name ?? "This algorithm"} checks every edge in a fixed order, so there is nothing to pick`}</TooltipContent>
-        </Tooltip>
-      )}
+      <SegmentedControlItem value="run" disabled={!canRunIt(run)}>Run it</SegmentedControlItem>
     </SegmentedControl>
   );
 }
@@ -309,26 +301,35 @@ function newGraph() {
  * what the last pick said (why it is not the one; after two tries a clue, the algorithm's rule, and
  * after three a hint naming the valid picks); between turns, what the last good pick said. With a
  * keyboard, the graph's nodes can be picked from a row of keys that shows once it has focus.
+ * Bellman-Ford's turn is a Yes / No question about an edge, with Skip; between turns, what the last
+ * answer got back.
  */
 function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: RunItState; nodes: GraphNode[] }) {
   const pickNode = useGraphStore((s) => s.pickNode);
+  const answer = useGraphStore((s) => s.answerQuestion);
+  const yesNo = asksYesNo(run);
   const restart = useGraphStore((s) => s.restartRunIt);
   const playing = useGraphStore(selectIsPlaying);
   const { turn, said: last, tries } = runIt;
   const waiting = turn !== null && index === turn.limit;
   // What the last pick said shows from the step it was said at on, never on the steps before it.
-  const said = last && index >= last.at ? last : null;
+  const said = last && index >= last.at && !(yesNo && waiting) ? last : null;
   const end = run.ends.length - 1;
-  const how = waiting ? "Click it on the graph"
+  const how = waiting ? (yesNo ? "" : "Click it on the graph")
     : turn !== null ? (playing ? "Playing on to your turn" : `Your turn comes at step ${turn.limit + 1}`)
-    : index === end ? (last ? "That's the whole run, picked your way" : "Nothing is left to pick in this run")
+    : index === end ? (yesNo ? "That's the whole run" : last ? "That's the whole run, picked your way" : "Nothing is left to pick in this run")
+    // Bellman-Ford on a graph with no edge check worth asking about says so from the start.
+    : yesNo && edgeQuestions(run.algorithmId, run.events).length === 0 ? "Nothing to ask on this graph — watch it play"
     : playing ? "Playing on to the end" : "";
-  const decision = turn ? (run.events[turn.event] as DecideEvent) : null;
+  const decision = turn && !yesNo ? (run.events[turn.event] as DecideEvent) : null;
+  const asked = turn && yesNo ? edgeQuestions(run.algorithmId, run.events)[turn.decision] : null;
   const keys = [...nodes].sort((a, b) => nameOf(nodes, a.id).localeCompare(nameOf(nodes, b.id), undefined, { numeric: true }));
   return (
     <section className="nb-turn" aria-label="Your turn" data-waiting={waiting || undefined}>
       <div aria-live="polite" className="nb-turn-words">
         {said?.tone === "yes" && <p className="nb-turn-yes">{named(nodes, said.text)}</p>}
+        {said?.tone === "note" && <p className="nb-turn-miss">{named(nodes, said.text)}</p>}
+        {waiting && asked && <p className="nb-turn-ask">{named(nodes, edgeQuestion(asked, run.events))}</p>}
         {waiting && decision && (
           <p className="nb-turn-ask">{named(nodes, question(run.algorithmId, decision, frameAt(run.events, turn.event)))}</p>
         )}
@@ -339,7 +340,7 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
           </p>
         )}
       </div>
-      {waiting && (
+      {waiting && decision && (
         <div className="nb-pick" role="group" aria-label="Pick a node">
           {keys.map((node) => (
             <button key={node.id} type="button" className="nb-pick-key" onClick={() => pickNode(node.id)}>
@@ -349,10 +350,17 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
         </div>
       )}
       <div className="nb-turn-foot">
-        <p className="nb-turn-how">{how}</p>
+        {waiting && asked ? (
+          <div className="nb-answer" role="group" aria-label="Your answer">
+            <Button size="sm" onClick={() => answer(true)}>Yes</Button>
+            <Button size="sm" onClick={() => answer(false)}>No</Button>
+          </div>
+        ) : <p className="nb-turn-how">{how}</p>}
         <div className="nb-turn-keys">
+          {waiting && asked && <Button variant="ghost" size="sm" onClick={() => answer(null)}>Skip</Button>}
           <Button variant="ghost" size="sm" onClick={restart}>Start over</Button>
-          <Button variant="ghost" size="sm" onClick={newGraph}>New graph</Button>
+          {/* Fresh practice graphs are made for the algorithms with choices to pick. */}
+          {!yesNo && <Button variant="ghost" size="sm" onClick={newGraph}>New graph</Button>}
         </div>
       </div>
     </section>

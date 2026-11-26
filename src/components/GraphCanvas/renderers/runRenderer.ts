@@ -68,18 +68,20 @@ export function drawRunEdgeMarks(
       ctx.restore();
     }
 
-    // The weight stays readable over the drawn edge; on this step's edge it is part of the change.
-    if (g.weight !== null && mark.kind !== "tree") {
+    // The weight stays readable over the drawn edge; on this step's edge it is part of the change. The edge a
+    // question asks about always shows its weight, even the 1 the graph leaves unwritten.
+    const ask = mark.kind === "ask";
+    if (ask || (g.weight !== null && mark.kind !== "tree")) {
       ctx.save();
-      ctx.fillStyle = getCSSVar(change ? "--color-state-change" : "--color-paper");
+      ctx.fillStyle = getCSSVar(ask ? "--color-state-current" : change ? "--color-state-change" : "--color-paper");
       ctx.beginPath();
       ctx.roundRect(g.label.x - 12, g.label.y - 10, 24, 20, 4);
       ctx.fill();
       ctx.font = `600 12px 'Outfit', system-ui, sans-serif`;
-      ctx.fillStyle = getCSSVar(change ? "--color-state-change-text" : "--color-text");
+      ctx.fillStyle = getCSSVar(ask ? "--color-paper" : change ? "--color-state-change-text" : "--color-text");
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(g.weight), g.label.x, g.label.y);
+      ctx.fillText(String(ask ? g.cost : g.weight), g.label.x, g.label.y);
       ctx.restore();
     }
   }

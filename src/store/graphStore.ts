@@ -12,10 +12,10 @@ import { devtools } from "zustand/middleware";
 import { GraphNode, GraphEdge, GraphSnapshot, SelectedOption, VisualizationTrace } from "../components/Graph/types";
 import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { emptyRun, emptyTrace, highlightsAt, type Run } from "../utils/visualization/runView";
-import { canRunIt, decidedBy, steerRun, takenAt, turnFrom, type Turn } from "../utils/visualization/runIt";
+import { asksYesNo, canRunIt, decidedBy, steerRun, takenAt, turnFrom, type Turn } from "../utils/visualization/runIt";
 import { freshGraph } from "../utils/visualization/freshGraph";
 import { buildRun } from "../utils/visualization/buildRun";
-import { accepted, frameAt, misconception, type DecideEvent } from "../algorithms/engine";
+import { accepted, edgeQuestions, edgeReply, frameAt, misconception, type DecideEvent } from "../algorithms/engine";
 import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
@@ -38,7 +38,8 @@ interface StepState {
 /**
  * Run it yourself (see `runIt.ts`): the learner picks the next node where the run waits for them.
  * `picks` holds the node taken at each decision so far (the learner's, forced ones filled in);
- * the run is the algorithm steered by them. Absent while watching.
+ * the run is the algorithm steered by them. In Bellman-Ford the run waits at a Yes / No question
+ * instead, and `picks` stays empty. Absent while watching.
  */
 export interface RunItState {
   picks: number[];
@@ -46,8 +47,12 @@ export interface RunItState {
   turn: Turn | null;
   /** Wrong picks at this turn so far. */
   tries: number;
-  /** What the run said about the last pick: why it is not the one, or that it is (node ids marked), and the step it was said at. */
-  said: { tone: "miss" | "yes"; text: string; at: number } | null;
+  /**
+   * What the run said about the last pick: why it is not the one, or that it is (node ids marked), and
+   * the step it was said at. In Bellman-Ford, the reply to the last answer: `yes` when it was right,
+   * `note` when it was wrong or skipped (it says what the edge does, and why).
+   */
+  said: { tone: "miss" | "yes" | "note"; text: string; at: number } | null;
 }
 
 interface Visualization {
@@ -144,6 +149,8 @@ interface GraphActions {
   setRunItMode: (on: boolean) => void;
   /** The learner picks `nodeId` at the turn the run waits at; nothing happens anywhere else. */
   pickNode: (nodeId: number) => void;
+  /** Bellman-Ford: the learner answers the question the run waits at, Yes or No (null skips it); the run plays on either way. */
+  answerQuestion: (answer: boolean | null) => void;
   /** Run it again from the start, with no picks. */
   restartRunIt: () => void;
   /**
@@ -941,7 +948,7 @@ export const useGraphStore = create<GraphStore>()(
           // The decisions already on screen stand as made; the run plays on to the learner's first turn.
           const index = Math.max(0, step.index);
           const picks = takenAt(step.run).slice(0, decidedBy(step.run, index));
-          const turn = turnFrom(step.run, picks.length);
+          const turn = turnFrom(step.run, asksYesNo(step.run) ? decidedBy(step.run, index) : picks.length);
           const runIt: RunItState = { picks, turn, tries: 0, said: null };
           set({ visualization: { ...visualization, runIt, step: { ...step, isAutoPlaying: index < lastShown({ ...visualization, runIt }) } } });
         },
@@ -950,7 +957,7 @@ export const useGraphStore = create<GraphStore>()(
           const { visualization, data } = get();
           const { runIt, step } = visualization;
           const turn = runIt?.turn;
-          if (!runIt || !turn || step.index !== turn.limit) return;
+          if (!runIt || !turn || step.index !== turn.limit || asksYesNo(step.run)) return;
           const picks = [...takenAt(step.run).slice(0, turn.decision), nodeId];
           const steered = steerRun(step.run, picks);
           if (steered.rejected) {
@@ -965,6 +972,20 @@ export const useGraphStore = create<GraphStore>()(
           const shown = { ...visualization, runIt: next, step: { ...step, run: steered.run } };
           // Show the pick taken, then play on to the next turn.
           set({ visualization: { ...shown, step: { ...shown.step, isAutoPlaying: step.index + 1 < lastShown(shown) } } });
+          goToStep(step.index + 1);
+        },
+
+        answerQuestion: (answer) => {
+          const { visualization } = get();
+          const { runIt, step } = visualization;
+          const turn = runIt?.turn;
+          if (!runIt || !turn || step.index !== turn.limit || !asksYesNo(step.run)) return;
+          const reply = edgeReply(edgeQuestions(step.run.algorithmId, step.run.events)[turn.decision], step.run.events, answer);
+          const said = { tone: reply.tone === "right" ? "yes" as const : "note" as const, text: reply.text, at: step.index + 1 };
+          const next: RunItState = { ...runIt, turn: turnFrom(step.run, turn.decision + 1), said };
+          const shown = { ...visualization, runIt: next };
+          // Whatever the answer, show what the edge does, then play on to the next question.
+          set({ visualization: { ...shown, step: { ...step, isAutoPlaying: step.index + 1 < lastShown(shown) } } });
           goToStep(step.index + 1);
         },
 
@@ -1072,11 +1093,16 @@ export const selectIsInStepMode = (state: GraphStore) =>
 export const selectCanStepForward = (state: GraphStore) =>
   selectIsInStepMode(state) && state.visualization.step.index < lastShown(state.visualization);
 export const selectRunIt = (state: GraphStore) => state.visualization.runIt;
-/** The run waits on screen for the learner's pick. */
-export const selectIsAwaitingPick = (state: GraphStore) => {
+/** The run waits on screen for the learner's turn: a pick, or in Bellman-Ford a Yes / No answer. */
+const selectIsAwaitingTurn = (state: GraphStore) => {
   const turn = state.visualization.runIt?.turn;
   return !!turn && selectIsInStepMode(state) && state.visualization.step.index === turn.limit;
 };
+/** The run waits on screen for the learner's pick of a node. */
+export const selectIsAwaitingPick = (state: GraphStore) => selectIsAwaitingTurn(state) && !asksYesNo(state.visualization.step.run);
+/** Bellman-Ford: the event of the edge check the run waits on screen for a Yes / No about, or null. */
+export const selectAskedEdge = (state: GraphStore) =>
+  selectIsAwaitingTurn(state) && asksYesNo(state.visualization.step.run) ? state.visualization.runIt!.turn!.event : null;
 export const selectCanStepBackward = (state: GraphStore) =>
   selectIsInStepMode(state) && state.visualization.step.index > 0;
 

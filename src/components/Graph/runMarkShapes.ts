@@ -4,6 +4,7 @@
  */
 import type { RunMark, RunMarkKind } from "@/utils/visualization/runView";
 import { EDGE, EDGE_TYPE } from "@/constants/graph";
+import { NODE_RUN_RING } from "@/constants/ui";
 import { getControlPoint } from "@/utils/geometry/calc";
 import type { GraphEdge, GraphNode } from "./types";
 
@@ -18,10 +19,11 @@ export const MARK_STYLE: Record<MarkKind, { stroke: string; width: number; dash?
   tentative: { stroke: "--color-edge-traversal", width: 2.5, dash: [7, 6] },
   tree: { stroke: "--color-edge-traversal", width: 2.5, opacity: 0 },
   branch: { stroke: "--color-edge-traversal", width: 6, opacity: 0.85 },
+  ask: { stroke: "--color-state-current", width: 4, dash: [7, 5] },
 };
 
-/** This step's edge: the change it made, or the loop cycle detection found. */
-export const isStepEdge = (kind: MarkKind) => kind === "change" || kind === "loop";
+/** This step's edge: the change it made, the loop cycle detection found, or the edge Bellman-Ford's Run it asks about. */
+export const isStepEdge = (kind: MarkKind) => kind === "change" || kind === "loop" || kind === "ask";
 
 /** Badges keep a readable size on screen whatever the zoom: they grow by 1 / zoom, within limits. */
 export const markScale = (zoom: number) => Math.min(1.8, Math.max(1, 1 / zoom));
@@ -44,7 +46,13 @@ export interface RunBadges {
   valueWidth: number;
 }
 
-/** The box the nodes and their badges cover, in graph units, with badges grown by `k` (see `markScale`). */
+/** How far a run's ring reaches out from a node's rim: its gap, and half its widest stroke (see `NODE_RUN_RING`). */
+const RING_REACH = NODE_RUN_RING.GAP + NODE_RUN_RING.CURRENT_WIDTH / 2;
+
+/**
+ * The box the nodes (with the ring a run draws round them) and their badges cover, in graph units,
+ * with badges grown by `k` (see `markScale`).
+ */
 export function runBounds(nodes: readonly GraphNode[], badges: RunBadges, k: number) {
   const box = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
   const add = ({ x, y }: { x: number; y: number }, w: number, h: number) => {
@@ -54,7 +62,7 @@ export function runBounds(nodes: readonly GraphNode[], badges: RunBadges, k: num
     box.maxY = Math.max(box.maxY, y + h / 2);
   };
   for (const node of nodes) {
-    add(node, node.r * 2, node.r * 2);
+    add(node, (node.r + RING_REACH) * 2, (node.r + RING_REACH) * 2);
     if (badges.valueWidth > 0) add(VALUE_BADGE.at(node), badges.valueWidth * k, VALUE_BADGE.height * k);
   }
   return box;
@@ -67,6 +75,8 @@ export interface MarkGeometry {
   /** Where the edge's weight label sits, and the weight (null for an unweighted edge). */
   label: { x: number; y: number };
   weight: number | null;
+  /** The edge's weight as the algorithm counts it, written or not (a 1 is left unwritten on the graph). */
+  cost: number;
   chevron: { x: number; y: number; angle: number };
   directed: boolean;
   /** Walked against its arrow (a backtrack up a directed edge). */
@@ -93,7 +103,7 @@ export function markGeometry(mark: { from: number; to: number }, nodes: Map<numb
     const q = at(out ? t + 0.01 : t - 0.01);
     return {
       line: { x1: edge.x1, y1: edge.y1, x2: edge.x2, y2: edge.y2, cx, cy },
-      label: at(0.5), weight,
+      label: at(0.5), weight, cost: edge.weight ?? EDGE.DEFAULT_WEIGHT,
       chevron: { x: p.x, y: p.y, angle: Math.atan2(q.y - p.y, q.x - p.x) },
       directed: true, against: !out,
     };
@@ -106,7 +116,7 @@ export function markGeometry(mark: { from: number; to: number }, nodes: Map<numb
   const e = trim(b, a);
   return {
     line: { x1: s.x, y1: s.y, x2: e.x, y2: e.y },
-    label: { x: (edge.x1 + edge.nodeX2) / 2, y: (edge.y1 + edge.nodeY2) / 2 }, weight,
+    label: { x: (edge.x1 + edge.nodeX2) / 2, y: (edge.y1 + edge.nodeY2) / 2 }, weight, cost: edge.weight ?? EDGE.DEFAULT_WEIGHT,
     chevron: { x: s.x + (e.x - s.x) * 0.7, y: s.y + (e.y - s.y) * 0.7, angle: Math.atan2(b.y - a.y, b.x - a.x) },
     directed: false, against: false,
   };

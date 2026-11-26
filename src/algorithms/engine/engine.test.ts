@@ -21,8 +21,8 @@ import { generateCycleWithDeadEnd, generateWeighted, type GeneratedGraph } from 
 import { buildRun } from "@/utils/visualization/buildRun";
 import { FRESH_ALGORITHMS, freshGraph } from "@/utils/visualization/freshGraph";
 import {
-  accepted, applyEvent, asks, CATALOGUE, changes, clue, emptyFrame, familyOf, frameAt, misconception, narrate, stepEnds, steer,
-  type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
+  accepted, applyEvent, asks, CATALOGUE, changes, clue, edgeQuestion, edgeQuestions, edgeReply, emptyFrame, familyOf, frameAt, GAP, misconception, MOST,
+  narrate, stepEnds, steer, type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
 } from ".";
 import { nid } from "../traceHelpers";
 import { asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
@@ -551,6 +551,60 @@ const LURE_KINDS: Record<string, string[]> = {
 const SEEDS = 100;
 const PRIMS_SEEDS = 1000;
 
+/* ------------------------------------------------ Bellman-Ford's Run it questions */
+
+const shown = (value: number | undefined) => (value === undefined || value === Infinity ? "∞" : value < 0 ? `−${-value}` : String(value));
+
+describe("steering check: Bellman-Ford's Run it questions", () => {
+  it(`asks only at decisive edge checks, at most ${MOST} and never two within ${GAP} steps; Yes is right exactly when the edge then lowers the distance, and every why matches what the learner sees`, () => {
+    for (const { seed, input } of signedSuite) {
+      const events = eventsOf(bellmanFordAdapter, input);
+      const ends = stepEnds(events);
+      const asked = edgeQuestions("bellman-ford", events);
+      asked.forEach((q, i) => {
+        const at = `seed ${seed}, question after step ${q.limit + 1}`;
+        const e = events[q.event];
+        // An edge check of a round, on the step before the one that shows it, after a step has gone by.
+        expect(e.type === "relax" || (e.type === "skip" && e.reason === "not-shorter" && !e.check), `${at}: an edge check`).toBe(true);
+        const check = e as Extract<AlgorithmEvent, { type: "relax" | "skip" }>;
+        expect(q.limit, `${at}: waits before its answer`).toBe(ends.findIndex((end) => end > q.event) - 1);
+        expect(q.limit, at).toBeGreaterThanOrEqual(1);
+        // What the learner sees where it waits: the edge's two ends and its weight.
+        const seen = frameAt(events, ends[q.limit]);
+        const base = seen.dist.get(check.from)!;
+        const had = seen.dist.get(check.to) ?? Infinity;
+        const w = check.weight!;
+        // Decisive: the end already has a distance, and the sum takes a comparison.
+        expect(had, `${at}: the end has a distance`).not.toBe(Infinity);
+        expect(w < 0 || had > base, `${at}: worth a sum`).toBe(true);
+        expect(base + w === had && seen.prev.get(check.to) === check.from, `${at}: not the edge its distance came along`).toBe(false);
+        // Never stale: the edge's start has a new distance since the edge was last checked, so no question repeats.
+        const earlier = events.slice(0, q.event).map((x, k) => [x, k] as const).filter(([x]) =>
+          (x.type === "relax" || x.type === "skip") && x.from === check.from && x.to === check.to && x.weight === w);
+        if (earlier.length > 0) {
+          const [, k] = earlier[earlier.length - 1];
+          expect(frameAt(events, k).dist.get(check.from) ?? Infinity, `${at}: the start has moved since the last check`).not.toBe(base);
+        }
+        expect(asked.slice(0, i).some((p) => {
+          const a = events[p.event] as typeof check;
+          return a.from === check.from && a.to === check.to && frameAt(events, p.event).dist.get(a.from) === base && frameAt(events, p.event).dist.get(a.to) === had;
+        }), `${at}: not asked before`).toBe(false);
+        // Yes exactly when the run then lowers it, and a No is never followed on its own step by the end lowered another way.
+        expect(q.yes, at).toBe(check.type === "relax");
+        expect(q.yes, `${at}: the sum decides`).toBe(base + w < had);
+        const answerStep = events.slice(ends[q.limit], ends[q.limit + 1]);
+        expect(answerStep.filter(changes).every((c) => c === check || !(c.type === "relax" && c.to === check.to)), `${at}: no contradiction`).toBe(true);
+        const why = `${shown(base)} ${w < 0 ? "−" : "+"} ${Math.abs(w)} = ${shown(base + w)}, which ${q.yes ? "beats" : "is no better than"} ${shown(had)}`;
+        expect(edgeReply(q, events, q.yes), at).toEqual({ tone: "right", text: `Right, it ${q.yes ? "does" : "doesn't"} — ${why}` });
+        expect(edgeReply(q, events, !q.yes), at).toEqual({ tone: "wrong", text: `It ${q.yes ? "does" : "doesn't"} — ${why}` });
+        expect(edgeReply(q, events, null), at).toEqual({ tone: "skip", text: `It ${q.yes ? "does" : "doesn't"} — ${why}` });
+        if (i > 0) expect(q.limit - asked[i - 1].limit, `${at}: apart`).toBeGreaterThanOrEqual(GAP);
+      });
+      expect(asked.length, `seed ${seed}: sparse`).toBeLessThanOrEqual(Math.min(MOST, Math.ceil((ends.length - 1) / GAP)));
+    }
+  });
+});
+
 describe("steering check: fresh graphs", () => {
   for (const id of FRESH_ALGORITHMS) {
     it(`${id}: every fresh graph is valid input that the app plays, and every run of it a learner can make matches the oracle and waits for the learner at a tie and at a lure`, () => {
@@ -741,6 +795,21 @@ function transcript(
   return lines.join("\n");
 }
 
+/** Where Bellman-Ford's Run it stops to ask, and what Yes and No get back. */
+function questionTranscript(title: string, { input, edgeList, label = (id) => LABELS[id] }: Lettered) {
+  const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => label(Number(id)));
+  const events = eventsOf(bellmanFordAdapter, input);
+  const asked = edgeQuestions("bellman-ford", events);
+  const ends = input.endNodeId === undefined ? "" : ` to ${label(input.endNodeId)}`;
+  const lines = [`## ${title}, in Run it`, "", `From ${label(input.startNodeId)}${ends}. Edges: ${edgeList}`, ""];
+  lines.push(`Asks ${asked.length} ${asked.length === 1 ? "time" : "times"} in ${stepEnds(events).length} steps`);
+  for (const q of asked) {
+    lines.push("", `After step ${q.limit + 1}: ${plain(edgeQuestion(q, events))}`);
+    lines.push(`- ${q.yes ? "Yes" : "No"}: ${plain(edgeReply(q, events, q.yes).text)}`, `- ${q.yes ? "No" : "Yes"}: ${plain(edgeReply(q, events, !q.yes).text)}`);
+  }
+  return lines.join("\n");
+}
+
 /** A golden file: a title, then transcripts separated by blank lines. */
 const golden = (title: string, ...sections: string[]) => [`# ${title}`, "", ...sections.flatMap((s) => [s, ""])].join("\n");
 
@@ -781,7 +850,9 @@ describe("golden narration", () => {
     const text = golden(
       "Bellman-Ford",
       transcript(bellmanFordAdapter, "Standard graph", lettered(STANDARD, 6, 0, 5)),
+      questionTranscript("Standard graph", lettered(STANDARD, 6, 0, 5)),
       transcript(bellmanFordAdapter, "A negative edge", experiment(landing.bellmanFord, true)),
+      questionTranscript("A negative edge", experiment(landing.bellmanFord, true)),
       transcript(bellmanFordAdapter, "A negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(bellmanFordAdapter, "No route", lettered([[0, 1, 3], [2, 1, 1]], 3, 0, 2, { directed: true })),
       transcript(bellmanFordAdapter, "Parallel edges", lettered([[0, 1, 2], [1, 0, 5], [1, 0, 7], [1, 2, 1], [3, 2, 1], [3, 2, 4]], 4, 0, 2, { directed: true })),
@@ -789,6 +860,7 @@ describe("golden narration", () => {
       transcript(bellmanFordAdapter, "Parallel edges around another change", lettered([[0, 1, 1], [0, 1, 5], [0, 2, 1], [0, 1, 5]], 3, 0, 1, { directed: true })),
       transcript(bellmanFordAdapter, "Parallel edges in a negative cycle", lettered([[0, 1, 1], [1, 2, -2], [2, 1, 1], [2, 1, 3]], 3, 0, 1, { directed: true })),
       transcript(bellmanFordAdapter, "The graph the app generates", generated(generateWeighted(), 1, 12)),
+      questionTranscript("The graph the app generates", generated(generateWeighted(), 1, 12)),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/bellman-ford.md");
   });
