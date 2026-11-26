@@ -9,8 +9,8 @@
 import { EDGE } from "../../constants/graph";
 import type { GraphSpec } from "./graphGenerator";
 
-const MAX_NODES = 40;
-const MAX_EDGES = 200;
+export const MAX_NODES = 40;
+export const MAX_EDGES = 200;
 /** Linked graphs are fitted into this box, centred on the canvas origin. */
 const FIT = { halfWidth: 320, halfHeight: 210 };
 

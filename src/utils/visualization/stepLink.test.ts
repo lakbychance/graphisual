@@ -8,10 +8,12 @@ import { narrate } from "../../algorithms/engine";
 import { largeGraph, random, randomGraphs, type RandomGraph } from "../../algorithms/engine/__tests__/randomGraphs";
 import type { GraphEdge, GraphNode } from "../../components/Graph/types";
 import { encodeGraphLink } from "../graph/graphLink";
-import type { GeneratedGraph } from "../graph/graphGenerator";
+import { generateWeighted, type GeneratedGraph } from "../graph/graphGenerator";
 import { buildRun } from "./buildRun";
 import { freshGraph } from "./freshGraph";
-import { decodeStepLink, encodeStepLink, needsDestination, type Moment } from "./stepLink";
+import { steerRun, takenAt } from "./runIt";
+import type { Run } from "./runView";
+import { decodeStepLink, encodeStepLink, linkToStep, needsDestination, type Moment } from "./stepLink";
 
 const ALGORITHMS = ["dijkstra", "bellman-ford", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "prims"];
 
@@ -61,6 +63,16 @@ function narration(moment: Moment): string[] {
   return narrate(built.run.events, algorithm).map((line) => line.replace(/\{n:(\d+)\}/g, (_, id) => nameOf(graph, Number(id))));
 }
 
+/** Nodes in a line, each joined to the next. */
+const node = (id: number, label?: string): GraphNode => ({ id, x: id * 100, y: 0, r: 30, label });
+const line = (nodes: GraphNode[]): GeneratedGraph => ({
+  nodes,
+  edges: new Map(nodes.map((n, i) => [n.id, nodes
+    .filter((_, j) => Math.abs(i - j) === 1)
+    .map((m) => ({ from: n.id, to: m.id, weight: 1, type: "undirected", x1: 0, y1: 0, x2: 0, y2: 0, nodeX2: 0, nodeY2: 0 }))])),
+  nodeCounter: nodes.length,
+});
+
 describe("step link", () => {
   const suite = [...randomGraphs(200), largeGraph()];
 
@@ -98,15 +110,6 @@ describe("step link", () => {
     expect(playable).toBeGreaterThan(50);
   });
 
-  const node = (id: number, label?: string): GraphNode => ({ id, x: id * 100, y: 0, r: 30, label });
-  const line = (nodes: GraphNode[]): GeneratedGraph => ({
-    nodes,
-    edges: new Map(nodes.map((n, i) => [n.id, nodes
-      .filter((_, j) => Math.abs(i - j) === 1)
-      .map((m) => ({ from: n.id, to: m.id, weight: 1, type: "undirected", x1: 0, y1: 0, x2: 0, y2: 0, nodeX2: 0, nodeY2: 0 }))])),
-    nodeCounter: nodes.length,
-  });
-
   it("round-trips labels, spaces and characters the link must escape", () => {
     const graph = line([node(1, "Start"), node(2, "a b"), node(3, "x&y=z"), node(4, "#1?")]);
     const moment: Moment = { algorithm: "dfs-pathfinding", graph, from: 1, to: 4, step: 3 };
@@ -123,6 +126,105 @@ describe("step link", () => {
     ["more nodes than a link holds", line(Array.from({ length: 41 }, (_, i) => node(i + 1)))],
   ])("gives no link for a moment it cannot carry exactly: %s", (_why, graph) => {
     expect(encodeStepLink({ algorithm: "bfs", graph, from: 1, to: null, step: 1 })).toBeNull();
+  });
+});
+
+describe("step link: the step on screen", () => {
+  // The algorithms with choices to pick in Run it; Bellman-Ford's answers never change its run.
+  const STEERED = ALGORITHMS.filter((a) => a !== "bellman-ford");
+
+  it.each(STEERED)("links the step on screen while it is the run a link opens, and never once Run it's picks took it another way (%s)", (algorithm) => {
+    const pick = random(11);
+    let linked = 0;
+    let refused = 0;
+    for (const graphCase of randomGraphs(120)) {
+      const graph = appGraph(graphCase, algorithm === "prims");
+      const from = graphCase.input.startNodeId;
+      const to = needsDestination(algorithm) ? graphCase.input.endNodeId! : undefined;
+      const built = buildRun(algorithm, graph.nodes, graph.edges, from, to, { stepMode: true });
+      if (!built || !("run" in built)) continue;
+      const { run } = built;
+      // The first decision with a second valid option, taken the other way.
+      const at = run.events.findIndex((e) => e.type === "decide" && e.options.length > 1);
+      const decision = run.events.slice(0, at).filter((e) => e.type === "decide").length;
+      const other = at < 0 ? null : (run.events[at] as { options: number[] }).options[1];
+      const steered = other === null ? run : steerRun(run, [...takenAt(run).slice(0, decision), other]).run;
+      for (const shown of [run, steered]) {
+        const index = Math.floor(pick() * shown.ends.length);
+        const link = linkToStep(shown, index, graph);
+        // The steered run is the run a link opens up to the step that shows the other pick.
+        const same = shown === run || shown.ends[index] <= at;
+        if (!same) {
+          expect(link, `seed ${graphCase.seed}`).toEqual({ none: "picks" });
+          refused++;
+          continue;
+        }
+        expect(typeof link, `seed ${graphCase.seed}`).toBe("string");
+        const opened = decodeStepLink((link as string).slice(1))!;
+        expect([opened.step, opened.from === null ? null : nameOf(opened.graph, opened.from)], `seed ${graphCase.seed}`)
+          .toEqual([index + 1, nameOf(graph, from)]);
+        linked++;
+      }
+    }
+    expect(linked).toBeGreaterThan(50);
+    expect(refused).toBeGreaterThan(5);
+  });
+
+  /** A run's events up to step `index` with every node id as the name the canvas shows. */
+  const NODE_FIELDS = new Set(["node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle"]);
+  const byName = (run: Run, graph: GeneratedGraph, index: number) => {
+    const name = (v: unknown) => (typeof v === "number" ? nameOf(graph, v) : v);
+    return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], (key, value) =>
+      !NODE_FIELDS.has(key) ? value : Array.isArray(value) ? value.map(name) : name(value));
+  };
+
+  it.each(ALGORITHMS)("opens the very steps on screen, node for node, when the node list keeps another order than the edges (%s)", (algorithm) => {
+    const pick = random(23);
+    // The Weighted graph lists node 6 among the nodes but scans it late; suite graphs get their node list shuffled.
+    const graphs = [generateWeighted(), ...randomGraphs(150).map((graphCase) => {
+      const graph = appGraph(graphCase, algorithm === "prims");
+      const shuffle = random(graphCase.seed + 1);
+      return { ...graph, nodes: graph.nodes.map((n) => ({ n, o: shuffle() })).sort((a, b) => a.o - b.o).map(({ n }) => n) };
+    })];
+    let linked = 0;
+    for (const graph of graphs) {
+      for (const start of graph.nodes.slice(0, 4)) {
+        const end = needsDestination(algorithm) ? graph.nodes[graph.nodes.length - 1].id : undefined;
+        const built = buildRun(algorithm, graph.nodes, graph.edges, start.id, end, { stepMode: true });
+        if (!built || !("run" in built)) continue;
+        const { run } = built;
+        for (const index of [run.ends.length - 1, Math.floor(pick() * run.ends.length)]) {
+          // Every such moment has a link (nothing here is one a link cannot carry)...
+          const link = linkToStep(run, index, graph);
+          expect(typeof link, JSON.stringify(link)).toBe("string");
+          if (typeof link !== "string") continue;
+          // ...and it opens on the very steps on screen.
+          const opened = decodeStepLink(link.slice(1))!;
+          const reopened = buildRun(algorithm, opened.graph.nodes, opened.graph.edges, opened.from!, opened.to ?? undefined, { stepMode: true });
+          expect(reopened && "run" in reopened, link).toBe(true);
+          expect(opened.step, link).toBe(index + 1);
+          expect(byName((reopened as { run: Run }).run, opened.graph, index), link).toBe(byName(run, graph, index));
+          linked++;
+        }
+      }
+    }
+    expect(linked).toBeGreaterThan(100);
+  });
+
+  it.each([
+    ["too many nodes", line(Array.from({ length: 41 }, (_, i) => node(i + 1))), { none: "size" }],
+    ["a name with a comma", line([node(1, "A"), node(2, "C,D")]), { none: "names", name: "C,D" }],
+    ["a label that is another node's id", line([node(1, "2"), node(2)]), { none: "same-name", name: "2" }],
+    ["an edge each way between two nodes", {
+      ...line([node(1, "A"), node(2, "B")]),
+      edges: new Map([
+        [1, [{ from: 1, to: 2, weight: 1, type: "directed", x1: 0, y1: 0, x2: 0, y2: 0, nodeX2: 0, nodeY2: 0 }]],
+        [2, [{ from: 2, to: 1, weight: 1, type: "directed", x1: 0, y1: 0, x2: 0, y2: 0, nodeX2: 0, nodeY2: 0 }]],
+      ]),
+    }, { none: "two-way", name: "A", other: "B" }],
+  ])("says why a graph has no link: %s", (_why, graph, why) => {
+    const built = buildRun("bfs", graph.nodes, graph.edges, 1, undefined, { stepMode: true });
+    expect(linkToStep((built as { run: Run }).run, 0, graph)).toEqual(why);
   });
 });
 

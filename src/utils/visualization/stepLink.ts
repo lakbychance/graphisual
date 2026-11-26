@@ -26,8 +26,9 @@ import { EDGE_TYPE } from "../../constants/graph";
 import {
   generateCycleWithDeadEnd, generateRandomGraph, generateWeighted, graphFromSpec, type GeneratedGraph, type GraphSpec,
 } from "../graph/graphGenerator";
-import { decodeGraphLink, encodeGraphLink } from "../graph/graphLink";
+import { decodeGraphLink, encodeGraphLink, MAX_EDGES, MAX_NODES } from "../graph/graphLink";
 import { buildRun } from "./buildRun";
+import type { Run } from "./runView";
 
 /** A moment of a run: the graph, the algorithm, its endpoints and the step on screen. */
 export interface Moment {
@@ -165,4 +166,67 @@ export function decodeStepLink(search: string): Moment | null {
   const asked = Number(params.get("step") ?? "");
   const step = params.get("step") && Number.isInteger(asked) ? Math.max(1, Math.min(asked, total)) : 1;
   return { ...moment, step };
+}
+
+/**
+ * Why the moment on screen has no link: a graph too big for one, a node name with `,` `;` or `|`,
+ * two nodes shown by the same name (`name` names the node in both), two nodes with an edge each way
+ * (a link carries one edge per pair), some other graph a link cannot carry, or a run the learner's
+ * own picks (Run it) took another way than the run a link opens.
+ */
+export type NoLink =
+  | { none: "size" | "graph" | "picks" }
+  | { none: "names" | "same-name"; name: string }
+  | { none: "two-way"; name: string; other: string };
+
+/** The event fields that hold node ids, alone or in a list (an answer's edges hold them as `from` and `to`). */
+const NODE_FIELDS = new Set(["node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle"]);
+
+/** Steps 0 to `index` of `run` on `graph`, every node by the name the canvas shows: what the learner sees, whatever the ids. */
+function shownUpTo(run: Run, graph: GeneratedGraph, index: number): string {
+  const byId = new Map(graph.nodes.map((n) => [n.id, nameOf(n)]));
+  const name = (v: unknown) => (typeof v === "number" ? byId.get(v) ?? `?${v}` : v);
+  return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], (key, value) =>
+    !NODE_FIELDS.has(key) ? value : Array.isArray(value) ? value.map(name) : name(value));
+}
+
+/**
+ * The link to step `index` (0 to N - 1) of `run`, the run on screen on `graph`, or why there is
+ * none. A link opens the run as it plays by itself, so it is given only when that run shows the very
+ * same steps up to this one; and the link is opened here as the app would open it and given only when
+ * it shows those very steps too: a link never opens a different moment.
+ */
+export function linkToStep(run: Run, index: number, graph: GeneratedGraph): string | NoLink {
+  const { algorithmId: algorithm, input } = run;
+  const from = input?.startNodeId ?? null;
+  const to = needsDestination(algorithm) ? input?.endNodeId ?? null : null;
+  const built = from === null ? null : buildRun(algorithm, graph.nodes, graph.edges, from, to ?? undefined, { stepMode: true });
+  const own = built && "run" in built ? built.run : null;
+  const upTo = (r: Run) => JSON.stringify([r.ends.slice(0, index + 1), r.events.slice(0, r.ends[index])]);
+  if (!own || own.ends.length <= index || upTo(own) !== upTo(run)) return { none: "picks" };
+
+  const link = encodeStepLink({ algorithm, graph, from, to, step: index + 1 });
+  const opened = link === null ? null : decodeStepLink(link.slice(1));
+  const rebuilt = opened?.from == null ? null
+    : buildRun(opened.algorithm, opened.graph.nodes, opened.graph.edges, opened.from, opened.to ?? undefined, { stepMode: true });
+  const shown = rebuilt && "run" in rebuilt ? rebuilt.run : null;
+  const same = shown !== null && opened!.step === index + 1 && shown.ends.length > index
+    && shownUpTo(shown, opened!.graph, index) === shownUpTo(run, graph, index);
+  return same ? link! : whyNoLink(graph);
+}
+
+function whyNoLink(graph: GeneratedGraph): NoLink {
+  const edgeCount = [...graph.edges.values()].flat().reduce((n, e) => n + (e.type === EDGE_TYPE.UNDIRECTED ? 0.5 : 1), 0);
+  if (graph.nodes.length > MAX_NODES || edgeCount > MAX_EDGES) return { none: "size" };
+  const byId = new Map(graph.nodes.map((n) => [n.id, nameOf(n)]));
+  const names = [...byId.values()];
+  const odd = names.find((name) => /[,;|]/.test(name));
+  if (odd !== undefined) return { none: "names", name: odd };
+  const twice = names.find((name, i) => names.indexOf(name) !== i);
+  if (twice !== undefined) return { none: "same-name", name: twice };
+  for (const [id, list] of graph.edges) {
+    const back = list.find((e) => e.type !== EDGE_TYPE.UNDIRECTED && graph.edges.get(e.to)?.some((b) => b.to === id));
+    if (back && byId.has(id) && byId.has(back.to)) return { none: "two-way", name: byId.get(id)!, other: byId.get(back.to)! };
+  }
+  return { none: "graph" };
 }

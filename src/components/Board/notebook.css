@@ -41,6 +41,8 @@
 .nb-head .gs-label { padding-left: 2px; }
 /* The algorithm's name, and Watch / Run it at the far end of the same line. */
 .nb-head-row { align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+/* Copy link, then Watch / Run it. */
+.nb-head-keys { display: flex; align-items: center; gap: 4px; }
 
 /* ------------------------------------------------------------------ run it */
 
@@ -122,6 +124,12 @@
 .nb-muted { margin: 0; font-size: 13px; color: var(--color-text-muted); }
 
 .nb-tabs { flex: 1 1 0; gap: 10px; }
+/* Code / State, and on phones Copy link at the far end. */
+.nb-tabs-row { display: flex; align-items: center; gap: 6px; }
+.nb-tabs-row > .gs-tabs-list { flex: 1 1 auto; min-width: 0; }
+/* The link to copy by hand, in the popover the clipboard's refusal opens. */
+.nb-share { display: flex; flex-direction: column; gap: 8px; }
+.nb-share-link { width: 100%; font-family: var(--font-mono); font-size: 12px; }
 /* Room for a few lines at least, so the lit line or the changed row always shows whole. */
 .nb-page { flex: 1 1 0; min-height: 96px; overflow: auto; overscroll-behavior: contain; }
 

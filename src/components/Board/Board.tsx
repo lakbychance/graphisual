@@ -184,6 +184,7 @@ export const Board = () => {
                 desktop={notebookBeside}
                 runItHere={runItHere}
                 controls={stepControls(true)}
+                shareable
                 onScrub={scrubTo}
               />
             </m.div>

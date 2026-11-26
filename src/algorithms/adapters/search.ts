@@ -24,6 +24,7 @@
  */
 import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy } from "../engine";
 import type { AlgorithmInput } from "../types";
+import { scanOrder } from "./scanOrder";
 import { EDGE_TYPE } from "../../constants/graph";
 
 export type FrontierKind = "queue" | "stack";
@@ -49,7 +50,7 @@ export interface SearchLines {
 export function searchEvents(
   input: AlgorithmInput, kind: FrontierKind, lines: SearchLines, target?: number, choose: ChoicePolicy = firstOption,
 ): AlgorithmEvent[] {
-  const { adjacencyList, nodes, startNodeId: start } = input;
+  const { adjacencyList, startNodeId: start } = input;
   const seen = new Set([start]);
   const visited: number[] = [];
   const parent = new Map<number, number>();
@@ -74,7 +75,7 @@ export function searchEvents(
     const together = order.filter((id) => parent.get(id) === parent.get(order[0]));
     if (together.length === 0) {
       if (target === undefined) {
-        const unreached = nodes.map((n) => n.id).filter((id) => !visited.includes(id));
+        const unreached = scanOrder(input).filter((id) => !visited.includes(id));
         events.push({ type: "answer", kind: "order", start, order: visited, unreached, line: lines.loop, group });
       } else {
         events.push({ type: "answer", kind: "route", start, target, path: null, line: lines.loop, group });

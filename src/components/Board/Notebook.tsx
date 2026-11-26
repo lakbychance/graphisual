@@ -14,14 +14,20 @@
  * lowers a distance, says whether the answer is right and why on the step that shows it, and plays on
  * either way.
  *
+ * Copy link puts a link to the step on screen on the clipboard (see `stepLink.ts`): in the head
+ * on desktop, at the end of the Code / State row on phones. A link opens the step to watch; when it
+ * cannot open this very step (a graph a link cannot carry, or a run the learner's picks took another
+ * way) the notebook says why instead, and when the clipboard refuses, it shows the link to copy by hand.
+ *
  * The rework lab's notebook variant is this component too.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useShallow } from "zustand/shallow";
 import { toast } from "sonner";
-import { Check, Flag, RotateCcw, type LucideIcon } from "lucide-react";
+import { Check, Flag, Link, RotateCcw, type LucideIcon } from "lucide-react";
 import {
-  Button, Panel, SegmentedControl, SegmentedControlItem, Slider, Tabs, TabsList, TabsPanel, TabsTab, Tooltip, TooltipContent, TooltipTrigger,
+  Button, Input, Panel, Popover, PopoverContent, PopoverTitle, SegmentedControl, SegmentedControlItem, Slider, Tabs, TabsList, TabsPanel, TabsTab,
+  Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
@@ -34,6 +40,7 @@ import {
   keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
 } from "../../utils/visualization/runView";
 import { asksYesNo, canRunIt } from "../../utils/visualization/runIt";
+import { linkToStep, type NoLink } from "../../utils/visualization/stepLink";
 import { DataStructureVis } from "./DataStructureVis";
 import "./notebook.css";
 
@@ -369,6 +376,80 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
   );
 }
 
+const SHARE_TOAST = "share-step";
+
+/** Why the step on screen has no link, in the learner's words. */
+function noLinkWords(why: NoLink): string {
+  switch (why.none) {
+    case "size": return "This graph is too big for a link — a link holds up to 40 nodes and 200 edges";
+    case "names": return `This graph can't fit in a link — rename ${why.name} without , ; or |`;
+    case "same-name": return `This graph can't fit in a link — two nodes go by ${why.name}, so rename one`;
+    case "two-way": return `This graph can't fit in a link — ${why.name} and ${why.other} have an edge each way, so remove one`;
+    case "graph": return "This graph can't fit in a link";
+    case "picks": return "Your picks took this run another way, which a link can't carry";
+  }
+}
+
+/**
+ * Copy link: puts the link to the step on screen on the clipboard and says so, says why there is
+ * none, or, when the clipboard refuses, shows the link selected in a field to copy by hand.
+ */
+function ShareStep({ run, index, runIt, side }: { run: Run; index: number; runIt: boolean; side: "top" | "bottom" }) {
+  const [button, setButton] = useState<HTMLButtonElement | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+  // The link to copy by hand, for the step it was made at: stepping on closes it.
+  const [byHand, setByHand] = useState<{ url: string; run: Run; index: number } | null>(null);
+  const open = byHand !== null && byHand.run === run && byHand.index === index;
+  const share = async () => {
+    const { nodes, edges, nodeCounter } = useGraphStore.getState().data;
+    const link = linkToStep(run, index, { nodes, edges, nodeCounter });
+    if (typeof link !== "string") {
+      toast(noLinkWords(link), { id: SHARE_TOAST });
+      return;
+    }
+    const url = new URL(link, window.location.origin).href;
+    try {
+      await navigator.clipboard.writeText(url);
+      // Run it's picks stay here: the link opens this step to watch.
+      toast(runIt ? "Link copied — it opens this step to watch" : "Link copied", { id: SHARE_TOAST });
+    } catch {
+      toast.dismiss(SHARE_TOAST);
+      setByHand({ url, run, index });
+    }
+  };
+  return (
+    <Popover open={open} onOpenChange={(next) => !next && setByHand(null)}>
+      <Tooltip>
+        <TooltipTrigger
+          render={<Button ref={setButton} variant="ghost" size="icon-sm" aria-label="Copy link to this step" onClick={share} />}
+        >
+          <Link aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent side={side}>Copy link to this step</TooltipContent>
+      </Tooltip>
+      <PopoverContent
+        anchor={button}
+        side={side}
+        align="end"
+        sideOffset={8}
+        finalFocus={() => button}
+        initialFocus={() => field.current}
+        className="nb-share w-72"
+      >
+        <PopoverTitle>Copy this link</PopoverTitle>
+        <Input
+          ref={field}
+          className="nb-share-link"
+          readOnly
+          value={byHand?.url ?? ""}
+          aria-label="Link to this step"
+          onFocus={(e) => e.currentTarget.select()}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export interface NotebookProps {
   run: Run;
   /** The step on screen, 0 to N - 1. */
@@ -378,10 +459,12 @@ export interface NotebookProps {
   runItHere?: boolean;
   /** The step keys, in the head on desktop. */
   controls?: ReactNode;
+  /** Whether Copy link is offered (the app's runs, on the graph in the store). */
+  shareable?: boolean;
   onScrub: (index: number) => void;
 }
 
-export function Notebook({ run, index, desktop, runItHere = false, controls, onScrub }: NotebookProps) {
+export function Notebook({ run, index, desktop, runItHere = false, controls, shareable = false, onScrub }: NotebookProps) {
   const nodes = useGraphStore(useShallow((s) => s.data.nodes));
   const page = useSettingsStore((s) => s.notebookPage);
   const setPage = useSettingsStore((s) => s.setNotebookPage);
@@ -401,7 +484,10 @@ export function Notebook({ run, index, desktop, runItHere = false, controls, onS
         <header className="nb-head">
           <div className="nb-head-row">
             <span className="gs-label">{adapter?.metadata.name}</span>
-            {runItHere && <ModeSwitch run={run} runIt={runIt} />}
+            <div className="nb-head-keys">
+              {shareable && <ShareStep run={run} index={index} runIt={runIt !== null} side="bottom" />}
+              {runItHere && <ModeSwitch run={run} runIt={runIt} />}
+            </div>
           </div>
           {controls}
         </header>
@@ -409,10 +495,14 @@ export function Notebook({ run, index, desktop, runItHere = false, controls, onS
       <Narration text={sentence} />
       {runItHere && runIt && <Turn run={run} index={index} runIt={runIt} nodes={nodes} />}
       <Tabs value={page} onValueChange={(v) => setPage(v as NotebookPage)} className="nb-tabs">
-        <TabsList aria-label="Notebook page">
-          <TabsTab value="code">Code</TabsTab>
-          <TabsTab value="state">State</TabsTab>
-        </TabsList>
+        <div className="nb-tabs-row">
+          <TabsList aria-label="Notebook page">
+            <TabsTab value="code">Code</TabsTab>
+            <TabsTab value="state">State</TabsTab>
+          </TabsList>
+          {/* On phones Copy link ends this row (the card has no head). */}
+          {shareable && !desktop && <ShareStep run={run} index={index} runIt={runIt !== null} side="top" />}
+        </div>
         <TabsPanel value="code" className="nb-page"><CodeList lines={adapter?.pseudocode ?? []} lit={lit} step={index} /></TabsPanel>
         <TabsPanel value="state" className="nb-page"><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
       </Tabs>

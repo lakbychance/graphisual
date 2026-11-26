@@ -10,6 +10,7 @@ import { PrimsIcon } from "../icons";
 import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy, type WeightedEdge } from "../engine";
 import { AlgorithmAdapter, AlgorithmInput, AlgorithmType } from "../types";
 import { EDGE_TYPE } from "../../constants/graph";
+import { scanOrder } from "./scanOrder";
 
 /** Each node keeps one cost, the cheapest edge joining it to the tree so far, and it only ever shrinks. */
 const PSEUDOCODE = [
@@ -89,7 +90,7 @@ function primsEvents(input: AlgorithmInput, choose: ChoicePolicy = firstOption):
     }
   }
 
-  const unreached = nodes.map((n) => n.id).filter((id) => !tree.has(id));
+  const unreached = scanOrder(input).filter((id) => !tree.has(id));
   events.push({ type: "answer", kind: "tree", start, edges, total, unreached, line: LINE.loop, group: group + 1 });
   return events;
 }
