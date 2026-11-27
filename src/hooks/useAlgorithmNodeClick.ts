@@ -3,6 +3,9 @@ import { useVisualizationExecution } from "./useVisualizationExecution";
 import { AlgorithmType } from "../algorithms";
 import { useAppHaptics } from "./useAppHaptics";
 import { selectIsAwaitingPick, useGraphStore } from "../store/graphStore";
+import { tooBigToRun } from "../utils/visualization/buildRun";
+import { sayProblem } from "../utils/visualization/sayProblem";
+import { phoneNodeLimit } from "./useMediaQuery";
 
 /**
  * Return type for the useAlgorithmNodeClick hook.
@@ -48,6 +51,14 @@ export function useAlgorithmNodeClick(): UseAlgorithmNodeClickReturn {
 
     if (algoType === AlgorithmType.PATHFINDING) {
       if (!visualizationInput) {
+        // A graph too big for a phone is refused at the first tap, as the second tap would be (D71).
+        const store = useGraphStore.getState();
+        const tooBig = tooBigToRun(store.data.nodes.length, phoneNodeLimit());
+        if (tooBig) {
+          store.resetVisualization();
+          sayProblem(tooBig);
+          return;
+        }
         // First click: set start node
         setVisualizationInput({ startNodeId: nodeId, endNodeId: -1 });
         haptics.light();

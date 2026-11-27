@@ -5,6 +5,7 @@ import { VisualizationMode, VisualizationState } from "../constants/visualizatio
 import { buildRun } from "../utils/visualization/buildRun";
 import { sayProblem } from "../utils/visualization/sayProblem";
 import { useAppHaptics } from "./useAppHaptics";
+import { phoneNodeLimit } from "./useMediaQuery";
 
 interface UseVisualizationExecutionReturn {
   runAlgorithm: (startNodeId: number, endNodeId?: number) => void;
@@ -37,7 +38,7 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     if (!currentAlgorithm) return;
     const { data, visualization, resetVisualization, selectNode, startVisualization } = useGraphStore.getState();
     const stepMode = visualization.mode === VisualizationMode.MANUAL;
-    const built = buildRun(currentAlgorithm.metadata.id, data.nodes, data.edges, startNodeId, endNodeId, { stepMode });
+    const built = buildRun(currentAlgorithm.metadata.id, data.nodes, data.edges, startNodeId, endNodeId, { stepMode, nodeLimit: phoneNodeLimit() });
     if (!built) return;
 
     if ("problem" in built) {

@@ -49,9 +49,14 @@ const isLink = (word: string) => word === ARROW || DASHES.has(word);
 /**
  * Reads the text. Any problem on any line leaves the graph as it is, so they are all reported at once.
  * `canvas` is the size of the graph on the canvas: one already past the limits may be trimmed or
- * renamed here, but the text can't make it bigger.
+ * renamed here, but the text can't make it bigger. `phoneLimit`, on a phone, holds the text to that
+ * many nodes, or to as many as the canvas already has (D71): the line that adds the first node too
+ * many says so, and nothing is drawn. A node the canvas already shows (`canvas.names`) is never the
+ * one too many, so the line typed is the one named.
  */
-export function readEdgeList(text: string, canvas = { nodes: 0, edges: 0 }): ReadEdgeList {
+export function readEdgeList(
+  text: string, canvas: { nodes: number; edges: number; names?: ReadonlySet<string> } = { nodes: 0, edges: 0 }, phoneLimit?: number,
+): ReadEdgeList {
   const limits = { nodes: Math.max(MAX_NODES, canvas.nodes), edges: Math.max(MAX_EDGES, canvas.edges) };
   if (text.length > MAX_TEXT) return { list: null, problems: [{ line: 0, text: `the text is too long: at most ${MAX_TEXT} characters` }], hints: [] };
   const problems: LineProblem[] = [];
@@ -60,8 +65,9 @@ export function readEdgeList(text: string, canvas = { nodes: 0, edges: 0 }): Rea
   const edges: ListedEdge[] = [];
   // Each pair of names joined so far, with the lines that join it.
   const joined = new Map<string, Array<ListedEdge & { line: number }>>();
-  // Every name and edge the text holds, read or not, to say how far past a limit it is.
-  const allNames = new Set<string>();
+  // Every name and edge the text holds, read or not, to say how far past a limit it is (each name
+  // with the line that first names it).
+  const allNames = new Map<string, number>();
   let allEdges = 0;
 
   text.split(/\r?\n/).forEach((raw, index) => {
@@ -85,7 +91,7 @@ export function readEdgeList(text: string, canvas = { nodes: 0, edges: 0 }): Rea
       if (name.includes("*")) return problem("names can't contain *");
     }
     const fresh = [from, to].filter((name, i, all): name is string => name !== undefined && !names.includes(name) && all.indexOf(name) === i);
-    for (const name of fresh) allNames.add(name);
+    for (const name of fresh) if (!allNames.has(name)) allNames.set(name, line);
     if (to !== undefined) allEdges++;
     if (names.length + fresh.length > limits.nodes) return;
     // A dash inside a name keeps it one name, as the canvas allows; the line says so, in case an edge was meant.
@@ -124,7 +130,18 @@ export function readEdgeList(text: string, canvas = { nodes: 0, edges: 0 }): Rea
       ? `the edge list holds at most ${limit} ${what}; this graph already has ${already}, so the text can't add more`
       : `the edge list holds at most ${limit} ${what}; this one has ${count}`,
   });
-  if (allNames.size > limits.nodes) problems.push(tooBig(allNames.size, MAX_NODES, canvas.nodes, "nodes"));
+  const phoneRoom = Math.max(phoneLimit ?? Infinity, canvas.nodes);
+  if (allNames.size > phoneRoom) {
+    // The nodes the text adds, in the order it names them; those it keeps all fit.
+    const added = [...allNames].filter(([name]) => !canvas.names?.has(name));
+    const [, line] = added[phoneRoom - (allNames.size - added.length)];
+    problems.push({
+      line,
+      text: canvas.nodes > phoneLimit!
+        ? `this graph already has ${canvas.nodes} nodes; phones hold up to ${phoneLimit}, so the text can't add more`
+        : `phones hold up to ${phoneLimit} nodes — a bigger screen takes up to ${MAX_NODES}`,
+    });
+  } else if (allNames.size > limits.nodes) problems.push(tooBig(allNames.size, MAX_NODES, canvas.nodes, "nodes"));
   if (allEdges > limits.edges) problems.push(tooBig(allEdges, MAX_EDGES, canvas.edges, "edges"));
 
   return problems.length > 0 ? { list: null, problems, hints } : { list: { names, edges }, problems: [], hints };

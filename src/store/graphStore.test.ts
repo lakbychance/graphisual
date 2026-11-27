@@ -5,7 +5,8 @@
  * puts a consistent, cleanly drawn graph in place, one undo step each. The text panel (one edge per
  * line) round-trips any graph, stays in step with the canvas both ways in any mix of edits, shares
  * one undo history with it, and never lets malformed text touch the graph. The storage views (the
- * adjacency list and matrix) always describe exactly the graph on the canvas.
+ * adjacency list and matrix) always describe exactly the graph on the canvas. On a phone's node limit
+ * no way of adding nodes takes the graph past it, and a bigger graph is never trimmed.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGraphStore } from "./graphStore";
@@ -21,6 +22,8 @@ import { needsDestination } from "../utils/visualization/stepLink";
 import type { Run } from "../utils/visualization/runView";
 import { followCanvas, MAX_TEXT, meaningOf, meaningOfList, nameOf, readEdgeList, textAfterCommit, textOf, whyNotWritable, writeEdgeList, type TextState } from "../utils/graph/edgeList";
 import { cellOf, storageOf } from "../utils/graph/storage";
+import { createEdge, generateRandomGraph } from "../utils/graph/graphGenerator";
+import type { GraphEdge, GraphNode } from "../components/Graph/types";
 
 const store = () => useGraphStore.getState();
 
@@ -65,8 +68,11 @@ function inconsistency(): string | null {
   return null;
 }
 
-/** One random editing action, as the UI offers it; returns false if it had nothing to act on. */
-function act(rand: () => number): boolean {
+/**
+ * One random editing action, as the UI offers it; returns false if it had nothing to act on. `limit`
+ * is a phone's node limit (D71), as the canvas passes it on a phone.
+ */
+function act(rand: () => number, limit?: number): boolean {
   const int = (n: number) => Math.floor(rand() * n);
   const pick = <T,>(list: T[]): T | undefined => list[int(list.length)];
   const { nodes, edges } = store().data;
@@ -76,7 +82,7 @@ function act(rand: () => number): boolean {
   switch (int(10)) {
     case 0:
     case 1:
-      store().addNode(int(800), int(600));
+      store().addNode(int(800), int(600), limit);
       return true;
     case 2:
     case 3: {
@@ -658,6 +664,81 @@ function storageMismatch(): string | null {
   }
   return null;
 }
+
+/** A graph of `count` nodes, as a link might bring one, joined in a ring. */
+function ringOf(count: number): { nodes: GraphNode[]; edges: Map<number, GraphEdge[]>; nodeCounter: number } {
+  const nodes = Array.from({ length: count }, (_, i): GraphNode => ({ id: i + 1, x: (i % 8) * 130, y: Math.floor(i / 8) * 130, r: 30 }));
+  const edges = new Map(nodes.map((n, i) => [n.id, [createEdge(n, nodes[(i + 1) % count], EDGE_TYPE.DIRECTED, 1)]]));
+  return { nodes, edges, nodeCounter: count };
+}
+
+/** Text a learner might type on a phone: up to 24 names (`P1`, `P2`, …), some joined, some alone. */
+function phoneText(rand: () => number): string {
+  const int = (n: number) => Math.floor(rand() * n);
+  const names = Array.from({ length: 1 + int(24) }, (_, i) => `P${i + 1}`);
+  return names.map((name, i) => (i > 0 && rand() < 0.6 ? `${names[int(i)]} ${name} ${1 + int(9)}` : name)).join("\n");
+}
+
+describe("editor integrity: a phone's node limit (D71)", () => {
+  const LIMIT = 15;
+  const anchor = { x: 40, y: -20 };
+  const count = () => store().data.nodes.length;
+
+  it("no way of adding nodes takes the graph past the limit, refused adds change nothing, and a bigger graph is never trimmed", () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      store().resetGraph();
+      useGraphHistoryStore.setState({ past: [], future: [] });
+      const rand = random(seed * 13 + 5);
+      const int = (n: number) => Math.floor(rand() * n);
+      // Half the sessions start from a bigger graph a link opened (16 to 40 nodes): it opens whole.
+      const start = rand() < 0.5 ? 16 + int(25) : 0;
+      if (start > 0) {
+        const linked = ringOf(start);
+        store().setGraph(linked.nodes, linked.edges, linked.nodeCounter);
+        expect(count(), `seed ${seed}: the linked graph opens whole`).toBe(start);
+      }
+      const ceiling = Math.max(LIMIT, start);
+      for (let step = 0; step < 80; step++) {
+        const at = `seed ${seed} step ${step}`;
+        const before = count();
+        const state = graphState();
+        const r = rand();
+        if (r < 0.3) {
+          const added = store().addNode(int(800), int(600), LIMIT);
+          expect(added, `${at}: a node is added only below the limit`).toBe(before < LIMIT);
+          expect(count(), at).toBe(added ? before + 1 : before);
+          if (!added) expect(graphState(), `${at}: a refused add changes nothing`).toBe(state);
+        } else if (r < 0.5) {
+          const text = rand() < 0.5 ? phoneText(rand) : `${writeEdgeList(store().data.nodes, store().data.edges)}\n${phoneText(rand)}`;
+          const problems = store().applyEdgeListText(text, anchor, LIMIT);
+          expect(count(), `${at}: the text adds no node past the limit`).toBeLessThanOrEqual(Math.max(LIMIT, before));
+          if (problems.length > 0) expect(graphState(), `${at}: refused text changes nothing`).toBe(state);
+        } else if (r < 0.55) {
+          // Generate: its Custom tab goes up to 15 nodes, and every template is smaller.
+          const made = generateRandomGraph({ nodeCount: 3 + int(13), edgeDensity: rand(), directed: rand() < 0.5, weighted: rand() < 0.5 });
+          store().setGraph(made.nodes, made.edges, made.nodeCounter);
+          expect(count(), at).toBeLessThanOrEqual(LIMIT);
+        } else if (r < 0.65) {
+          (rand() < 0.5 ? store().undo : store().redo)();
+        } else if (!act(rand, LIMIT)) continue;
+        expect(count(), `${at}: never past the limit, or the bigger graph it opened with`).toBeLessThanOrEqual(ceiling);
+        expect(inconsistency(), at).toBeNull();
+      }
+    }
+  });
+
+  it("the line that adds the sixteenth node is the one named, wherever it is typed, and nothing is drawn", () => {
+    const lines = Array.from({ length: 18 }, (_, i) => `P${i + 1}`);
+    expect(store().applyEdgeListText(lines.join("\n"), anchor, LIMIT).map((p) => p.line)).toEqual([16]);
+    expect(count()).toBe(0);
+    expect(store().applyEdgeListText(lines.slice(0, 15).join("\n"), anchor, LIMIT)).toEqual([]);
+    expect(count()).toBe(15);
+    const before = graphState();
+    // A new node typed among the fifteen on the canvas: its line, not the last one, is named.
+    expect(store().applyEdgeListText([...lines.slice(0, 2), "Q", ...lines.slice(2, 15)].join("\n"), anchor, LIMIT).map((p) => p.line)).toEqual([3]);
+    expect(graphState()).toBe(before);
+  });
+});
 
 describe("editor integrity: the storage views", () => {
   it("the adjacency list and matrix describe exactly the graph after any edit: one-way, two-way and mixed edges, weights or none, names and numbers", () => {

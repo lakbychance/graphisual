@@ -20,7 +20,7 @@ import {
 import { factList, type Fact } from "../../algorithms/facts";
 import type { GraphEdge, GraphNode } from "../Graph/types";
 import { useGraphStore } from "../../store/graphStore";
-import { useIsRoomyScreen } from "../../hooks/useMediaQuery";
+import { phoneNodeLimit, useIsRoomyScreen } from "../../hooks/useMediaQuery";
 import { useSettingsStore, type StorageForm } from "../../store/settingsStore";
 import { followCanvas, MAX_TEXT, readEdgeList, textAfterCommit, textOf, whyNotWritable, type LineProblem, type TextState } from "../../utils/graph/edgeList";
 import { isModKey } from "../../utils/keyboard";
@@ -147,7 +147,7 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
     typed.current = null;
     if (next === null) return;
     const store = useGraphStore.getState();
-    const found = store.applyEdgeListText(next, visibleMiddle(panel.current));
+    const found = store.applyEdgeListText(next, visibleMiddle(panel.current), phoneNodeLimit());
     const { nodes: now, edges: nowEdges } = useGraphStore.getState().data;
     // The text now stands for the canvas as it is, so a change straight after (Undo) is seen as one.
     setState(textAfterCommit(next, now, nowEdges));

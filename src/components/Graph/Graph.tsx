@@ -226,8 +226,7 @@ export function Graph({ ref, layers }: { ref?: Ref<GraphHandle>; layers?: GraphL
     // Create node on empty canvas (not during visualization or algorithm selection or box selection)
     if (!isNode && !hasSelectedNodes && !isDraggingEdge.current && !isDraggingCanvas.current && !isBoxSelecting.current && !isVisualizing && !currentAlgorithm) {
       const { x, y } = screenToSvgCoords(event.clientX, event.clientY);
-      addNode(x, y);
-      haptics.medium();
+      if (addNode(x, y)) haptics.medium();
     }
   }, [currentAlgorithm, isVisualizing, handleNodeClick, hasSelectedNodes, screenToSvgCoords, selectNode, addNode, isDraggingEdge, isDraggingCanvas, isBoxSelecting, setVisualizationAlgorithm, haptics]);
 

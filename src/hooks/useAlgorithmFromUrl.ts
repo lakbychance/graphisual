@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry } from "../algorithms";
 import { VisualizationMode } from "../constants/visualization";
-import { buildRun } from "../utils/visualization/buildRun";
+import { buildRun, tooBigToRun } from "../utils/visualization/buildRun";
 import { sayProblem } from "../utils/visualization/sayProblem";
 import { decodeStepLink, needsDestination } from "../utils/visualization/stepLink";
+import { phoneNodeLimit } from "./useMediaQuery";
 
 /**
  * Opens the moment a link carries (see `stepLink.ts`) on mount, and cleans the URL.
@@ -25,7 +26,11 @@ export function useAlgorithmFromUrl() {
     store.setVisualizationMode(VisualizationMode.MANUAL);
     store.setGraph(graph.nodes, graph.edges, graph.nodeCounter);
 
-    if (from !== null && needsDestination(algorithm) && to === null) {
+    // On a phone, a graph past its limit opens as it is but doesn't run (D71): the message says so.
+    const tooBig = from === null ? null : tooBigToRun(graph.nodes.length, phoneNodeLimit());
+    if (tooBig) {
+      window.setTimeout(() => sayProblem(tooBig));
+    } else if (from !== null && needsDestination(algorithm) && to === null) {
       // As after the first tap: waiting for the destination.
       store.setVisualizationInput({ startNodeId: from, endNodeId: -1 });
     } else if (from !== null) {

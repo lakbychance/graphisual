@@ -15,9 +15,18 @@ import { createRun, type Run } from "./runView";
 export type BuiltRun = { run: Run } | { problem: string; severity: "warning" | "error"; evidence?: Evidence };
 
 /**
+ * Why a graph of `nodeCount` nodes can't run here, or null: past `nodeLimit` (a phone's, D71) the
+ * graph opens and can be edited, but its run would not fit, so it points to a bigger screen.
+ */
+export function tooBigToRun(nodeCount: number, nodeLimit?: number): Extract<BuiltRun, { problem: string }> | null {
+  if (nodeLimit === undefined || nodeCount <= nodeLimit) return null;
+  return { problem: `This graph has ${nodeCount} nodes; phones run up to ${nodeLimit} — open it on a bigger screen`, severity: "warning" };
+}
+
+/**
  * `stepMode`: the run is for Step mode, where the notebook says its answer in words. There a cycle
  * detection that finds no cycle plays to its end ("…so the graph has no cycle") instead of showing
- * the message; Auto mode, with no notebook, keeps the message.
+ * the message; Auto mode, with no notebook, keeps the message. `nodeLimit`: see `tooBigToRun`.
  */
 export function buildRun(
   algorithmId: string,
@@ -25,10 +34,12 @@ export function buildRun(
   edges: Map<number, GraphEdge[]>,
   startNodeId: number,
   endNodeId?: number,
-  { stepMode = false }: { stepMode?: boolean } = {},
+  { stepMode = false, nodeLimit }: { stepMode?: boolean; nodeLimit?: number } = {},
 ): BuiltRun | null {
   const algorithm = algorithmRegistry.get(algorithmId);
   if (!algorithm) return null;
+  const tooBig = tooBigToRun(nodes.length, nodeLimit);
+  if (tooBig) return tooBig;
   const { id, name } = algorithm.metadata;
 
   // Node ids are marked `{n:id}`; show each node's label.

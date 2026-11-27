@@ -51,3 +51,22 @@ export const ROOMY_SCREEN = "(min-width: 1024px) and (min-height: 700px)";
 export const useIsRoomyScreen = (): boolean => {
   return useMediaQuery(ROOMY_SCREEN);
 };
+
+/**
+ * A phone, upright (narrower than the app's 768 breakpoint) or on its side (500 tall or less). Phones
+ * hold at most `PHONE_NODE_LIMIT` nodes (D71): a bigger graph can't fit at the zoom floor, nor its
+ * run's tables in the notebook. Adding nodes stops there, and a bigger graph from a link opens as it
+ * is but doesn't run. One check, so every limit starts and stops at the same sizes.
+ */
+export const PHONE_SCREEN = "(max-width: 767.98px), (max-height: 500px)";
+
+/** The most nodes a phone holds (D71); the Generate maximum too. */
+export const PHONE_NODE_LIMIT = 15;
+
+/**
+ * The node limit at this moment, for an action to check as it happens: `PHONE_NODE_LIMIT` on a
+ * phone, none (undefined) on a bigger screen. Read when the learner acts, so turning the phone or
+ * resizing the window never touches a run already playing.
+ */
+export const phoneNodeLimit = (): number | undefined =>
+  (window.matchMedia(PHONE_SCREEN).matches ? PHONE_NODE_LIMIT : undefined);
