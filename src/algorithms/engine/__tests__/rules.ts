@@ -36,6 +36,7 @@ export const pointsAtPseudocode: Rule = (events, { pseudocode }) => {
  *   done, along an edge other than the one that neighbour came in on, with the undirected ways in of
  *   it and its ancestors leading back up to a node in progress. Each such edge is still to check:
  *   checking it would have gone into the node or ended the run. To start again: every unvisited node.
+ * - topological sort: every node on the ready list (any of them can go next).
  */
 function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, { adjacencyList }: AlgorithmInput): number[] {
   const unvisited = (ids: number[]) => [...new Set(ids)].filter((id) => !frame.settled.includes(id));
@@ -45,6 +46,8 @@ function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, 
       const least = Math.min(...frame.queue.map((item) => item.value ?? Infinity));
       return frame.queue.filter((item) => item.value === least).map((item) => item.id);
     }
+    case "topological-sort":
+      return frame.queue.map((item) => item.id);
     case "bfs":
     case "bfs-pathfinding":
     case "dfs":
@@ -114,6 +117,7 @@ export const relaxOnlyLowers: Rule = (events) => {
   const value = new Map<number, number>();
   for (const e of events) {
     if ((e.type === "enqueue" || e.type === "start") && e.value !== undefined) value.set(e.node, e.value);
+    if (e.type === "count") for (const { node, value: v } of e.counts) value.set(node, v);
     if (e.type !== "relax") continue;
     const current = value.get(e.to) ?? Infinity;
     if (e.old !== current) return `relax of ${e.to} claims it had ${e.old}, but it had ${current}`;
@@ -437,5 +441,52 @@ export const storageLightsTheStep: Rule = (events, { algorithmId, input }) => {
     const key = (list: Array<{ from: number; to: number }>) => list.map((c) => `${c.from}-${c.to}`).sort().join(" ");
     if (key(lit.cells) !== key(cells)) return `step ${index + 1} lights ${key(lit.cells) || "no entry"}, but it uses ${key(cells) || "no edge"}`;
   }
+  return null;
+};
+
+/**
+ * Kahn's algorithm, checked against the graph itself: it starts from each node's true count of edges
+ * pointing into it; at every decision the ready list is exactly the nodes not yet placed that no edge
+ * from an unplaced node points into, in any order (so every tie is offered); the node taken is placed
+ * once; each of its edges then lowers its end's count by one, to the number of edges from unplaced
+ * nodes still pointing in, and a node joins the ready list exactly when that reaches 0.
+ */
+export const kahnReadyIsExact: Rule = (events, { input }) => {
+  const placed = new Set<number>();
+  const ids = [...input.adjacencyList.keys()];
+  const pointingIn = (node: number) =>
+    ids.filter((from) => !placed.has(from)).reduce((n, from) => n + input.adjacencyList.get(from)!.filter((e) => e.to === node).length, 0);
+  const ready = new Set<number>();
+  for (const e of events) {
+    if (e.type === "count") {
+      const wrong = e.counts.find(({ node, value }) => value !== pointingIn(node));
+      if (wrong) return `node ${wrong.node} starts at ${wrong.value}, but ${pointingIn(wrong.node)} edges point into it`;
+      if (e.counts.length !== ids.length) return `${e.counts.length} nodes are counted, but the graph has ${ids.length}`;
+    } else if (e.type === "enqueue") {
+      if (pointingIn(e.node) !== 0) return `node ${e.node} is ready while ${pointingIn(e.node)} edges point into it`;
+      ready.add(e.node);
+    } else if (e.type === "decide") {
+      const free = ids.filter((id) => !placed.has(id) && pointingIn(id) === 0);
+      if (free.length !== e.options.length || free.some((id) => !e.options.includes(id))) {
+        return `the ready list offers ${e.options.join(", ")}, but the free nodes are ${free.join(", ")}`;
+      }
+    } else if (e.type === "settle") {
+      if (placed.has(e.node)) return `node ${e.node} is placed twice`;
+      if (!ready.has(e.node)) return `node ${e.node} is placed without being ready`;
+      ready.delete(e.node);
+      placed.add(e.node);
+    } else if (e.type === "relax") {
+      if (!placed.has(e.from)) return `${e.from} → ${e.to} stops counting before ${e.from} is placed`;
+      if (e.old - e.next !== 1) return `${e.from} → ${e.to} lowers ${e.to} by ${e.old - e.next}, not 1`;
+      if (e.next < pointingIn(e.to)) return `${e.to} drops to ${e.next}, but ${pointingIn(e.to)} edges from unplaced nodes still point into it`;
+      if ((e.queue === true) !== (e.next === 0)) return `${e.to} reaches ${e.next}, but ${e.queue ? "joins" : "does not join"} the ready list`;
+      if (e.next === 0) ready.add(e.to);
+    }
+  }
+  // Each placed node's edges lower their ends' counts to what still points in.
+  let frame = emptyFrame;
+  for (const e of events) frame = applyEvent(frame, e);
+  const off = ids.find((id) => (frame.dist.get(id) ?? 0) !== pointingIn(id));
+  if (off !== undefined) return `node ${off} ends at ${frame.dist.get(off)}, but ${pointingIn(off)} edges still point into it`;
   return null;
 };

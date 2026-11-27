@@ -364,6 +364,44 @@ const prims: Voice = {
   },
 };
 
+/* -------------------------------------------------------- topological sort */
+
+/** How many edges, plainly: "1 edge", "2 edges". */
+const edgeCount = (n: number) => `${n} ${n === 1 ? "edge" : "edges"}`;
+
+function takeSentence({ node, ties = [] }: SettleEvent): string {
+  if (ties.length <= 1) return `${nid(node)} is the only node ready, so take it and add it to the order`;
+  const all = ties.length === 2 ? `${names(ties)} are both ready, so either` : `${names(ties)} are all ready, so any of them`;
+  return `${all} can go next; take ${nid(node)} and add it to the order`;
+}
+
+const topologicalSort: Voice = {
+  event(event) {
+    switch (event.type) {
+      case "count": return "Count the edges pointing into each node; a node with none left is ready to go in the order";
+      case "enqueue": return `Nothing points into ${nid(event.node)}, so it is ready`;
+      case "settle": return takeSentence(event);
+      case "relax": {
+        const { from, to, next } = event;
+        const gone = `${arrow(from, to)} no longer counts`;
+        return next === 0
+          ? `${gone}, so nothing points into ${nid(to)} any more and it is ready`
+          : `${gone}, so ${nid(to)} has ${edgeCount(next)} left pointing into it`;
+      }
+      case "answer": {
+        if (event.kind !== "sort") return "";
+        const { order, stuck } = event;
+        if (stuck.length > 0) {
+          const one = stuck.length === 1;
+          return `The ready list is empty, but ${names(stuck)} still ${one ? "has" : "have"} edges pointing into ${one ? "it" : "them"}, so the graph has a cycle and there is no topological order`;
+        }
+        return `The ready list is empty and every node is in the order: ${order.map(nid).join(", ")}; every edge points forwards along it`;
+      }
+      default: return "";
+    }
+  },
+};
+
 /** Each algorithm's voice, by adapter id. */
 const voices: Record<string, Voice> = {
   dijkstra,
@@ -374,6 +412,7 @@ const voices: Record<string, Voice> = {
   "dfs-pathfinding": frontierVoice(stack(true)),
   "cycle-detection": cycleDetection,
   prims,
+  "topological-sort": topologicalSort,
 };
 
 /** The pair an event's sentence starts with, for edges it names. */

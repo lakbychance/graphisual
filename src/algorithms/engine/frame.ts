@@ -32,7 +32,7 @@ export interface Frame {
   finished: readonly number[];
   /** For each settled node, the node it was reached from. */
   via: ReadonlyMap<number, number>;
-  /** Best value known so far per node (distance, key or depth). Missing means ∞. */
+  /** Best value known so far per node (distance, key or depth; for topological sort, the edges still pointing in). Missing means ∞. */
   dist: ReadonlyMap<number, number>;
   /** For each node, the node its best value came through. */
   prev: ReadonlyMap<number, number>;
@@ -72,6 +72,9 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
   switch (event.type) {
     case "start":
       if (event.value !== undefined) next.dist = withEntry(frame.dist, event.node, event.value);
+      break;
+    case "count":
+      next.dist = new Map([...frame.dist, ...event.counts.map(({ node, value }) => [node, value] as const)]);
       break;
     case "enqueue":
       next.queue = [...frame.queue.filter((item) => item.id !== event.node), { id: event.node, value: event.value }];

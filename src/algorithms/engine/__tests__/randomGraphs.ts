@@ -107,3 +107,27 @@ export function withNegativeWeights({ seed, input }: RandomGraph): RandomGraph {
   const adjacencyList = new Map([...input.adjacencyList].map(([id, edges]) => [id, edges.map((e) => ({ ...e, weight: e.weight - 2 }))]));
   return { seed, input: { ...input, adjacencyList } };
 }
+
+/**
+ * The same graph as a DAG (for topological sort): every edge one-way, pointing from the end that comes
+ * first in a seeded shuffle of the nodes to the other; self-loops dropped, an undirected edge kept
+ * once, parallel edges kept.
+ */
+export function asDag({ seed, input }: RandomGraph): RandomGraph {
+  const rand = random(seed + 7919);
+  const ids = [...input.adjacencyList.keys()];
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  const rank = new Map(ids.map((id, i) => [id, i]));
+  const adjacencyList = new Map<number, EdgeInfo[]>([...input.adjacencyList.keys()].map((id) => [id, []]));
+  for (const edges of input.adjacencyList.values()) {
+    for (const { from, to, weight, type } of edges) {
+      if (from === to || (type === "undirected" && from > to)) continue;
+      const [a, b] = rank.get(from)! < rank.get(to)! ? [from, to] : [to, from];
+      adjacencyList.get(a)!.push({ from: a, to: b, weight, type: "directed" });
+    }
+  }
+  return { seed, input: { ...input, adjacencyList } };
+}

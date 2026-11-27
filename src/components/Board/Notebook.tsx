@@ -77,9 +77,16 @@ const STATUS: Record<NodeRole, string> = {
   unseen: "unreached", waiting: "waiting", current: "now", final: "final", reached: "may improve", open: "", done: "",
 };
 
+/** Topological sort's word for each role: ready nodes wait on the ready list, final ones are in the order. */
+const SORT_STATUS: Record<NodeRole, string> = { ...STATUS, unseen: "", waiting: "ready", final: "placed" };
+
+/** A list of nodes in a line, by name, or a dash when it is empty. */
+const nodeLine = (nodes: readonly GraphNode[], ids: readonly number[]) => (ids.length === 0 ? "–" : ids.map((id) => nameOf(nodes, id)).join(", "));
+
 /**
  * The run's state at step `index`: a table of values (Dijkstra's, Prim's, Bellman-Ford), the old
- * value struck through on the row this step changed, or the queue / stack the run keeps.
+ * value struck through on the row this step changed, or the queue / stack the run keeps. Topological
+ * sort shows the order so far and the ready list over a table of the edges still pointing into each node.
  */
 export function StateView({ run, index, nodes }: { run: Run; index: number; nodes: GraphNode[] }) {
   const table = useRef<HTMLTableElement>(null);
@@ -88,14 +95,22 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
     table.current?.querySelector("tr[data-changed]") ?? table.current?.querySelector("tr[data-role='current']")), [run, index]);
   const label = (id: number) => nameOf(nodes, id);
   if (keepsValues(run.algorithmId)) {
+    const sort = run.algorithmId === "topological-sort";
     const badges = runMarksAt(run, index).nodes;
     const roles = rolesAt(run, index);
-    const prev = frameAt(run.events, index < 0 ? 0 : run.ends[index]).prev;
+    const frame = frameAt(run.events, index < 0 ? 0 : run.ends[index]);
+    const { prev } = frame;
     const rows = [...nodes].sort((a, b) => label(a.id).localeCompare(label(b.id), undefined, { numeric: true }));
-    return (
+    const status = sort ? SORT_STATUS : STATUS;
+    const values = (
       <table className="nb-table" ref={table}>
         <thead>
-          <tr><th>Node</th><th>{run.algorithmId === "prims" ? "Cost" : "Distance"}</th><th>Via</th><th><span className="sr-only">Status</span></th></tr>
+          <tr>
+            <th>Node</th>
+            <th>{sort ? "Edges in" : run.algorithmId === "prims" ? "Cost" : "Distance"}</th>
+            {!sort && <th>Via</th>}
+            <th><span className="sr-only">Status</span></th>
+          </tr>
         </thead>
         <tbody>
           {rows.map((node) => {
@@ -106,15 +121,28 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
               <tr key={node.id} data-changed={badge?.changed || undefined} data-role={role}>
                 <td>{label(node.id)}</td>
                 <td className="gs-value">
-                  {badge?.old !== undefined && <s>{num(badge.old)}</s>} {num(badge?.value)}
+                  {badge?.old !== undefined && <s>{num(badge.old)}</s>} {num(sort ? frame.dist.get(node.id) : badge?.value)}
                 </td>
-                <td>{via === undefined ? "–" : label(via)}</td>
-                <td className="nb-table-status">{STATUS[role]}</td>
+                {!sort && <td>{via === undefined ? "–" : label(via)}</td>}
+                <td className="nb-table-status">{status[role]}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
+    );
+    if (!sort) return values;
+    return (
+      <div className="nb-sort">
+        <dl className="nb-sort-lists">
+          <dt className="gs-label">Order</dt>
+          <dd>{nodeLine(nodes, frame.settled)}</dd>
+          <dt className="gs-label">Ready</dt>
+          <dd>{nodeLine(nodes, frame.queue.map((item) => item.id))}</dd>
+        </dl>
+        {/* The rows scroll on their own, so the order and the ready list stay in view whatever row is kept showing. */}
+        <div className="nb-sort-rows" tabIndex={0} role="region" aria-label="Edges into each node">{values}</div>
+      </div>
     );
   }
   const trace = traceAt(run, index);
@@ -485,7 +513,7 @@ export function Notebook({ run, index, desktop, runItHere = false, controls, sha
           {shareable && !desktop && <ShareStep run={run} index={index} runIt={runIt !== null} side="top" />}
         </div>
         <TabsPanel value="code" className="nb-page"><CodeList lines={adapter?.pseudocode ?? []} lit={lit} step={index} /></TabsPanel>
-        <TabsPanel value="state" className="nb-page"><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
+        <TabsPanel value="state" className={cn("nb-page", run.algorithmId === "topological-sort" && "nb-sort-page")}><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
         <TabsPanel value="storage" className="nb-page nb-storage">
           <StorageView
             nodes={nodes}

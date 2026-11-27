@@ -314,6 +314,32 @@ export function generateCycleWithDeadEnd(): GeneratedGraph {
 }
 
 /**
+ * A small DAG for topological sort, lettered A to F in three columns, every edge pointing rightwards
+ * (centered at origin, narrow enough for a phone). A and B are ready from the start, and a tie comes
+ * up again after nearly every node is placed, so there is often more than one right next node.
+ */
+export function generateTopologicalDag(): GeneratedGraph {
+  return graphFromSpec({
+    nodes: [
+      { x: -170, y: -95, label: "A" },
+      { x: -170, y: 95, label: "B" },
+      { x: 0, y: -95, label: "C" },
+      { x: 0, y: 95, label: "D" },
+      { x: 170, y: -95, label: "E" },
+      { x: 170, y: 95, label: "F" },
+    ],
+    edges: [
+      { from: 0, to: 2, weight: 1, directed: true },
+      { from: 0, to: 3, weight: 1, directed: true },
+      { from: 1, to: 3, weight: 1, directed: true },
+      { from: 2, to: 4, weight: 1, directed: true },
+      { from: 3, to: 4, weight: 1, directed: true },
+      { from: 3, to: 5, weight: 1, directed: true },
+    ],
+  });
+}
+
+/**
  * Generate a complete graph (K_n, centered at origin)
  */
 export function generateComplete(nodeCount: number): GeneratedGraph {

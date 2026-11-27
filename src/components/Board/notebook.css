@@ -191,6 +191,23 @@
 .nb-table s { color: var(--color-text-muted); margin-right: 2px; }
 .nb-table-status { font-size: 12px; color: var(--color-text-muted); }
 
+/* Topological sort: the order so far and the ready list, pinned over its table, which scrolls on its own. */
+.nb-sort-page { overflow: hidden; }
+.nb-sort { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.nb-sort-rows { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; border-radius: var(--radius-xs); }
+.nb-sort-rows:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); }
+.nb-sort-lists {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 8px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.nb-sort-lists dd { margin: 0; color: var(--color-text); overflow-wrap: anywhere; }
+
 /* -------------------------------------------------------------- scrubber */
 
 .nb-scrub { position: relative; flex: none; min-width: 0; margin-top: auto; padding-top: 10px; }

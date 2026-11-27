@@ -3,8 +3,8 @@
  * storage views' lit row or entry), scrolling only the page that holds it, never the screen behind.
  */
 
-/** The scrolling page around `el`: a notebook page, or a storage view's own scroller. */
-const pageOf = (el: Element | null | undefined) => el?.closest(".sv-scroll, .nb-page") ?? null;
+/** The scrolling page around `el`: a notebook page, or a storage view's or topological sort's table's own scroller. */
+const pageOf = (el: Element | null | undefined) => el?.closest(".sv-scroll, .nb-sort-rows, .nb-page") ?? null;
 
 /** Room kept between the shown part and the page's edges, so a lit row's background shows whole. */
 const MARGIN = 3;

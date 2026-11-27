@@ -101,3 +101,13 @@ export function kruskalWeight(input: AlgorithmInput): number {
   }
   return total;
 }
+
+/**
+ * Whether `order` is a topological order of the graph: every node exactly once, and every edge
+ * pointing from a node earlier in it to a later one.
+ */
+export function isTopologicalOrder({ adjacencyList }: AlgorithmInput, order: readonly number[]): boolean {
+  const at = new Map(order.map((id, i) => [id, i]));
+  if (at.size !== order.length || at.size !== adjacencyList.size || [...adjacencyList.keys()].some((id) => !at.has(id))) return false;
+  return [...adjacencyList.values()].flat().every(({ from, to }) => at.get(from)! < at.get(to)!);
+}

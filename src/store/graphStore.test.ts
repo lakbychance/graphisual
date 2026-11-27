@@ -204,12 +204,14 @@ describe("editor integrity", () => {
     for (const algorithm of FRESH_ALGORITHMS) {
       store().resetGraph();
       useGraphHistoryStore.setState({ past: [], future: [] });
-      // The learner's own graph, a triangle, with a run of it on screen.
+      // The learner's own graph, a triangle, with a run of it on screen: two-way edges, or for
+      // topological sort (which needs a DAG) one-way edges that go round no loop.
+      const dag = algorithm === "topological-sort";
       for (const [x, y] of [[0, 0], [200, 0], [100, 150]]) store().addNode(x, y);
       const [a, b, c] = store().data.nodes;
-      for (const [from, to] of [[a, b], [b, c], [c, a]]) {
+      for (const [from, to] of [[a, b], [b, c], dag ? [a, c] : [c, a]]) {
         store().addEdge(from, to);
-        store().updateEdgeType(from.id, to.id, EDGE_TYPE.UNDIRECTED);
+        store().updateEdgeType(from.id, to.id, dag ? EDGE_TYPE.DIRECTED : EDGE_TYPE.UNDIRECTED);
       }
       // An edit that changes nothing (a weight set to what it was): the history records the graph as it stands.
       store().updateEdgeWeight(a.id, b.id, store().data.edges.get(a.id)!.find((e) => e.to === b.id)!.weight);

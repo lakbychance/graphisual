@@ -41,6 +41,11 @@ const frameOf = (run: Run, index: number): Frame => frameAt(run.events, index < 
 /** The events that make up step `index`. */
 const eventsOf = (run: Run, index: number) => run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
 
+/** The events applied once step `index` is shown. */
+const eventsUpTo = (run: Run, index: number) => run.events.slice(0, index < 0 ? 0 : run.ends[index]);
+
+const TOPOLOGICAL_SORT = "topological-sort";
+
 /** An edge walked from -> to. */
 export interface Walk {
   from: number;
@@ -87,7 +92,10 @@ export function walkedAt(run: Run, index: number): Walked {
   const frame = frameOf(run, index);
   const settles = run.events.some((e) => e.type === "settle");
   const visited = settles ? [...frame.settled] : [...frame.dist.keys()];
-  const walks: Walk[] = [...(settles ? frame.via : frame.prev)].map(([to, from]) => ({ from, to }));
+  // Topological sort keeps no parents: the edges it is done with (from nodes in the order) are walked.
+  const walks: Walk[] = run.algorithmId === TOPOLOGICAL_SORT
+    ? eventsUpTo(run, index).flatMap((e) => (e.type === "relax" ? [{ from: e.from, to: e.to }] : []))
+    : [...(settles ? frame.via : frame.prev)].map(([to, from]) => ({ from, to }));
   const back: Walk[] = frame.loop ? [frame.loop, ...walkBack(run, index)] : [];
   walks.push(...back);
 
@@ -181,9 +189,9 @@ export function highlightsAt(run: Run, index: number, edges: Map<number, GraphEd
 
 /* ------------------------------------------------------- state on the graph */
 
-const VALUED = new Set(["dijkstra", "prims", "bellman-ford"]);
+const VALUED = new Set(["dijkstra", "prims", "bellman-ford", TOPOLOGICAL_SORT]);
 
-/** The algorithms that keep a value per node: a distance, or Prim's cost. */
+/** The algorithms that keep a value per node: a distance, Prim's cost, or the edges still pointing into it (topological sort). */
 export const keepsValues = (algorithmId: string) => VALUED.has(algorithmId);
 
 /** What a node carries on the graph once a step is shown (see `runMarksAt`). */
@@ -260,9 +268,10 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   const frame = frameOf(run, index);
   const step = index < 0 ? [] : eventsOf(run, index);
   const change = step.find(changes);
-  const valued = keepsValues(run.algorithmId);
-  const depthFirst = DEPTH_FIRST.has(run.algorithmId);
   const answered = frame.answer !== null;
+  // Topological sort's counts are all 0 once the order is done, so its answer carries none.
+  const valued = keepsValues(run.algorithmId) && !(run.algorithmId === TOPOLOGICAL_SORT && answered);
+  const depthFirst = DEPTH_FIRST.has(run.algorithmId);
   const settled = new Set(frame.settled);
   const finished = new Set(frame.finished);
 
@@ -288,9 +297,11 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   }
 
   const edges: RunMark[] = [];
-  if (valued) {
+  // Topological sort keeps no parent links (the edges it is done with read through the walked colour, see `walkedAt`).
+  const parents = run.algorithmId !== TOPOLOGICAL_SORT;
+  if (valued && parents) {
     for (const [to, from] of frame.prev) edges.push({ from, to, kind: settled.has(to) || answered ? "tree" : "tentative" });
-  } else {
+  } else if (!valued) {
     for (const [to, from] of frame.via) edges.push({ from, to, kind: depthFirst && !finished.has(to) && !answered ? "branch" : "tree" });
     if (!depthFirst) {
       for (const [to, from] of frame.prev) if (!settled.has(to)) edges.push({ from, to, kind: "tentative" });
@@ -415,7 +426,7 @@ export function keyMoments(run: Run): KeyMoment[] {
 
 /* ------------------------------------------------------------- trace panel */
 
-const names = (ids: number[]) => ids.map(nid).join(", ");
+const names = (ids: readonly number[]) => ids.map(nid).join(", ");
 
 /** The message for a run's first step, before anything is visited. */
 const startMessage = (node: number) => `**Nothing has been visited yet.** The run starts at ${nid(node)}`;
@@ -440,6 +451,10 @@ function answerMessage(answer: AnswerEvent): string {
     }
     case "cycle":
       return answer.cycle ? `**Cycle found:** ${[...answer.cycle, answer.cycle[0]].map(nid).join(" → ")}` : "**No cycle found**";
+    case "sort":
+      return answer.stuck.length > 0
+        ? `**No topological order:** ${names(answer.stuck)} sit on or after a cycle`
+        : `**Topological order:** ${names(answer.order)}`;
   }
 }
 
@@ -583,6 +598,25 @@ const bellmanFord: StepView = (change, step, frame, run) => {
   };
 };
 
+/** Topological sort: the ready list, and the node just added to the order. */
+const topologicalSort: StepView = (change, _step, frame) => {
+  const items = frame.queue.map((item) => ({ id: item.id }));
+  const processing = frame.current === null ? undefined : { id: frame.current };
+  switch (change?.type) {
+    case "enqueue":
+      return { message: `**${nid(change.node)} is ready**: nothing points into it`, dataStructure: { type: "queue", items, justAdded: [change.node] } };
+    case "settle":
+      return { message: `**Added ${nid(change.node)} to the order**: ${names(frame.settled)}`, dataStructure: { type: "queue", items, processing } };
+    case "relax":
+      return {
+        message: `**${nid(change.from)}→${nid(change.to)} no longer counts**: ${nid(change.to)} has ${change.next} left pointing in`,
+        dataStructure: { type: "queue", items, processing, justAdded: change.next === 0 ? [change.to] : undefined },
+      };
+    default:
+      return { message: "**Nothing is in the order yet.** Count the edges into each node", dataStructure: { type: "queue", items } };
+  }
+};
+
 const views: Record<string, StepView> = {
   dijkstra: priority(false),
   prims: priority(true),
@@ -592,6 +626,7 @@ const views: Record<string, StepView> = {
   "dfs-pathfinding": frontier("stack"),
   "cycle-detection": cycleDetection,
   "bellman-ford": bellmanFord,
+  [TOPOLOGICAL_SORT]: topologicalSort,
 };
 
 /** The trace panel's content for step `index` of the run. */

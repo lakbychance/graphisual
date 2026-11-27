@@ -13,6 +13,7 @@ import bfsPathfindingAdapter from "../adapters/bfs-pathfinding";
 import dfsPathfindingAdapter from "../adapters/dfs-pathfinding";
 import cycleDetectionAdapter from "../adapters/cycleDetection";
 import primsAdapter from "../adapters/prims";
+import topologicalSortAdapter from "../adapters/topologicalSort";
 import type { AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../types";
 import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
@@ -26,13 +27,13 @@ import {
 } from ".";
 import { nid } from "../traceHelpers";
 import { graphFacts, unmetNeed } from "../facts";
-import { asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
+import { asDag, asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
 import {
-  bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
+  bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, isTopologicalOrder, kruskalWeight, reachable,
 } from "./__tests__/oracles";
 import {
   addsLightestCrossingEdge, bfsDepthNeverDecreases, decisionsAreHonest, dfsTimesNest, doneStaysDone, edgeClassesMatchTimes, groupsOnlyIncrease, oneChangePerStep,
-  keyMomentsMatchEvents, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, storageLightsTheStep, type Rule,
+  kahnReadyIsExact, keyMomentsMatchEvents, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, storageLightsTheStep, type Rule,
 } from "./__tests__/rules";
 
 const suite = [...randomGraphs(200), largeGraph()];
@@ -40,6 +41,8 @@ const suite = [...randomGraphs(200), largeGraph()];
 const undirectedSuite = suite.map(asUndirected);
 /** Bellman-Ford also runs where some weights are negative. */
 const signedSuite = [...suite, ...suite.map(withNegativeWeights)];
+/** Topological sort refuses any graph but a DAG, so it runs on the suite made one. */
+const dagSuite = suite.map(asDag);
 
 /** Algorithms on the event engine, with the graphs they run on and the rules their event streams obey. */
 const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: Record<string, Rule> }> = [
@@ -51,6 +54,7 @@ const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: R
   { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
   { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
   { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, addsLightestCrossingEdge } },
+  { adapter: topologicalSortAdapter, graphs: dagSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, settlesOnceInOrder, kahnReadyIsExact } },
 ];
 
 const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);
@@ -184,6 +188,13 @@ const oracles: Record<string, Oracle> = {
     }
     expect(answer?.unreached, `${at}: left out`).toEqual(byName(input).filter((id) => !part.has(id)));
   },
+
+  "topological-sort"(at, input, events) {
+    const answer = answerOf(events, "sort");
+    expect(answer?.stuck, `${at}: nothing left out of a DAG`).toEqual([]);
+    expect(isTopologicalOrder(input, answer?.order ?? []), `${at}: ${answer?.order.join(", ")} is a topological order`).toBe(true);
+    expect(answer?.order, `${at}: the order is the nodes as placed`).toEqual(settledIn(events));
+  },
 };
 
 /** Runs an adapter's oracle on its default run of every graph. */
@@ -209,6 +220,8 @@ describe("oracle check", () => {
 
   it("Prim's tree weighs the same as Kruskal's minimum spanning tree of the start's part of the graph", () =>
     oracleCheck(primsAdapter, undirectedSuite));
+
+  it("Topological sort puts every node of a DAG in an order where every edge points forwards", () => oracleCheck(topologicalSortAdapter, dagSuite));
 });
 
 /* ---------------------------------------------------------- steered runs */
@@ -549,6 +562,7 @@ const everySteeredRun = (run: (choose: ChoicePolicy) => AlgorithmEvent[]) => new
 const LURE_KINDS: Record<string, string[]> = {
   dijkstra: ["neighbour"], prims: ["neighbour"], bfs: ["other-parent"], dfs: ["wide"],
   "cycle-detection": ["finished", "followed", "came-in", "wrong-way"],
+  "topological-sort": ["next-door", "label-order"],
 };
 
 /** Fresh graphs checked per algorithm; Prim's over a thousand (D54). */
@@ -786,7 +800,9 @@ function transcript(
   const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => label(Number(id)));
   const events = picks ? steer((choose) => adapter.events(input, choose), picks).events : eventsOf(adapter, input);
   const ends = input.endNodeId === undefined ? "" : ` to ${label(input.endNodeId)}`;
-  const lines = [`## ${title}`, "", `From ${label(input.startNodeId)}${ends}. Edges: ${edgeList}`];
+  // Topological sort works on the whole graph: the node tapped to start it changes nothing.
+  const from = adapter.metadata.id === "topological-sort" ? "" : `From ${label(input.startNodeId)}${ends}. `;
+  const lines = [`## ${title}`, "", `${from}Edges: ${edgeList}`];
   if (picks) lines.push("", `Steered: takes ${picks.map(label).join(", ")}, then goes on as usual`);
   if (narrated) {
     lines.push("");
@@ -955,5 +971,25 @@ describe("golden narration", () => {
       transcript(primsAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), false),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/prims.md");
+  });
+
+  it("Topological sort", async () => {
+    const directed = { directed: true, weighted: false };
+    // The graph the app opens with (`generateTopologicalDag`): the same nodes, edges and order.
+    const dag = lettered([[0, 2, 1], [0, 3, 1], [1, 3, 1], [2, 4, 1], [3, 4, 1], [3, 5, 1]], 6, 0, undefined, directed);
+    const text = golden(
+      "Topological sort",
+      transcript(topologicalSortAdapter, "Standard DAG", dag),
+      transcript(topologicalSortAdapter, "Standard DAG, steered to B first", dag, true, [1]),
+      transcript(topologicalSortAdapter, "A node on its own", lettered([[0, 1, 1], [1, 2, 1]], 4, 0, undefined, directed)),
+      transcript(topologicalSortAdapter, "Parallel edges", lettered([[0, 1, 1], [0, 1, 1], [1, 2, 1]], 3, 0, undefined, directed)),
+      transcript(topologicalSortAdapter, "A cycle", lettered([[0, 1, 1], [1, 2, 1], [2, 0, 1], [2, 3, 1]], 4, 0, undefined, directed), false),
+      transcript(topologicalSortAdapter, "A node with an edge to itself", lettered([[0, 1, 1], [1, 1, 1]], 2, 0, undefined, directed), false),
+      transcript(
+        topologicalSortAdapter, "A two-way edge",
+        lettered([[0, 1, 1, "directed"], [1, 2, 1, "undirected"]], 3, 0, undefined, { weighted: false }), false,
+      ),
+    );
+    await expect(text).toMatchFileSnapshot("./__golden__/topological-sort.md");
   });
 });

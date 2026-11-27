@@ -104,6 +104,8 @@ export interface AlgorithmMetadata {
   icon: React.ComponentType<{ className?: string }>;
   /** Hints shown for each input step (no full stops) */
   inputStepHints: string[];
+  /** False when the algorithm has no landing page yet (the picker then offers no "Learn more" link). */
+  landing?: false;
 }
 
 /**

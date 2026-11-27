@@ -32,6 +32,7 @@ function badgesOf(run: Run): RunBadges {
     valueWidth = VALUE_BADGE.width(num(undefined));
     for (const e of run.events) {
       if (e.type === "relax") valueWidth = Math.max(valueWidth, VALUE_BADGE.width(num(e.next), num(e.old)));
+      else if (e.type === "count") for (const { value } of e.counts) valueWidth = Math.max(valueWidth, VALUE_BADGE.width(num(value)));
       else if ((e.type === "start" || e.type === "enqueue" || e.type === "settle") && e.value !== undefined) {
         valueWidth = Math.max(valueWidth, VALUE_BADGE.width(num(e.value)));
       }

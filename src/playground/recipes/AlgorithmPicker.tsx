@@ -62,18 +62,20 @@ export function AlgorithmPicker({ value, onChange, disabled, inToolbar = true }:
                       subtitle={algo.metadata.tagline}
                       onClick={() => { onChange(algo.metadata.id); setOpen(false); }}
                     />
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={<a href={`/algorithm/${algo.metadata.id}`} target="_blank" rel="noopener noreferrer" />}
-                        className="gs-button absolute top-1.5 right-1.5 z-10"
-                        data-variant="ghost"
-                        data-size="icon-xs"
-                        data-tone="muted"
-                      >
-                        <Info aria-hidden="true" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Learn more</TooltipContent>
-                    </Tooltip>
+                    {algo.metadata.landing !== false && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<a href={`/algorithm/${algo.metadata.id}`} target="_blank" rel="noopener noreferrer" />}
+                          className="gs-button absolute top-1.5 right-1.5 z-10"
+                          data-variant="ghost"
+                          data-size="icon-xs"
+                          data-tone="muted"
+                        >
+                          <Info aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Learn more</TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                 );
               })}

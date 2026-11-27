@@ -10,7 +10,7 @@
  *   `from`, `to` and `step` name nodes and a run of the linked graph, so they only count with it:
  *   - a `graph` that does not decode: they are ignored, and the app opens as with `?algorithm=`;
  *   - no `graph`: they count only for the algorithms whose own graph is always the same
- *     (Dijkstra, Bellman-Ford, cycle detection). The others draw a new random graph on each load,
+ *     (Dijkstra, Bellman-Ford, cycle detection, topological sort). The others draw a new random graph on each load,
  *     where the same link would land on a different moment, so they are ignored there.
  * - `from`, `to`: nodes by the name the canvas shows (their label, or their id when unlabelled).
  *   `to` only for algorithms that need a destination; elsewhere it is ignored.
@@ -24,7 +24,7 @@ import { algorithmRegistry, AlgorithmType } from "../../algorithms";
 import type { GraphEdge, GraphNode } from "../../components/Graph/types";
 import { EDGE_TYPE } from "../../constants/graph";
 import {
-  generateCycleWithDeadEnd, generateRandomGraph, generateWeighted, graphFromSpec, type GeneratedGraph, type GraphSpec,
+  generateCycleWithDeadEnd, generateRandomGraph, generateTopologicalDag, generateWeighted, graphFromSpec, type GeneratedGraph, type GraphSpec,
 } from "../graph/graphGenerator";
 import { decodeGraphLink, encodeGraphLink, MAX_EDGES, MAX_NODES } from "../graph/graphLink";
 import { buildRun } from "./buildRun";
@@ -51,10 +51,11 @@ const generatedGraph: Record<string, () => GeneratedGraph> = {
   "bfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
   "dfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
   "cycle-detection": generateCycleWithDeadEnd,
+  "topological-sort": generateTopologicalDag,
 };
 
 /** Algorithms whose own graph is the same on every load, so a link without `graph` can name its nodes. */
-const FIXED_GRAPH = new Set(["dijkstra", "bellman-ford", "cycle-detection"]);
+const FIXED_GRAPH = new Set(["dijkstra", "bellman-ford", "cycle-detection", "topological-sort"]);
 
 /** The name the canvas shows for a node. */
 const nameOf = (node: GraphNode) => node.label || String(node.id);

@@ -157,3 +157,19 @@ export const CycleDetectionIcon = ({ className }: IconProps) => (
     <path d="M6 8 L10 4" />
   </svg>
 );
+
+/** Topological Sort: nodes in a row, every edge pointing forwards (one arching over the middle) */
+export const TopologicalSortIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Nodes in order */}
+    <circle cx="4" cy="17" r="2" fill="currentColor" />
+    <circle cx="12" cy="17" r="2" fill="currentColor" />
+    <circle cx="20" cy="17" r="2" />
+    {/* Edges between neighbours */}
+    <path d="M6.5 17 H9.5" />
+    <path d="M14.5 17 H17.5" />
+    {/* An edge arching forwards over the middle node */}
+    <path d="M5 14.5 C7.5 5.5 16.5 5.5 19 14.5" />
+    <path d="M16.6 13.2 L19 14.5 L19.9 11.9" />
+  </svg>
+);

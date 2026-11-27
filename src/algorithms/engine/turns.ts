@@ -62,6 +62,7 @@ export const CATALOGUE = {
   bfs: ["visited", "unseen", "deeper", "other-parent", "other"],
   dfs: ["visited", "unseen", "wide", "other"],
   "cycle-detection": ["self", "wrong-way", "not-neighbour", "came-in", "followed", "finished", "searched", "other"],
+  "topological-sort": ["placed", "next-door", "label-order", "pointed-at", "other"],
 } as const;
 
 type Family = keyof typeof CATALOGUE;
@@ -73,6 +74,7 @@ export const familyOf = (algorithmId: string): Family | null => {
     case "dijkstra":
     case "prims":
     case "cycle-detection":
+    case "topological-sort":
       return algorithmId;
     case "bfs":
     case "bfs-pathfinding":
@@ -92,7 +94,9 @@ export interface Misconception {
 }
 
 /** Who takes the next node, mid-sentence. */
-const NAME: Record<Family, string> = { dijkstra: "Dijkstra", prims: "Prim's", bfs: "BFS", dfs: "DFS", "cycle-detection": "the search" };
+const NAME: Record<Family, string> = {
+  dijkstra: "Dijkstra", prims: "Prim's", bfs: "BFS", dfs: "DFS", "cycle-detection": "the search", "topological-sort": "the sort",
+};
 
 /** What each algorithm takes, for the fallback. */
 const RULE: Record<Family, string> = {
@@ -101,6 +105,7 @@ const RULE: Record<Family, string> = {
   bfs: "BFS always takes the node at the front of the queue",
   dfs: "DFS always takes the node on top of the stack",
   "cycle-detection": "the search follows an edge to a node not yet visited, or back to one still in progress",
+  "topological-sort": "the sort takes a node only once nothing points into it",
 };
 
 const num = (value: number | undefined) =>
@@ -119,6 +124,8 @@ export function question(algorithmId: string, decision: DecideEvent, frame: Fram
       return "Which node does BFS take from the queue next?";
     case "dfs":
       return "Which node does DFS take from the stack next?";
+    case "topological-sort":
+      return "Which node goes next in the order?";
     default:
       return frame.current === null ? "Where does the search go next?" : `Where does the search go from ${nid(frame.current)} next?`;
   }
@@ -141,6 +148,7 @@ const CLUE: Record<Family, string> = {
   bfs: "first in, first out — the node at the front of the queue goes next, or one that joined with it",
   dfs: "last in, first out — the newest node on the stack goes next, or one pushed with it",
   "cycle-detection": "the search goes on to a node not yet visited, or back to one still in progress, which closes a loop — but never straight back along the edge it came in on",
+  "topological-sort": "a node can go next once nothing points into it any more — any node on the ready list will do",
 };
 
 /**
@@ -313,10 +321,38 @@ const cycleDetection: Classify = ({ frame, pick, decision, graph }) => {
   return null;
 };
 
+/**
+ * Topological sort: a node already in the order, or one that something still points into: a node the
+ * one just placed points at (its edge no longer counts, but another still does), the node first by
+ * name, or any other.
+ */
+const topologicalSort: Classify = ({ frame, pick, decision, graph, label }) => {
+  const P = nid(pick);
+  if (frame.settled.includes(pick)) return { kind: "placed", text: `${P} is already in the order — each node goes in once` };
+  const placed = new Set(frame.settled);
+  const into = [...graph].find(([from, edges]) => !placed.has(from) && edges.some((e) => e.to === pick))?.[0];
+  if (into === undefined) return null;
+  const still = `${nid(into)} → ${P} still points into it`;
+  const current = frame.current;
+  if (current !== null && leadsTo(graph, current, pick)) {
+    return { kind: "next-door", text: `${P} comes after ${nid(current)}, but ${still} — a node goes next only once nothing points into it` };
+  }
+  const left = [...graph.keys()].filter((id) => !placed.has(id));
+  if (left.length > 1 && firstByName(left, label) === pick) {
+    return { kind: "label-order", text: `${P} comes first by name, but ${still} — the order follows the arrows, not the names` };
+  }
+  const n = frame.dist.get(pick) ?? 0;
+  return {
+    kind: "pointed-at",
+    text: `${P} still has ${n} ${n === 1 ? "edge" : "edges"} pointing into it, like ${nid(into)} → ${P} — ${nid(decision.options[0])} has none`,
+  };
+};
+
 const CLASSIFY: Record<Family, Classify> = {
   dijkstra: priority(false),
   prims: priority(true),
   bfs,
   dfs,
   "cycle-detection": cycleDetection,
+  "topological-sort": topologicalSort,
 };

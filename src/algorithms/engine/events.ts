@@ -29,6 +29,15 @@ export interface StartEvent extends Tagged {
 }
 
 /**
+ * The run begins by counting a value for every node at once: topological sort counts the edges
+ * pointing into each node. Nodes left out have no value.
+ */
+export interface CountEvent extends Tagged {
+  type: "count";
+  counts: Array<{ node: number; value: number }>;
+}
+
+/**
  * A node joins the frontier (queue, stack or priority queue), with its value if the algorithm keeps one.
  * `from` is the node whose edge discovered it (absent for the start). With `moved`, the node was
  * already waiting: it moves to the back of the frontier (the top of a stack) with `from` as its new parent.
@@ -224,7 +233,19 @@ export interface CycleAnswer extends Tagged {
   cycle: number[] | null;
 }
 
-export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer;
+/**
+ * A topological order: `order` holds every node placed, each after every node with an edge into it.
+ * `stuck` lists the nodes never placed, in name order, as edges from a cycle still pointed into them
+ * (empty on a DAG, the only graph the app runs it on).
+ */
+export interface SortAnswer extends Tagged {
+  type: "answer";
+  kind: "sort";
+  order: number[];
+  stuck: number[];
+}
+
+export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer | SortAnswer;
 
 export type AlgorithmEvent =
-  | StartEvent | DecideEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;
+  | StartEvent | CountEvent | DecideEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;

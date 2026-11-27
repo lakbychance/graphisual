@@ -41,6 +41,8 @@ export interface GraphFacts {
   direction: "directed" | "undirected" | "mixed" | null;
   /** The first one-way edge (in name order), when there is one. */
   oneWay: FactEdge | null;
+  /** The first two-way edge (in name order), when there is one. */
+  twoWay: FactEdge | null;
   /** Null when the graph is in one piece; otherwise a node (`to`) that the first node (`from`) has no way to, arrows ignored. */
   apart: { from: number; to: number; pieces: number } | null;
   /** A cycle, its nodes in walking order (the last leads back to the first); null when there is none. */
@@ -227,6 +229,7 @@ export function graphFacts(graph: FactGraph): GraphFacts {
   return {
     direction,
     oneWay: edges.find(isDirected) ?? null,
+    twoWay: edges.find((e) => !isDirected(e)) ?? null,
     apart: stray === undefined ? null : { from: order[0], to: stray, pieces: roots.size },
     cycle,
     dag: !undirected && cycle === null,
@@ -359,10 +362,16 @@ export function factList(graph: FactGraph, facts: GraphFacts = graphFacts(graph)
   return list;
 }
 
-/** A fact an algorithm needs of the graph: no negative edge (Dijkstra's), every edge two-way (Prim's). */
-export type Need = "no-negative-edges" | "undirected";
+/** A fact an algorithm needs of the graph: no negative edge (Dijkstra's), every edge two-way (Prim's), a DAG (topological sort). */
+export type Need = "no-negative-edges" | "undirected" | "dag";
 
-/** Why `name` refuses this graph, naming the fact it needs and the edge that breaks it (nodes marked with `nid`); undefined when every need is met. */
+/** A loop of one-way edges as the facts write it (`A → B → C → A`, shortened as `loopName` does). */
+const oneWayLoop = (cycle: number[]) => loopName(cycle, {
+  nodes: [],
+  adjacencyList: new Map(cycle.map((from, i) => [from, [{ from, to: cycle[(i + 1) % cycle.length], weight: 0, type: "directed" }]])),
+});
+
+/** Why `name` refuses this graph, naming the fact it needs and the edge or cycle that breaks it (nodes marked with `nid`); undefined when every need is met. */
 export function unmetNeed(name: string, needs: readonly Need[], facts: GraphFacts): { message: string; evidence: Evidence } | undefined {
   for (const need of needs) {
     if (need === "no-negative-edges" && facts.negative.length > 0) {
@@ -377,6 +386,22 @@ export function unmetNeed(name: string, needs: readonly Need[], facts: GraphFact
         message: `${name} needs an undirected graph, but ${edgeName(facts.oneWay)} is one-way`,
         // Its ends too: a short one-way edge hides much of itself under its weight.
         evidence: { nodes: [facts.oneWay.from, facts.oneWay.to], edges: [facts.oneWay] },
+      };
+    }
+    if (need === "dag" && facts.twoWay !== null) {
+      return {
+        message: `${name} needs one-way edges only, but ${edgeName(facts.twoWay)} is two-way`,
+        evidence: { nodes: [facts.twoWay.from, facts.twoWay.to], edges: [facts.twoWay] },
+      };
+    }
+    if (need === "dag" && facts.cycle !== null) {
+      const { cycle } = facts;
+      return {
+        message: cycle.length === 1
+          ? `${name} needs a graph with no cycle, but ${nid(cycle[0])} has an edge to itself`
+          // With no two-way edge, every edge of the cycle is one-way.
+          : `${name} needs a graph with no cycle, but ${oneWayLoop(cycle)} goes round`,
+        evidence: { nodes: cycle, edges: loopEdges(cycle) },
       };
     }
   }

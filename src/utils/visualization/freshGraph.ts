@@ -5,7 +5,8 @@
  * Each graph is 5 to 8 nodes, lettered A, B, C… from the start on the left, laid out in columns so
  * no node overlaps another and no edge crosses another or runs through a node. It is valid input for
  * its algorithm (weights 2 to 9, as the canvas leaves a weight of 1 unwritten; Prim's undirected
- * and connected; the destination reachable), and whatever the learner picks, every run of it meets at
+ * and connected; the destination reachable; topological sort's a DAG, every edge pointing rightwards or
+ * down a column), and whatever the learner picks, every run of it meets at
  * least one tie (a turn with more than one valid pick) and one lure: a wrong pick a learner is likely
  * to make there (`LURES`).
  *
@@ -26,7 +27,9 @@ export interface FreshGraph {
 }
 
 /** The algorithms Run it offers, which fresh graphs are made for. */
-export const FRESH_ALGORITHMS = ["dijkstra", "prims", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection"] as const;
+export const FRESH_ALGORITHMS = [
+  "dijkstra", "prims", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "topological-sort",
+] as const;
 
 /**
  * The lures: the misconceptions (see `CATALOGUE`) a wrong pick is tempting for. Dijkstra's and
@@ -34,6 +37,8 @@ export const FRESH_ALGORITHMS = ["dijkstra", "prims", "bfs", "dfs", "bfs-pathfin
  * edge that looks best from where the run just was, though a cheaper one waits elsewhere. Cycle
  * detection's are a node the search already finished (it can't close a loop) and the node it just
  * came from, back along a two-way edge or against a one-way one (going straight back is not a loop).
+ * Topological sort's are a node the one just placed points at, though something else still points
+ * into it, and the node that comes first by name though something points into it.
  */
 const LURES: Record<string, readonly MisconceptionKind[]> = {
   dijkstra: ["neighbour"],
@@ -41,6 +46,7 @@ const LURES: Record<string, readonly MisconceptionKind[]> = {
   bfs: ["other-parent"],
   dfs: ["wide"],
   "cycle-detection": ["finished", "followed", "came-in", "wrong-way"],
+  "topological-sort": ["next-door", "label-order"],
 };
 
 /** mulberry32: a tiny seeded generator. */
@@ -143,10 +149,13 @@ const lettered = (points: Point[]): GraphSpec["nodes"] => points.map((p, i) => (
  * node is joined to one in the column before (each node of the second column gets one of its own
  * further on), then some more edges between neighbouring columns and down a column, where they draw
  * cleanly. `apartSecond` keeps the second column's nodes unjoined (DFS: each waits from the start).
- * `directed` points every edge rightwards or down a column, so there is no loop.
+ * `directed` points every edge rightwards or down a column, so there is no loop. `columns` sets the
+ * column sizes instead (left to right).
  */
-function layered(rand: Rand, { weighted, apartSecond, directed = false }: { weighted: boolean; apartSecond: boolean; directed?: boolean }) {
-  const columns = [1, 2, 2 + int(rand, 2), int(rand, 3)].filter((n) => n > 0);
+function layered(rand: Rand, { weighted, apartSecond, directed = false, columns: sizes }: {
+  weighted: boolean; apartSecond: boolean; directed?: boolean; columns?: number[];
+}) {
+  const columns = (sizes ?? [1, 2, 2 + int(rand, 2), int(rand, 3)]).filter((n) => n > 0);
   const points = place(columns);
   const first = columns.map((_, c) => columns.slice(0, c).reduce((a, b) => a + b, 0));
   const weight = () => (weighted ? 2 + int(rand, 8) : 1);
@@ -238,6 +247,12 @@ function shapeFor(algorithmId: string, rand: Rand, loop: Loop): Shape {
     case "dijkstra":
     case "prims": {
       const { nodes, edges } = layered(rand, { weighted: true, apartSecond: false });
+      return { spec: { nodes, edges }, from: 0, to: null };
+    }
+    case "topological-sort": {
+      // Two nodes on the left with nothing pointing into them, so the sort starts with a choice.
+      const columns = [2, 2 + int(rand, 2), 1 + int(rand, 2), int(rand, 2)];
+      const { nodes, edges } = layered(rand, { weighted: false, apartSecond: false, directed: true, columns });
       return { spec: { nodes, edges }, from: 0, to: null };
     }
     default: {
