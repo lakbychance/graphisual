@@ -40,3 +40,14 @@ export const useIsDesktop = (): boolean => {
 export const useIsShortWindow = (): boolean => {
   return useMediaQuery("(min-width: 560px) and (max-height: 500px)");
 };
+
+/**
+ * A roomy screen: at least 1024 wide and 700 tall. Extras that help on a big screen but would only
+ * crowd a small one (D69), like the edge list's graph facts, show only here. One check, so every
+ * such extra appears and disappears at the same sizes.
+ */
+export const ROOMY_SCREEN = "(min-width: 1024px) and (min-height: 700px)";
+
+export const useIsRoomyScreen = (): boolean => {
+  return useMediaQuery(ROOMY_SCREEN);
+};

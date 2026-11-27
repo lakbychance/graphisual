@@ -134,3 +134,40 @@
 .tp-line:hover { background: var(--color-interactive-hover); }
 .tp-line[data-tone="hint"] { box-shadow: inset 0 0 0 1px var(--color-text-muted); color: var(--color-text-muted); }
 .tp-line:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-offset); }
+
+/*
+ * The graph's facts, along the foot of the panel on roomy screens only (`useIsRoomyScreen`): a row
+ * of quiet chips, and under it why the one pointed at (or kept, by a click) holds.
+ */
+.tp-facts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-divider);
+}
+/* Room for two rows of chips, so the views above keep their height whichever facts wrap where. */
+.tp-fact-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; min-height: 48px; }
+.tp-fact-list li { flex: none; }
+.tp-fact {
+  padding: 0 7px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-divider);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 22px;
+  cursor: pointer;
+}
+.tp-fact:hover, .tp-fact[data-shown] { background: var(--color-interactive-hover); }
+.tp-fact[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--color-text-muted); }
+.tp-fact:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-offset); }
+/*
+ * The why keeps one height, three lines (a longer one scrolls), so nothing in the panel moves as it
+ * changes: not the chips under the pointer, not the text above.
+ */
+.tp-fact-why { margin: 0; height: calc(3 * 1.4em); overflow-y: auto; overscroll-behavior: contain; font-size: 12.5px; line-height: 1.4; color: var(--color-text-muted); }
+.tp-fact-hint { opacity: 0.8; }

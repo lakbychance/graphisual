@@ -33,6 +33,8 @@ From A to D. Edges: A→B 2, A→C 5, C→B −4, B→D 1
  7. D is the closest node in the queue, at 3, so its distance is final; it is the destination, so the search stops
  8. Walk back from D to read the route: A → B → D, total distance 3
 
+The app says: Dijkstra's needs no negative edges, but C → B weighs −4; Bellman-Ford handles them
+
 ## A tie
 
 From A to D. Edges: A–B 2, A–C 2, B–D 1, C–D 3

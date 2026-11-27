@@ -3,13 +3,16 @@
  * not play it. Tapping nodes and opening a step link both start runs through here.
  */
 import { algorithmRegistry, type EdgeInfo } from "../../algorithms";
+import { graphFacts, unmetNeed, type Evidence } from "../../algorithms/facts";
 import type { GraphEdge, GraphNode } from "../../components/Graph/types";
 import type { EdgeType } from "../../constants/graph";
-import { ALGORITHMS_NO_NEGATIVE_WEIGHTS, hasNegativeWeights } from "../graph/graphUtils";
 import { createRun, type Run } from "./runView";
 
-/** A run to play, or the message the app shows instead (`warning` before running, `error` after). */
-export type BuiltRun = { run: Run } | { problem: string; severity: "warning" | "error" };
+/**
+ * A run to play, or the message the app shows instead (`warning` before running, when the graph
+ * lacks a fact the algorithm needs, with the `evidence` to light on the canvas; `error` after).
+ */
+export type BuiltRun = { run: Run } | { problem: string; severity: "warning" | "error"; evidence?: Evidence };
 
 /**
  * `stepMode`: the run is for Step mode, where the notebook says its answer in words. There a cycle
@@ -28,9 +31,11 @@ export function buildRun(
   if (!algorithm) return null;
   const { id, name } = algorithm.metadata;
 
-  if (ALGORITHMS_NO_NEGATIVE_WEIGHTS.has(id) && hasNegativeWeights(edges)) {
-    return { problem: `${name} doesn't support negative edge weights. Use Bellman-Ford instead.`, severity: "warning" };
-  }
+  // Node ids are marked `{n:id}`; show each node's label.
+  const named = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, nodeId) => nodes.find((n) => n.id === Number(nodeId))?.label || nodeId);
+
+  const unmet = unmetNeed(name, algorithm.needs ?? [], graphFacts({ nodes, adjacencyList: edges }));
+  if (unmet) return { problem: named(unmet.message), severity: "warning", evidence: unmet.evidence };
 
   const adjacencyList = new Map<number, EdgeInfo[]>();
   edges.forEach((edgeList, nodeId) => {
@@ -46,10 +51,6 @@ export function buildRun(
   const events = algorithm.events(input);
   const noCycle = events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);
   const refusal = stepMode && noCycle ? undefined : algorithm.refusal?.(events, input);
-  if (refusal) {
-    // Node ids are marked `{n:id}`; show each node's label.
-    const problem = refusal.replace(/\{n:(\d+)\}/g, (_, nodeId) => nodes.find((n) => n.id === Number(nodeId))?.label || nodeId);
-    return { problem, severity: "error" };
-  }
+  if (refusal) return { problem: named(refusal), severity: "error" };
   return { run: createRun(id, events, [...adjacencyList.keys()], input) };
 }

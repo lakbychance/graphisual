@@ -24,6 +24,7 @@ import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
 import { applyEdgeList, freeId, meaningOf, meaningOfList, nameOf, readEdgeList, whyNotWritable, type LineProblem } from "../utils/graph/edgeList";
 import type { GeneratedGraph } from "../utils/graph/graphGenerator";
+import type { Evidence } from "../algorithms/facts";
 
 // ============================================================================
 // Types
@@ -146,6 +147,14 @@ interface GraphActions {
   resetVisualization: () => void;
   /** Remove all highlights and the run; back to IDLE. */
   clearVisualization: () => void;
+  /**
+   * Lights what a graph fact points at (see `facts.ts`) outside a run: its nodes and edges in the
+   * cycle colour, its `marked` nodes in the route colour, over whatever a finished run left there.
+   * Returns what puts it out. Lightings stack: the latest shows, and putting it out shows the one
+   * under it again (a fact kept lit in the panel, after a refusal's edge), or, under the last, what
+   * was there before, unless something else has changed the highlights since. Does nothing during a run.
+   */
+  showEvidence: (evidence: Evidence) => () => void;
 
   // === Visualization Run ===
   /** Begin a run: store it, no step shown yet (index -1). */
@@ -206,6 +215,12 @@ const freshLooks = new Set<string>();
  * not put one aside.
  */
 let ownGraphAt: number | null = null;
+
+/**
+ * What `showEvidence` has lit, latest last, the highlights it lit them over (put back when all are
+ * out), and the highlights on screen as it last left them (anything else there means something else took over).
+ */
+let evidenceLit: { layers: Array<{ key: object; trace: VisualizationTrace }>; under: VisualizationTrace; shown: VisualizationTrace } | null = null;
 
 const snapshotToData = (snapshot: GraphSnapshot): GraphData => ({
   nodes: snapshot.nodes,
@@ -927,6 +942,43 @@ export const useGraphStore = create<GraphStore>()(
               runIt: null,
             },
           });
+        },
+
+        showEvidence: (evidence) => {
+          const { visualization, data } = get();
+          if (visualization.state === VisualizationState.RUNNING) return () => {};
+          const trace = emptyTrace();
+          const joins = (a: number, b: number) => data.edges.get(a)?.find((e) => e.to === b);
+          for (const { from, to } of evidence.edges) {
+            // The edge as the canvas keys it: from `from`, and from `to` too when it runs both ways (or only that way).
+            if (joins(from, to)) trace.edges.set(`${from}-${to}`, { isUsedInCycle: true });
+            const back = joins(to, from);
+            if (back && (back.type === EDGE_TYPE.UNDIRECTED || !joins(from, to))) trace.edges.set(`${to}-${from}`, { isUsedInCycle: true });
+          }
+          for (const id of evidence.marked ?? []) trace.nodes.set(id, { isInShortestPath: true });
+          for (const id of evidence.nodes) trace.nodes.set(id, { isInCycle: true });
+          // Something else changed the highlights since: what is lit now is what to put back.
+          if (!evidenceLit || visualization.trace !== evidenceLit.shown) {
+            evidenceLit = { layers: [], under: visualization.trace, shown: visualization.trace };
+          }
+          const key = {};
+          evidenceLit.layers.push({ key, trace });
+          evidenceLit.shown = trace;
+          set({ visualization: { ...visualization, trace } });
+          return () => {
+            const lit = evidenceLit;
+            const at = lit ? lit.layers.findIndex((layer) => layer.key === key) : -1;
+            if (!lit || at < 0) return;
+            const wasShown = at === lit.layers.length - 1;
+            lit.layers.splice(at, 1);
+            const now = get().visualization;
+            const ours = now.trace === lit.shown;
+            const next = lit.layers.length > 0 ? lit.layers[lit.layers.length - 1].trace : lit.under;
+            if (lit.layers.length === 0) evidenceLit = null;
+            if (!ours || !wasShown) return;
+            lit.shown = next;
+            set({ visualization: { ...now, trace: next } });
+          };
         },
 
         // ========================================

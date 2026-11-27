@@ -109,8 +109,7 @@ const primsAdapter: AlgorithmAdapter = {
   events: primsEvents,
 
   /** A graph in pieces still runs: the tree spans the start's piece and the answer names the rest. */
-  refusal: (_events, input) =>
-    hasDirectedEdge(input) ? "MST requires an undirected graph. Found directed edges." : undefined,
+  needs: ["undirected"],
 };
 
 export default primsAdapter;

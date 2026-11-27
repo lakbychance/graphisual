@@ -112,6 +112,7 @@ const dijkstraAdapter: AlgorithmAdapter = {
   pseudocode: PSEUDOCODE,
   events: dijkstraEvents,
 
+  needs: ["no-negative-edges"],
   refusal: noRoute("Path is not possible for the given vertices."),
 };
 

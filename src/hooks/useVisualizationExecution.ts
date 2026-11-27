@@ -1,9 +1,9 @@
 import { useCallback } from "react";
-import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry, AlgorithmAdapter } from "../algorithms";
 import { VisualizationMode, VisualizationState } from "../constants/visualization";
 import { buildRun } from "../utils/visualization/buildRun";
+import { sayProblem } from "../utils/visualization/sayProblem";
 import { useAppHaptics } from "./useAppHaptics";
 
 interface UseVisualizationExecutionReturn {
@@ -41,13 +41,10 @@ export function useVisualizationExecution(): UseVisualizationExecutionReturn {
     if (!built) return;
 
     if ("problem" in built) {
-      if (built.severity === "warning") {
-        toast.warning(built.problem);
-      } else {
-        toast.error(built.problem);
-        haptics.error();
-      }
       resetVisualization();
+      // The graph lacks a fact the algorithm needs (the toast names it and the canvas lights it), or the run found nothing.
+      sayProblem(built);
+      if (built.severity === "error") haptics.error();
       return;
     }
 

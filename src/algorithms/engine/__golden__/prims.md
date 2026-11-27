@@ -65,4 +65,4 @@ From A. Edges: A–B 3, A–C 1, C–B 9, C–B 9, C–D 1, C–D 4, C–D 4
 
 From A. Edges: A→B 3
 
-The app says: MST requires an undirected graph. Found directed edges.
+The app says: Prim's MST needs an undirected graph, but A → B is one-way

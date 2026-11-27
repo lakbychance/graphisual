@@ -77,6 +77,14 @@ export function runFit(
   const bodies = runBounds(nodes, { valueWidth: 0 }, 1);
   // (`appsOwnView`: the view is one the app set, not the learner, so it fits whatever is off screen.)
   if (!appsOwnView && !isOpeningView(view) && !shows(bodies, view, size, NO_INSETS, 0)) return null;
+  return fitFrom(nodes, badges, size, insets, minZoom, view.zoom);
+}
+
+/**
+ * The view centred on every node and its badges, clear of the bars, at the largest zoom from `top`
+ * down to `minZoom` that shows them whole (at `minZoom`, as well as it can, when none does).
+ */
+function fitFrom(nodes: readonly GraphNode[], badges: RunBadges, size: Size, insets: Insets, minZoom: number, top: number): View {
   const centred = (zoom: number) => {
     const box = runBounds(nodes, badges, markScale(zoom));
     const pan = {
@@ -85,11 +93,11 @@ export function runFit(
     };
     return { box, view: { zoom, pan } };
   };
-  for (let step = 0; view.zoom - step / 100 >= minZoom; step++) {
-    const { box, view: fit } = centred(Math.round((view.zoom - step / 100) * 100) / 100);
+  for (let step = 0; top - step / 100 >= minZoom; step++) {
+    const { box, view: fit } = centred(Math.round((top - step / 100) * 100) / 100);
     if (shows(box, fit, size, insets, GUTTER)) return fit;
   }
-  return centred(Math.min(view.zoom, minZoom)).view;
+  return centred(Math.min(top, minZoom)).view;
 }
 
 /**
@@ -98,12 +106,12 @@ export function runFit(
  * marked `data-run-fit-avoid="right"` (the notebook's side panel) covers the columns along the right.
  * Each is fixed to the screen and measured where it rests, not where its entrance has it now.
  */
-function barInsets(size: Size): Insets {
+function barInsets(size: Size, only: (bar: HTMLElement) => boolean = () => true): Insets {
   const insets = { ...NO_INSETS };
   for (const bar of document.querySelectorAll<HTMLElement>("[data-run-fit-avoid]")) {
     const top = bar.offsetTop;
     const bottom = top + bar.offsetHeight;
-    if (bottom <= top) continue;
+    if (bottom <= top || !only(bar)) continue;
     if (bar.dataset.runFitAvoid === "right") insets.right = Math.max(insets.right, size.width - bar.offsetLeft);
     else if (top + bottom < size.height) insets.top = Math.max(insets.top, bottom);
     else insets.bottom = Math.max(insets.bottom, size.height - top);
@@ -136,6 +144,25 @@ function moveTo(fit: View): () => void {
   };
 }
 
+/**
+ * The view that fits the whole graph on the free canvas, as large as it shows whole, up to 100%. A
+ * small corner bar (the settings key) need not take its whole row: the graph may sit beside it, as
+ * long as no node comes under it.
+ */
+function fitFree(nodes: readonly GraphNode[], size: Size, minZoom: number): View {
+  const wide = (bar: HTMLElement) => bar.dataset.runFitAvoid === "right" || bar.offsetWidth >= size.width / 2;
+  const beside = fitFrom(nodes, { valueWidth: 0 }, size, barInsets(size, wide), minZoom, 1);
+  const box = runBounds(nodes, { valueWidth: 0 }, markScale(beside.zoom));
+  // Screen point (s, t) shows graph point ((s - width / 2) / zoom - pan.x, (t - height / 2) / zoom - pan.y).
+  const screen = (x: number, y: number) => [(x + beside.pan.x) * beside.zoom + size.width / 2, (y + beside.pan.y) * beside.zoom + size.height / 2];
+  const [left, top] = screen(box.minX, box.minY);
+  const [right, bottom] = screen(box.maxX, box.maxY);
+  const under = [...document.querySelectorAll<HTMLElement>("[data-run-fit-avoid]")].some((bar) => !wide(bar) && bar.offsetHeight > 0
+    && left < bar.offsetLeft + bar.offsetWidth + GUTTER && right > bar.offsetLeft - GUTTER
+    && top < bar.offsetTop + bar.offsetHeight + GUTTER && bottom > bar.offsetTop - GUTTER);
+  return under ? fitFrom(nodes, { valueWidth: 0 }, size, barInsets(size), minZoom, 1) : beside;
+}
+
 /** Whether two views are the same. */
 const same = (a: View, b: View) => a.zoom === b.zoom && a.pan.x === b.pan.x && a.pan.y === b.pan.y;
 
@@ -147,25 +174,36 @@ const same = (a: View, b: View) => a.zoom === b.zoom && a.pan.x === b.pan.x && a
  * let go, never in the middle of a drag) or the window changes size, as long as the learner has not
  * moved the view: it is still the one the panel opened on, the last one it fitted, or the one a new
  * graph opens in. On closing, the view goes back to where it was (where a new graph opens, if one came
- * meanwhile), unless the learner has moved it. With reduced motion the view jumps rather than glides.
+ * meanwhile), unless the learner has moved it. When nodes that came while it was open (typed, or a new
+ * graph) would not all show there, the graph fits the canvas the panel leaves free instead, as large
+ * as it shows whole, up to 100%. With reduced motion the view jumps rather than glides.
  */
 export function usePanelFit(open: boolean) {
   const size = useWindowSize();
   const nodes = useGraphStore((s) => s.data.nodes);
-  // The view to go back to on closing, and the view the panel last fitted (null: none yet).
-  const views = useRef<{ before: View; fit: View | null } | null>(null);
+  // The view to go back to on closing, the view the panel last fitted (null: none yet), and the nodes there were on opening.
+  const views = useRef<{ before: View; fit: View | null; had: Set<number> } | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    const { zoom, pan } = useGraphStore.getState().viewport;
-    views.current = { before: { zoom, pan }, fit: null };
+    const { viewport, data } = useGraphStore.getState();
+    views.current = { before: { zoom: viewport.zoom, pan: viewport.pan }, fit: null, had: new Set(data.nodes.map((n) => n.id)) };
     return () => {
-      const { before, fit } = views.current ?? { before: null, fit: null };
+      const own = views.current;
       views.current = null;
-      const { viewport, setViewportZoom, setViewportPan } = useGraphStore.getState();
-      if (!before || !fit || !same(viewport, fit)) return;
-      setViewportZoom(before.zoom);
-      setViewportPan(before.pan.x, before.pan.y);
+      const { data, viewport, setViewportZoom, setViewportPan } = useGraphStore.getState();
+      if (!own?.fit || !same(viewport, own.fit)) return;
+      const { before, had } = own;
+      // Nodes that came while the panel was open (typed, or a new graph) and would be off screen there:
+      // the graph fits the canvas the panel leaves free, as large as it shows whole, up to 100%.
+      const added = data.nodes.filter((n) => !had.has(n.id));
+      const size = { width: window.innerWidth, height: window.innerHeight };
+      const insets = barInsets(size);
+      const back = added.length === 0 || shows(runBounds(added, { valueWidth: 0 }, markScale(before.zoom)), before, size, insets, GUTTER)
+        ? before
+        : fitFree(data.nodes, size, isShortWindow(size) ? SHORT_WINDOW_MIN_ZOOM : ZOOM.MIN);
+      setViewportZoom(back.zoom);
+      setViewportPan(back.pan.x, back.pan.y);
     };
   }, [open]);
 

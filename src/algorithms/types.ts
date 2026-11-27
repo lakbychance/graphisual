@@ -8,6 +8,7 @@
 import type React from "react";
 import { type EdgeType } from "../constants/graph";
 import type { AlgorithmEvent, ChoicePolicy } from "./engine/events";
+import type { Need } from "./facts";
 
 /**
  * Categories of graph algorithms.
@@ -148,4 +149,9 @@ export interface AlgorithmAdapter {
    * marked with `nid`). Called with the run's events.
    */
   refusal?: (events: AlgorithmEvent[], input: AlgorithmInput) => string | undefined;
+  /**
+   * Graph facts the algorithm needs (see `facts.ts`): on a graph without one the app does not run
+   * it, and says which fact is missing and which edge shows it (`unmetNeed`).
+   */
+  needs?: Need[];
 }

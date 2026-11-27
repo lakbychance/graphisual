@@ -25,6 +25,7 @@ import {
   narrate, stepEnds, steer, type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
 } from ".";
 import { nid } from "../traceHelpers";
+import { graphFacts, unmetNeed } from "../facts";
 import { asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
 import {
   bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, kruskalWeight, reachable,
@@ -791,9 +792,11 @@ function transcript(
     lines.push("");
     narrate(events, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
   }
-  const refusal = adapter.refusal?.(events, input);
+  // A graph without a fact the algorithm needs is refused before it runs; otherwise the run may find nothing (see `buildRun`).
+  const unmet = unmetNeed(adapter.metadata.name, adapter.needs ?? [], graphFacts(input));
+  const refusal = unmet?.message ?? adapter.refusal?.(events, input);
   // A search that finds no cycle plays to its answer in Step mode; only Auto mode shows the message (see `buildRun`).
-  const noCycle = events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);
+  const noCycle = !unmet && events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);
   if (refusal) lines.push("", noCycle ? `In Auto mode the app says: ${plain(refusal)} In Step mode the run plays to its answer` : `The app says: ${plain(refusal)}`);
   return lines.join("\n");
 }

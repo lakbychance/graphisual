@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { useGraphStore } from "../store/graphStore";
 import { algorithmRegistry } from "../algorithms";
 import { VisualizationMode } from "../constants/visualization";
 import { buildRun } from "../utils/visualization/buildRun";
+import { sayProblem } from "../utils/visualization/sayProblem";
 import { decodeStepLink, needsDestination } from "../utils/visualization/stepLink";
 
 /**
@@ -37,8 +37,7 @@ export function useAlgorithmFromUrl() {
       } else if (built) {
         // The message tapping these nodes would show; the algorithm stays selected for another try.
         // Sent once this first render's effects are done, so the toaster is listening.
-        const show = built.severity === "warning" ? toast.warning : toast.error;
-        window.setTimeout(() => show(built.problem));
+        window.setTimeout(() => sayProblem(built));
       }
     }
 

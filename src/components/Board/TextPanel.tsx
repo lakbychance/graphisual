@@ -7,13 +7,20 @@
  *
  * A switch in the head shows the same graph as it is stored instead, an adjacency list or matrix
  * (`StorageView`), to read; the text comes back with the switch, and with every opening of the panel.
+ *
+ * Under either, on a roomy screen (`useIsRoomyScreen`; on smaller ones they would crowd the views),
+ * the graph's facts (`facts.ts`): connected, has a cycle, bipartite and so on, worked out as the graph changes. Pointing at one (or tapping it, or reaching it with the keyboard) says why
+ * it holds, and lights on the canvas what shows it: the cycle, the node that can't be reached.
  */
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import {
   Button, Kbd, Panel, SegmentedControl, SegmentedControlItem, Textarea, Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui-sdk";
+import { factList, type Fact } from "../../algorithms/facts";
+import type { GraphEdge, GraphNode } from "../Graph/types";
 import { useGraphStore } from "../../store/graphStore";
+import { useIsRoomyScreen } from "../../hooks/useMediaQuery";
 import { useSettingsStore, type StorageForm } from "../../store/settingsStore";
 import { followCanvas, MAX_TEXT, readEdgeList, textAfterCommit, textOf, whyNotWritable, type LineProblem, type TextState } from "../../utils/graph/edgeList";
 import { isModKey } from "../../utils/keyboard";
@@ -48,6 +55,56 @@ function Words({ text }: { text: string }) {
   return <span>{text.split("`").map((part, i) => (i % 2 === 1 ? <code key={i} className="tp-example">{part}</code> : part))}</span>;
 }
 
+/**
+ * The graph's facts in a line, each a button: pointing at one (a mouse over it, or keyboard focus)
+ * says why it holds under the line and lights its evidence on the canvas; a click or tap keeps it
+ * shown until clicked again.
+ */
+function Facts({ nodes, edges }: { nodes: GraphNode[]; edges: Map<number, GraphEdge[]> }) {
+  // Worked out again only when the graph changes, so a kept fact stays lit as the learner types.
+  const facts = useMemo(() => factList({ nodes, adjacencyList: edges }), [nodes, edges]);
+  const [pointed, setPointed] = useState<Fact["key"] | null>(null);
+  const [kept, setKept] = useState<Fact["key"] | null>(null);
+  const shown = facts.find((f) => f.key === (pointed ?? kept)) ?? null;
+  const evidence = shown?.evidence ?? null;
+  const name = (text: string) => text.replace(/\{n:(\d+)\}/g, (_, id) => nodes.find((n) => n.id === Number(id))?.label || id);
+
+  // Lit while shown (and again as the graph changes under it), put out when it goes.
+  useEffect(() => {
+    if (!evidence) return;
+    return useGraphStore.getState().showEvidence(evidence);
+  }, [evidence]);
+
+  if (facts.length === 0) return null;
+  return (
+    <section className="tp-facts" aria-label="Graph facts">
+      <ul className="tp-fact-list">
+        {facts.map((fact) => (
+          <li key={fact.key}>
+            <button
+              type="button"
+              className="tp-fact"
+              aria-pressed={kept === fact.key}
+              aria-describedby="tp-fact-why"
+              data-shown={shown?.key === fact.key ? "" : undefined}
+              onPointerEnter={(e) => e.pointerType === "mouse" && setPointed(fact.key)}
+              onPointerLeave={(e) => e.pointerType === "mouse" && setPointed(null)}
+              onFocus={(e) => e.currentTarget.matches(":focus-visible") && setPointed(fact.key)}
+              onBlur={() => setPointed(null)}
+              onClick={() => setKept(kept === fact.key ? null : fact.key)}
+            >
+              {fact.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="tp-fact-why" id="tp-fact-why" aria-live="polite">
+        {shown ? name(shown.why) : <span className="tp-fact-hint">Point at or tap a fact to see why</span>}
+      </p>
+    </section>
+  );
+}
+
 interface TextPanelProps {
   /** Puts the caret in the text on opening (not on phones, where it would raise the keyboard over the canvas). */
   focusOnOpen: boolean;
@@ -69,6 +126,7 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
   }
   const { text } = followed;
   const why = whyNotWritable(nodes);
+  const roomy = useIsRoomyScreen();
   // The text, or the graph as stored (in the form the learner last chose, shared with the notebook).
   const [asText, setAsText] = useState(true);
   const storageForm = useSettingsStore((s) => s.storageForm);
@@ -169,9 +227,9 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
       className="tp"
       role="region"
       aria-labelledby="tp-title"
-      // Esc closes the panel from the stored views too (the text handles its own).
+      // Esc closes the panel from the stored views and the facts too (the text handles its own).
       onKeyDown={(e) => {
-        if (e.key === "Escape" && !asText) {
+        if (e.key === "Escape" && e.target !== area.current) {
           e.preventDefault();
           e.stopPropagation();
           onClose();
@@ -263,6 +321,8 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
       ) : (
         <StorageView nodes={nodes} edges={edges} form={storageForm} label={storageForm === "list" ? "Adjacency list" : "Adjacency matrix"} />
       )}
+
+      {roomy && <Facts nodes={nodes} edges={edges} />}
     </Panel>
   );
 }
