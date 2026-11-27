@@ -24,7 +24,7 @@
  */
 import { decide, firstOption, type AlgorithmEvent, type ChoicePolicy } from "../engine";
 import type { AlgorithmInput } from "../types";
-import { scanOrder } from "./scanOrder";
+import { nameOrder } from "./nameOrder";
 import { EDGE_TYPE } from "../../constants/graph";
 
 export type FrontierKind = "queue" | "stack";
@@ -75,7 +75,7 @@ export function searchEvents(
     const together = order.filter((id) => parent.get(id) === parent.get(order[0]));
     if (together.length === 0) {
       if (target === undefined) {
-        const unreached = scanOrder(input).filter((id) => !visited.includes(id));
+        const unreached = nameOrder(input).filter((id) => !visited.includes(id));
         events.push({ type: "answer", kind: "order", start, order: visited, unreached, line: lines.loop, group });
       } else {
         events.push({ type: "answer", kind: "route", start, target, path: null, line: lines.loop, group });

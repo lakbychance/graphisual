@@ -42,6 +42,8 @@ export interface AlgorithmInput {
  */
 export interface NodeInfo {
   id: number;
+  /** The node's name on the canvas, when it has one (it is named by its number otherwise). */
+  label?: string;
 }
 
 /**

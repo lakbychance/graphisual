@@ -16,5 +16,5 @@ export {
   Select, SelectTrigger, SelectValue, SelectValueIcon, SelectContent, SelectItem, SelectItemIcon, SelectItemIndicator,
 } from "./select";
 export { Stepper } from "./number-input";
-export { Field, FieldLabel, FieldDescription, Input } from "./field";
+export { Field, FieldLabel, FieldDescription, Input, Textarea } from "./field";
 export { Panel, Well, Kbd, Label, Divider, CardButton } from "./surface";

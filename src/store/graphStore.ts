@@ -22,6 +22,8 @@ import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
 import { VisualizationState, VisualizationMode } from "../constants/visualization";
 import { STORE_NAME } from "../constants/store";
 import { useGraphHistoryStore, createGraphSnapshot, withGraphAutoHistory, withGraphBatchedAutoHistory } from "./graphHistoryStore";
+import { applyEdgeList, freeId, meaningOf, meaningOfList, nameOf, readEdgeList, whyNotWritable, type LineProblem } from "../utils/graph/edgeList";
+import type { GeneratedGraph } from "../utils/graph/graphGenerator";
 
 // ============================================================================
 // Types
@@ -107,7 +109,17 @@ interface GraphActions {
   updateEdgeWeight: (fromNodeId: number, toNodeId: number, newWeight: number) => void;
   reverseEdge: (fromNodeId: number, toNodeId: number) => void;
   deleteEdge: (fromNodeId: number, toNodeId: number) => void;
-  updateNodeLabel: (nodeId: number, label: string) => void;
+  /**
+   * Renames a node (an empty label shows its number). No two nodes may show the same name (D68): a
+   * name another node already shows is refused and comes back (nothing changes); null when renamed.
+   */
+  updateNodeLabel: (nodeId: number, label: string) => string | null;
+  /**
+   * The text panel: makes the canvas what `text` says (see `edgeList.ts`), one undo step, new nodes
+   * placed around `anchor`; the view stays where it is. When any line is malformed, or the canvas
+   * cannot be written as text, the graph stays as it is and the problems come back.
+   */
+  applyEdgeListText: (text: string, anchor: { x: number; y: number }) => LineProblem[];
 
   // === History Actions ===
   undo: () => void;
@@ -282,6 +294,28 @@ export const useGraphStore = create<GraphStore>()(
         });
       };
 
+      const setNodeLabel = autoHistory((nodeId: number, trimmed: string) => {
+        get().clearVisualization();
+        const { data } = get();
+        const newNodes = data.nodes.map((n) =>
+          n.id === nodeId ? { ...n, label: trimmed || undefined } : n
+        );
+        set({ data: { ...data, nodes: newNodes } });
+      });
+
+      // The graph the text panel describes, in place: nodes kept keep their stacking, the view stays.
+      const putTextGraph = autoHistory(({ nodes, edges, nodeCounter }: GeneratedGraph) => {
+        get().clearVisualization();
+        const { data, selection, visualization } = get();
+        const ids = new Set(nodes.map((n) => n.id));
+        const stackingOrder = new Set([...data.stackingOrder, ...ids].filter((id) => ids.has(id)));
+        set({
+          data: { nodes, edges, nodeCounter, stackingOrder },
+          selection: { nodeIds: new Set([...selection.nodeIds].filter((id) => ids.has(id))), edge: null, focusedEdge: null },
+          visualization: { ...visualization, input: null },
+        });
+      });
+
       return {
         ...initialState,
 
@@ -300,7 +334,8 @@ export const useGraphStore = create<GraphStore>()(
           get().clearVisualization();
           const { data, visualization } = get();
           const { nodes, edges, nodeCounter, stackingOrder } = data;
-          const newNodeId = nodeCounter + 1;
+          // The next id whose number no node shows, so a new node never repeats a name (D68).
+          const newNodeId = freeId(new Set(nodes.map((n) => n.id)), new Set(nodes.map(nameOf)), nodeCounter);
           const newNode: GraphNode = { id: newNodeId, x, y, r: NODE.RADIUS };
 
           // Keep existing node references, just add the new one
@@ -313,7 +348,7 @@ export const useGraphStore = create<GraphStore>()(
           newStackingOrder.add(newNodeId);
 
           set({
-            data: { nodes: newNodes, edges: newEdges, nodeCounter: newNodeId, stackingOrder: newStackingOrder },
+            data: { nodes: newNodes, edges: newEdges, nodeCounter: Math.max(nodeCounter, newNodeId), stackingOrder: newStackingOrder },
             visualization: { ...visualization, input: null },
           });
         }),
@@ -651,15 +686,28 @@ export const useGraphStore = create<GraphStore>()(
           });
         }),
 
-        updateNodeLabel: autoHistory((nodeId: number, label: string) => {
-          get().clearVisualization();
-          const { data } = get();
+        updateNodeLabel: (nodeId: number, label: string) => {
           const trimmed = label.trim().replace(/\*/g, '').slice(0, 5);
-          const newNodes = data.nodes.map((n) =>
-            n.id === nodeId ? { ...n, label: trimmed || undefined } : n
-          );
-          set({ data: { ...data, nodes: newNodes } });
-        }),
+          const name = trimmed || String(nodeId);
+          if (get().data.nodes.some((n) => n.id !== nodeId && nameOf(n) === name)) return name;
+          setNodeLabel(nodeId, trimmed);
+          return null;
+        },
+
+        applyEdgeListText: (text, anchor) => {
+          const { data } = get();
+          const why = whyNotWritable(data.nodes);
+          if (why) return [{ line: 0, text: why }];
+          // A canvas already past the size limits can still be trimmed here.
+          const edgeCount = [...data.edges.values()].flat().reduce((n, e) => n + (e.type === EDGE_TYPE.UNDIRECTED ? 0.5 : 1), 0);
+          const read = readEdgeList(text, { nodes: data.nodes.length, edges: Math.ceil(edgeCount) });
+          if (!read.list) return read.problems;
+          // Notes, blank lines or another order of the same graph change nothing (and add no undo step).
+          if (meaningOfList(read.list) === meaningOf(data.nodes, data.edges)) return [];
+          const next = applyEdgeList(data, read.list, anchor);
+          if (next) putTextGraph(next);
+          return [];
+        },
 
         deleteEdge: autoHistory((fromNodeId: number, toNodeId: number) => {
           get().clearVisualization();

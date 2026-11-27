@@ -256,7 +256,7 @@ function shapeFor(algorithmId: string, rand: Rand, loop: Loop): Shape {
 function inputOf({ nodes, edges }: GeneratedGraph, from: number, to: number | null): AlgorithmInput {
   const adjacencyList = new Map<number, EdgeInfo[]>();
   edges.forEach((list, id) => adjacencyList.set(id, list.map((e) => ({ from: e.from, to: e.to, weight: e.weight, type: e.type as EdgeInfo["type"] }))));
-  return { adjacencyList, nodes: nodes.map((n) => ({ id: n.id })), startNodeId: from, endNodeId: to ?? undefined };
+  return { adjacencyList, nodes: nodes.map((n) => ({ id: n.id, label: n.label })), startNodeId: from, endNodeId: to ?? undefined };
 }
 
 /** Dijkstra: the farthest node from the start (the last a full run would take), the latest one on a tie. */

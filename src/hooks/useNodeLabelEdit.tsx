@@ -38,10 +38,12 @@ export function useNodeLabelEdit({
     [selectNode]
   );
 
+  // A name another node already shows is refused (D68): the popup stays open and says so.
   const confirmLabel = useCallback(
     (nodeId: number, label: string) => {
-      updateNodeLabel(nodeId, label);
-      selectNode(nodeId);
+      const taken = updateNodeLabel(nodeId, label);
+      if (taken === null) selectNode(nodeId);
+      return taken;
     },
     [updateNodeLabel, selectNode]
   );

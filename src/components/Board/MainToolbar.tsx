@@ -1,5 +1,5 @@
 import { useCallback, useState, type RefObject } from "react";
-import { Box, Download, Feather, FileCode, Image, RotateCcw, Zap } from "lucide-react";
+import { Box, Download, Feather, FileCode, FileText, Image, RotateCcw, Zap } from "lucide-react";
 import { useIsDesktop } from "../../hooks/useMediaQuery";
 import { type GraphRendererHandle } from "../GraphRenderer";
 import { algorithmRegistry } from "../../algorithms";
@@ -28,13 +28,17 @@ const RENDER_MODES: { value: RenderMode; label: string; hint: string; icon: type
 
 interface MainToolbarProps {
   graphRendererRef: RefObject<GraphRendererHandle | null>;
+  /** The edge list panel is open, and the button that opens and closes it. */
+  textOpen: boolean;
+  onToggleText: () => void;
+  textButtonRef: RefObject<HTMLButtonElement | null>;
 }
 
 /**
  * The main toolbar: one tab stop, arrow keys walk every control. Popover,
  * select and menu triggers join the toolbar through `render`.
  */
-export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
+export function MainToolbar({ graphRendererRef, textOpen, onToggleText, textButtonRef }: MainToolbarProps) {
   const visualizationAlgorithm = useGraphStore((state) => state.visualization.algorithm);
   const visualizationState = useGraphStore((state) => state.visualization.state);
   const hasNodes = useGraphStore((state) => state.data.nodes.length > 0);
@@ -110,6 +114,17 @@ export function MainToolbar({ graphRendererRef }: MainToolbarProps) {
 
       <ToolbarSeparator />
       <GraphGenerator disabled={isVisualizing} />
+      <IconAction
+        ref={textButtonRef}
+        label="Edge list"
+        tip={textOpen ? "Close edge list" : "Edit as text"}
+        aria-pressed={textOpen}
+        data-pressed={textOpen ? "" : undefined}
+        disabled={isVisualizing}
+        onClick={onToggleText}
+      >
+        <FileText aria-hidden="true" />
+      </IconAction>
 
       {isDesktop && (
         <SpeedControl

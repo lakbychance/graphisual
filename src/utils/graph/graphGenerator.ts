@@ -29,7 +29,7 @@ const HALF_HEIGHT = LAYOUT_HEIGHT / 2;
 /**
  * Create an edge between two nodes
  */
-function createEdge(
+export function createEdge(
   fromNode: GraphNode,
   toNode: GraphNode,
   type: EdgeType,

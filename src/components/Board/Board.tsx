@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { useIsDesktop, useIsShortWindow } from "../../hooks/useMediaQuery";
 import { GraphRenderer, type GraphRendererHandle } from "../GraphRenderer";
 import { algorithmRegistry } from "../../algorithms";
@@ -20,6 +20,7 @@ import { StepControls } from "./StepControls";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { ZoomControls } from "./ZoomControls";
 import { Notebook } from "./Notebook";
+import { TextPanel } from "./TextPanel";
 import { AnimatePresence, useReducedMotion } from "motion/react";
 import * as m from "motion/react-m";
 
@@ -71,6 +72,16 @@ export const Board = () => {
   // The notebook slides in from its edge (none with reduced motion).
   const reduceMotion = useReducedMotion();
   const enter = reduceMotion ? {} : notebookBeside ? { x: 12 } : { y: 12 };
+
+  // The edge list: the one panel beside the canvas outside a run (the notebook has its place during one).
+  // On phones it is a card along the top, where the keyboard does not cover it.
+  const [textOpen, setTextOpen] = useState(false);
+  const showText = textOpen && !isVisualizing;
+  const textButtonRef = useRef<HTMLButtonElement>(null);
+  const closeText = useCallback(() => {
+    setTextOpen(false);
+    textButtonRef.current?.focus();
+  }, []);
 
   const scrubTo = useCallback((index: number) => {
     const store = useGraphStore.getState();
@@ -146,7 +157,7 @@ export const Board = () => {
               onZoomReset={execute.resetZoom}
             />
           )}
-          <MainToolbar graphRendererRef={graphRendererRef} />
+          <MainToolbar graphRendererRef={graphRendererRef} textOpen={showText} onToggleText={() => setTextOpen(!textOpen)} textButtonRef={textButtonRef} />
         </div>
 
         {/* Step controls - along the top on upright phones; elsewhere they sit in the notebook's head */}
@@ -191,6 +202,22 @@ export const Board = () => {
           )}
         </AnimatePresence>
 
+        {/* Edge list - the graph as text, in step with the canvas; beside it on desktop, a card along the top on phones */}
+        <AnimatePresence>
+          {showText && (
+            <m.div
+              data-place={isDesktop ? "panel" : "card"}
+              className="tp-dock"
+              initial={{ opacity: 0, ...(reduceMotion ? {} : isDesktop ? { x: 12 } : { y: -12 }) }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, ...(reduceMotion ? {} : isDesktop ? { x: 12 } : { y: -12 }) }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <TextPanel focusOnOpen={isDesktop} onClose={closeText} />
+            </m.div>
+          )}
+        </AnimatePresence>
+
         {/* Full-screen Graph */}
         {/* DOM order: After toolbar/step controls for natural tab order */}
         <div className="absolute inset-0 touch-action-manipulation">
@@ -228,7 +255,7 @@ export const Board = () => {
         {/* Below 450px the step controls span the top during a run and would only half cover it, so it hides */}
         {/* The run fit keeps the graph clear of it, except on an upright phone, where it is a small key in the corner */}
         {/* In a short window it would sit under the notebook during a step-mode run, so it waits for the run to end */}
-        <div data-run-fit-avoid={notebookBeside ? "" : undefined} className={`${isInStepMode && isDesktop && isShortWindow ? "hidden " : ""}fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel ${isInStepMode ? "max-[450px]:hidden" : ""}`}>
+        <div data-run-fit-avoid={notebookBeside ? "" : undefined} className={`${(isInStepMode && isDesktop && isShortWindow) || (showText && !isDesktop) ? "hidden " : ""}fixed top-[max(1rem,env(safe-area-inset-top))] left-[max(1rem,env(safe-area-inset-left))] md:top-auto md:left-auto md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-[max(1rem,env(safe-area-inset-right))] z-40 gs-toolbar gs-panel ${isInStepMode ? "max-[450px]:hidden" : ""}`}>
           <div className="hidden md:block">
             <KeyboardShortcuts />
           </div>

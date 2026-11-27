@@ -1,0 +1,134 @@
+/*
+ * The edge list panel: the graph as text, in the notebook's place beside the canvas (desktop), or a
+ * card along the top on phones, clear of the bottom toolbar and of the keyboard.
+ */
+.tp-dock {
+  position: fixed;
+  z-index: 40;
+  top: 5.5rem;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.75rem);
+  width: 320px;
+}
+.tp-dock[data-place="card"] {
+  top: max(0.75rem, env(safe-area-inset-top));
+  left: max(1rem, env(safe-area-inset-left));
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: auto;
+  width: auto;
+  height: min(42dvh, 340px);
+}
+
+.tp {
+  --tp-font: 13px;
+  --tp-line: 20px;
+  height: 100%;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* iOS zooms the page into a focused field under 16px. */
+@media (pointer: coarse) {
+  .tp { --tp-font: 16px; --tp-line: 22px; }
+}
+
+.tp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.tp-head .gs-label { padding-left: 2px; }
+
+.tp code { font-family: var(--font-mono); font-size: 12px; color: var(--color-text); }
+.tp .tp-example { white-space: nowrap; }
+
+.tp-key {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+.tp-key dt, .tp-key dd { margin: 0; }
+.tp-key-note { grid-column: 1 / -1; margin-top: 2px !important; }
+/* Phones, and short windows (a phone on its side), keep the room for the text: the key shrinks to one line. */
+.tp-key-line { display: none; margin: -2px 0 0; font-size: 12.5px; color: var(--color-text-muted); }
+.tp-key-line code { margin-right: 5px; }
+.tp-dock[data-place="card"] .tp-key { display: none; }
+.tp-dock[data-place="card"] .tp-key-line { display: block; }
+@media (max-height: 500px) {
+  .tp-key { display: none; }
+  .tp-key-line { display: block; }
+}
+
+.tp-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border-radius: var(--control-radius);
+  background: var(--input-bg);
+  box-shadow: var(--input-shadow);
+  overflow: hidden;
+}
+.tp-editor:focus-within { box-shadow: var(--input-shadow), inset 0 0 0 var(--focus-width) var(--focus-color); }
+
+.tp-gutter {
+  flex: none;
+  min-width: 2.6em;
+  padding: 8px 6px 8px 0;
+  overflow: hidden;
+  border-right: 1px solid var(--color-divider);
+  font-family: var(--font-mono);
+  font-size: calc(var(--tp-font) - 2px);
+  line-height: var(--tp-line);
+  text-align: right;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+.tp-gutter span { display: block; padding-left: 6px; font-variant-numeric: tabular-nums; }
+/* A line that does not read: its number in the danger colour, with a bar beside it. */
+.tp-gutter span[data-wrong] { color: var(--danger-text); font-weight: 600; box-shadow: inset 3px 0 0 var(--danger-text); }
+/* A line that reads, but maybe not as meant: a quiet bar. */
+.tp-gutter span[data-unsure] { color: var(--color-text); box-shadow: inset 3px 0 0 var(--color-text-muted); }
+
+.tp .tp-text {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: var(--tp-font);
+  line-height: var(--tp-line);
+  white-space: pre;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.tp .tp-text:focus-visible { box-shadow: none; animation: none; }
+.tp-editor[data-read-only] .tp-text { color: var(--color-text-muted); }
+
+.tp-problems:empty { display: none; }
+.tp-problems ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.tp-problems li { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.4; color: var(--color-text); }
+.tp-problems li.tp-more { color: var(--color-text-muted); font-size: 12px; }
+.tp-why { margin: 0; font-size: 13px; line-height: 1.4; color: var(--color-text-muted); }
+.tp-dock[data-place="card"] .tp-problems { max-height: 4.4em; overflow-y: auto; }
+
+/* "Line 3": jumps to the line. */
+.tp-line {
+  flex: none;
+  padding: 0 5px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--danger-text);
+  color: var(--danger-text);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+}
+.tp-line:hover { background: var(--color-interactive-hover); }
+.tp-line[data-tone="hint"] { box-shadow: inset 0 0 0 1px var(--color-text-muted); color: var(--color-text-muted); }
+.tp-line:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: var(--focus-offset); }

@@ -80,6 +80,9 @@ function expectRealRoute(at: string, input: AlgorithmInput, path: number[]): num
  */
 type Oracle = (at: string, input: AlgorithmInput, events: AlgorithmEvent[]) => void;
 
+/** The nodes in name order (D66): the suite's nodes have no labels, so they are named, and ordered, by number. */
+const byName = (input: AlgorithmInput) => input.nodes.map((n) => n.id).sort((a, b) => a - b);
+
 /** BFS and DFS visit exactly the nodes reachable from the start, each once. */
 const traversalOracle: Oracle = (at, input, events) => {
   const visited = settledIn(events);
@@ -88,7 +91,7 @@ const traversalOracle: Oracle = (at, input, events) => {
   expect(visited.length, `${at}: each once`).toBe(expected.size);
   const answer = answerOf(events, "order");
   expect(answer?.order, `${at}: answer order`).toEqual(visited);
-  expect(answer?.unreached, `${at}: unreached`).toEqual(input.nodes.map((n) => n.id).filter((id) => !expected.has(id)));
+  expect(answer?.unreached, `${at}: unreached`).toEqual(byName(input).filter((id) => !expected.has(id)));
 };
 
 const oracles: Record<string, Oracle> = {
@@ -178,7 +181,7 @@ const oracles: Record<string, Oracle> = {
       const real = (input.adjacencyList.get(from) ?? []).some((e) => e.to === to && e.weight === weight);
       expect(real, `${at}: edge ${from}–${to} weighs ${weight}`).toBe(true);
     }
-    expect(answer?.unreached, `${at}: left out`).toEqual(input.nodes.map((n) => n.id).filter((id) => !part.has(id)));
+    expect(answer?.unreached, `${at}: left out`).toEqual(byName(input).filter((id) => !part.has(id)));
   },
 };
 

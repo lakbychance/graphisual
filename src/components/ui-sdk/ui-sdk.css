@@ -1072,6 +1072,7 @@
     min-width: 0;
   }
   .gs-input::placeholder { color: var(--input-placeholder); }
+  .gs-textarea { height: auto; padding: 8px 10px; resize: none; }
   .gs-field { display: flex; flex-direction: column; gap: 6px; }
   /* iOS zooms the page when a focused field's text is under 16px. On touch
      devices every editable field is 16px, so focusing one never moves the page. */

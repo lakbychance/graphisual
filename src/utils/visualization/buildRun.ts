@@ -41,7 +41,7 @@ export function buildRun(
       type: e.type as EdgeType,
     })));
   });
-  const input = { adjacencyList, nodes: nodes.map((n) => ({ id: n.id })), startNodeId, endNodeId };
+  const input = { adjacencyList, nodes: nodes.map((n) => ({ id: n.id, label: n.label })), startNodeId, endNodeId };
 
   const events = algorithm.events(input);
   const noCycle = events.some((e) => e.type === "answer" && e.kind === "cycle" && e.cycle === null);

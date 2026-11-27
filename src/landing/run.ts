@@ -83,7 +83,7 @@ export function runAlgorithm(algorithmId: string, graph: LabGraph): Run {
   const adapter = algorithmRegistry.get(algorithmId);
   const adjacencyList = adjacency(graph);
   const events: AlgorithmEvent[] = adapter?.events({
-    adjacencyList, nodes: graph.nodes.map((n) => ({ id: n.id })), startNodeId: graph.start, endNodeId: graph.end,
+    adjacencyList, nodes: graph.nodes.map((n) => ({ id: n.id, label: n.label })), startNodeId: graph.start, endNodeId: graph.end,
   }) ?? [];
   const run = createRun(algorithmId, events, [...adjacencyList.keys()]);
   const settles = events.some((e) => e.type === "settle");
