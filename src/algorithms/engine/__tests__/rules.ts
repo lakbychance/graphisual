@@ -7,7 +7,7 @@ import type { AlgorithmInput } from "../../types";
 import type { AlgorithmEvent, DecideEvent } from "../events";
 import { applyEvent, emptyFrame, type Frame } from "../frame";
 import { changes, stepEnds } from "../steps";
-import { createRun, keyMoments, runMarksAt, type MomentKind } from "@/utils/visualization/runView";
+import { createRun, keyMoments, runMarksAt, storageAt, type MomentKind } from "@/utils/visualization/runView";
 
 export interface RuleContext {
   /** The algorithm that made the run. */
@@ -395,5 +395,47 @@ export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   const missing = [...expected].find((m) => !marked.includes(m));
   if (missing) return `step ${missing} is not marked`;
   if (!marked.includes(`${run.ends.length - 1} answer`)) return "the answer is not marked on the last step";
+  return null;
+};
+
+/**
+ * The storage views (adjacency list and matrix) light, at every step, the row of the node the step
+ * works from and the entry of the edge it uses, read from the step's change: a relaxation, or a node
+ * discovered along an edge, lights the edge's start and the edge; a node reached along an edge lights
+ * that node and the edge; a depth-first search backing up out of a node lights the node it returns to
+ * and the edge it came down; cycle detection's loop lights the node in progress and the edge that
+ * closes it. Any other step lights the node last taken or returned to and no edge, and the answer
+ * lights nothing. Each lit edge is a real edge of the graph, lit both ways round when it is two-way.
+ */
+export const storageLightsTheStep: Rule = (events, { algorithmId, input }) => {
+  const run = createRun(algorithmId, [...events], [], input);
+  const real = (from: number, to: number) => (input.adjacencyList.get(from) ?? []).some((e) => e.to === to);
+  const twoWay = (from: number, to: number) => from !== to && (input.adjacencyList.get(from) ?? []).some((e) => e.to === to && e.type === "undirected");
+  let working: number | null = null;
+  let answered = false;
+  let from = 0;
+  for (let index = 0; index < run.ends.length; index++) {
+    const step = events.slice(from, run.ends[index]);
+    from = run.ends[index];
+    for (const e of step) {
+      if (e.type === "settle") working = e.node;
+      else if (e.type === "finish") working = e.parent ?? null;
+      else if (e.type === "answer") answered = true;
+    }
+    const change = step.find(changes);
+    let row = working;
+    let edge: { from: number; to: number } | null = null;
+    if (change?.type === "relax" || (change?.type === "classify" && change.loop)) [row, edge] = [change.from, { from: change.from, to: change.to }];
+    else if (change?.type === "enqueue" && change.from !== undefined) [row, edge] = [change.from, { from: change.from, to: change.node }];
+    else if (change?.type === "settle" && change.via !== undefined) edge = { from: change.via, to: change.node };
+    else if (change?.type === "finish" && change.parent !== undefined) edge = { from: change.parent, to: change.node };
+    if (answered) [row, edge] = [null, null];
+    if (edge && !real(edge.from, edge.to)) return `step ${index + 1} uses ${edge.from} → ${edge.to}, which is not an edge`;
+    const cells = edge ? [edge, ...(twoWay(edge.from, edge.to) ? [{ from: edge.to, to: edge.from }] : [])] : [];
+    const lit = storageAt(run, index);
+    if (lit.row !== row) return `step ${index + 1} lights row ${lit.row}, but it works from ${row}`;
+    const key = (list: Array<{ from: number; to: number }>) => list.map((c) => `${c.from}-${c.to}`).sort().join(" ");
+    if (key(lit.cells) !== key(cells)) return `step ${index + 1} lights ${key(lit.cells) || "no entry"}, but it uses ${key(cells) || "no edge"}`;
+  }
   return null;
 };

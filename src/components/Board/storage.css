@@ -1,0 +1,109 @@
+/*
+ * The storage views (StorageView.tsx): an adjacency list or matrix. Colours come from theme tokens
+ * only. During a run (`data-run`) everything is quiet but the lit row (the node being worked on, set
+ * off like the code's lit line, its bar in the canvas's colour for the current node) and the lit entry
+ * (filled like the weight chip the canvas puts on the step's edge).
+ */
+.sv { flex: 1 1 0; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.sv-top { display: flex; align-items: center; gap: 8px; }
+.sv-key { margin: 0; font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }
+.sv-key b { font-weight: 600; color: var(--color-text); }
+
+/* The view scrolls inside itself, both ways for a big matrix, its headers pinned. */
+.sv-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-xs);
+}
+.sv-scroll:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); }
+.sv-empty { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+
+/* ------------------------------------------------------------------ list */
+
+.sv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--color-text);
+  /* A little room above the first row and below the last, so a lit one shows whole when scrolled to. */
+  padding-block: 3px;
+}
+.sv-list li {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+}
+.sv-head { font-weight: 600; }
+.sv-entries { min-width: 0; overflow-wrap: anywhere; }
+.sv-none { color: var(--color-text-muted); }
+
+/* ---------------------------------------------------------------- matrix */
+
+/* The matrix is a block of the surface colour, opaque, so its pinned headers hide the cells that scroll under them. */
+.sv-matrix {
+  background: var(--color-surface);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+/* Cells 22px wide (two-digit weights fit), so twelve nodes fit the panel and the notebook without scrolling sideways. */
+.sv-matrix th,
+.sv-matrix td {
+  min-width: 22px;
+  height: 24px;
+  padding: 0 3px;
+  text-align: center;
+  white-space: nowrap;
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
+}
+.sv-matrix th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+/* Column names pinned along the top, row names down the side, the corner over both. */
+.sv-matrix thead th { position: sticky; top: 0; z-index: 1; }
+.sv-matrix tbody th { position: sticky; left: 0; z-index: 1; text-align: right; padding-right: 5px; }
+.sv-matrix thead th:first-child { left: 0; z-index: 2; }
+
+/* ------------------------------------------------------------- lit (runs) */
+
+.sv[data-run] .sv-list,
+.sv[data-run] .sv-matrix td { color: var(--color-text-muted); }
+.sv-list li[data-lit-row] {
+  color: var(--color-text);
+  background: var(--color-interactive-hover);
+  box-shadow: inset 3px 0 0 var(--color-state-current);
+}
+.sv .sv-matrix tr[data-lit-row] td { color: var(--color-text); background: var(--color-interactive-hover); }
+.sv-matrix tr[data-lit-row] th {
+  color: var(--color-text);
+  background: linear-gradient(var(--color-interactive-hover), var(--color-interactive-hover)), var(--color-surface);
+  box-shadow: inset 3px 0 0 var(--color-state-current);
+}
+
+/* The step's edge: filled like its weight chip on the canvas. */
+.sv-entry[data-lit],
+.sv .sv-matrix tr td[data-lit] {
+  color: var(--color-state-change-text);
+  background: var(--color-state-change);
+  font-weight: 600;
+}
+.sv-entry[data-lit] { padding: 1px 4px; margin: 0 -2px; border-radius: var(--radius-xs); }
+
+/* In the notebook on phones and short windows, the view keeps the room: the switch says which it is. */
+@media (max-width: 767px), (max-height: 560px) {
+  .nb .sv-key { display: none; }
+}

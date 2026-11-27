@@ -133,6 +133,9 @@
 /* Room for a few lines at least, so the lit line or the changed row always shows whole. */
 .nb-page { flex: 1 1 0; min-height: 96px; overflow: auto; overscroll-behavior: contain; }
 
+/* The storage page scrolls inside its view, below the List / Matrix switch (see storage.css). */
+.nb-storage { overflow: hidden; }
+
 /* ------------------------------------------------------------------ code */
 
 .nb-code {

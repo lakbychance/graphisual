@@ -8,8 +8,9 @@ const byName = new Intl.Collator("en", { numeric: true });
  * read naturally: lists of nodes in answers ("C, D and F cannot be reached") follow it (D66). The
  * order depends only on the names, so a graph opened from a link, whose nodes keep their names but
  * may get new numbers, lists them the same way. Two nodes with one name keep their numbers' order.
+ * The storage views (adjacency list and matrix) put their rows in this order too.
  */
-export function nameOrder({ nodes }: AlgorithmInput): number[] {
+export function nameOrder({ nodes }: Pick<AlgorithmInput, "nodes">): number[] {
   const named = nodes.map(({ id, label }) => ({ id, name: label || String(id) }));
   return named.sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id).map((n) => n.id);
 }

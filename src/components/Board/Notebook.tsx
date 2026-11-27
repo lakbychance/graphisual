@@ -1,7 +1,8 @@
 /**
  * The notebook: what a step-mode run says beside the graph. First the step in words (the engine's
  * narration), then one page at a time, the learner's choice: Code (the algorithm's pseudocode with
- * the step's line lit) or State (the table of distances or costs, or the queue / stack). A plain
+ * the step's line lit), State (the table of distances or costs, or the queue / stack) or Storage
+ * (the graph as an adjacency list or matrix, the row of the node being worked on lit). A plain
  * scrubber moves through the run, its key moments marked above the track (see `keyMoments`). On
  * desktop it is a side panel whose head carries the step keys; on phones a card along the bottom,
  * view-only (the step keys stay along the top).
@@ -37,44 +38,19 @@ import type { GraphNode } from "../Graph/types";
 import { selectIsPlaying, selectRunIt, useGraphStore, type RunItState } from "../../store/graphStore";
 import { useSettingsStore, type NotebookPage } from "../../store/settingsStore";
 import {
-  keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
+  keepsValues, keyMoments, lineAt, rolesAt, runMarksAt, storageAt, traceAt, type KeyMoment, type MomentKind, type NodeRole, type Run,
 } from "../../utils/visualization/runView";
 import { asksYesNo, canRunIt } from "../../utils/visualization/runIt";
 import { linkToStep, type NoLink } from "../../utils/visualization/stepLink";
 import { DataStructureVis } from "./DataStructureVis";
+import { keepShowing } from "./keepInView";
+import { StorageFormSwitch, StorageView } from "./StorageView";
 import "./notebook.css";
 
 const nameOf = (nodes: readonly GraphNode[], id: number) => nodes.find((n) => n.id === id)?.label || String(id);
 
 /** Text with node ids marked (`nid`), each shown as its node's label. */
 const named = (nodes: readonly GraphNode[], text: string) => text.replace(/\{n:(\d+)\}/g, (_, id) => nameOf(nodes, Number(id)));
-
-/** Scrolls the notebook page holding `row` just enough to show it whole (below a pinned header), never the screen behind it. */
-function keepInView(row: Element | null | undefined) {
-  const page = row?.closest(".nb-page");
-  if (!row || !page || page.scrollHeight <= page.clientHeight) return;
-  const r = row.getBoundingClientRect();
-  const p = page.getBoundingClientRect();
-  const top = p.top + (page.querySelector("thead")?.getBoundingClientRect().height ?? 0);
-  const by = r.top < top ? r.top - top : r.bottom > p.bottom ? Math.min(r.bottom - p.bottom, r.top - top) : 0;
-  if (Math.abs(by) < 1) return;
-  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  page.scrollTo({ top: page.scrollTop + by, behavior: still ? "auto" : "smooth" });
-}
-
-/**
- * Keeps `pick()` in view in the page holding `holder` now, and whenever the page changes size (the
- * sentence above it grows or shrinks from step to step). Returns the cleanup.
- */
-function keepShowing(holder: Element | null, pick: () => Element | null | undefined) {
-  const page = holder?.closest(".nb-page");
-  if (!page) return;
-  const show = () => keepInView(pick());
-  show();
-  const watch = new ResizeObserver(show);
-  watch.observe(page);
-  return () => watch.disconnect();
-}
 
 /** The step in words, announced politely when it changes. */
 export function Narration({ text, className }: { text: string; className?: string }) {
@@ -466,8 +442,12 @@ export interface NotebookProps {
 
 export function Notebook({ run, index, desktop, runItHere = false, controls, shareable = false, onScrub }: NotebookProps) {
   const nodes = useGraphStore(useShallow((s) => s.data.nodes));
+  const edges = useGraphStore((s) => s.data.edges);
   const page = useSettingsStore((s) => s.notebookPage);
   const setPage = useSettingsStore((s) => s.setNotebookPage);
+  const storageForm = useSettingsStore((s) => s.storageForm);
+  const setStorageForm = useSettingsStore((s) => s.setStorageForm);
+  const storageLit = useMemo(() => storageAt(run, index), [run, index]);
   const adapter = algorithmRegistry.get(run.algorithmId);
   const narration = useMemo(() => narrate(run.events, run.algorithmId), [run]);
   const runIt = useGraphStore(selectRunIt);
@@ -499,12 +479,24 @@ export function Notebook({ run, index, desktop, runItHere = false, controls, sha
           <TabsList aria-label="Notebook page">
             <TabsTab value="code">Code</TabsTab>
             <TabsTab value="state">State</TabsTab>
+            <TabsTab value="storage">Storage</TabsTab>
           </TabsList>
           {/* On phones Copy link ends this row (the card has no head). */}
           {shareable && !desktop && <ShareStep run={run} index={index} runIt={runIt !== null} side="top" />}
         </div>
         <TabsPanel value="code" className="nb-page"><CodeList lines={adapter?.pseudocode ?? []} lit={lit} step={index} /></TabsPanel>
         <TabsPanel value="state" className="nb-page"><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
+        <TabsPanel value="storage" className="nb-page nb-storage">
+          <StorageView
+            nodes={nodes}
+            edges={edges}
+            form={storageForm}
+            lit={storageLit}
+            step={index}
+            label={storageForm === "list" ? "Adjacency list" : "Adjacency matrix"}
+            head={<StorageFormSwitch form={storageForm} onForm={setStorageForm} />}
+          />
+        </TabsPanel>
       </Tabs>
       <Scrubber index={index} total={run.ends.length} onScrub={onScrub} moments={moments} />
     </Panel>

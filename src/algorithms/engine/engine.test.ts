@@ -31,7 +31,7 @@ import {
 } from "./__tests__/oracles";
 import {
   addsLightestCrossingEdge, bfsDepthNeverDecreases, decisionsAreHonest, dfsTimesNest, doneStaysDone, edgeClassesMatchTimes, groupsOnlyIncrease, oneChangePerStep,
-  keyMomentsMatchEvents, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, type Rule,
+  keyMomentsMatchEvents, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, storageLightsTheStep, type Rule,
 } from "./__tests__/rules";
 
 const suite = [...randomGraphs(200), largeGraph()];
@@ -42,14 +42,14 @@ const signedSuite = [...suite, ...suite.map(withNegativeWeights)];
 
 /** Algorithms on the event engine, with the graphs they run on and the rules their event streams obey. */
 const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: Record<string, Rule> }> = [
-  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder } },
-  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers } },
-  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
-  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, bfsDepthNeverDecreases } },
-  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
-  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
-  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
-  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, relaxOnlyLowers, addsLightestCrossingEdge } },
+  { adapter: dijkstraAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, settlesOnceInOrder } },
+  { adapter: bellmanFordAdapter, graphs: signedSuite, rules: { pointsAtPseudocode, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers } },
+  { adapter: bfsAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, bfsDepthNeverDecreases } },
+  { adapter: bfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, bfsDepthNeverDecreases } },
+  { adapter: dfsAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
+  { adapter: dfsPathfindingAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
+  { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
+  { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, addsLightestCrossingEdge } },
 ];
 
 const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);

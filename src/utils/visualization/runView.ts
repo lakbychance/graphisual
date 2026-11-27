@@ -4,8 +4,8 @@
  * A run is an algorithm's events, cut into steps of one change each (`stepEnds`). For the step on
  * screen, `highlightsAt` says which nodes and edges the canvas lights (and `rolesAt` how each node
  * reads: waiting, being worked on, done), `runMarksAt` what the graph carries beside them (values,
- * parent links, a depth-first search's branch, this step's edge), and
- * `traceAt` gives the trace panel its message and data structure.
+ * parent links, a depth-first search's branch, this step's edge), `storageAt` what the adjacency
+ * list and matrix light, and `traceAt` gives the trace panel its message and data structure.
  */
 import { nid, signed } from "../../algorithms/traceHelpers";
 import {
@@ -228,6 +228,28 @@ export interface RunMarks {
 }
 
 /**
+ * The edge a step's change uses, the way it runs on the graph: the edge relaxed, the one a node is
+ * reached or discovered along, the one cycle detection finds closing its loop, or, when a depth-first
+ * search backs up out of a node, the edge it came down. Null when the change uses no edge (a start,
+ * the answer) or there is no change.
+ */
+function stepEdge(change: AlgorithmEvent | undefined): Walk | null {
+  switch (change?.type) {
+    case "relax":
+    case "classify":
+      return { from: change.from, to: change.to };
+    case "enqueue":
+      return change.from === undefined ? null : { from: change.from, to: change.node };
+    case "settle":
+      return change.via === undefined ? null : { from: change.via, to: change.node };
+    case "finish":
+      return change.parent === undefined ? null : { from: change.parent, to: change.node };
+    default:
+      return null;
+  }
+}
+
+/**
  * What the graph carries once step `index` is shown, beside the nodes' roles (`rolesAt`): each
  * node's value, with the old one when this step lowered it; the parent links, final or best so far (Bellman-Ford keeps only each node's
  * current best); and the edge this step used. A depth-first search adds the branch it is on. On cycle
@@ -275,11 +297,9 @@ export function runMarksAt(run: Run, index: number): RunMarks {
     }
   }
 
-  let walk: Walk | null = null;
-  if (change?.type === "relax" || change?.type === "classify") walk = { from: change.from, to: change.to };
-  else if (change?.type === "enqueue" && change.from !== undefined) walk = { from: change.from, to: change.node };
-  else if (change?.type === "settle" && change.via !== undefined) walk = { from: change.via, to: change.node };
-  else if (change?.type === "finish" && change.parent !== undefined) walk = { from: change.node, to: change.parent };
+  // The step's edge, the way the search travelled it: back up it, for a backtrack.
+  const used = stepEdge(change);
+  const walk = used && change?.type === "finish" ? { from: used.to, to: used.from } : used;
   if (walk && !answered) edges.push({ ...walk, kind: change?.type === "classify" && change.loop ? "loop" : "change" });
   if (!answered) for (const back of walkBack(run, index)) edges.push({ ...back, kind: "loop" });
 
@@ -295,6 +315,32 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   }
 
   return { valued, nodes, edges };
+}
+
+/* ----------------------------------------------------------------- storage */
+
+/** What the storage views (adjacency list and matrix) light once a step is shown (see `storageAt`). */
+export interface StorageLit {
+  /** The node being worked on (the one the canvas marks as current): its row is lit. */
+  row: number | null;
+  /** The edge the step uses, the way it runs on the graph, and its way back when it is two-way: their entries stand out. */
+  cells: Walk[];
+}
+
+/**
+ * What the adjacency list and matrix light once step `index` is shown: the row of the node being
+ * worked on (`rolesAt`'s current node), and the entries of the edge this step uses (both ways round
+ * for a two-way edge, which is stored in both rows). Nothing on the first step before it and on the
+ * answer.
+ */
+export function storageAt(run: Run, index: number): StorageLit {
+  if (index < 0 || index >= run.ends.length) return { row: null, cells: [] };
+  const row = [...rolesAt(run, index)].find(([, role]) => role === "current")?.[0] ?? null;
+  const edge = stepEdge(eventsOf(run, index).find(changes));
+  if (!edge) return { row, cells: [] };
+  const back = edge.from !== edge.to
+    && (run.input?.adjacencyList.get(edge.from) ?? []).some((e) => e.to === edge.to && e.type === EDGE_TYPE.UNDIRECTED);
+  return { row, cells: back ? [edge, { from: edge.to, to: edge.from }] : [edge] };
 }
 
 /**

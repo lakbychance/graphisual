@@ -14,7 +14,10 @@ import { STORE_NAME } from "../constants/store";
 export type RenderMode = 'svg' | 'canvas' | '3d';
 
 /** The page the run's notebook shows under the step's sentence. */
-export type NotebookPage = 'code' | 'state';
+export type NotebookPage = 'code' | 'state' | 'storage';
+
+/** How the storage views show the graph: as an adjacency list or an adjacency matrix. */
+export type StorageForm = 'list' | 'matrix';
 
 interface SettingsState {
   theme: Theme;
@@ -23,6 +26,8 @@ interface SettingsState {
   soundEnabled: boolean;
   /** The notebook page the learner last chose, kept across steps and runs. */
   notebookPage: NotebookPage;
+  /** The storage view the learner last chose (in the notebook and the edge list panel alike). */
+  storageForm: StorageForm;
 }
 
 interface SettingsActions {
@@ -30,6 +35,7 @@ interface SettingsActions {
   setRenderMode: (mode: RenderMode) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setNotebookPage: (page: NotebookPage) => void;
+  setStorageForm: (form: StorageForm) => void;
 }
 
 type SettingsStore = SettingsState & SettingsActions;
@@ -42,6 +48,7 @@ export const useSettingsStore = create<SettingsStore>()(
       renderMode: 'svg' as RenderMode,
       soundEnabled: true,
       notebookPage: 'code' as NotebookPage,
+      storageForm: 'list' as StorageForm,
 
       // Actions
       setTheme: (theme) => {
@@ -55,6 +62,9 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       setNotebookPage: (notebookPage) => {
         set({ notebookPage });
+      },
+      setStorageForm: (storageForm) => {
+        set({ storageForm });
       },
     }),
     {

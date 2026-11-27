@@ -4,7 +4,8 @@
  * step, and undo/redo walk all the way back to the empty graph and forward again. Run it's New graph
  * puts a consistent, cleanly drawn graph in place, one undo step each. The text panel (one edge per
  * line) round-trips any graph, stays in step with the canvas both ways in any mix of edits, shares
- * one undo history with it, and never lets malformed text touch the graph.
+ * one undo history with it, and never lets malformed text touch the graph. The storage views (the
+ * adjacency list and matrix) always describe exactly the graph on the canvas.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGraphStore } from "./graphStore";
@@ -19,6 +20,7 @@ import { FRESH_ALGORITHMS } from "../utils/visualization/freshGraph";
 import { needsDestination } from "../utils/visualization/stepLink";
 import type { Run } from "../utils/visualization/runView";
 import { followCanvas, MAX_TEXT, meaningOf, meaningOfList, nameOf, readEdgeList, textAfterCommit, textOf, whyNotWritable, writeEdgeList, type TextState } from "../utils/graph/edgeList";
+import { cellOf, storageOf } from "../utils/graph/storage";
 
 const store = () => useGraphStore.getState();
 
@@ -610,6 +612,66 @@ describe("editor integrity: the text panel", () => {
         expect(shown.find((n, i) => shown.indexOf(n) !== i), `${at}: a name shown twice in ${shown.join(",")}`).toBeUndefined();
         expect(shown.find((n) => n.length > 5), `${at}: a name too long to write or share`).toBeUndefined();
         expect(inconsistency(), at).toBeNull();
+      }
+    }
+  });
+});
+
+/**
+ * Describes the first way the adjacency list or matrix differs from the graph on the canvas, or
+ * returns null: a row per node, in name order (read naturally, "2" before "10"); each row's entries
+ * are the node's edges, in the graph's order, weights shown unless every edge weighs 1; every cell of
+ * the matrix holds its edge's weight (1 when unweighted), or nothing; a two-way edge is in both rows.
+ */
+function storageMismatch(): string | null {
+  const { nodes, edges } = store().data;
+  const storage = storageOf(nodes, edges);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const name = (id: number) => (byId.has(id) ? nameOf(byId.get(id)!) : `missing ${id}`);
+  const ids = (list: Iterable<number>) => JSON.stringify([...list].sort((a, b) => a - b));
+  const { order, rows } = storage;
+  if (ids(order) !== ids(byId.keys())) return `rows ${order.map(name).join(",")} are not the graph's nodes`;
+  const reading = new Intl.Collator("en", { numeric: true });
+  const late = order.findIndex((id, i) => i > 0 && reading.compare(name(order[i - 1]), name(id)) > 0);
+  if (late > 0) return `row ${name(order[late])} comes after ${name(order[late - 1])}`;
+  const all = [...edges.values()].flat();
+  const weighted = all.some((e) => e.weight !== 1);
+  if (storage.weighted !== weighted) return weighted ? "weights are left out" : "weights are shown in an unweighted graph";
+  for (const id of order) {
+    const want = (edges.get(id) ?? []).map((e) => `${name(e.to)} ${e.weight}`).join(", ");
+    const got = (rows.get(id) ?? []).map((e) => `${name(e.to)} ${e.weight}`).join(", ");
+    if (got !== want) return `row ${name(id)} lists ${got || "nothing"}, but its edges are ${want || "none"}`;
+  }
+  for (const from of order) {
+    for (const to of order) {
+      const edge = edges.get(from)?.find((e) => e.to === to);
+      const want = edge ? (weighted ? edge.weight : 1) : null;
+      if (cellOf(storage, from, to) !== want) return `cell ${name(from)} → ${name(to)} holds ${cellOf(storage, from, to)}, not ${want}`;
+    }
+  }
+  for (const e of all) {
+    if (e.type === EDGE_TYPE.UNDIRECTED && !(rows.get(e.to) ?? []).some((back) => back.to === e.from)) {
+      return `two-way edge ${name(e.from)} – ${name(e.to)} is missing from row ${name(e.to)}`;
+    }
+  }
+  return null;
+}
+
+describe("editor integrity: the storage views", () => {
+  it("the adjacency list and matrix describe exactly the graph after any edit: one-way, two-way and mixed edges, weights or none, names and numbers", () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      store().resetGraph();
+      useGraphHistoryStore.setState({ past: [], future: [] });
+      const rand = random(seed * 17 + 3);
+      for (let step = 0; step < 60; step++) {
+        const at = `seed ${seed} step ${step}`;
+        const r = rand();
+        const { nodes } = store().data;
+        if (r < 0.15) store().applyEdgeListText(typedGraph(rand), { x: 40, y: -20 });
+        else if (r < 0.3 && nodes.length > 0) store().updateNodeLabel(nodes[Math.floor(rand() * nodes.length)].id, [...NAMES, ""][Math.floor(rand() * 13)]);
+        else if (r < 0.38) (rand() < 0.5 ? store().undo : store().redo)();
+        else if (!act(rand)) continue;
+        expect(storageMismatch(), at).toBeNull();
       }
     }
   });

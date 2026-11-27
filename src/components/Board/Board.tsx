@@ -10,6 +10,7 @@ import { useSettingsStore } from "../../store/settingsStore";
 import { useGraphActions, useGraphKeyboardShortcuts } from "../../hooks/useGraphActions";
 import { useAutoPlay } from "../../hooks/useAutoPlay";
 import { useAlgorithmFromUrl } from "../../hooks/useAlgorithmFromUrl";
+import { usePanelFit } from "../../hooks/useRunFit";
 import { VisualizationState } from "../../constants/visualization";
 
 import { MainToolbar } from "./MainToolbar";
@@ -77,6 +78,8 @@ export const Board = () => {
   // On phones it is a card along the top, where the keyboard does not cover it.
   const [textOpen, setTextOpen] = useState(false);
   const showText = textOpen && !isVisualizing;
+  // While it is open the graph keeps clear of it, as it does of the notebook during a run (not in 3D, which has its own camera).
+  usePanelFit(showText && !is3DMode);
   const textButtonRef = useRef<HTMLButtonElement>(null);
   const closeText = useCallback(() => {
     setTextOpen(false);
@@ -225,8 +228,9 @@ export const Board = () => {
         </div>
 
         {/* Algorithm Instruction Hint - appears when algorithm is selected */}
+        {/* On phones the edge list's card takes the top, where the hint would cover its switch, so the hint waits for it to close */}
         <AnimatePresence>
-          {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && (
+          {visualizationAlgorithm?.key && visualizationAlgorithm.key !== "select" && !isVisualizing && !(showText && !isDesktop) && (
             <AlgorithmHint text={getAlgorithmHintText()} algorithmName={visualizationAlgorithm.key} />
           )}
         </AnimatePresence>

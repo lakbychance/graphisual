@@ -4,13 +4,20 @@
  * canvas rewrites the text. Each change the text makes is one step in the canvas's own undo history,
  * so Undo / Redo in the text undo and redo the graph. A line that does not read is named under the
  * text and marked beside it, and the canvas keeps the last graph that did read.
+ *
+ * A switch in the head shows the same graph as it is stored instead, an adjacency list or matrix
+ * (`StorageView`), to read; the text comes back with the switch, and with every opening of the panel.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
-import { Button, Kbd, Panel, Textarea, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui-sdk";
+import {
+  Button, Kbd, Panel, SegmentedControl, SegmentedControlItem, Textarea, Tooltip, TooltipContent, TooltipTrigger,
+} from "@/components/ui-sdk";
 import { useGraphStore } from "../../store/graphStore";
+import { useSettingsStore, type StorageForm } from "../../store/settingsStore";
 import { followCanvas, MAX_TEXT, readEdgeList, textAfterCommit, textOf, whyNotWritable, type LineProblem, type TextState } from "../../utils/graph/edgeList";
 import { isModKey } from "../../utils/keyboard";
+import { StorageView } from "./StorageView";
 import "./textPanel.css";
 
 /** How long typing pauses before the canvas redraws, in milliseconds. */
@@ -62,6 +69,10 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
   }
   const { text } = followed;
   const why = whyNotWritable(nodes);
+  // The text, or the graph as stored (in the form the learner last chose, shared with the notebook).
+  const [asText, setAsText] = useState(true);
+  const storageForm = useSettingsStore((s) => s.storageForm);
+  const setStorageForm = useSettingsStore((s) => s.setStorageForm);
 
   const panel = useRef<HTMLDivElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -136,15 +147,44 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
     field.scrollTop = Math.max(0, (line - 1) * lineHeight - field.clientHeight / 3);
   };
 
+  /** Shows the text, or the graph as stored, handing over anything still typed first. */
+  const show = (view: "text" | StorageForm) => {
+    if (view === "text") {
+      setAsText(true);
+      return;
+    }
+    commit();
+    setAsText(false);
+    setStorageForm(view);
+  };
+
   const lineCount = text.split("\n").length;
   const wrong = new Set(problems.map((p) => p.line));
   const unsure = new Set(hints.map((p) => p.line));
   const named = problems.slice(0, SHOWN_PROBLEMS);
 
   return (
-    <Panel ref={panel} className="tp" role="region" aria-labelledby="tp-title">
+    <Panel
+      ref={panel}
+      className="tp"
+      role="region"
+      aria-labelledby="tp-title"
+      // Esc closes the panel from the stored views too (the text handles its own).
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && !asText) {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }
+      }}
+    >
       <header className="tp-head">
         <span className="gs-label" id="tp-title">Edge list</span>
+        <SegmentedControl className="tp-views" aria-label="Show the graph as" value={asText ? "text" : storageForm} onValueChange={(v) => v && show(v as "text" | StorageForm)}>
+          <SegmentedControlItem value="text">Text</SegmentedControlItem>
+          <SegmentedControlItem value="list">List</SegmentedControlItem>
+          <SegmentedControlItem value="matrix">Matrix</SegmentedControlItem>
+        </SegmentedControl>
         <Tooltip>
           <TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Close edge list" onClick={onClose} />}>
             <X aria-hidden="true" />
@@ -153,70 +193,76 @@ export function TextPanel({ focusOnOpen, onClose }: TextPanelProps) {
         </Tooltip>
       </header>
 
-      <dl className="tp-key" id="tp-key">
-        <dt><code>A B 4</code></dt><dd>joins A and B both ways, weight 4</dd>
-        <dt><code>A -&gt; B 4</code></dt><dd>one way, from A to B</dd>
-        <dt><code>C</code></dt><dd>a node on its own</dd>
-        <dd className="tp-key-note">No weight means 1 · <code>#</code> starts a note</dd>
-        <dd className="tp-key-note">Edits on the canvas rewrite this text</dd>
-      </dl>
-      <p className="tp-key-line"><code>A B 4</code>two-way &nbsp;·&nbsp; <code>A -&gt; B</code>one-way</p>
+      {asText ? (
+        <>
+          <dl className="tp-key" id="tp-key">
+            <dt><code>A B 4</code></dt><dd>joins A and B both ways, weight 4</dd>
+            <dt><code>A -&gt; B 4</code></dt><dd>one way, from A to B</dd>
+            <dt><code>C</code></dt><dd>a node on its own</dd>
+            <dd className="tp-key-note">No weight means 1 · <code>#</code> starts a note</dd>
+            <dd className="tp-key-note">Edits on the canvas rewrite this text</dd>
+          </dl>
+          <p className="tp-key-line"><code>A B 4</code>two-way &nbsp;·&nbsp; <code>A -&gt; B</code>one-way</p>
 
-      <div className="tp-editor" data-read-only={why ? "" : undefined}>
-        <div className="tp-gutter" ref={gutter} aria-hidden="true">
-          {Array.from({ length: lineCount }, (_, i) => (
-            <span key={i} data-wrong={wrong.has(i + 1) ? "" : undefined} data-unsure={unsure.has(i + 1) ? "" : undefined}>{i + 1}</span>
-          ))}
-        </div>
-        <Textarea
-          ref={area}
-          className="tp-text"
-          aria-label="Edge list, one edge per line"
-          aria-describedby={why || problems.length > 0 || hints.length > 0 ? "tp-key tp-problems" : "tp-key"}
-          aria-invalid={problems.length > 0 || undefined}
-          value={text}
-          onValueChange={change}
-          onBlur={commit}
-          onKeyDown={onKeyDown}
-          onScroll={(e) => {
-            if (gutter.current) gutter.current.scrollTop = e.currentTarget.scrollTop;
-          }}
-          readOnly={why !== null}
-          maxLength={MAX_TEXT}
-          placeholder={"A B 4\nB -> C 2\nD"}
-          wrap="off"
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-          autoComplete="off"
-        />
-      </div>
+          <div className="tp-editor" data-read-only={why ? "" : undefined}>
+            <div className="tp-gutter" ref={gutter} aria-hidden="true">
+              {Array.from({ length: lineCount }, (_, i) => (
+                <span key={i} data-wrong={wrong.has(i + 1) ? "" : undefined} data-unsure={unsure.has(i + 1) ? "" : undefined}>{i + 1}</span>
+              ))}
+            </div>
+            <Textarea
+              ref={area}
+              className="tp-text"
+              aria-label="Edge list, one edge per line"
+              aria-describedby={why || problems.length > 0 || hints.length > 0 ? "tp-key tp-problems" : "tp-key"}
+              aria-invalid={problems.length > 0 || undefined}
+              value={text}
+              onValueChange={change}
+              onBlur={commit}
+              onKeyDown={onKeyDown}
+              onScroll={(e) => {
+                if (gutter.current) gutter.current.scrollTop = e.currentTarget.scrollTop;
+              }}
+              readOnly={why !== null}
+              maxLength={MAX_TEXT}
+              placeholder={"A B 4\nB -> C 2\nD"}
+              wrap="off"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="off"
+            />
+          </div>
 
-      <div id="tp-problems" className="tp-problems" aria-live="polite">
-        {why ? (
-          <p className="tp-why">{why[0].toUpperCase() + why.slice(1)}</p>
-        ) : named.length > 0 ? (
-          <ul>
-            {named.map((p) => (
-              <li key={`${p.line}-${p.text}`}>
-                {p.line > 0 && <button type="button" className="tp-line" onClick={() => goToLine(p.line)}>Line {p.line}</button>}
-                <Words text={p.line > 0 ? p.text : p.text[0].toUpperCase() + p.text.slice(1)} />
-              </li>
-            ))}
-            {problems.length > SHOWN_PROBLEMS && <li className="tp-more">and {problems.length - SHOWN_PROBLEMS} more</li>}
-            <li className="tp-more">The canvas keeps the last graph that read</li>
-          </ul>
-        ) : hints.length > 0 && (
-          <ul>
-            {hints.slice(0, SHOWN_PROBLEMS).map((p) => (
-              <li key={`${p.line}-${p.text}`}>
-                <button type="button" className="tp-line" data-tone="hint" onClick={() => goToLine(p.line)}>Line {p.line}</button>
-                <Words text={p.text} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          <div id="tp-problems" className="tp-problems" aria-live="polite">
+            {why ? (
+              <p className="tp-why">{why[0].toUpperCase() + why.slice(1)}</p>
+            ) : named.length > 0 ? (
+              <ul>
+                {named.map((p) => (
+                  <li key={`${p.line}-${p.text}`}>
+                    {p.line > 0 && <button type="button" className="tp-line" onClick={() => goToLine(p.line)}>Line {p.line}</button>}
+                    <Words text={p.line > 0 ? p.text : p.text[0].toUpperCase() + p.text.slice(1)} />
+                  </li>
+                ))}
+                {problems.length > SHOWN_PROBLEMS && <li className="tp-more">and {problems.length - SHOWN_PROBLEMS} more</li>}
+                <li className="tp-more">The canvas keeps the last graph that read</li>
+              </ul>
+            ) : hints.length > 0 && (
+              <ul>
+                {hints.slice(0, SHOWN_PROBLEMS).map((p) => (
+                  <li key={`${p.line}-${p.text}`}>
+                    <button type="button" className="tp-line" data-tone="hint" onClick={() => goToLine(p.line)}>Line {p.line}</button>
+                    <Words text={p.text} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      ) : (
+        <StorageView nodes={nodes} edges={edges} form={storageForm} label={storageForm === "list" ? "Adjacency list" : "Adjacency matrix"} />
+      )}
     </Panel>
   );
 }
