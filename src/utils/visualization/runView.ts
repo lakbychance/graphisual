@@ -45,6 +45,26 @@ const eventsOf = (run: Run, index: number) => run.events.slice(index > 0 ? run.e
 const eventsUpTo = (run: Run, index: number) => run.events.slice(0, index < 0 ? 0 : run.ends[index]);
 
 const TOPOLOGICAL_SORT = "topological-sort";
+const KRUSKAL = "kruskal";
+
+/** The edges Kruskal's has added to its tree once a frame is reached. */
+const addedEdges = (frame: Frame): Walk[] =>
+  frame.edgeList.flatMap(({ from, to }, i) => (frame.edgeState.get(i) === "added" ? [{ from, to }] : []));
+
+/** Kruskal's nodes in the tree: the ends of the edges it has added, and once it answers, every node (each piece is a tree). */
+const kruskalTreeNodes = (frame: Frame): number[] =>
+  frame.answer ? [...frame.groups.keys()] : [...new Set(addedEdges(frame).flatMap(({ from, to }) => [from, to]))];
+
+/**
+ * On the step Kruskal's skips an edge, the loop it would close: the edge, then the path of tree edges
+ * already joining its ends (none for a self-loop). Empty on any other step.
+ */
+function kruskalLoop(run: Run, index: number): Walk[] {
+  const skip = index < 0 ? undefined : eventsOf(run, index).find((e) => e.type === "closes");
+  if (skip?.type !== "closes") return [];
+  const { path } = skip;
+  return [{ from: skip.from, to: skip.to }, ...path.slice(1).map((to, i) => ({ from: path[i], to }))];
+}
 
 /** An edge walked from -> to. */
 export interface Walk {
@@ -90,6 +110,11 @@ export interface Walked {
 export function walkedAt(run: Run, index: number): Walked {
   if (index < 0) return { visited: [], walks: [], back: [], answer: null };
   const frame = frameOf(run, index);
+  // Kruskal's: its tree's edges and nodes, and on a skip the loop the edge would close (drawn so it stands out).
+  if (run.algorithmId === KRUSKAL) {
+    const back = kruskalLoop(run, index);
+    return { visited: kruskalTreeNodes(frame), walks: [...addedEdges(frame), ...back], back, answer: null };
+  }
   const settles = run.events.some((e) => e.type === "settle");
   const visited = settles ? [...frame.settled] : [...frame.dist.keys()];
   // Topological sort keeps no parents: the edges it is done with (from nodes in the order) are walked.
@@ -120,6 +145,9 @@ export function walkedAt(run: Run, index: number): Walked {
  * - `done`: a depth-first search has backed out of it
  * - `final`: its value (or visit) is final
  * - `reached`: it has a value that may still improve (Bellman-Ford)
+ *
+ * Kruskal's works on edges: a node is `final` once an edge of the tree touches it, and none is ever
+ * waiting or being worked on.
  */
 export type NodeRole = "unseen" | "waiting" | "current" | "open" | "done" | "final" | "reached";
 
@@ -135,6 +163,10 @@ export function rolesAt(run: Run, index: number): Map<number, NodeRole> {
   const roles = new Map<number, NodeRole>();
   if (index < 0) return roles;
   const frame = frameOf(run, index);
+  if (run.algorithmId === KRUSKAL) {
+    for (const id of kruskalTreeNodes(frame)) roles.set(id, "final");
+    return roles;
+  }
   const change = eventsOf(run, index).find(changes);
   const answered = frame.answer !== null;
   const settles = run.events.some((e) => e.type === "settle");
@@ -216,6 +248,9 @@ export interface NodeBadge {
  * - `cycle`: on cycle detection's answer, a parent link along the cycle, turned the way the answer reads
  *   the cycle (drawn as a final parent link)
  *
+ * Kruskal's marks only its step's edge: `change` for an edge it adds, and `loop` for an edge it skips
+ * and the path that already joins its ends. Its edges have no way round, so its marks are `bare`.
+ *
  * A depth-first search's edge classes (back, forward, cross) stay in the engine for its rule checks;
  * the graph does not show them.
  */
@@ -225,6 +260,8 @@ export interface RunMark {
   from: number;
   to: number;
   kind: RunMarkKind;
+  /** Drawn without a chevron: the edge is not walked either way (Kruskal's). */
+  bare?: true;
 }
 
 export interface RunMarks {
@@ -237,14 +274,16 @@ export interface RunMarks {
 
 /**
  * The edge a step's change uses, the way it runs on the graph: the edge relaxed, the one a node is
- * reached or discovered along, the one cycle detection finds closing its loop, or, when a depth-first
- * search backs up out of a node, the edge it came down. Null when the change uses no edge (a start,
- * the answer) or there is no change.
+ * reached or discovered along, the one cycle detection finds closing its loop, the one Kruskal's adds
+ * or skips, or, when a depth-first search backs up out of a node, the edge it came down. Null when
+ * the change uses no edge (a start, the answer) or there is no change.
  */
 function stepEdge(change: AlgorithmEvent | undefined): Walk | null {
   switch (change?.type) {
     case "relax":
     case "classify":
+    case "union":
+    case "closes":
       return { from: change.from, to: change.to };
     case "enqueue":
       return change.from === undefined ? null : { from: change.from, to: change.node };
@@ -311,6 +350,12 @@ export function runMarksAt(run: Run, index: number): RunMarks {
   // The step's edge, the way the search travelled it: back up it, for a backtrack.
   const used = stepEdge(change);
   const walk = used && change?.type === "finish" ? { from: used.to, to: used.from } : used;
+  if (run.algorithmId === KRUSKAL) {
+    // Kruskal's edge, or on a skip the loop it would close (the edge first, then the path joining its ends).
+    const loop = kruskalLoop(run, index);
+    if (walk && !answered) for (const w of loop.length > 0 ? loop : [walk]) edges.push({ ...w, kind: loop.length > 0 ? "loop" : "change", bare: true });
+    return { valued, nodes, edges };
+  }
   if (walk && !answered) edges.push({ ...walk, kind: change?.type === "classify" && change.loop ? "loop" : "change" });
   if (!answered) for (const back of walkBack(run, index)) edges.push({ ...back, kind: "loop" });
 
@@ -342,12 +387,12 @@ export interface StorageLit {
  * What the adjacency list and matrix light once step `index` is shown: the row of the node being
  * worked on (`rolesAt`'s current node), and the entries of the edge this step uses (both ways round
  * for a two-way edge, which is stored in both rows). Nothing on the first step before it and on the
- * answer.
+ * answer. Kruskal's works on no node: its row is that of the edge's end first by name.
  */
 export function storageAt(run: Run, index: number): StorageLit {
   if (index < 0 || index >= run.ends.length) return { row: null, cells: [] };
-  const row = [...rolesAt(run, index)].find(([, role]) => role === "current")?.[0] ?? null;
   const edge = stepEdge(eventsOf(run, index).find(changes));
+  const row = run.algorithmId === KRUSKAL ? edge?.from ?? null : [...rolesAt(run, index)].find(([, role]) => role === "current")?.[0] ?? null;
   if (!edge) return { row, cells: [] };
   const back = edge.from !== edge.to
     && (run.input?.adjacencyList.get(edge.from) ?? []).some((e) => e.to === edge.to && e.type === EDGE_TYPE.UNDIRECTED);
@@ -371,7 +416,8 @@ export function lineAt(run: Run, index: number): number | null {
  * - `round`: a Bellman-Ford round begins
  * - `negative`: a negative edge lowers a distance, the first time one does in the run
  * - `found`: a search takes its destination
- * - `loop`: cycle detection finds its loop (an edge that closes a cycle at a node still in progress)
+ * - `loop`: cycle detection finds its loop (an edge that closes a cycle at a node still in progress), or
+ *   Kruskal's first skips an edge that would close one
  * - `answer`: the run's answer
  */
 export type MomentKind = "round" | "negative" | "found" | "loop" | "answer";
@@ -396,6 +442,7 @@ export function keyMoments(run: Run): KeyMoment[] {
   const moments: KeyMoment[] = [];
   const rounds = run.algorithmId === "bellman-ford";
   const cycles = run.algorithmId === "cycle-detection";
+  const kruskal = run.algorithmId === KRUSKAL;
   let negative = false;
   let loop = false;
   for (let index = 0; index < run.ends.length; index++) {
@@ -418,6 +465,10 @@ export function keyMoments(run: Run): KeyMoment[] {
     if (cycles && !loop && step.some((e) => e.type === "classify" && e.loop)) {
       loop = true;
       moments.push({ index, kind: "loop", label: "Loop found" });
+    }
+    if (kruskal && !loop && step.some((e) => e.type === "closes")) {
+      loop = true;
+      moments.push({ index, kind: "loop", label: "First loop skipped" });
     }
     if (answer) moments.push({ index, kind: "answer", label: "Answer" });
   }
@@ -455,6 +506,11 @@ function answerMessage(answer: AnswerEvent): string {
       return answer.stuck.length > 0
         ? `**No topological order:** ${names(answer.stuck)} sit on or after a cycle`
         : `**Topological order:** ${names(answer.order)}`;
+    case "forest": {
+      const edges = answer.edges.map(({ from, to }) => `${nid(from)}–${nid(to)}`).join(", ") || "no edges";
+      const what = answer.pieces > 1 ? `Spanning forest of ${answer.pieces} trees` : "Spanning tree";
+      return `**${what}:** ${edges}\nTotal weight: **${signed(answer.total)}**`;
+    }
   }
 }
 
@@ -617,6 +673,20 @@ const topologicalSort: StepView = (change, _step, frame) => {
   }
 };
 
+/** Kruskal's: the edge it adds or skips, and why. */
+const kruskal: StepView = (change) => {
+  switch (change?.type) {
+    case "union":
+      return { message: `**Added ${nid(change.from)}–${nid(change.to)}** (weight: ${signed(change.weight)}): it joins two groups` };
+    case "closes":
+      return { message: `**Skipped ${nid(change.from)}–${nid(change.to)}**: its ends are already in one group, so it would close a loop` };
+    case "groups":
+      return { message: "**Each node is a group of its own.** An edge joins the tree when its ends are in two groups" };
+    default:
+      return { message: "**Nothing is in the tree yet.** Sort the edges, cheapest first" };
+  }
+};
+
 const views: Record<string, StepView> = {
   dijkstra: priority(false),
   prims: priority(true),
@@ -627,6 +697,7 @@ const views: Record<string, StepView> = {
   "cycle-detection": cycleDetection,
   "bellman-ford": bellmanFord,
   [TOPOLOGICAL_SORT]: topologicalSort,
+  [KRUSKAL]: kruskal,
 };
 
 /** The trace panel's content for step `index` of the run. */

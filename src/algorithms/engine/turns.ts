@@ -5,6 +5,9 @@
  * decision (`frameAt` at the decision). Every valid pick is accepted: validity is the run's own
  * (`steer`), so a misconception is only ever looked for once a pick has been rejected.
  *
+ * Kruskal's learner picks an edge, not a node: its decisions' options are places in the run's list of
+ * edges (`Frame.edgeList`), and its words name the edge (`choiceName`).
+ *
  * Words follow the narration's voice (present tense, plain words, no full stops), node ids marked
  * with `nid`.
  */
@@ -22,11 +25,12 @@ export type RunGraph = ReadonlyMap<number, readonly EdgeInfo[]>;
  * valid option, and otherwise whenever there is something to get wrong. For the algorithms with a
  * frontier that is more than one node waiting in it; for cycle detection more than one of the
  * node's edges still to follow (not counting a way back along the edge it came in on), or an edge
- * that closes the loop. Everything else plays on its own.
+ * that closes the loop; for Kruskal's, every edge it adds (any other edge is there to get wrong).
+ * Everything else plays on its own.
  */
 export function asks(algorithmId: string, events: readonly AlgorithmEvent[], at: number, graph: RunGraph): boolean {
   const decision = events[at] as DecideEvent;
-  if (decision.options.length > 1) return true;
+  if (decision.options.length > 1 || decision.kind === "edge") return true;
   if (decision.kind === "restart") return false;
   const frame = frameAt(events, at);
   if (algorithmId !== "cycle-detection") return frame.queue.length > 1;
@@ -63,6 +67,7 @@ export const CATALOGUE = {
   dfs: ["visited", "unseen", "wide", "other"],
   "cycle-detection": ["self", "wrong-way", "not-neighbour", "came-in", "followed", "finished", "searched", "other"],
   "topological-sort": ["placed", "next-door", "label-order", "pointed-at", "other"],
+  kruskal: ["in-tree", "loop", "habit", "label-order", "dearer", "other"],
 } as const;
 
 type Family = keyof typeof CATALOGUE;
@@ -75,6 +80,7 @@ export const familyOf = (algorithmId: string): Family | null => {
     case "prims":
     case "cycle-detection":
     case "topological-sort":
+    case "kruskal":
       return algorithmId;
     case "bfs":
     case "bfs-pathfinding":
@@ -93,9 +99,23 @@ export interface Misconception {
   text: string;
 }
 
+/** Whether the learner picks an edge rather than a node (Kruskal's). */
+export const picksEdges = (algorithmId: string) => algorithmId === "kruskal";
+
+/** An edge as Kruskal's names it: "A – B". */
+const edgeName = ({ from, to }: { from: number; to: number }) => `${nid(from)} – ${nid(to)}`;
+
+/** A pick in words: the node, or for Kruskal's the edge at that place in its list (read from `frame`). */
+export function choiceName(algorithmId: string, frame: Frame, choice: number): string {
+  if (!picksEdges(algorithmId)) return nid(choice);
+  const edge = frame.edgeList[choice];
+  return edge ? edgeName(edge) : String(choice);
+}
+
 /** Who takes the next node, mid-sentence. */
 const NAME: Record<Family, string> = {
   dijkstra: "Dijkstra", prims: "Prim's", bfs: "BFS", dfs: "DFS", "cycle-detection": "the search", "topological-sort": "the sort",
+  kruskal: "Kruskal's",
 };
 
 /** What each algorithm takes, for the fallback. */
@@ -106,6 +126,7 @@ const RULE: Record<Family, string> = {
   dfs: "DFS always takes the node on top of the stack",
   "cycle-detection": "the search follows an edge to a node not yet visited, or back to one still in progress",
   "topological-sort": "the sort takes a node only once nothing points into it",
+  kruskal: "Kruskal's always adds the cheapest edge left whose ends are in two different groups",
 };
 
 const num = (value: number | undefined) =>
@@ -126,6 +147,8 @@ export function question(algorithmId: string, decision: DecideEvent, frame: Fram
       return "Which node does DFS take from the stack next?";
     case "topological-sort":
       return "Which node goes next in the order?";
+    case "kruskal":
+      return "Which edge does Kruskal's add to the tree next?";
     default:
       return frame.current === null ? "Where does the search go next?" : `Where does the search go from ${nid(frame.current)} next?`;
   }
@@ -133,11 +156,12 @@ export function question(algorithmId: string, decision: DecideEvent, frame: Fram
 
 /** The words for a valid pick: a plain yes, and, when others were valid too, that the run follows this one. */
 export function accepted(decision: DecideEvent, pick: number, frame: Frame, algorithmId: string): string {
+  const name = (choice: number) => choiceName(algorithmId, frame, choice);
   const others = decision.options.filter((o) => o !== pick);
   const closes = algorithmId === "cycle-detection" && decision.kind === "next" && frame.settled.includes(pick);
-  const yes = closes ? `Yes, ${nid(pick)} closes the loop` : `Yes, ${nid(pick)}`;
+  const yes = closes ? `Yes, ${name(pick)} closes the loop` : `Yes, ${name(pick)}`;
   if (others.length === 0) return yes;
-  const also = others.length === 1 ? `${nid(others[0])} works too` : `${others.slice(0, -1).map(nid).join(", ")} and ${nid(others[others.length - 1])} work too`;
+  const also = others.length === 1 ? `${name(others[0])} works too` : `${others.slice(0, -1).map(name).join(", ")} and ${name(others[others.length - 1])} work too`;
   return `${yes} — ${also}, and the run follows your pick`;
 }
 
@@ -149,6 +173,7 @@ const CLUE: Record<Family, string> = {
   dfs: "last in, first out — the newest node on the stack goes next, or one pushed with it",
   "cycle-detection": "the search goes on to a node not yet visited, or back to one still in progress, which closes a loop — but never straight back along the edge it came in on",
   "topological-sort": "a node can go next once nothing points into it any more — any node on the ready list will do",
+  kruskal: "the cheapest edge left goes in next, wherever it is on the graph — unless its ends are already in one group",
 };
 
 /**
@@ -169,10 +194,11 @@ export function clue(algorithmId: string, decision: DecideEvent, frame: Frame): 
   return `A hint: ${CLUE[family]}`;
 }
 
-/** The second hint, after three wrong tries: the valid picks, by name. */
-export function hint(algorithmId: string, decision: DecideEvent): string {
+/** The second hint, after three wrong tries: the valid picks, by name (Kruskal's edges read from `frame`). */
+export function hint(algorithmId: string, decision: DecideEvent, frame: Frame): string {
   const { options } = decision;
-  const names = options.length === 1 ? nid(options[0]) : `${options.slice(0, -1).map(nid).join(", ")} or ${nid(options[options.length - 1])}`;
+  const name = (choice: number) => choiceName(algorithmId, frame, choice);
+  const names = options.length === 1 ? name(options[0]) : `${options.slice(0, -1).map(name).join(", ")} or ${name(options[options.length - 1])}`;
   const who = NAME[familyOf(algorithmId) ?? "dijkstra"];
   return `A hint: ${who} can take ${names} here`;
 }
@@ -189,7 +215,7 @@ export function misconception(
   const family = familyOf(algorithmId);
   const frame = frameAt(events, rejection.event);
   const found = family ? CLASSIFY[family]({ frame, pick: rejection.choice, decision: rejection.decide, graph, label, events, at: rejection.event }) : null;
-  return found ?? { kind: "other", text: `Not ${nid(rejection.choice)} — ${RULE[family ?? "dijkstra"]}` };
+  return found ?? { kind: "other", text: `Not ${choiceName(algorithmId, frame, rejection.choice)} — ${RULE[family ?? "dijkstra"]}` };
 }
 
 interface Seen {
@@ -348,6 +374,64 @@ const topologicalSort: Classify = ({ frame, pick, decision, graph, label }) => {
   };
 };
 
+/**
+ * Kruskal's: an edge already in the tree; one whose ends are already in one group (it would close a
+ * loop, whether it was skipped already or is still to come); one that hangs off the tree the last
+ * edge added grew, while a cheaper edge lies elsewhere (growing one tree, as Prim's does); the edge
+ * left that comes first by name; or any other dearer edge.
+ */
+const kruskal: Classify = ({ frame, pick, decision, events, at, label }) => {
+  const edge = frame.edgeList[pick];
+  if (!edge) return null;
+  const E = edgeName(edge);
+  const [A, B] = [nid(edge.from), nid(edge.to)];
+  if (frame.edgeState.get(pick) === "added") return { kind: "in-tree", text: `${E} is already in the tree — each edge goes in once` };
+  const group = (id: number) => frame.groups.get(id);
+  if (group(edge.from) === group(edge.to)) {
+    if (edge.from === edge.to) return { kind: "loop", text: `${E} would close a loop — both its ends are ${A}` };
+    const path = treePath(frame, edge.from, edge.to);
+    return { kind: "loop", text: `${E} would close a loop — ${A} and ${B} are already in one group, joined by ${path.map(nid).join(" – ")}` };
+  }
+  const best = frame.edgeList[decision.options[0]];
+  const O = edgeName(best);
+  const cheaper = `${O} costs ${num(best.weight)}, ${E} costs ${num(edge.weight)}`;
+  // The tree the last edge added grew: the group its ends are in now.
+  const last = events.slice(0, at).filter((e) => e.type === "union").pop();
+  if (last?.type === "union") {
+    const grown = group(last.from);
+    const touches = ({ from, to }: { from: number; to: number }) => group(from) === grown || group(to) === grown;
+    if (touches(edge) && !touches(best)) {
+      return { kind: "habit", text: `${E} hangs off the tree ${edgeName(last)} just joined, but Kruskal's looks at the whole graph, not one tree — ${cheaper}` };
+    }
+  }
+  const left = frame.edgeList.flatMap((e, i) => (!frame.edgeState.has(i) && group(e.from) !== group(e.to) ? [i] : []));
+  const byName = (i: number) => `${label(frame.edgeList[i].from)} ${label(frame.edgeList[i].to)}`;
+  const firstByName = [...left].sort((a, b) => byName(a).localeCompare(byName(b), undefined, { numeric: true }) || a - b)[0];
+  if (left.length > 1 && firstByName === pick) {
+    return { kind: "label-order", text: `${E} comes first by name, but Kruskal's goes by weight — ${cheaper}` };
+  }
+  return { kind: "dearer", text: `${E} costs ${num(edge.weight)}, but ${O} costs ${num(best.weight)} — Kruskal's always adds the cheapest edge that joins two groups` };
+};
+
+/** The path from `from` to `to` along the edges Kruskal's has added (`frame`), both ends included. */
+function treePath(frame: Frame, from: number, to: number): number[] {
+  const added = frame.edgeList.filter((_, i) => frame.edgeState.get(i) === "added");
+  const back = new Map<number, number>([[from, from]]);
+  const queue = [from];
+  while (queue.length > 0 && !back.has(to)) {
+    const at = queue.shift()!;
+    for (const e of added) {
+      const next = e.from === at ? e.to : e.to === at ? e.from : null;
+      if (next === null || back.has(next)) continue;
+      back.set(next, at);
+      queue.push(next);
+    }
+  }
+  const path = [to];
+  while (path[0] !== from) path.unshift(back.get(path[0])!);
+  return path;
+}
+
 const CLASSIFY: Record<Family, Classify> = {
   dijkstra: priority(false),
   prims: priority(true),
@@ -355,4 +439,5 @@ const CLASSIFY: Record<Family, Classify> = {
   dfs,
   "cycle-detection": cycleDetection,
   "topological-sort": topologicalSort,
+  kruskal,
 };

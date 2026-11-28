@@ -15,7 +15,7 @@ import { emptyRun, emptyTrace, highlightsAt, type Run } from "../utils/visualiza
 import { asksYesNo, canRunIt, decidedBy, steerRun, takenAt, turnFrom, type Turn } from "../utils/visualization/runIt";
 import { freshGraph } from "../utils/visualization/freshGraph";
 import { buildRun } from "../utils/visualization/buildRun";
-import { accepted, edgeQuestions, edgeReply, frameAt, misconception, type DecideEvent } from "../algorithms/engine";
+import { accepted, edgeQuestions, edgeReply, frameAt, misconception, picksEdges, type DecideEvent } from "../algorithms/engine";
 import { resolveNodeVisState, type NodeVisState } from "../utils/visualization/nodeVisState";
 import { TIMING } from "../constants/ui";
 import { NODE, EDGE, EDGE_TYPE, type EdgeType } from "../constants/graph";
@@ -39,7 +39,8 @@ interface StepState {
 }
 
 /**
- * Run it yourself (see `runIt.ts`): the learner picks the next node where the run waits for them.
+ * Run it yourself (see `runIt.ts`): the learner picks the next node (in Kruskal's, the next edge)
+ * where the run waits for them.
  * `picks` holds the node taken at each decision so far (the learner's, forced ones filled in);
  * the run is the algorithm steered by them. In Bellman-Ford the run waits at a Yes / No question
  * instead, and `picks` stays empty. Absent while watching.
@@ -173,8 +174,13 @@ interface GraphActions {
   stopAutoPlay: () => void;
   /** Watch the run, or run it yourself from the step on screen (the run plays on to the learner's first turn). */
   setRunItMode: (on: boolean) => void;
-  /** The learner picks `nodeId` at the turn the run waits at; nothing happens anywhere else. */
+  /**
+   * The learner picks `nodeId` at the turn the run waits at; nothing happens anywhere else. In
+   * Kruskal's, the pick is an edge, by its place in the run's list of edges (`Frame.edgeList`).
+   */
   pickNode: (nodeId: number) => void;
+  /** Kruskal's: the learner picks the edge between `from` and `to` (either way round) at the turn the run waits at. */
+  pickEdge: (from: number, to: number) => void;
   /** Bellman-Ford: the learner answers the question the run waits at, Yes or No (null skips it); the run plays on either way. */
   answerQuestion: (answer: boolean | null) => void;
   /** Run it again from the start, with no picks. */
@@ -1087,6 +1093,18 @@ export const useGraphStore = create<GraphStore>()(
           goToStep(step.index + 1);
         },
 
+        pickEdge: (from, to) => {
+          const { runIt, step } = get().visualization;
+          const turn = runIt?.turn;
+          if (!turn || !picksEdges(step.run.algorithmId)) return;
+          // The edge's place in the list: one the run could add here, else one not yet looked at, else any.
+          const { edgeList, edgeState } = frameAt(step.run.events, turn.event);
+          const { options } = step.run.events[turn.event] as DecideEvent;
+          const places = edgeList.flatMap((e, i) => ((e.from === from && e.to === to) || (e.from === to && e.to === from) ? [i] : []));
+          const place = places.find((i) => options.includes(i)) ?? places.find((i) => !edgeState.has(i)) ?? places[0];
+          if (place !== undefined) get().pickNode(place);
+        },
+
         answerQuestion: (answer) => {
           const { visualization } = get();
           const { runIt, step } = visualization;
@@ -1211,7 +1229,11 @@ const selectIsAwaitingTurn = (state: GraphStore) => {
   return !!turn && selectIsInStepMode(state) && state.visualization.step.index === turn.limit;
 };
 /** The run waits on screen for the learner's pick of a node. */
-export const selectIsAwaitingPick = (state: GraphStore) => selectIsAwaitingTurn(state) && !asksYesNo(state.visualization.step.run);
+export const selectIsAwaitingPick = (state: GraphStore) =>
+  selectIsAwaitingTurn(state) && !asksYesNo(state.visualization.step.run) && !picksEdges(state.visualization.step.run.algorithmId);
+/** Kruskal's: the run waits on screen for the learner's pick of an edge. */
+export const selectIsAwaitingEdgePick = (state: GraphStore) =>
+  selectIsAwaitingTurn(state) && picksEdges(state.visualization.step.run.algorithmId);
 /** Bellman-Ford: the event of the edge check the run waits on screen for a Yes / No about, or null. */
 export const selectAskedEdge = (state: GraphStore) =>
   selectIsAwaitingTurn(state) && asksYesNo(state.visualization.step.run) ? state.visualization.runIt!.turn!.event : null;

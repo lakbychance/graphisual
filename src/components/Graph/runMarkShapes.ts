@@ -130,11 +130,11 @@ export function markGeometry(mark: { from: number; to: number }, nodes: Map<numb
 export const linePath = ({ x1, y1, x2, y2, cx, cy }: MarkGeometry["line"]) =>
   cx === undefined ? `M${x1} ${y1} L${x2} ${y2}` : `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`;
 
-/** Marks in drawing order (this step's edge on top), each with whether it carries a chevron. */
+/** Marks in drawing order (this step's edge on top), each with whether it carries a chevron (never a `bare` one). */
 export function orderMarks<T extends DrawnMark>(marks: readonly T[]): Array<{ mark: T; chevron: boolean }> {
   const pair = (m: DrawnMark) => [Math.min(m.from, m.to), Math.max(m.from, m.to)].join("-");
   const changed = new Set(marks.filter((m) => isStepEdge(m.kind)).map(pair));
   return [...marks]
     .sort((a, b) => Number(isStepEdge(a.kind)) - Number(isStepEdge(b.kind)))
-    .map((mark) => ({ mark, chevron: isStepEdge(mark.kind) || !changed.has(pair(mark)) }));
+    .map((mark) => ({ mark, chevron: !mark.bare && (isStepEdge(mark.kind) || !changed.has(pair(mark))) }));
 }

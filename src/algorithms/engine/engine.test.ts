@@ -14,6 +14,7 @@ import dfsPathfindingAdapter from "../adapters/dfs-pathfinding";
 import cycleDetectionAdapter from "../adapters/cycleDetection";
 import primsAdapter from "../adapters/prims";
 import topologicalSortAdapter from "../adapters/topologicalSort";
+import kruskalAdapter from "../adapters/kruskal";
 import type { AlgorithmAdapter, AlgorithmInput, EdgeInfo } from "../types";
 import * as landing from "@/landing/live/configs";
 import { WEIGHTED_EDGES } from "@/landing/live/shared";
@@ -22,18 +23,18 @@ import { generateCycleWithDeadEnd, generateWeighted, type GeneratedGraph } from 
 import { buildRun } from "@/utils/visualization/buildRun";
 import { FRESH_ALGORITHMS, freshGraph } from "@/utils/visualization/freshGraph";
 import {
-  accepted, applyEvent, asks, CATALOGUE, changes, clue, edgeQuestion, edgeQuestions, edgeReply, emptyFrame, familyOf, frameAt, GAP, misconception, MOST,
-  narrate, stepEnds, steer, type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
+  accepted, applyEvent, asks, CATALOGUE, changes, choiceName, clue, edgeQuestion, edgeQuestions, edgeReply, emptyFrame, familyOf, frameAt, GAP, hint,
+  misconception, MOST, narrate, picksEdges, stepEnds, steer, type AlgorithmEvent, type AnswerEvent, type ChoicePolicy, type DecideEvent, type Frame,
 } from ".";
 import { nid } from "../traceHelpers";
 import { graphFacts, unmetNeed } from "../facts";
 import { asDag, asUndirected, largeGraph, random, randomGraphs, withNegativeWeights, type RandomGraph } from "./__tests__/randomGraphs";
 import {
-  bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, isTopologicalOrder, kruskalWeight, reachable,
+  bruteForceDistances, hasCycle, hasReachableNegativeCycle, hopCounts, isTopologicalOrder, kruskalWeight, primForest, reachable,
 } from "./__tests__/oracles";
 import {
   addsLightestCrossingEdge, bfsDepthNeverDecreases, decisionsAreHonest, dfsTimesNest, doneStaysDone, edgeClassesMatchTimes, groupsOnlyIncrease, oneChangePerStep,
-  kahnReadyIsExact, keyMomentsMatchEvents, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, storageLightsTheStep, type Rule,
+  kahnReadyIsExact, keyMomentsMatchEvents, kruskalGroupsAreTrue, pointsAtPseudocode, parentLinksFormTree, relaxOnlyLowers, settlesOnceInOrder, storageLightsTheStep, type Rule,
 } from "./__tests__/rules";
 
 const suite = [...randomGraphs(200), largeGraph()];
@@ -43,6 +44,8 @@ const undirectedSuite = suite.map(asUndirected);
 const signedSuite = [...suite, ...suite.map(withNegativeWeights)];
 /** Topological sort refuses any graph but a DAG, so it runs on the suite made one. */
 const dagSuite = suite.map(asDag);
+/** Kruskal's refuses directed edges too; negative weights are fine, so it runs on those as well. */
+const kruskalSuite = [...undirectedSuite, ...undirectedSuite.map(withNegativeWeights)];
 
 /** Algorithms on the event engine, with the graphs they run on and the rules their event streams obey. */
 const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: Record<string, Rule> }> = [
@@ -55,6 +58,7 @@ const ported: Array<{ adapter: AlgorithmAdapter; graphs: RandomGraph[]; rules: R
   { adapter: cycleDetectionAdapter, graphs: suite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, dfsTimesNest, edgeClassesMatchTimes, doneStaysDone } },
   { adapter: primsAdapter, graphs: undirectedSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, addsLightestCrossingEdge } },
   { adapter: topologicalSortAdapter, graphs: dagSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, relaxOnlyLowers, settlesOnceInOrder, kahnReadyIsExact } },
+  { adapter: kruskalAdapter, graphs: kruskalSuite, rules: { pointsAtPseudocode, decisionsAreHonest, keyMomentsMatchEvents, groupsOnlyIncrease, oneChangePerStep, parentLinksFormTree, storageLightsTheStep, kruskalGroupsAreTrue } },
 ];
 
 const eventsOf = (adapter: AlgorithmAdapter, input: AlgorithmInput) => adapter.events(input);
@@ -195,6 +199,24 @@ const oracles: Record<string, Oracle> = {
     expect(isTopologicalOrder(input, answer?.order ?? []), `${at}: ${answer?.order.join(", ")} is a topological order`).toBe(true);
     expect(answer?.order, `${at}: the order is the nodes as placed`).toEqual(settledIn(events));
   },
+
+  kruskal(at, input, events) {
+    const answer = answerOf(events, "forest");
+    const { weight, pieces } = primForest(input);
+    expect(answer?.total, `${at}: forest weight`).toBe(weight);
+    expect(answer?.pieces, `${at}: pieces`).toBe(pieces);
+    const ids = new Set([...input.nodes.map((n) => n.id), ...input.adjacencyList.keys()]);
+    // Real edges, and no loop: each joins two trees of the forest so far, so it spans each piece with one fewer edge than its nodes.
+    const leader = new Map([...ids].map((id) => [id, id]));
+    const find = (id: number): number => (leader.get(id) === id ? id : find(leader.get(id)!));
+    for (const { from, to, weight: w } of answer?.edges ?? []) {
+      const real = (input.adjacencyList.get(from) ?? []).some((e) => e.to === to && e.weight === w);
+      expect(real, `${at}: edge ${from}–${to} weighs ${w}`).toBe(true);
+      expect(find(from) !== find(to), `${at}: ${from}–${to} closes no loop`).toBe(true);
+      leader.set(find(from), find(to));
+    }
+    expect(answer?.edges.length, `${at}: one tree per piece`).toBe(ids.size - pieces);
+  },
 };
 
 /** Runs an adapter's oracle on its default run of every graph. */
@@ -222,9 +244,18 @@ describe("oracle check", () => {
     oracleCheck(primsAdapter, undirectedSuite));
 
   it("Topological sort puts every node of a DAG in an order where every edge points forwards", () => oracleCheck(topologicalSortAdapter, dagSuite));
+
+  it("Kruskal's forest weighs the same as Prim's minimum spanning forest, spans each piece and closes no loop", () => oracleCheck(kruskalAdapter, kruskalSuite));
 });
 
 /* ---------------------------------------------------------- steered runs */
+
+/**
+ * The steering checks' time limit per test. They run in a few seconds, but share the machine with
+ * whatever else is running (a browser, the build): the longer limit guards against flakes under
+ * load, not against slowness.
+ */
+const STEERING = { timeout: 20_000 };
 
 /** The node a run took at each of its decisions, in order. */
 const picksOf = (events: readonly AlgorithmEvent[]) => events.flatMap((e) => (e.type === "decide" ? [e.node] : []));
@@ -239,10 +270,14 @@ function pickThenRandom(picks: readonly number[], rand: () => number): ChoicePol
   };
 }
 
+/** Every pick a learner can make at a decision, made on `frame`: a node of the graph, or in Kruskal's an edge of its list (by its place). */
+const choicesOf = (algorithmId: string, input: AlgorithmInput, frame: Frame) =>
+  picksEdges(algorithmId) ? frame.edgeList.map((_, i) => i) : input.nodes.map((n) => n.id);
+
 /** Bellman-Ford makes no choices: it checks the edges in one fixed order every round. */
 const steerable = ported.filter(({ adapter }) => adapter.metadata.id !== "bellman-ford");
 
-describe("steering check", () => {
+describe("steering check", STEERING, () => {
   for (const { adapter, graphs, rules } of steerable) {
     const { id, name } = adapter.metadata;
     const context = (input: AlgorithmInput) => ({ algorithmId: id, pseudocode: adapter.pseudocode, input });
@@ -300,14 +335,15 @@ describe("steering check", () => {
           // A choice of several, or a way on that closes cycle detection's loop, is always the learner's to make.
           const closesLoop = id === "cycle-detection" && decision.kind === "next" && decision.options.some((o) => frameAt(base, event).settled.includes(o));
           if (decision.options.length > 1 || closesLoop) expect(asks(id, base, event, input.adjacencyList), `seed ${seed}: decision ${k} asked`).toBe(true);
-          for (const wrong of input.nodes.map((n) => n.id).filter((n) => !decision.options.includes(n))) {
+          const seen = frameAt(base, event);
+          for (const wrong of choicesOf(id, input, seen).filter((n) => !decision.options.includes(n))) {
             const { events, rejected } = steer(run, [...picks.slice(0, k), wrong]);
             const at = `seed ${seed}: ${wrong} at decision ${k}`;
             expect(rejected, at).not.toBeNull();
             const named = misconception(id, events, rejected!, input.adjacencyList);
             expect(CATALOGUE[family] as readonly string[], at).toContain(named.kind);
             expect(named.kind, at).not.toBe("other");
-            expect(named.text, `${at}: names the pick`).toContain(nid(wrong));
+            expect(named.text, `${at}: names the pick`).toContain(choiceName(id, seen, wrong));
           }
         });
       }
@@ -366,7 +402,25 @@ function missed(adapter: AlgorithmAdapter, graph: ReturnType<typeof named>, pick
   return misconception(adapter.metadata.id, events, rejected!, graph.input.adjacencyList, graph.label);
 }
 
-describe("steering check: the misconception catalogue", () => {
+/**
+ * Steers Kruskal's on the lettered graph through `picks`, edges named "A-B" (one per decision, forced
+ * ones included; the last one wrong), and names the wrong one.
+ */
+function missedEdge(graph: ReturnType<typeof named>, picks: string) {
+  const run = (choose: ChoicePolicy) => kruskalAdapter.events(graph.input, choose);
+  const { edgeList } = frameAt(run(firstOptionOf), 1);
+  const place = (name: string) => {
+    const [a, b] = name.split("-").map(graph.id);
+    return edgeList.findIndex((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+  };
+  const { events, rejected } = steer(run, picks.split(" ").map(place));
+  expect(rejected?.decision, `${picks}: rejected at the last pick`).toBe(picks.split(" ").length - 1);
+  return misconception("kruskal", events, rejected!, graph.input.adjacencyList, graph.label);
+}
+
+const firstOptionOf: ChoicePolicy = ({ options }) => options[0];
+
+describe("steering check: the misconception catalogue", STEERING, () => {
   const route = named("A-B:4 A-C:2 C-B:1 B-D:5 C-E:9 D-E:2 D-F:3 E-F:6", "A", "F");
 
   it("Dijkstra's: an already-final node, an unreached one, a neighbour of the node just taken, the shortest last edge, and label order", () => {
@@ -391,6 +445,33 @@ describe("steering check: the misconception catalogue", () => {
       kind: "label-order", text: `${nid(2)} comes first by name, but Prim's goes by cost — ${nid(4)} joins for 8, ${nid(2)} for 9`,
     });
     expect(missed(primsAdapter, named("A-B:1 A-C:5 A-D:2", "A"), "A D").kind).toBe("dearer");
+  });
+
+  it("Kruskal's: an edge in the tree, one that would close a loop, one off the tree just grown, the edge first by name, and a dearer edge", () => {
+    const [A, B, C] = [1, 2, 3].map(nid);
+    expect(missedEdge(named("A-B:1 C-D:2 B-C:5", "A"), "A-B A-B").kind).toBe("in-tree");
+    expect(missedEdge(named("A-B:1 B-C:2 A-C:3 C-D:4", "A"), "A-B B-C A-C")).toEqual({
+      kind: "loop", text: `${A} – ${C} would close a loop — ${A} and ${C} are already in one group, joined by ${A} – ${B} – ${C}`,
+    });
+    expect(missedEdge(named("A-B:1 C-D:2 E-F:3 D-G:6", "A"), "A-B C-D D-G").kind).toBe("habit");
+    expect(missedEdge(named("A-B:5 C-D:1", "A"), "A-B")).toEqual({
+      kind: "label-order", text: `${A} – ${B} comes first by name, but Kruskal's goes by weight — ${C} – ${nid(4)} costs 1, ${A} – ${B} costs 5`,
+    });
+    expect(missedEdge(named("C-D:1 A-B:2 E-F:5", "A"), "E-F").kind).toBe("dearer");
+  });
+
+  it("Kruskal's: a tie accepts either edge, and the words for a pick name edges, never their places in the list", () => {
+    const graph = named("A-B:2 C-D:2 B-C:3", "A");
+    const run = (choose: ChoicePolicy) => kruskalAdapter.events(graph.input, choose);
+    const events = run(firstOptionOf);
+    const at = events.findIndex((e) => e.type === "decide");
+    const decision = events[at] as DecideEvent;
+    const frame = frameAt(events, at);
+    const [A, B, C, D] = [1, 2, 3, 4].map(nid);
+    expect(decision.options.map((i) => choiceName("kruskal", frame, i))).toEqual([`${A} – ${B}`, `${C} – ${D}`]);
+    expect(steer(run, [decision.options[1]]).rejected, "the other tied edge is accepted").toBeNull();
+    expect(accepted(decision, decision.options[1], frame, "kruskal")).toBe(`Yes, ${C} – ${D} — ${A} – ${B} works too, and the run follows your pick`);
+    expect(hint("kruskal", decision, frame)).toBe(`A hint: Kruskal's can take ${A} – ${B} or ${C} – ${D} here`);
   });
 
   it("BFS: a visited node, an unseen one, a node a level deeper, and one as far out from another parent", () => {
@@ -557,12 +638,13 @@ const everySteeredRun = (run: (choose: ChoicePolicy) => AlgorithmEvent[]) => new
  * The lures a fresh graph promises (see `freshGraph.ts`): per algorithm, the misconceptions a wrong
  * pick is named for that make it tempting. Dijkstra's and Prim's neighbour also hangs off the node
  * just taken by its lightest edge to a waiting node; cycle detection's one-way edge leads back to the
- * node just come from.
+ * node just come from; Kruskal's loop-closing edge costs no more than the edge to add.
  */
 const LURE_KINDS: Record<string, string[]> = {
   dijkstra: ["neighbour"], prims: ["neighbour"], bfs: ["other-parent"], dfs: ["wide"],
   "cycle-detection": ["finished", "followed", "came-in", "wrong-way"],
   "topological-sort": ["next-door", "label-order"],
+  kruskal: ["loop"],
 };
 
 /** Fresh graphs checked per algorithm; Prim's over a thousand (D54). */
@@ -573,7 +655,7 @@ const PRIMS_SEEDS = 1000;
 
 const shown = (value: number | undefined) => (value === undefined || value === Infinity ? "∞" : value < 0 ? `−${-value}` : String(value));
 
-describe("steering check: Bellman-Ford's Run it questions", () => {
+describe("steering check: Bellman-Ford's Run it questions", STEERING, () => {
   it(`asks only at decisive edge checks, at most ${MOST} and never two within ${GAP} steps; Yes is right exactly when the edge then lowers the distance, and every why matches what the learner sees`, () => {
     for (const { seed, input } of signedSuite) {
       const events = eventsOf(bellmanFordAdapter, input);
@@ -623,7 +705,7 @@ describe("steering check: Bellman-Ford's Run it questions", () => {
   });
 });
 
-describe("steering check: fresh graphs", () => {
+describe("steering check: fresh graphs", STEERING, () => {
   for (const id of FRESH_ALGORITHMS) {
     it(`${id}: every fresh graph is valid input that the app plays, and every run of it a learner can make matches the oracle and waits for the learner at a tie and at a lure`, () => {
       const adapter = ported.find((p) => p.adapter.metadata.id === id)!.adapter;
@@ -641,9 +723,9 @@ describe("steering check: fresh graphs", () => {
         const edges = [...input.adjacencyList.values()].flat();
         expect(ids.length >= 5 && ids.length <= 8, `seed ${seed}: ${ids.length} nodes`).toBe(true);
         // Weighted graphs keep to 2 and up: the canvas leaves a weight of 1 unwritten.
-        const least = id === "dijkstra" || id === "prims" ? 2 : 0;
+        const least = id === "dijkstra" || id === "prims" || id === "kruskal" ? 2 : 0;
         expect(edges.every((e) => e.weight >= least), `seed ${seed}: weights`).toBe(true);
-        if (id === "prims") {
+        if (id === "prims" || id === "kruskal") {
           expect(edges.every((e) => e.type === "undirected"), `seed ${seed}: undirected`).toBe(true);
           expect(reachable(input, from).size, `seed ${seed}: connected`).toBe(ids.length);
         }
@@ -662,6 +744,10 @@ describe("steering check: fresh graphs", () => {
           if (!rejected) return false;
           const { kind } = misconception(id, steered, rejected, input.adjacencyList);
           if (!LURE_KINDS[family].includes(kind)) return false;
+          if (picksEdges(id)) {
+            const { edgeList } = frameAt(steered, rejected.event);
+            return edgeList[wrong].weight <= edgeList[rejected.decide.options[0]].weight;
+          }
           if (kind === "wrong-way") {
             const { current } = frameAt(steered, rejected.event);
             const cameIn = steered.slice(0, rejected.event).filter((e) => e.type === "settle" && e.node === current);
@@ -677,7 +763,7 @@ describe("steering check: fresh graphs", () => {
           oracles[id](at, input, events);
           const turns = events.flatMap((e, i) => (e.type === "decide" && asks(id, events, i, input.adjacencyList) ? [i] : []));
           expect(turns.some((i) => (events[i] as DecideEvent).options.length > 1), `${at}: a tie`).toBe(true);
-          const lured = turns.some((i) => ids.some((wrong) => !(events[i] as DecideEvent).options.includes(wrong) && lures(events, i, wrong)));
+          const lured = turns.some((i) => choicesOf(id, input, frameAt(events, i)).some((wrong) => !(events[i] as DecideEvent).options.includes(wrong) && lures(events, i, wrong)));
           expect(lured, `${at}: a lure`).toBe(true);
         });
       }
@@ -745,7 +831,7 @@ describe("oracle check: the answer the app shows", () => {
 
 /* ------------------------------------------------------------ golden narration */
 
-const LABELS = ["A", "B", "C", "D", "E", "F"];
+const LABELS = ["A", "B", "C", "D", "E", "F", "G"];
 
 interface Lettered {
   input: AlgorithmInput;
@@ -765,7 +851,8 @@ function lettered(
   const adjacencyList = new Map<number, EdgeInfo[]>(LABELS.slice(0, size).map((_, id) => [id, []]));
   for (const [from, to, weight, type = directed ? "directed" : "undirected"] of edges) {
     adjacencyList.get(from)!.push({ from, to, weight, type });
-    if (type === "undirected") adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
+    // A two-way edge sits in both its ends' lists; a self-loop's one end holds it once.
+    if (type === "undirected" && from !== to) adjacencyList.get(to)!.push({ from: to, to: from, weight, type });
   }
   const input: AlgorithmInput = {
     adjacencyList,
@@ -800,10 +887,13 @@ function transcript(
   const plain = (message: string) => message.replace(/\{n:(\d+)\}/g, (_, id) => label(Number(id)));
   const events = picks ? steer((choose) => adapter.events(input, choose), picks).events : eventsOf(adapter, input);
   const ends = input.endNodeId === undefined ? "" : ` to ${label(input.endNodeId)}`;
-  // Topological sort works on the whole graph: the node tapped to start it changes nothing.
-  const from = adapter.metadata.id === "topological-sort" ? "" : `From ${label(input.startNodeId)}${ends}. `;
+  // Topological sort and Kruskal's work on the whole graph: the node tapped to start them changes nothing.
+  const from = adapter.metadata.id === "topological-sort" || adapter.metadata.id === "kruskal" ? "" : `From ${label(input.startNodeId)}${ends}. `;
   const lines = [`## ${title}`, "", `${from}Edges: ${edgeList}`];
-  if (picks) lines.push("", `Steered: takes ${picks.map(label).join(", ")}, then goes on as usual`);
+  // Kruskal's picks are edges, by their place in its list.
+  const list = events.find((e) => e.type === "edges")?.edges ?? [];
+  const pickName = (pick: number) => (picksEdges(adapter.metadata.id) ? `${label(list[pick].from)} – ${label(list[pick].to)}` : label(pick));
+  if (picks) lines.push("", `Steered: takes ${picks.map(pickName).join(", ")}, then goes on as usual`);
   if (narrated) {
     lines.push("");
     narrate(events, adapter.metadata.id).forEach((message, i) => lines.push(`${String(i + 1).padStart(2)}. ${plain(message)}`));
@@ -991,5 +1081,27 @@ describe("golden narration", () => {
       ),
     );
     await expect(text).toMatchFileSnapshot("./__golden__/topological-sort.md");
+  });
+
+  it("Kruskal's", async () => {
+    // The graph the app opens with (`generateKruskalGraph`): the same nodes, edges and order.
+    const standard = lettered([[0, 1, 5], [0, 2, 3], [2, 1, 2], [1, 3, 6], [2, 4, 10], [3, 4, 3], [3, 5, 4], [4, 5, 7]], 6, 0);
+    const text = golden(
+      "Kruskal's",
+      transcript(kruskalAdapter, "Standard graph", standard),
+      // The list starts B – C at 2, then A – C and D – E at 3: the second decision is the tie.
+      transcript(kruskalAdapter, "Standard graph, steered to D – E first", standard, true, [0, 2]),
+      transcript(kruskalAdapter, "A graph in two pieces: a forest", lettered([[0, 1, 4], [0, 2, 2], [2, 1, 1], [3, 4, 2], [3, 5, 3], [4, 5, 6]], 6, 0)),
+      transcript(kruskalAdapter, "A node on its own: a tree of one node", lettered([[0, 1, 3], [1, 2, 2], [0, 2, 3]], 4, 0)),
+      transcript(kruskalAdapter, "Negative weights are fine: the cheapest edge is still the most negative", lettered([[0, 1, -2], [1, 2, 4], [0, 2, -1], [2, 3, 0]], 4, 0)),
+      transcript(kruskalAdapter, "Parallel edges and an edge to itself", lettered([[0, 1, 6], [0, 1, 3], [1, 1, 1], [1, 2, 3], [0, 2, 3]], 3, 0)),
+      transcript(
+        kruskalAdapter, "Many edges tie: counted, not named, as is a long tree",
+        lettered([[0, 1, 2], [1, 2, 2], [2, 3, 2], [3, 4, 2], [4, 5, 2], [5, 6, 2], [0, 6, 3]], 7, 0),
+      ),
+      transcript(kruskalAdapter, "Directed edges", lettered([[0, 1, 3]], 2, 0, undefined, { directed: true }), false),
+      transcript(kruskalAdapter, "Mixed edges", lettered([[0, 1, 3, "undirected"], [1, 2, 2, "directed"]], 3, 0), false),
+    );
+    await expect(text).toMatchFileSnapshot("./__golden__/kruskal.md");
   });
 });

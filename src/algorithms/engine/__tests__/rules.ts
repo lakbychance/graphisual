@@ -37,6 +37,8 @@ export const pointsAtPseudocode: Rule = (events, { pseudocode }) => {
  *   it and its ancestors leading back up to a node in progress. Each such edge is still to check:
  *   checking it would have gone into the node or ended the run. To start again: every unvisited node.
  * - topological sort: every node on the ready list (any of them can go next).
+ * - Kruskal's: every edge not yet looked at, at the least weight of those, whose ends are in two
+ *   different groups (by its place in the run's list of edges).
  */
 function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, { adjacencyList }: AlgorithmInput): number[] {
   const unvisited = (ids: number[]) => [...new Set(ids)].filter((id) => !frame.settled.includes(id));
@@ -48,6 +50,11 @@ function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, 
     }
     case "topological-sort":
       return frame.queue.map((item) => item.id);
+    case "kruskal": {
+      const left = frame.edgeList.flatMap((e, i) => (frame.edgeState.has(i) ? [] : [{ ...e, i }]));
+      const least = Math.min(...left.map((e) => e.weight));
+      return left.filter((e) => e.weight === least && frame.groups.get(e.from) !== frame.groups.get(e.to)).map((e) => e.i);
+    }
     case "bfs":
     case "bfs-pathfinding":
     case "dfs":
@@ -85,7 +92,8 @@ function validChoices(algorithmId: string, { kind }: DecideEvent, frame: Frame, 
 
 /**
  * Each decision offers exactly the valid choices (see `validChoices`), each once, and the change
- * right after it takes the node it chose (or, in cycle detection, finds the loop on the edge to it). So a learner's pick is accepted exactly when it is valid.
+ * right after it takes the node it chose (or, in cycle detection, finds the loop on the edge to it; in
+ * Kruskal's, adds the edge it chose). So a learner's pick is accepted exactly when it is valid.
  */
 export const decisionsAreHonest: Rule = (events, { algorithmId, input }) => {
   let frame = emptyFrame;
@@ -93,7 +101,8 @@ export const decisionsAreHonest: Rule = (events, { algorithmId, input }) => {
     const e = events[i];
     if (e.type !== "decide") continue;
     const next = events.slice(i + 1).find(changes);
-    const takes = next?.type === "settle" || next?.type === "start" ? next.node : next?.type === "classify" ? next.to : undefined;
+    const takes = next?.type === "settle" || next?.type === "start" ? next.node
+      : next?.type === "classify" ? next.to : next?.type === "union" ? next.edge : undefined;
     if (takes !== e.node) {
       return `decision ${i} picks ${e.node}, but the change after it does not take ${e.node}`;
     }
@@ -301,16 +310,18 @@ export const addsLightestCrossingEdge: Rule = (events, { input }) => {
 
 /**
  * What a learner can see of a run's state: what is final, done, known, waiting, answered, and
- * which edge closed a cycle. Not which edge was looked at last, nor edges merely checked (a check
- * that classifies an edge belongs to the step that makes it).
+ * which edge closed a cycle; Kruskal's list of edges, what became of each and its groups. Not which
+ * edge was looked at last, nor edges merely checked (a check that classifies an edge belongs to the
+ * step that makes it).
  */
 const stateOf = (f: Frame) => JSON.stringify([
-  f.settled, f.finished, [...f.dist], [...f.prev], f.queue, f.answer !== null, f.loop,
+  f.settled, f.finished, [...f.dist], [...f.prev], f.queue, f.answer !== null, f.loop, f.edgeList, [...f.edgeState], [...f.groups],
 ]);
 
 /**
  * Each step is one change: exactly one of its events changes the state. Exceptions: a Start step
- * may change nothing (a search with no values begins by just naming its start), and an iteration
+ * may change nothing (a search with no values begins by just naming its start), as may Kruskal's
+ * first step on a graph with no edges (its list of edges is empty), and an iteration
  * that changes nothing at all (a Bellman-Ford round with no improvement) is one step on its own.
  */
 export const oneChangePerStep: Rule = (events) => {
@@ -326,7 +337,7 @@ export const oneChangePerStep: Rule = (events) => {
     }
     const group = step[0].group;
     const wholeIteration = step.every((e) => e.group === group) && events[from - 1]?.group !== group && events[end]?.group !== group;
-    const allowedNone = step[0].type === "start" || wholeIteration;
+    const allowedNone = step[0].type === "start" || step[0].type === "edges" || wholeIteration;
     if (changed > 1 || (changed === 0 && !allowedNone)) {
       return `the step of events ${from}..${end - 1} (${step.map((e) => e.type).join(", ")}) makes ${changed} changes`;
     }
@@ -369,7 +380,8 @@ export const parentLinksFormTree: Rule = (events, { algorithmId, input }) => {
  * more and no fewer: each Bellman-Ford round's first step (not the extra pass that checks for a
  * negative cycle, nor the answer); the step of the run's first relaxation along a negative edge
  * (Bellman-Ford); every step that takes the destination after the start; the step of cycle
- * detection's loop (the edge marked as closing it); and the answer, on the last step.
+ * detection's loop (the edge marked as closing it); the step Kruskal's first skips an edge that would
+ * close a loop; and the answer, on the last step.
  */
 export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   const run = createRun(algorithmId, [...events], []);
@@ -391,6 +403,8 @@ export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
   if (algorithmId === "bellman-ford" && negative >= 0) mark(stepAt(negative), "negative");
   const loop = events.findIndex((e) => e.type === "classify" && e.loop);
   if (loop >= 0 && algorithmId === "cycle-detection") mark(stepAt(loop), "loop");
+  const skipped = events.findIndex((e) => e.type === "closes");
+  if (skipped >= 0 && algorithmId === "kruskal") mark(stepAt(skipped), "loop");
 
   const marked = keyMoments(run).map((m) => `${m.index} ${m.kind}`);
   if (new Set(marked).size !== marked.length) return "a moment is marked twice";
@@ -408,7 +422,8 @@ export const keyMomentsMatchEvents: Rule = (events, { algorithmId }) => {
  * discovered along an edge, lights the edge's start and the edge; a node reached along an edge lights
  * that node and the edge; a depth-first search backing up out of a node lights the node it returns to
  * and the edge it came down; cycle detection's loop lights the node in progress and the edge that
- * closes it. Any other step lights the node last taken or returned to and no edge, and the answer
+ * closes it; Kruskal's adding or skipping an edge lights the edge and the row of its end first by
+ * name, which holds it. Any other step lights the node last taken or returned to and no edge, and the answer
  * lights nothing. Each lit edge is a real edge of the graph, lit both ways round when it is two-way.
  */
 export const storageLightsTheStep: Rule = (events, { algorithmId, input }) => {
@@ -429,7 +444,9 @@ export const storageLightsTheStep: Rule = (events, { algorithmId, input }) => {
     const change = step.find(changes);
     let row = working;
     let edge: { from: number; to: number } | null = null;
-    if (change?.type === "relax" || (change?.type === "classify" && change.loop)) [row, edge] = [change.from, { from: change.from, to: change.to }];
+    if (change?.type === "relax" || change?.type === "union" || change?.type === "closes" || (change?.type === "classify" && change.loop)) {
+      [row, edge] = [change.from, { from: change.from, to: change.to }];
+    }
     else if (change?.type === "enqueue" && change.from !== undefined) [row, edge] = [change.from, { from: change.from, to: change.node }];
     else if (change?.type === "settle" && change.via !== undefined) edge = { from: change.via, to: change.node };
     else if (change?.type === "finish" && change.parent !== undefined) edge = { from: change.parent, to: change.node };
@@ -488,5 +505,86 @@ export const kahnReadyIsExact: Rule = (events, { input }) => {
   for (const e of events) frame = applyEvent(frame, e);
   const off = ids.find((id) => (frame.dist.get(id) ?? 0) !== pointingIn(id));
   if (off !== undefined) return `node ${off} ends at ${frame.dist.get(off)}, but ${pointingIn(off)} edges still point into it`;
+  return null;
+};
+
+/**
+ * Kruskal's, checked against the graph itself. Its list holds every edge of the graph once (a two-way
+ * edge sits in both its ends' lists), in non-decreasing weight, and it looks at each once, in
+ * non-decreasing weight. With the true groups at that moment (the pieces the edges added so far make,
+ * found afresh from them): an added edge joins two different groups, the ones it names, and a skipped
+ * edge has both ends in one group, joined by the path it names along edges added so far; the groups
+ * the State tab shows (the frame's) are the true ones at every change. The answer holds the edges
+ * added, their total, the number of pieces they leave, and the nodes no edge added touches.
+ */
+export const kruskalGroupsAreTrue: Rule = (events, { input }) => {
+  const ids = [...new Set([...input.nodes.map((n) => n.id), ...input.adjacencyList.keys()])];
+  const key = (a: number, b: number, w: number) => `${Math.min(a, b)}-${Math.max(a, b)}-${w}`;
+  const tally = (keys: string[]) => keys.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<string, number>());
+  const stored = tally([...input.adjacencyList.values()].flat().map((e) => key(e.from, e.to, e.weight)));
+  const listed = events.find((e) => e.type === "edges");
+  if (listed?.type !== "edges") return "the run lists no edges";
+  const list = listed.edges;
+  const listedTwice = tally(list.flatMap((e) => (e.from === e.to ? [key(e.from, e.to, e.weight)] : [key(e.from, e.to, e.weight), key(e.from, e.to, e.weight)])));
+  if (JSON.stringify([...stored].sort()) !== JSON.stringify([...listedTwice].sort())) return "the list does not hold every edge of the graph once";
+  if (list.some((e, i) => i > 0 && e.weight < list[i - 1].weight)) return "the list is not cheapest first";
+
+  const added: Array<{ from: number; to: number }> = [];
+  const links = (id: number) => added.flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : []));
+  const pieceOf = (id: number) => {
+    const seen = new Set([id]);
+    const pending = [id];
+    while (pending.length > 0) {
+      for (const next of links(pending.pop()!)) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        pending.push(next);
+      }
+    }
+    return seen;
+  };
+  const same = (a: Iterable<number>, b: Iterable<number>) => JSON.stringify([...a].sort((x, y) => x - y)) === JSON.stringify([...b].sort((x, y) => x - y));
+  const looked = new Set<number>();
+  let last = -Infinity;
+  let frame = emptyFrame;
+  for (const e of events) {
+    if (e.type === "union" || e.type === "closes") {
+      const edge = list[e.edge];
+      if (!edge || edge.from !== e.from || edge.to !== e.to || edge.weight !== e.weight) return `event names edge ${e.edge} as ${e.from}–${e.to}, which is not the list's`;
+      if (looked.has(e.edge)) return `edge ${e.edge} is looked at twice`;
+      looked.add(e.edge);
+      if (e.weight < last) return `edge ${e.edge} at ${e.weight} comes after an edge at ${last}`;
+      last = e.weight;
+      const piece = pieceOf(e.from);
+      if (e.type === "union") {
+        if (piece.has(e.to)) return `edge ${e.from}–${e.to} is added, but its ends are in one group`;
+        if (!same(piece, e.groups[0]) || !same(pieceOf(e.to), e.groups[1])) return `edge ${e.from}–${e.to} names the wrong groups`;
+        added.push({ from: e.from, to: e.to });
+      } else {
+        if (!piece.has(e.to)) return `edge ${e.from}–${e.to} is skipped, but its ends are in two groups`;
+        const { path } = e;
+        const walks = path.length === 1 ? e.from === e.to
+          : path[0] === e.from && path[path.length - 1] === e.to && new Set(path).size === path.length
+            && path.slice(1).every((to, i) => links(path[i]).includes(to));
+        if (!walks) return `edge ${e.from}–${e.to} is skipped along ${path.join("–")}, which is not a path of the tree`;
+      }
+    }
+    frame = applyEvent(frame, e);
+    if (e.type === "union" || e.type === "closes" || e.type === "groups") {
+      const wrong = ids.find((id) => !same(pieceOf(id), ids.filter((other) => frame.groups.get(other) === frame.groups.get(id))));
+      if (wrong !== undefined) return `after edge ${e.type === "groups" ? "none" : e.edge}, the groups shown put ${wrong} with the wrong nodes`;
+    }
+    if (e.type === "answer") {
+      if (e.kind !== "forest") return "the answer is not a forest";
+      if (looked.size !== list.length) return `${list.length - looked.size} edges are never looked at`;
+      if (JSON.stringify(e.edges.map(({ from, to }) => [from, to])) !== JSON.stringify(added.map(({ from, to }) => [from, to]))) {
+        return "the answer's edges are not the ones added";
+      }
+      if (e.total !== e.edges.reduce((sum, x) => sum + x.weight, 0)) return `the answer's total ${e.total} is not its edges' sum`;
+      const pieces = new Set(ids.map((id) => Math.min(...pieceOf(id)))).size;
+      if (e.pieces !== pieces) return `the answer says ${e.pieces} pieces, but the edges added leave ${pieces}`;
+      if (!same(e.alone, ids.filter((id) => links(id).length === 0))) return `the answer says ${e.alone.join(", ")} are on their own, which is not so`;
+    }
+  }
   return null;
 };

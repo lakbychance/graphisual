@@ -10,7 +10,8 @@
  * On desktop the head also switches between watching the run and running it yourself (Run it, see
  * `runIt.ts`): the run plays on its own to each decision a learner could get wrong, and below the
  * sentence the notebook asks what comes next, says why a pick is not the one, gives a clue after two
- * tries and names the answer after three. New graph runs it again on a fresh graph (`freshGraph.ts`).
+ * tries and names the answer after three (Kruskal's learner picks the next edge, clicking it on the
+ * graph). New graph runs it again on a fresh graph (`freshGraph.ts`).
  * Bellman-Ford has nothing to pick: its Run it stops now and then to ask, Yes or No, whether an edge
  * lowers a distance, says whether the answer is right and why on the step that shows it, and plays on
  * either way.
@@ -32,7 +33,9 @@ import {
 } from "@/components/ui-sdk";
 import { cn } from "@/lib/utils";
 import { algorithmRegistry } from "../../algorithms";
-import { clue, edgeQuestion, edgeQuestions, frameAt, hint, narrate, question, type DecideEvent } from "../../algorithms/engine";
+import {
+  clue, edgeQuestion, edgeQuestions, frameAt, hint, narrate, picksEdges, question, type DecideEvent, type Frame,
+} from "../../algorithms/engine";
 import { num } from "../Graph/runMarkShapes";
 import type { GraphNode } from "../Graph/types";
 import { selectIsPlaying, selectRunIt, useGraphStore, type RunItState } from "../../store/graphStore";
@@ -42,6 +45,7 @@ import {
 } from "../../utils/visualization/runView";
 import { asksYesNo, canRunIt } from "../../utils/visualization/runIt";
 import { linkToStep, type NoLink } from "../../utils/visualization/stepLink";
+import { useIsRoomyScreen } from "../../hooks/useMediaQuery";
 import { DataStructureVis } from "./DataStructureVis";
 import { keepShowing } from "./keepInView";
 import { StorageFormSwitch, StorageView } from "./StorageView";
@@ -84,16 +88,88 @@ const SORT_STATUS: Record<NodeRole, string> = { ...STATUS, unseen: "", waiting: 
 const nodeLine = (nodes: readonly GraphNode[], ids: readonly number[]) => (ids.length === 0 ? "–" : ids.map((id) => nameOf(nodes, id)).join(", "));
 
 /**
+ * Kruskal's groups in one short line, so it stays short on a phone: the groups of two nodes or more
+ * (each in name order, in the order of their first node), then how many nodes are on their own:
+ * "{A, B, D} {C, E}, and 3 on their own"; "Each node on its own (15)" before any edge joins two; a
+ * dash before there are any groups.
+ */
+function groupsLine(nodes: readonly GraphNode[], frame: Frame): string {
+  const byName = [...frame.groups.keys()].sort((a, b) => nameOf(nodes, a).localeCompare(nameOf(nodes, b), undefined, { numeric: true }));
+  const groups = new Map<number, number[]>();
+  for (const id of byName) groups.set(frame.groups.get(id)!, [...(groups.get(frame.groups.get(id)!) ?? []), id]);
+  if (groups.size === 0) return "–";
+  const joined = [...groups.values()].filter((ids) => ids.length > 1);
+  const alone = groups.size - joined.length;
+  if (joined.length === 0) return `Each node on its own (${alone})`;
+  const named = joined.map((ids) => `{${ids.map((id) => nameOf(nodes, id)).join(", ")}}`).join(" ");
+  return alone === 0 ? named : `${named}, and ${alone} on ${alone === 1 ? "its" : "their"} own`;
+}
+
+/** An edge of Kruskal's list by its ends' names: "A – B". */
+const edgeLabel = (nodes: readonly GraphNode[], { from, to }: { from: number; to: number }) => `${nameOf(nodes, from)} – ${nameOf(nodes, to)}`;
+
+/**
  * The run's state at step `index`: a table of values (Dijkstra's, Prim's, Bellman-Ford), the old
  * value struck through on the row this step changed, or the queue / stack the run keeps. Topological
  * sort shows the order so far and the ready list over a table of the edges still pointing into each node.
+ * Kruskal's shows its groups (`groupsLine`) and its tree's total over its list of edges, cheapest
+ * first, each marked added or skipped once looked at, the step's edge lit. Short of a roomy screen
+ * (`ROOMY_SCREEN`) both sorts show only their key lines, in full, and leave the table to roomy
+ * screens (D73); when the lines run past the page, the page scrolls, fading at its foot while more
+ * sits below (`fadeWhileMore`).
  */
 export function StateView({ run, index, nodes }: { run: Run; index: number; nodes: GraphNode[] }) {
   const table = useRef<HTMLTableElement>(null);
+  const lines = useRef<HTMLDListElement>(null);
+  const roomy = useIsRoomyScreen();
+  // Key lines alone: the page fades at its foot while more of them sit below.
+  useEffect(() => fadeWhileMore(lines.current), [run, index, roomy]);
   // The row this step changed, else the node being worked on, stays in view.
   useEffect(() => keepShowing(table.current, () =>
     table.current?.querySelector("tr[data-changed]") ?? table.current?.querySelector("tr[data-role='current']")), [run, index]);
   const label = (id: number) => nameOf(nodes, id);
+  if (run.algorithmId === "kruskal") {
+    const frame = frameAt(run.events, index < 0 ? 0 : run.ends[index]);
+    const step = index < 0 ? [] : run.events.slice(index > 0 ? run.ends[index - 1] : 0, run.ends[index]);
+    const lit = step.find((e) => e.type === "union" || e.type === "closes");
+    const total = frame.edgeList.reduce((sum, e, i) => sum + (frame.edgeState.get(i) === "added" ? e.weight : 0), 0);
+    const keyLines = (
+      <dl className="nb-sort-lists" ref={roomy ? undefined : lines}>
+        <dt className="gs-label">Groups</dt>
+        <dd>{groupsLine(nodes, frame)}</dd>
+        <dt className="gs-label">Tree</dt>
+        <dd>total {num(total)}</dd>
+      </dl>
+    );
+    // Short of a roomy screen, only the key lines, in full (D73): the sentence names the edge and the graph lights it.
+    if (!roomy) return keyLines;
+    return (
+      <div className="nb-sort">
+        {keyLines}
+        {/* The rows scroll on their own, so the groups stay in view whatever row is kept showing. */}
+        <div className="nb-sort-rows" tabIndex={0} role="region" aria-label="Edges, cheapest first">
+          <table className="nb-table" ref={table}>
+            <thead>
+              <tr><th>Edge</th><th>Weight</th><th><span className="sr-only">Status</span></th></tr>
+            </thead>
+            <tbody>
+              {frame.edgeList.map((edge, i) => {
+                const state = frame.edgeState.get(i);
+                const here = lit !== undefined && "edge" in lit && lit.edge === i;
+                return (
+                  <tr key={i} data-changed={here || undefined} data-skipped={state === "skipped" || undefined}>
+                    <td>{edgeLabel(nodes, edge)}</td>
+                    <td className="gs-value">{num(edge.weight)}</td>
+                    <td className="nb-table-status">{state ?? ""}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
   if (keepsValues(run.algorithmId)) {
     const sort = run.algorithmId === "topological-sort";
     const badges = runMarksAt(run, index).nodes;
@@ -132,14 +208,19 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
       </table>
     );
     if (!sort) return values;
+    const keyLines = (
+      <dl className="nb-sort-lists" ref={roomy ? undefined : lines}>
+        <dt className="gs-label">Order</dt>
+        <dd>{nodeLine(nodes, frame.settled)}</dd>
+        <dt className="gs-label">Ready</dt>
+        <dd>{nodeLine(nodes, frame.queue.map((item) => item.id))}</dd>
+      </dl>
+    );
+    // Short of a roomy screen, only the key lines, in full (D73): the sentence names the node and the graph shows each count.
+    if (!roomy) return keyLines;
     return (
       <div className="nb-sort">
-        <dl className="nb-sort-lists">
-          <dt className="gs-label">Order</dt>
-          <dd>{nodeLine(nodes, frame.settled)}</dd>
-          <dt className="gs-label">Ready</dt>
-          <dd>{nodeLine(nodes, frame.queue.map((item) => item.id))}</dd>
-        </dl>
+        {keyLines}
         {/* The rows scroll on their own, so the order and the ready list stay in view whatever row is kept showing. */}
         <div className="nb-sort-rows" tabIndex={0} role="region" aria-label="Edges into each node">{values}</div>
       </div>
@@ -148,6 +229,26 @@ export function StateView({ run, index, nodes }: { run: Run; index: number; node
   const trace = traceAt(run, index);
   if (!trace?.dataStructure) return <p className="nb-muted">Nothing waiting</p>;
   return <DataStructureVis dataStructure={trace.dataStructure} getNodeLabel={label} />;
+}
+
+/**
+ * Marks the notebook page holding `el` (`data-more`) while some of it sits below the part shown, so
+ * its foot fades (see notebook.css); unmarked once scrolled to the end. Returns the cleanup.
+ */
+function fadeWhileMore(el: Element | null) {
+  const page = el?.closest<HTMLElement>(".nb-page");
+  if (!page) return;
+  const mark = () => page.toggleAttribute("data-more", page.scrollTop + page.clientHeight < page.scrollHeight - 1);
+  mark();
+  page.addEventListener("scroll", mark, { passive: true });
+  const watch = new ResizeObserver(mark);
+  watch.observe(page);
+  watch.observe(el!);
+  return () => {
+    page.removeEventListener("scroll", mark);
+    watch.disconnect();
+    page.removeAttribute("data-more");
+  };
 }
 
 /** The symbol a key moment's mark shows when it has no text of its own. */
@@ -312,7 +413,7 @@ function newGraph() {
  * Run it's part of the notebook, under the step's sentence: at the learner's turn, the question and
  * what the last pick said (why it is not the one; after two tries a clue, the algorithm's rule, and
  * after three a hint naming the valid picks); between turns, what the last good pick said. With a
- * keyboard, the graph's nodes can be picked from a row of keys that shows once it has focus.
+ * keyboard, the graph's nodes (Kruskal's: its edges) can be picked from a row of keys that shows once it has focus.
  * Bellman-Ford's turn is a Yes / No question about an edge, with Skip; what the answer got back shows
  * on the step that shows the answer only, so the run's later sentences never sit beside it.
  */
@@ -336,28 +437,31 @@ function Turn({ run, index, runIt, nodes }: { run: Run; index: number; runIt: Ru
     : playing ? "Playing on to the end" : "";
   const decision = turn && !yesNo ? (run.events[turn.event] as DecideEvent) : null;
   const asked = turn && yesNo ? edgeQuestions(run.algorithmId, run.events)[turn.decision] : null;
-  const keys = [...nodes].sort((a, b) => nameOf(nodes, a.id).localeCompare(nameOf(nodes, b.id), undefined, { numeric: true }));
+  const seen = turn ? frameAt(run.events, turn.event) : null;
+  const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+  // The keys: the graph's nodes by name, or in Kruskal's its edges (by their place in its list), by name.
+  const keys = picksEdges(run.algorithmId)
+    ? (seen?.edgeList ?? []).map((edge, i) => ({ choice: i, name: edgeLabel(nodes, edge) })).sort((a, b) => byName(a.name, b.name) || a.choice - b.choice)
+    : nodes.map((node) => ({ choice: node.id, name: nameOf(nodes, node.id) })).sort((a, b) => byName(a.name, b.name));
   return (
     <section className="nb-turn" aria-label="Your turn" data-waiting={waiting || undefined}>
       <div aria-live="polite" className="nb-turn-words">
         {said?.tone === "yes" && <p className="nb-turn-yes">{named(nodes, said.text)}</p>}
         {said?.tone === "note" && <p className="nb-turn-miss">{named(nodes, said.text)}</p>}
         {waiting && asked && <p className="nb-turn-ask">{named(nodes, edgeQuestion(asked, run.events))}</p>}
-        {waiting && decision && (
-          <p className="nb-turn-ask">{named(nodes, question(run.algorithmId, decision, frameAt(run.events, turn.event)))}</p>
-        )}
+        {waiting && decision && seen && <p className="nb-turn-ask">{named(nodes, question(run.algorithmId, decision, seen))}</p>}
         {waiting && said?.tone === "miss" && <p className="nb-turn-miss">{named(nodes, said.text)}</p>}
-        {waiting && decision && tries >= 2 && (
+        {waiting && decision && seen && tries >= 2 && (
           <p className="nb-turn-hint">
-            {named(nodes, tries === 2 ? clue(run.algorithmId, decision, frameAt(run.events, turn.event)) : hint(run.algorithmId, decision))}
+            {named(nodes, tries === 2 ? clue(run.algorithmId, decision, seen) : hint(run.algorithmId, decision, seen))}
           </p>
         )}
       </div>
       {waiting && decision && (
-        <div className="nb-pick" role="group" aria-label="Pick a node">
-          {keys.map((node) => (
-            <button key={node.id} type="button" className="nb-pick-key" onClick={() => pickNode(node.id)}>
-              {nameOf(nodes, node.id)}
+        <div className="nb-pick" role="group" aria-label={picksEdges(run.algorithmId) ? "Pick an edge" : "Pick a node"}>
+          {keys.map(({ choice, name }) => (
+            <button key={choice} type="button" className="nb-pick-key" onClick={() => pickNode(choice)}>
+              {name}
             </button>
           ))}
         </div>
@@ -469,6 +573,7 @@ export interface NotebookProps {
 }
 
 export function Notebook({ run, index, desktop, runItHere = false, controls, shareable = false, onScrub }: NotebookProps) {
+  const roomy = useIsRoomyScreen();
   const nodes = useGraphStore(useShallow((s) => s.data.nodes));
   const edges = useGraphStore((s) => s.data.edges);
   const page = useSettingsStore((s) => s.notebookPage);
@@ -513,7 +618,7 @@ export function Notebook({ run, index, desktop, runItHere = false, controls, sha
           {shareable && !desktop && <ShareStep run={run} index={index} runIt={runIt !== null} side="top" />}
         </div>
         <TabsPanel value="code" className="nb-page"><CodeList lines={adapter?.pseudocode ?? []} lit={lit} step={index} /></TabsPanel>
-        <TabsPanel value="state" className={cn("nb-page", run.algorithmId === "topological-sort" && "nb-sort-page")}><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
+        <TabsPanel value="state" className={cn("nb-page", roomy && (run.algorithmId === "topological-sort" || run.algorithmId === "kruskal") && "nb-sort-page")}><StateView run={run} index={index} nodes={nodes} /></TabsPanel>
         <TabsPanel value="storage" className="nb-page nb-storage">
           <StorageView
             nodes={nodes}

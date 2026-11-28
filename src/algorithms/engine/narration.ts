@@ -402,8 +402,71 @@ const topologicalSort: Voice = {
   },
 };
 
-/** Each algorithm's voice, by adapter id. */
-const voices: Record<string, Voice> = {
+/* ---------------------------------------------------------------- Kruskal's */
+
+/** An edge as Kruskal's names it, the way the facts write a two-way edge: "A – B". */
+const edgeName = ({ from, to }: { from: number; to: number }) => `${nid(from)} – ${nid(to)}`;
+
+/** A group of nodes: "{A, B, D}"; a big one by its size, so a sentence stays short (the State tab lists it). */
+const groupName = (ids: readonly number[]) => (ids.length > MOST_IN_GROUP ? `a group of ${ids.length}` : `{${ids.map(nid).join(", ")}}`);
+
+/** Kruskal's sentences name at most this many tied edges, and at most this many edges of the answer's tree; past that, they count them. */
+const MOST_NAMED = 3;
+const MOST_EDGES_NAMED = 5;
+/** Kruskal's sentences name the nodes of a group of at most this many, and of a path through at most one more. */
+const MOST_IN_GROUP = 4;
+
+/** Kruskal's voice names tied edges by their place in the run's list, so it is made for each run. */
+function kruskal(events: readonly AlgorithmEvent[]): Voice {
+  const list = events.find((e) => e.type === "edges")?.edges ?? [];
+  return {
+    event(event) {
+      switch (event.type) {
+        case "edges":
+          return event.edges.length === 0
+            ? "This graph has no edges to sort"
+            : "Sort the edges by weight, cheapest first; edges that cost the same go in name order";
+        case "groups": return "Put each node in a group of its own; an edge joins the tree only when its ends are in two different groups";
+        case "union": {
+          const { tied = [], weight, groups: [a, b] } = event;
+          const joins = `${groupName(a)} and ${groupName(b)}`;
+          if (tied.length <= 1) return `${edgeName(event)} is next, at ${num(weight)}, and joins two groups, ${joins}, so add it to the tree`;
+          // More than a few tied edges are counted, not named, so the sentence stays short (the State tab lists them).
+          const all = tied.length > MOST_NAMED ? `${tied.length} edges` : joinAnd(tied.map((i) => edgeName(list[i])));
+          const choice = tied.length === 2 ? `${all} both cost ${num(weight)} and each joins two groups, so either`
+            : `${all} all cost ${num(weight)} and each joins two groups, so any of them`;
+          return `${choice} can go next; add ${edgeName(event)}, which joins ${joins}`;
+        }
+        case "closes": {
+          const { from, to, weight, path } = event;
+          // A parallel edge's ends are joined by another edge between them; a long path is counted (the graph lights it).
+          const joined = path.length === 2 ? `another ${edgeName(event)} edge`
+            : path.length > MOST_IN_GROUP + 1 ? `a path of ${path.length - 1} tree edges` : path.map(nid).join(" – ");
+          const why = from === to ? `both its ends are ${nid(from)}` : `${nid(from)} and ${nid(to)} are already in one group, joined by ${joined}`;
+          return `${edgeName(event)} is next, at ${num(weight)}, but ${why}, so it would close a loop; skip it`;
+        }
+        case "answer": {
+          if (event.kind !== "forest") return "";
+          const { edges, total, pieces, alone } = event;
+          // A long tree is counted, not named, so the sentence stays short (the graph shows it, the State tab lists it).
+          const named = edges.length > MOST_EDGES_NAMED ? `${edges.length} edges` : joinAnd(edges.map(edgeName));
+          if (pieces <= 1) {
+            const tree = edges.length > 0 ? named : alone.length > 0 ? `just ${nid(alone[0])}` : "empty";
+            return `Every edge has been looked at, so the tree is done: ${tree}, total weight ${num(total)}`;
+          }
+          // Each node no edge touches is a tree of its own.
+          const lone = alone.length === 0 ? "" : alone.length === 1 ? `${nid(alone[0])} on its own` : `${names(alone)} each on their own`;
+          const trees = edges.length === 0 ? lone : `${named}${lone && `, and ${lone}`}`;
+          return `Every edge has been looked at; the graph is in ${pieces} pieces, so this is a forest of ${pieces} trees: ${trees}, total weight ${num(total)}`;
+        }
+        default: return "";
+      }
+    },
+  };
+}
+
+/** Each algorithm's voice, by adapter id; a function makes a run's own voice. */
+const voices: Record<string, Voice | ((events: readonly AlgorithmEvent[]) => Voice)> = {
   dijkstra,
   "bellman-ford": bellmanFord,
   bfs: frontierVoice(queue(false)),
@@ -413,6 +476,7 @@ const voices: Record<string, Voice> = {
   "cycle-detection": cycleDetection,
   prims,
   "topological-sort": topologicalSort,
+  kruskal,
 };
 
 /** The pair an event's sentence starts with, for edges it names. */
@@ -458,8 +522,9 @@ function sayEvents(voice: Voice, step: readonly AlgorithmEvent[]): string {
 
 /** One message per step of the run (see `stepEnds`), in the voice of the algorithm with this id. */
 export function narrate(events: readonly AlgorithmEvent[], algorithm: string): string[] {
-  const voice = voices[algorithm];
-  if (!voice) throw new Error(`No narration for algorithm "${algorithm}"`);
+  const found = voices[algorithm];
+  if (!found) throw new Error(`No narration for algorithm "${algorithm}"`);
+  const voice = typeof found === "function" ? found(events) : found;
   let start = 0;
   return stepEnds(events).map((end) => {
     const step = events.slice(start, end);

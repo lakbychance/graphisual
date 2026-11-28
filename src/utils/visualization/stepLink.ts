@@ -10,7 +10,7 @@
  *   `from`, `to` and `step` name nodes and a run of the linked graph, so they only count with it:
  *   - a `graph` that does not decode: they are ignored, and the app opens as with `?algorithm=`;
  *   - no `graph`: they count only for the algorithms whose own graph is always the same
- *     (Dijkstra, Bellman-Ford, cycle detection, topological sort). The others draw a new random graph on each load,
+ *     (Dijkstra, Bellman-Ford, cycle detection, topological sort, Kruskal's). The others draw a new random graph on each load,
  *     where the same link would land on a different moment, so they are ignored there.
  * - `from`, `to`: nodes by the name the canvas shows (their label, or their id when unlabelled).
  *   `to` only for algorithms that need a destination; elsewhere it is ignored.
@@ -24,7 +24,8 @@ import { algorithmRegistry, AlgorithmType } from "../../algorithms";
 import type { GraphEdge, GraphNode } from "../../components/Graph/types";
 import { EDGE_TYPE } from "../../constants/graph";
 import {
-  generateCycleWithDeadEnd, generateRandomGraph, generateTopologicalDag, generateWeighted, graphFromSpec, type GeneratedGraph, type GraphSpec,
+  generateCycleWithDeadEnd, generateKruskalGraph, generateRandomGraph, generateTopologicalDag, generateWeighted, graphFromSpec,
+  type GeneratedGraph, type GraphSpec,
 } from "../graph/graphGenerator";
 import { decodeGraphLink, encodeGraphLink, MAX_EDGES, MAX_NODES } from "../graph/graphLink";
 import { buildRun } from "./buildRun";
@@ -52,10 +53,11 @@ const generatedGraph: Record<string, () => GeneratedGraph> = {
   "dfs-pathfinding": () => generateRandomGraph({ nodeCount: 6, edgeDensity: 0.4, directed: false, weighted: false, layout: "circular" }),
   "cycle-detection": generateCycleWithDeadEnd,
   "topological-sort": generateTopologicalDag,
+  "kruskal": generateKruskalGraph,
 };
 
 /** Algorithms whose own graph is the same on every load, so a link without `graph` can name its nodes. */
-const FIXED_GRAPH = new Set(["dijkstra", "bellman-ford", "cycle-detection", "topological-sort"]);
+const FIXED_GRAPH = new Set(["dijkstra", "bellman-ford", "cycle-detection", "topological-sort", "kruskal"]);
 
 /** The name the canvas shows for a node. */
 const nameOf = (node: GraphNode) => node.label || String(node.id);
@@ -180,15 +182,23 @@ export type NoLink =
   | { none: "names" | "same-name"; name: string }
   | { none: "two-way"; name: string; other: string };
 
-/** The event fields that hold node ids, alone or in a list (an answer's edges hold them as `from` and `to`). */
-const NODE_FIELDS = new Set(["node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle"]);
+/**
+ * The event fields that hold node ids, alone or in lists (an answer's edges, and Kruskal's list of
+ * edges, hold them as `from` and `to`; Kruskal's groups as lists of lists). Kruskal's decisions name
+ * edges by their place in its list, which does not depend on the ids, so theirs stay as they are.
+ */
+const NODE_FIELDS = new Set([
+  "node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle", "nodes", "groups", "alone",
+]);
 
 /** Steps 0 to `index` of `run` on `graph`, every node by the name the canvas shows: what the learner sees, whatever the ids. */
 function shownUpTo(run: Run, graph: GeneratedGraph, index: number): string {
   const byId = new Map(graph.nodes.map((n) => [n.id, nameOf(n)]));
-  const name = (v: unknown) => (typeof v === "number" ? byId.get(v) ?? `?${v}` : v);
-  return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], (key, value) =>
-    !NODE_FIELDS.has(key) ? value : Array.isArray(value) ? value.map(name) : name(value));
+  const name = (v: unknown): unknown => (typeof v === "number" ? byId.get(v) ?? `?${v}` : Array.isArray(v) ? v.map(name) : v);
+  return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], function (this: unknown, key, value) {
+    const edgeChoice = (this as { type?: string; kind?: string } | null)?.type === "decide" && (this as { kind?: string }).kind === "edge";
+    return !NODE_FIELDS.has(key) || edgeChoice ? value : name(value);
+  });
 }
 
 /**

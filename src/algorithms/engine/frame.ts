@@ -4,7 +4,7 @@
  * `applyEvent` is the one pure reducer. `frameAt` replays from cached checkpoints so
  * scrubbing anywhere in a long run stays cheap.
  */
-import type { AlgorithmEvent, AnswerEvent, EdgeClass } from "./events";
+import type { AlgorithmEvent, AnswerEvent, EdgeClass, WeightedEdge } from "./events";
 
 /** A depth-first search's discovery time, and finish time once it is done with the node. */
 export interface DepthFirstTimes {
@@ -44,6 +44,12 @@ export interface Frame {
   loop: { from: number; to: number } | null;
   /** A depth-first search's discovery and finish times, per node it has visited. */
   times: ReadonlyMap<number, DepthFirstTimes>;
+  /** Kruskal's list of edges, cheapest first (see `EdgesEvent`); its other fields name edges by their place in it. */
+  edgeList: readonly WeightedEdge[];
+  /** Kruskal's: what became of each edge it has looked at, by its place in `edgeList`. */
+  edgeState: ReadonlyMap<number, "added" | "skipped">;
+  /** Kruskal's groups: each node's group, named by one of its nodes. Two nodes are in one group when they share it. */
+  groups: ReadonlyMap<number, number>;
   answer: AnswerEvent | null;
 }
 
@@ -61,6 +67,9 @@ export const emptyFrame: Frame = {
   edgeClass: new Map(),
   loop: null,
   times: new Map(),
+  edgeList: [],
+  edgeState: new Map(),
+  groups: new Map(),
   answer: null,
 };
 
@@ -75,6 +84,23 @@ export function applyEvent(frame: Frame, event: AlgorithmEvent): Frame {
       break;
     case "count":
       next.dist = new Map([...frame.dist, ...event.counts.map(({ node, value }) => [node, value] as const)]);
+      break;
+    case "edges":
+      next.edgeList = event.edges;
+      break;
+    case "groups":
+      next.groups = new Map(event.nodes.map((id) => [id, id]));
+      break;
+    case "union": {
+      next.edge = { from: event.from, to: event.to };
+      next.edgeState = withEntry(frame.edgeState, event.edge, "added");
+      const [keep, join] = [frame.groups.get(event.from), frame.groups.get(event.to)];
+      next.groups = new Map([...frame.groups].map(([id, group]) => [id, group === join ? keep! : group]));
+      break;
+    }
+    case "closes":
+      next.edge = { from: event.from, to: event.to };
+      next.edgeState = withEntry(frame.edgeState, event.edge, "skipped");
       break;
     case "enqueue":
       next.queue = [...frame.queue.filter((item) => item.id !== event.node), { id: event.node, value: event.value }];

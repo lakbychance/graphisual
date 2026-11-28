@@ -15,7 +15,10 @@ import { steerRun, takenAt } from "./runIt";
 import type { Run } from "./runView";
 import { decodeStepLink, encodeStepLink, linkToStep, needsDestination, type Moment } from "./stepLink";
 
-const ALGORITHMS = ["dijkstra", "bellman-ford", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "prims"];
+const ALGORITHMS = ["dijkstra", "bellman-ford", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "prims", "kruskal"];
+
+/** Prim's and Kruskal's refuse directed edges, so they run on the graphs drawn undirected. */
+const UNDIRECTED = new Set(["prims", "kruskal"]);
 
 /**
  * A suite graph drawn in the app: its edges added one by one in a shuffled order, an undirected
@@ -81,8 +84,7 @@ describe("step link", () => {
     let playable = 0;
     const cases = suite.map((graphCase) => ({
       where: `seed ${graphCase.seed}`,
-      // Prim's refuses directed edges, so it runs on the graphs drawn undirected.
-      graph: appGraph(graphCase, algorithm === "prims"),
+      graph: appGraph(graphCase, UNDIRECTED.has(algorithm)),
       from: graphCase.input.startNodeId,
       to: needsDestination(algorithm) ? graphCase.input.endNodeId! : null,
     }));
@@ -138,7 +140,7 @@ describe("step link: the step on screen", () => {
     let linked = 0;
     let refused = 0;
     for (const graphCase of randomGraphs(120)) {
-      const graph = appGraph(graphCase, algorithm === "prims");
+      const graph = appGraph(graphCase, UNDIRECTED.has(algorithm));
       const from = graphCase.input.startNodeId;
       const to = needsDestination(algorithm) ? graphCase.input.endNodeId! : undefined;
       const built = buildRun(algorithm, graph.nodes, graph.edges, from, to, { stepMode: true });
@@ -170,19 +172,26 @@ describe("step link: the step on screen", () => {
     expect(refused).toBeGreaterThan(5);
   });
 
-  /** A run's events up to step `index` with every node id as the name the canvas shows. */
-  const NODE_FIELDS = new Set(["node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle"]);
+  /**
+   * A run's events up to step `index` with every node id as the name the canvas shows (Kruskal's
+   * groups are lists of lists; its decisions name edges by their place in its list, not nodes).
+   */
+  const NODE_FIELDS = new Set([
+    "node", "from", "to", "via", "ties", "through", "parent", "options", "start", "target", "path", "order", "unreached", "cycle", "nodes", "groups", "alone",
+  ]);
   const byName = (run: Run, graph: GeneratedGraph, index: number) => {
-    const name = (v: unknown) => (typeof v === "number" ? nameOf(graph, v) : v);
-    return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], (key, value) =>
-      !NODE_FIELDS.has(key) ? value : Array.isArray(value) ? value.map(name) : name(value));
+    const name = (v: unknown): unknown => (typeof v === "number" ? nameOf(graph, v) : Array.isArray(v) ? v.map(name) : v);
+    return JSON.stringify([run.ends.slice(0, index + 1), run.events.slice(0, run.ends[index])], function (this: unknown, key, value) {
+      const edgeChoice = (this as { type?: string; kind?: string } | null)?.type === "decide" && (this as { kind?: string }).kind === "edge";
+      return !NODE_FIELDS.has(key) || edgeChoice ? value : name(value);
+    });
   };
 
   it.each(ALGORITHMS)("opens the very steps on screen, node for node, when the node list keeps another order than the edges (%s)", (algorithm) => {
     const pick = random(23);
     // The Weighted graph lists node 6 among the nodes but scans it late; suite graphs get their node list shuffled.
     const graphs = [generateWeighted(), ...randomGraphs(150).map((graphCase) => {
-      const graph = appGraph(graphCase, algorithm === "prims");
+      const graph = appGraph(graphCase, UNDIRECTED.has(algorithm));
       const shuffle = random(graphCase.seed + 1);
       return { ...graph, nodes: graph.nodes.map((n) => ({ n, o: shuffle() })).sort((a, b) => a.o - b.o).map(({ n }) => n) };
     })];
@@ -260,6 +269,7 @@ describe("step link: malformed input", () => {
     expect(moment.graph.nodes).toHaveLength(12);
     expect(moment.step).toBe(3);
     expect(open("algorithm=cycle-detection&from=1&step=12")!.step).toBe(12);
+    expect(open("algorithm=kruskal&from=A&step=7")!.step).toBe(7);
   });
 
   it.each(["bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "prims"])(

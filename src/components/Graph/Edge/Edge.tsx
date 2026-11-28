@@ -3,11 +3,12 @@ import { getControlPoint } from "../../../utils/geometry/calc";
 import { dashOf, useEdgeBow } from "@/physics/graphMotion";
 import { GraphEdge } from "../types";
 import { cn } from "@/lib/utils";
-import { useGraphStore, selectIsEdgeFocused } from "../../../store/graphStore";
+import { useGraphStore, selectIsEdgeFocused, selectIsAwaitingEdgePick } from "../../../store/graphStore";
 import { EDGE } from "../../../constants/graph";
 
-const WeightLabel = ({ centerX, centerY, weight }: { centerX: number; centerY: number; weight: number }) => (
-  <g>
+/** An edge's weight on a plate. `passThrough`: a click on it reaches the edge (while Kruskal's Run it waits for an edge). */
+const WeightLabel = ({ centerX, centerY, weight, passThrough = false }: { centerX: number; centerY: number; weight: number; passThrough?: boolean }) => (
+  <g className={passThrough ? "pointer-events-none" : undefined}>
     <rect
       x={centerX - 12}
       y={centerY - 10}
@@ -49,6 +50,8 @@ export const Edge = memo(function Edge({
 
   // Subscribe to keyboard focus state for this edge
   const isFocused = useGraphStore(selectIsEdgeFocused(sourceNodeId, edge.to));
+  // Kruskal's Run it: while the run waits for the learner to pick an edge, a click on this one picks it.
+  const pickable = useGraphStore(selectIsAwaitingEdgePick);
 
   // While an end of this edge is moving, its middle lags behind by `bow` (null at rest).
   const bow = useEdgeBow(sourceNodeId, edge.to);
@@ -96,7 +99,9 @@ export const Edge = memo(function Edge({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isVisualizing) {
+    if (pickable) {
+      useGraphStore.getState().pickEdge(sourceNodeId, edge.to);
+    } else if (!isVisualizing) {
       onEdgeClick(edge, sourceNodeId, { x: e.clientX, y: e.clientY });
     }
   };
@@ -151,7 +156,7 @@ export const Edge = memo(function Edge({
           onMouseLeave={handleMouseLeave}
           className={cn(
             "edge-hit-area cursor-pointer",
-            isVisualizing && "pointer-events-none",
+            isVisualizing && !pickable && "pointer-events-none",
           )}
         />
         <path
@@ -172,7 +177,7 @@ export const Edge = memo(function Edge({
           markerEnd={`url(#${arrowMarkerId})`}
         />
         {edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT && (
-          <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} />
+          <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} passThrough={pickable} />
         )}
       </g>
     );
@@ -195,7 +200,7 @@ export const Edge = memo(function Edge({
         onMouseLeave={handleMouseLeave}
         className={cn(
           "edge-hit-area cursor-pointer",
-          isVisualizing && "pointer-events-none",
+          isVisualizing && !pickable && "pointer-events-none",
         )}
       />
       <path
@@ -214,7 +219,7 @@ export const Edge = memo(function Edge({
         )}
       />
       {edge.weight !== undefined && edge.weight !== EDGE.DEFAULT_WEIGHT && (
-        <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} />
+        <WeightLabel centerX={centerX} centerY={centerY} weight={edge.weight} passThrough={pickable} />
       )}
     </g>
   );

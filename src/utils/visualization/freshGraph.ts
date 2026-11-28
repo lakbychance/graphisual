@@ -4,9 +4,10 @@
  *
  * Each graph is 5 to 8 nodes, lettered A, B, C… from the start on the left, laid out in columns so
  * no node overlaps another and no edge crosses another or runs through a node. It is valid input for
- * its algorithm (weights 2 to 9, as the canvas leaves a weight of 1 unwritten; Prim's undirected
- * and connected; the destination reachable; topological sort's a DAG, every edge pointing rightwards or
- * down a column), and whatever the learner picks, every run of it meets at
+ * its algorithm (weights 2 to 9, as the canvas leaves a weight of 1 unwritten; Prim's and Kruskal's
+ * undirected and connected, Kruskal's weights 2 to 5 so some are equal; the destination reachable;
+ * topological sort's a DAG, every edge pointing rightwards or down a column), and whatever the
+ * learner picks, every run of it meets at
  * least one tie (a turn with more than one valid pick) and one lure: a wrong pick a learner is likely
  * to make there (`LURES`).
  *
@@ -15,7 +16,7 @@
  */
 import { algorithmRegistry, type AlgorithmInput, type EdgeInfo } from "../../algorithms";
 import {
-  asks, familyOf, frameAt, misconception, steer, type AlgorithmEvent, type ChoicePolicy, type DecideEvent, type MisconceptionKind, type RunGraph,
+  asks, familyOf, frameAt, misconception, picksEdges, steer, type AlgorithmEvent, type ChoicePolicy, type DecideEvent, type MisconceptionKind, type RunGraph,
 } from "../../algorithms/engine";
 import { graphFromSpec, type GeneratedGraph, type GraphSpec } from "../graph/graphGenerator";
 
@@ -28,7 +29,7 @@ export interface FreshGraph {
 
 /** The algorithms Run it offers, which fresh graphs are made for. */
 export const FRESH_ALGORITHMS = [
-  "dijkstra", "prims", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "topological-sort",
+  "dijkstra", "prims", "bfs", "dfs", "bfs-pathfinding", "dfs-pathfinding", "cycle-detection", "topological-sort", "kruskal",
 ] as const;
 
 /**
@@ -38,7 +39,9 @@ export const FRESH_ALGORITHMS = [
  * detection's are a node the search already finished (it can't close a loop) and the node it just
  * came from, back along a two-way edge or against a one-way one (going straight back is not a loop).
  * Topological sort's are a node the one just placed points at, though something else still points
- * into it, and the node that comes first by name though something points into it.
+ * into it, and the node that comes first by name though something points into it. Kruskal's is an
+ * edge that would close a loop though it costs no more than the edge to add: one already skipped, or
+ * one still to come at the same weight.
  */
 const LURES: Record<string, readonly MisconceptionKind[]> = {
   dijkstra: ["neighbour"],
@@ -47,6 +50,7 @@ const LURES: Record<string, readonly MisconceptionKind[]> = {
   dfs: ["wide"],
   "cycle-detection": ["finished", "followed", "came-in", "wrong-way"],
   "topological-sort": ["next-door", "label-order"],
+  kruskal: ["loop"],
 };
 
 /** mulberry32: a tiny seeded generator. */
@@ -150,15 +154,15 @@ const lettered = (points: Point[]): GraphSpec["nodes"] => points.map((p, i) => (
  * further on), then some more edges between neighbouring columns and down a column, where they draw
  * cleanly. `apartSecond` keeps the second column's nodes unjoined (DFS: each waits from the start).
  * `directed` points every edge rightwards or down a column, so there is no loop. `columns` sets the
- * column sizes instead (left to right).
+ * column sizes instead (left to right). Weights run from 2 to `heaviest`.
  */
-function layered(rand: Rand, { weighted, apartSecond, directed = false, columns: sizes }: {
-  weighted: boolean; apartSecond: boolean; directed?: boolean; columns?: number[];
+function layered(rand: Rand, { weighted, apartSecond, directed = false, columns: sizes, heaviest = 9 }: {
+  weighted: boolean; apartSecond: boolean; directed?: boolean; columns?: number[]; heaviest?: number;
 }) {
   const columns = (sizes ?? [1, 2, 2 + int(rand, 2), int(rand, 3)]).filter((n) => n > 0);
   const points = place(columns);
   const first = columns.map((_, c) => columns.slice(0, c).reduce((a, b) => a + b, 0));
-  const weight = () => (weighted ? 2 + int(rand, 8) : 1);
+  const weight = () => (weighted ? 2 + int(rand, heaviest - 1) : 1);
   const edges: GraphSpec["edges"] = [];
   const join = (from: number, to: number) => edges.push({ from, to, weight: weight(), directed });
 
@@ -249,6 +253,11 @@ function shapeFor(algorithmId: string, rand: Rand, loop: Loop): Shape {
       const { nodes, edges } = layered(rand, { weighted: true, apartSecond: false });
       return { spec: { nodes, edges }, from: 0, to: null };
     }
+    case "kruskal": {
+      // Weights 2 to 5, so edges often cost the same.
+      const { nodes, edges } = layered(rand, { weighted: true, apartSecond: false, heaviest: 5 });
+      return { spec: { nodes, edges }, from: 0, to: null };
+    }
     case "topological-sort": {
       // Two nodes on the left with nothing pointing into them, so the sort starts with a choice.
       const columns = [2, 2 + int(rand, 2), 1 + int(rand, 2), int(rand, 2)];
@@ -284,12 +293,17 @@ function farthest(input: AlgorithmInput): number {
 
 /** At most this many runs of one graph are checked; a graph with more is passed over. */
 const RUN_LIMIT = 400;
+/**
+ * Kruskal's ties come in any order, so its runs multiply fast: its graphs keep to fewer, which keeps
+ * a learner's runs alike and New graph quick.
+ */
+const KRUSKAL_RUN_LIMIT = 24;
 
 /**
  * Every run a learner can make on the input (every sequence of valid picks), as events; null when
- * there are more than RUN_LIMIT.
+ * there are more than `limit`.
  */
-function everyRun(run: (choose: ChoicePolicy) => AlgorithmEvent[]): AlgorithmEvent[][] | null {
+function everyRun(run: (choose: ChoicePolicy) => AlgorithmEvent[], limit = RUN_LIMIT): AlgorithmEvent[][] | null {
   const runs: AlgorithmEvent[][] = [];
   const pending: number[][] = [[]];
   while (pending.length > 0) {
@@ -299,7 +313,7 @@ function everyRun(run: (choose: ChoicePolicy) => AlgorithmEvent[]): AlgorithmEve
     const fork = decisions.findIndex((d, i) => i >= picks.length && d.options.length > 1);
     if (fork < 0) {
       runs.push(events);
-      if (runs.length > RUN_LIMIT) return null;
+      if (runs.length > limit) return null;
       continue;
     }
     const taken = decisions.slice(0, fork).map((d) => d.node);
@@ -308,21 +322,24 @@ function everyRun(run: (choose: ChoicePolicy) => AlgorithmEvent[]): AlgorithmEve
   return runs;
 }
 
-/** The wrong picks at the decision `events[at]` that are lures (see `LURES`). */
+/** The wrong picks at the decision `events[at]` that are lures (see `LURES`); Kruskal's picks are edges, by their place in its list. */
 function luresAt(algorithmId: string, events: readonly AlgorithmEvent[], at: number, graph: RunGraph, nodes: readonly number[]): number[] {
   const family = familyOf(algorithmId);
   if (!family) return [];
   const decide = events[at] as DecideEvent;
   const decision = events.slice(0, at).filter((e) => e.type === "decide").length;
   const frame = frameAt(events, at);
+  const edges = picksEdges(algorithmId);
+  const picks = edges ? frame.edgeList.map((_, i) => i) : nodes;
   const lightest = (from: number) => {
     const waiting = new Set(frame.queue.map((item) => item.id));
     return Math.min(...(graph.get(from) ?? []).filter((e) => waiting.has(e.to)).map((e) => e.weight));
   };
-  return nodes.filter((pick) => {
+  return picks.filter((pick) => {
     if (decide.options.includes(pick)) return false;
     const { kind } = misconception(algorithmId, events, { choice: pick, decision, event: at, decide }, graph);
     if (!LURES[family].includes(kind)) return false;
+    if (edges) return frame.edgeList[pick].weight <= frame.edgeList[decide.options[0]].weight;
     if (kind === "wrong-way") return frame.current !== null && frame.via.get(frame.current) === pick;
     if (family !== "dijkstra" && family !== "prims") return true;
     const current = frame.current!;
@@ -336,7 +353,7 @@ function luresAt(algorithmId: string, events: readonly AlgorithmEvent[], at: num
  */
 function interesting(algorithmId: string, input: AlgorithmInput, loop: Loop): boolean {
   const adapter = algorithmRegistry.get(algorithmId)!;
-  const runs = everyRun((choose) => adapter.events(input, choose));
+  const runs = everyRun((choose) => adapter.events(input, choose), algorithmId === "kruskal" ? KRUSKAL_RUN_LIMIT : RUN_LIMIT);
   if (!runs) return false;
   if (algorithmId === "cycle-detection" && runs.some((events) => loopIn(events) !== loop)) return false;
   const graph = input.adjacencyList;

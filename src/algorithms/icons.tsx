@@ -173,3 +173,20 @@ export const TopologicalSortIcon = ({ className }: IconProps) => (
     <path d="M16.6 13.2 L19 14.5 L19.9 11.9" />
   </svg>
 );
+
+/** Kruskal's: separate pieces joined by their cheapest edges, the edge that would close a loop left dashed */
+export const KruskalIcon = ({ className }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    {/* Nodes, a square of four */}
+    <circle cx="5" cy="5" r="2" fill="currentColor" />
+    <circle cx="19" cy="5" r="2" fill="currentColor" />
+    <circle cx="5" cy="19" r="2" fill="currentColor" />
+    <circle cx="19" cy="19" r="2" />
+    {/* Tree edges */}
+    <path d="M7.5 5 H16.5" />
+    <path d="M5 7.5 V16.5" />
+    <path d="M19 7.5 V16.5" />
+    {/* The edge that would close a loop, skipped */}
+    <path d="M7.5 19 H16.5" strokeDasharray="2 2.5" />
+  </svg>
+);

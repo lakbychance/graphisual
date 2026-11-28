@@ -340,6 +340,35 @@ export function generateTopologicalDag(): GeneratedGraph {
 }
 
 /**
+ * A small weighted undirected graph for Kruskal's, lettered A to F in three columns of two (centered
+ * at origin, narrow enough for a phone), no edge crossing another. Two edges tie at 3, and an edge at
+ * 5 comes up after its ends are joined, so the run skips one before it is done (weights from 2, as
+ * the canvas leaves a weight of 1 unwritten).
+ */
+export function generateKruskalGraph(): GeneratedGraph {
+  return graphFromSpec({
+    nodes: [
+      { x: -170, y: -95, label: "A" },
+      { x: 0, y: -95, label: "B" },
+      { x: -170, y: 95, label: "C" },
+      { x: 170, y: -95, label: "D" },
+      { x: 0, y: 95, label: "E" },
+      { x: 170, y: 95, label: "F" },
+    ],
+    edges: [
+      { from: 0, to: 1, weight: 5, directed: false },
+      { from: 0, to: 2, weight: 3, directed: false },
+      { from: 2, to: 1, weight: 2, directed: false },
+      { from: 1, to: 3, weight: 6, directed: false },
+      { from: 2, to: 4, weight: 10, directed: false },
+      { from: 3, to: 4, weight: 3, directed: false },
+      { from: 3, to: 5, weight: 4, directed: false },
+      { from: 4, to: 5, weight: 7, directed: false },
+    ],
+  });
+}
+
+/**
  * Generate a complete graph (K_n, centered at origin)
  */
 export function generateComplete(nodeCount: number): GeneratedGraph {

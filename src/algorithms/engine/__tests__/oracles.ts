@@ -111,3 +111,34 @@ export function isTopologicalOrder({ adjacencyList }: AlgorithmInput, order: rea
   if (at.size !== order.length || at.size !== adjacencyList.size || [...adjacencyList.keys()].some((id) => !at.has(id))) return false;
   return [...adjacencyList.values()].flat().every(({ from, to }) => at.get(from)! < at.get(to)!);
 }
+
+/**
+ * Weight of a minimum spanning forest of an undirected graph (a minimum spanning tree of each piece),
+ * and how many pieces it has, by plain Prim's from each node no tree has reached yet: independent of
+ * Kruskal's, which it checks. Nodes are the input's nodes and the ends of its edges.
+ */
+export function primForest({ adjacencyList, nodes }: AlgorithmInput): { weight: number; pieces: number } {
+  const ids = new Set([...nodes.map((n) => n.id), ...adjacencyList.keys()]);
+  const reached = new Set<number>();
+  let weight = 0;
+  let pieces = 0;
+  for (const root of ids) {
+    if (reached.has(root)) continue;
+    pieces += 1;
+    reached.add(root);
+    const tree = [root];
+    for (;;) {
+      let best: { to: number; weight: number } | null = null;
+      for (const from of tree) {
+        for (const e of adjacencyList.get(from) ?? []) {
+          if (!reached.has(e.to) && (best === null || e.weight < best.weight)) best = e;
+        }
+      }
+      if (best === null) break;
+      reached.add(best.to);
+      tree.push(best.to);
+      weight += best.weight;
+    }
+  }
+  return { weight, pieces };
+}

@@ -38,6 +38,52 @@ export interface CountEvent extends Tagged {
 }
 
 /**
+ * Kruskal's begins by listing every edge once, cheapest first, edges that cost the same in name
+ * order (each by its two ends' names, the end first by name as `from`; a self-loop has one end).
+ * Its other events name an edge by its place in this list.
+ */
+export interface EdgesEvent extends Tagged {
+  type: "edges";
+  edges: WeightedEdge[];
+}
+
+/** Kruskal's puts every node in a group of its own: `nodes`, in name order. */
+export interface GroupsEvent extends Tagged {
+  type: "groups";
+  nodes: number[];
+}
+
+/**
+ * Kruskal's adds edge number `edge` of its list (from – to, at `weight`) to the tree: its ends were
+ * in two different groups, `groups` (each in name order, `from`'s first), which become one. `tied`,
+ * when the run could have added any of several edges here, lists them all (places in the list, this
+ * one among them; the `decide` event before this one holds the same choice).
+ */
+export interface UnionEvent extends Tagged {
+  type: "union";
+  edge: number;
+  from: number;
+  to: number;
+  weight: number;
+  groups: [number[], number[]];
+  tied?: number[];
+}
+
+/**
+ * Kruskal's skips edge number `edge` of its list: its ends are in one group already, joined by
+ * `path` (from `from` to `to` along the tree's edges; just `[from]` for a self-loop), so it would
+ * close a loop.
+ */
+export interface ClosesEvent extends Tagged {
+  type: "closes";
+  edge: number;
+  from: number;
+  to: number;
+  weight: number;
+  path: number[];
+}
+
+/**
  * A node joins the frontier (queue, stack or priority queue), with its value if the algorithm keeps one.
  * `from` is the node whose edge discovered it (absent for the start). With `moved`, the node was
  * already waiting: it moves to the back of the frontier (the top of a stack) with `from` as its new parent.
@@ -155,15 +201,16 @@ export interface FinishEvent extends Tagged {
 /**
  * What a decision chooses: `next` is the node taken next (from the frontier, or, in cycle
  * detection, the neighbour whose edge is followed next: one to go into, or one in progress that
- * closes a loop); `restart` is where a new search starts.
+ * closes a loop); `restart` is where a new search starts; `edge` is the edge Kruskal's adds next,
+ * by its place in the run's list of edges (`EdgesEvent`), as are the decision's options.
  */
-export type DecideKind = "next" | "restart";
+export type DecideKind = "next" | "restart" | "edge";
 
 /**
  * The run chose `node` among `options`: every choice that is valid here, in the order the run
  * considers them (the default policy takes the first). A decision changes nothing on its own: the
- * change right after it takes `node` (a settle, a start, or the loop found on the edge back to it),
- * and the decision belongs to that step.
+ * change right after it takes `node` (a settle, a start, the loop found on the edge back to it, or
+ * the edge Kruskal's adds), and the decision belongs to that step.
  * Runs report every decision, forced ones (a single option) included.
  */
 export interface DecideEvent extends Tagged {
@@ -245,7 +292,22 @@ export interface SortAnswer extends Tagged {
   stuck: number[];
 }
 
-export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer | SortAnswer;
+/**
+ * Kruskal's answer: the edges it added, in order, and their total weight. The graph is in `pieces`
+ * pieces; with more than one, the edges make a forest, a tree for each piece. `alone` lists the nodes
+ * no edge touches, in name order: each is a tree of its own, with no edge.
+ */
+export interface ForestAnswer extends Tagged {
+  type: "answer";
+  kind: "forest";
+  edges: WeightedEdge[];
+  total: number;
+  pieces: number;
+  alone: number[];
+}
+
+export type AnswerEvent = RouteAnswer | OrderAnswer | TreeAnswer | CycleAnswer | SortAnswer | ForestAnswer;
 
 export type AlgorithmEvent =
-  | StartEvent | CountEvent | DecideEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent | ClassifyEvent | FinishEvent | AnswerEvent;
+  | StartEvent | CountEvent | EdgesEvent | GroupsEvent | DecideEvent | EnqueueEvent | RelaxEvent | SkipEvent | SettleEvent
+  | UnionEvent | ClosesEvent | ClassifyEvent | FinishEvent | AnswerEvent;

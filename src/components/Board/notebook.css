@@ -176,7 +176,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--panel-bg);
+  background: var(--panel-bg-solid);
   text-align: left;
   font-weight: 500;
   font-size: 11px;
@@ -187,14 +187,28 @@
 .nb-table td { padding: 5px 8px; border-bottom: 1px solid var(--color-divider); }
 .nb-table tr[data-role="unseen"] td { color: var(--color-text-muted); }
 .nb-table tr[data-changed] td { background: var(--color-interactive-hover); }
+/* Kruskal's: an edge it skipped reads quieter. */
+.nb-table tr[data-skipped] td { color: var(--color-text-muted); }
 .nb-table tr[data-changed] td:first-child { box-shadow: inset 3px 0 0 var(--color-state-change); }
 .nb-table s { color: var(--color-text-muted); margin-right: 2px; }
 .nb-table-status { font-size: 12px; color: var(--color-text-muted); }
 
-/* Topological sort: the order so far and the ready list, pinned over its table, which scrolls on its own. */
-.nb-sort-page { overflow: hidden; }
+/*
+ * Topological sort and Kruskal's on a roomy screen: their key lines (the order and the ready list; the
+ * groups and the total) pinned over a table that scrolls on its own and always keeps room for its
+ * header and one whole row, the lit one, kept in view. Elsewhere the State tab holds only the key
+ * lines (D73), and when they run past the page it scrolls, its foot fading while more sits below.
+ */
+.nb-sort-page { overflow-y: auto; }
 .nb-sort { height: 100%; min-height: 0; display: flex; flex-direction: column; }
-.nb-sort-rows { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; border-radius: var(--radius-xs); }
+.nb-sort-rows {
+  flex: 1 1 0;
+  /* The header (about 24px) and one row (about 30px), with the 3px kept round a lit row. */
+  min-height: 62px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-xs);
+}
 .nb-sort-rows:focus-visible { outline: var(--focus-width) solid var(--focus-color); outline-offset: calc(-1 * var(--focus-width)); }
 .nb-sort-lists {
   flex: none;
@@ -202,11 +216,22 @@
   grid-template-columns: auto 1fr;
   align-items: baseline;
   gap: 4px 10px;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0 8px;
   font-size: 13px;
 }
+.nb-sort > .nb-sort-lists { margin-bottom: 8px; }
 .nb-sort-lists dd { margin: 0; color: var(--color-text); overflow-wrap: anywhere; }
+/*
+ * More below: the page's foot fades out (gone at the end of the scroll), its last few pixels clear.
+ * The content itself fades, so whatever lies behind it, the panel's grain or the sheet's grid, shows
+ * through and no colour has to match. A mask sits on the page's box, not its scrolled content, so the
+ * fade stays at the foot.
+ */
+.nb-page[data-more] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent calc(100% - 4px));
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent calc(100% - 4px));
+}
 
 /* -------------------------------------------------------------- scrubber */
 
@@ -257,10 +282,10 @@
 
 /* --------------------------------------------------------- short windows */
 
-/* A phone on its side: packed tighter, and a long sentence scrolls past four lines so the page keeps room. */
+/* A phone on its side: packed tighter; the sentence stays whole (D73). */
 @media (max-height: 560px) {
   .nb { padding: 12px; gap: 8px; }
-  .nb-words { font-size: 14px; min-height: 0; max-height: 5.8em; overflow-y: auto; overscroll-behavior: contain; }
+  .nb-words { font-size: 14px; min-height: 0; }
   .nb-tabs { gap: 6px; }
   .nb-page { min-height: 44px; }
 }
@@ -269,8 +294,8 @@
 
 @media (max-width: 767px) {
   .nb { padding: 12px; gap: 8px; }
-  /* A long sentence scrolls past four lines, so the page below keeps room for its lit line. */
-  .nb-words { font-size: 14px; min-height: 0; max-height: 5.8em; overflow-y: auto; overscroll-behavior: contain; }
+  /* The sentence stays whole (D73); the page below takes what room is left, and scrolls. */
+  .nb-words { font-size: 14px; min-height: 0; }
   .nb-tabs { gap: 6px; }
   .nb-page { min-height: 44px; }
 }

@@ -250,6 +250,8 @@
 
   /* panel: a plate lying on the canvas */
   --panel-bg: var(--color-surface);
+  /* The panel's colour as one solid colour (where a fade ends, or a pinned header sits over scrolling rows). */
+  --panel-bg-solid: var(--color-surface);
   --panel-fg: var(--color-text);
   --panel-shadow: var(--shadow-premium);
   --popup-shadow: var(--panel-shadow);
@@ -483,6 +485,7 @@
   --legend-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 
   --panel-bg: #f7f4ee;
+  --panel-bg-solid: #f7f4ee;
   --panel-texture: none;
   --panel-texture-size: auto;
   --panel-texture-opacity: 0;
@@ -912,6 +915,7 @@
   --canvas-blend: normal;
 
   --panel-bg: linear-gradient(180deg, #27292c 0%, #222427 100%);
+  --panel-bg-solid: #222427; /* the gradient's foot */
   --panel-texture: var(--tex-fine);
   --panel-texture-size: 200px 200px;
   --panel-texture-opacity: 0.22;
@@ -1373,6 +1377,7 @@
 
   /* Plates are tracing film laid over the sheet: the grid shows through, softened. */
   --panel-bg: rgba(33, 92, 153, 0.86);
+  --panel-bg-solid: #205a97; /* the film over the sheet (--color-paper) */
   --panel-backdrop: blur(3px);
   --panel-texture: none;
   --panel-texture-size: auto;

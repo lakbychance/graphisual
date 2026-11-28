@@ -8,6 +8,7 @@ import { calculateAccurateCoords } from "../utils/geometry/calc";
 import { canCreateEdge } from "../utils/graph/edgeUtils";
 import { findToNodeForTouchBasedDevices } from "../utils/geometry/calc";
 import { DRAG_THRESHOLD, TIMING } from "../constants/ui";
+import { selectIsAwaitingEdgePick, useGraphStore } from "../store/graphStore";
 
 interface DragState {
   type: 'none' | 'pending-pan' | 'pan' | 'pending-node' | 'node' | 'box-select' | 'edge-create';
@@ -106,7 +107,8 @@ export function useCanvasInteractions({
     setHoveredBodyNodeId(hitNodeBody?.id ?? null);
     hoveredNodeIdRef.current = newHoveredId;
 
-    if (!hitNode && !isVisualizing) {
+    // Edges answer the pointer while editing, and while Kruskal's Run it waits for the learner to pick one.
+    if (!hitNode && (!isVisualizing || selectIsAwaitingEdgePick(useGraphStore.getState()))) {
       const hitEdge = hitTestEdges(world.x, world.y, edges);
       if (hitEdge) {
         setHoveredEdge({ sourceNodeId: hitEdge.sourceNodeId, toNodeId: hitEdge.edge.to });
@@ -146,6 +148,15 @@ export function useCanvasInteractions({
       });
       isDraggingRef.current = false;
       return;
+    }
+
+    // Kruskal's Run it: a click on an edge picks it
+    if (!hitNode && isVisualizing && selectIsAwaitingEdgePick(useGraphStore.getState())) {
+      const hitEdge = hitTestEdges(world.x, world.y, edges);
+      if (hitEdge) {
+        useGraphStore.getState().pickEdge(hitEdge.sourceNodeId, hitEdge.edge.to);
+        return;
+      }
     }
 
     // During a run a click anywhere on a node's hit area picks it (Run it)
